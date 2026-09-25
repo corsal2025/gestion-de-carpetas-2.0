@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Raúl Salazar">
+<title>Arquitectura SGL</title>
+<style>
+:root{--bg:#f7f8fa;--card:#fff;--fg:#1c2330;--mut:#5b6575;--acc:#1d5fd1;--bd:#dde2ea}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11151c;--card:#1a2029;--fg:#e6e9ee;--mut:#9aa4b2;--acc:#6ea0ff;--bd:#2b3340}}
+:root[data-theme="dark"]{--bg:#11151c;--card:#1a2029;--fg:#e6e9ee;--mut:#9aa4b2;--acc:#6ea0ff;--bd:#2b3340}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+header,main,footer{max-width:1100px;margin:auto;padding:16px}
+h1{margin:0;font-size:22px}.sub{color:var(--mut)}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+nav button{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:6px 12px;border-radius:6px;cursor:pointer}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px;overflow-x:auto}
+.desc{color:var(--mut);margin:0 0 12px}
+#info{margin-top:12px;min-height:3em}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--bd);padding:6px;text-align:left;vertical-align:top}
+footer{color:var(--mut);font-size:13px;border-top:1px solid var(--bd)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sistema de Gestión de Licencias de Conducir</h1>
+  <div class="sub">Diagrama vivo de arquitectura · Creado por <b>Raúl Salazar</b> · <span id="ver"></span></div>
+</header>
+<main>
+  <nav id="tabs"></nav>
+  <div class="card">
+    <p class="desc" id="d"></p>
+    <div id="diag"></div>
+    <div id="info" class="sub">Haz clic en un componente para ver su detalle.</div>
+  </div>
+  <h2>Historial de cambios</h2>
+  <div class="card"><table id="log"><tr><th>Versión</th><th>Fecha</th><th>Cambio</th></tr></table></div>
+</main>
+<footer>© 2026 Raúl Salazar — Creador y autor del sistema. Todos los derechos reservados.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+/* =====================================================================
+   PARA ACTUALIZAR: editar solo este bloque DATA y agregar entrada en CHANGELOG.
+   ===================================================================== */
+const VERSION = "v0.1.0 (planificación)";
+const CHANGELOG = [
+  ["v0.1.0","2026-09-25","Arquitectura inicial: .NET 10, ASP.NET Core, EF Core, SQL Server, 3 sedes."]
+];
+const INFO = {
+  U:"Funcionarios, supervisores y administrador. Acceso por navegador desde cada sede.",
+  WEB:"Interfaz web (Blazor Server). Formularios con listas cerradas para estado y decisión.",
+  AUTH:"ASP.NET Core Identity. Roles: Admin, Supervisor, Funcionario. Cada usuario limitado a su sede.",
+  API:"Capa de aplicación: casos de uso (registrar carpeta, cambiar estado, decidir, importar).",
+  DOM:"Dominio: entidades Carpeta, Ciudadano, Sede, Estado, Decisión. Reglas de negocio puras.",
+  INF:"Infraestructura: EF Core + repositorios. Único lugar que conoce la base de datos.",
+  DB:"SQL Server. Local por ahora; migrará a servidor municipal sin cambios de código.",
+  AUD:"Auditoría: registra quién cambió qué y cuándo. Requisito de trazabilidad.",
+  IMP:"Importador Excel: migra 2026 normalizando valores (EXÁMEN/EXAMEN, espacios).",
+  DASH:"Dashboard: otorgados/denegados, pendientes, tiempos por sede.",
+  XLS:"Excel histórico. NUNCA en el repositorio (datos personales)."
+};
+const VIEWS = {
+  "Arquitectura": {d:"Capas (Clean Architecture). Dependencias apuntan hacia el dominio.", g:`
+flowchart TB
+  U([Usuarios 3 sedes]) --> WEB[Web Blazor]
+  WEB --> AUTH[Autenticación y roles]
+  WEB --> API[Aplicación / casos de uso]
+  API --> DOM[Dominio]
+  INF[Infraestructura EF Core] --> DOM
+  API --> INF
+  INF --> DB[(SQL Server)]
+  API --> AUD[Auditoría]
+  AUD --> DB
+  XLS[/Excel 2026/] --> IMP[Importador] --> API
+  API --> DASH[Dashboard]`},
+  "Flujo de carpeta": {d:"Ciclo de vida de una carpeta, desde citación hasta decisión final.", g:`
+stateDiagram-v2
+  [*] --> Citada
+  Citada --> Revisión: idoneidad moral
+  Revisión --> Alertada
+  Revisión --> SubidaCONASET
+  Citada --> PrimeraLicencia
+  SubidaCONASET --> EsperaExamen
+  PrimeraLicencia --> EsperaExamen
+  Citada --> CambioDomicilio
+  CambioDomicilio --> SubidaCONASET
+  EsperaExamen --> ClasePendiente
+  EsperaExamen --> Otorgado
+  EsperaExamen --> ParaDenegar
+  ParaDenegar --> Denegado
+  Alertada --> ParaDenegar
+  Otorgado --> [*]
+  Denegado --> [*]`},
+  "Modelo de datos": {d:"Entidades principales. Reemplaza hojas separadas por mes y sede.", g:`
+erDiagram
+  SEDE ||--o{ CARPETA : atiende
+  CIUDADANO ||--o{ CARPETA : tiene
+  CARPETA ||--o{ HISTORIAL : registra
+  USUARIO ||--o{ HISTORIAL : realiza
+  SEDE ||--o{ USUARIO : pertenece
+  CARPETA { date FechaCitacion date FechaSubida string Estado string Decision string IdoneidadMoral }
+  CIUDADANO { string Rut string Nombre string Apellido }
+  HISTORIAL { datetime Fecha string Campo string Anterior string Nuevo }
+  USUARIO { string Email string Rol }`},
+  "Despliegue": {d:"Hoy local; mañana servidor municipal. Misma aplicación.", g:`
+flowchart LR
+  subgraph Hoy
+    PC[PC local] --> SQLL[(SQL Server local)]
+  end
+  subgraph Futuro
+    S1[Av. Argentina] & S2[Placilla] & S3[Merc. Puerto] --> SRV[Servidor municipal IIS] --> SQLS[(SQL Server)]
+  end
+  Hoy -. migración .-> Futuro`}
+};
+/* ===================================================================== */
+
+mermaid.initialize({startOnLoad:false,securityLevel:"loose",
+  theme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"default"});
+window.show = id => document.getElementById("info").innerHTML = "<b>"+id+":</b> "+(INFO[id]||"");
+document.getElementById("ver").textContent = VERSION;
+const log = document.getElementById("log");
+CHANGELOG.slice().reverse().forEach(r=>{const tr=log.insertRow();r.forEach(c=>tr.insertCell().textContent=c)});
+const tabs = document.getElementById("tabs");
+async function render(name){
+  [...tabs.children].forEach(b=>b.classList.toggle("on",b.textContent===name));
+  const v = VIEWS[name]; document.getElementById("d").textContent = v.d;
+  let g = v.g;
+  if (g.trim().startsWith("flowchart")) g += "\n" + Object.keys(INFO).filter(k=>new RegExp("\\b"+k+"[\\[\\(/]").test(g)).map(k=>`  click ${k} call show("${k}")`).join("\n");
+  const {svg,bindFunctions} = await mermaid.render("m"+Date.now(), g);
+  const el = document.getElementById("diag"); el.innerHTML = svg; bindFunctions && bindFunctions(el);
+}
+Object.keys(VIEWS).forEach(n=>{const b=document.createElement("button");b.textContent=n;b.onclick=()=>render(n);tabs.appendChild(b)});
+render("Arquitectura");
+</script>
+</body>
+</html>
