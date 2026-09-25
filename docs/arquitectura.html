@@ -101,10 +101,28 @@ erDiagram
   CARPETA ||--o{ HISTORIAL : registra
   USUARIO ||--o{ HISTORIAL : realiza
   SEDE ||--o{ USUARIO : pertenece
-  CARPETA { date FechaCitacion date FechaSubida string Estado string Decision string IdoneidadMoral }
-  CIUDADANO { string Rut string Nombre string Apellido }
-  HISTORIAL { datetime Fecha string Campo string Anterior string Nuevo }
-  USUARIO { string Email string Rol }`},
+  CARPETA {
+    date FechaCitacion
+    date FechaSubida
+    string Estado
+    string Decision
+    string IdoneidadMoral
+  }
+  CIUDADANO {
+    string Rut
+    string Nombre
+    string Apellido
+  }
+  HISTORIAL {
+    datetime Fecha
+    string Campo
+    string Anterior
+    string Nuevo
+  }
+  USUARIO {
+    string Email
+    string Rol
+  }`},
   "Despliegue": {d:"Hoy local; mañana servidor municipal. Misma aplicación.", g:`
 flowchart LR
   subgraph Hoy
