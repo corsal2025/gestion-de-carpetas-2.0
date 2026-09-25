@@ -1,0 +1,13 @@
+# DATOS PERSONALES - NUNCA versionar (Ley 19.628 / 21.719)
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+data/
+*.db
+*.sqlite
+.env
+.env.*
+node_modules/
+__pycache__/
+.venv/
