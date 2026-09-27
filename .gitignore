@@ -5,9 +5,20 @@
 *.csv
 data/
 *.db
+*.db-*
 *.sqlite
 .env
 .env.*
 node_modules/
 __pycache__/
 .venv/
+
+# .NET build output
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Local configuration
+appsettings.Local.json
