@@ -45,21 +45,22 @@ footer{color:var(--mut);font-size:13px;border-top:1px solid var(--bd)}
 /* =====================================================================
    PARA ACTUALIZAR: editar solo este bloque DATA y agregar entrada en CHANGELOG.
    ===================================================================== */
-const VERSION = "v0.1.0 (planificación)";
+const VERSION = "v0.2.0 (módulo carpetas)";
 const CHANGELOG = [
-  ["v0.1.0","2026-09-25","Arquitectura inicial: .NET 10, ASP.NET Core, EF Core, SQL Server, 3 sedes."]
+  ["v0.1.0","2026-09-25","Arquitectura inicial: .NET 10, ASP.NET Core, EF Core, SQL Server, 3 sedes."],
+  ["v0.2.0","2026-09-27","Módulo núcleo de carpetas implementado: dominio con máquina de estados y RUT, casos de uso, EF Core con SQLite (proveedor configurable), UI Blazor. Sin autenticación, dashboard ni importador (existen en otros sistemas)."]
 ];
 const INFO = {
-  U:"Funcionarios, supervisores y administrador. Acceso por navegador desde cada sede.",
+  U:"Funcionarios de las 3 sedes. En v0.2.0 el autor de cada cambio se ingresa como texto (sin login).",
   WEB:"Interfaz web (Blazor Server). Formularios con listas cerradas para estado y decisión.",
-  AUTH:"ASP.NET Core Identity. Roles: Admin, Supervisor, Funcionario. Cada usuario limitado a su sede.",
-  API:"Capa de aplicación: casos de uso (registrar carpeta, cambiar estado, decidir, importar).",
-  DOM:"Dominio: entidades Carpeta, Ciudadano, Sede, Estado, Decisión. Reglas de negocio puras.",
+  AUTH:"Fuera de este módulo: autenticación, usuarios y roles viven en otros sistemas.",
+  API:"Capa de aplicación: registrar carpeta, cambiar estado, editar, listar (búsqueda/filtros/paginado), obtener.",
+  DOM:"Dominio: Carpeta, Ciudadano (RUT con dígito verificador), Sede, Estado (máquina de estados), Decisión, Historial. Reglas puras.",
   INF:"Infraestructura: EF Core + repositorios. Único lugar que conoce la base de datos.",
-  DB:"SQL Server. Local por ahora; migrará a servidor municipal sin cambios de código.",
-  AUD:"Auditoría: registra quién cambió qué y cuándo. Requisito de trazabilidad.",
-  IMP:"Importador Excel: migra 2026 normalizando valores (EXÁMEN/EXAMEN, espacios).",
-  DASH:"Dashboard: otorgados/denegados, pendientes, tiempos por sede.",
+  DB:"SQLite por ahora (sgl.db local, no versionado). Proveedor configurable (Database:Provider = Sqlite|SqlServer); SQL Server requiere su propio set de migraciones.",
+  AUD:"Historial por carpeta: fecha, autor (texto), campo, valor anterior y nuevo. Se escribe en cada cambio.",
+  IMP:"Importador Excel: pendiente, fuera de v0.2.0.",
+  DASH:"Dashboard: fuera de este módulo (existe en otro sistema).",
   XLS:"Excel histórico. NUNCA en el repositorio (datos personales)."
 };
 const VIEWS = {
@@ -71,7 +72,7 @@ flowchart TB
   API --> DOM[Dominio]
   INF[Infraestructura EF Core] --> DOM
   API --> INF
-  INF --> DB[(SQL Server)]
+  INF --> DB[(SQLite / SQL Server)]
   API --> AUD[Auditoría]
   AUD --> DB
   XLS[/Excel 2026/] --> IMP[Importador] --> API
@@ -126,7 +127,7 @@ erDiagram
   "Despliegue": {d:"Hoy local; mañana servidor municipal. Misma aplicación.", g:`
 flowchart LR
   subgraph Hoy
-    PC[PC local] --> SQLL[(SQL Server local)]
+    PC[PC local] --> SQLL[(SQLite local)]
   end
   subgraph Futuro
     S1[Av. Argentina] & S2[Placilla] & S3[Merc. Puerto] --> SRV[Servidor municipal IIS] --> SQLS[(SQL Server)]
