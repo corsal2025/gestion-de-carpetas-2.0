@@ -1,0 +1,83 @@
+@page "/carpetas"
+@inject CarpetaService Carpetas
+
+<PageTitle>Carpetas</PageTitle>
+
+<h1>Carpetas</h1>
+
+<form class="filters" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
+    <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar" maxlength="100" />
+    <select @bind="sede" aria-label="Sede">
+        <option value="">Todas las sedes</option>
+        @foreach (var s in Enum.GetValues<Sede>())
+        {
+            <option value="@s">@Labels.Of(s)</option>
+        }
+    </select>
+    <select @bind="estado" aria-label="Estado">
+        <option value="">Todos los estados</option>
+        @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+        {
+            <option value="@e">@Labels.Of(e)</option>
+        }
+    </select>
+    <button type="submit">Buscar</button>
+    <a class="button secondary" href="carpetas/nueva">+ Nueva carpeta</a>
+</form>
+
+@if (resultado is null)
+{
+    <p>Cargando…</p>
+}
+else if (resultado.Total == 0)
+{
+    <p class="muted">No hay carpetas que coincidan con la búsqueda.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>RUT</th><th>Nombre</th><th>Sede</th><th>Citación</th><th>Estado</th><th>Decisión</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var c in resultado.Items)
+            {
+                <tr>
+                    <td><a href="carpetas/@c.Id">@c.Rut</a></td>
+                    <td>@c.NombreCompleto</td>
+                    <td>@Labels.Of(c.Sede)</td>
+                    <td>@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                    <td><span class="@Labels.Css(c.Estado)">@Labels.Of(c.Estado)</span></td>
+                    <td>@Labels.Of(c.Decision)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="pager">
+        <button disabled="@(page <= 1)" @onclick="() => IrAsync(page - 1)">‹ Anterior</button>
+        <span>Página @resultado.Page de @resultado.TotalPages · @resultado.Total carpetas</span>
+        <button disabled="@(page >= resultado.TotalPages)" @onclick="() => IrAsync(page + 1)">Siguiente ›</button>
+    </div>
+}
+
+@code {
+    private string? texto;
+    private Sede? sede;
+    private EstadoCarpeta? estado;
+    private int page = 1;
+    private PagedResult<CarpetaResumenDto>? resultado;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private Task BuscarAsync() => IrAsync(1);
+
+    private Task IrAsync(int nuevaPagina)
+    {
+        page = nuevaPagina;
+        return CargarAsync();
+    }
+
+    private async Task CargarAsync() =>
+        resultado = await Carpetas.ListarAsync(new ListarCarpetasQuery(texto, sede, estado, page));
+}

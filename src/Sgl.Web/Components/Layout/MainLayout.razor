@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+@inject AutorState Autor
+
+<header class="topbar">
+    <a class="brand" href="carpetas">SGL · Carpetas de licencias</a>
+    <nav>
+        <NavLink href="carpetas" Match="NavLinkMatch.All">Carpetas</NavLink>
+        <NavLink href="carpetas/nueva">Nueva carpeta</NavLink>
+    </nav>
+    <label class="autor">
+        Funcionario:
+        <input @bind="Autor.Nombre" @bind:event="oninput" placeholder="Su nombre" maxlength="100" />
+    </label>
+</header>
+
+<main class="content">
+    @Body
+</main>
+
+<footer class="footer">Desarrollado por Raúl Salazar</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">✕</span>
+</div>

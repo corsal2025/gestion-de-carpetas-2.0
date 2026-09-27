@@ -1,0 +1,89 @@
+@page "/carpetas/nueva"
+@using System.ComponentModel.DataAnnotations
+@inject CarpetaService Carpetas
+@inject AutorState Autor
+@inject NavigationManager Nav
+
+<PageTitle>Nueva carpeta</PageTitle>
+
+<h1>Nueva carpeta</h1>
+
+<EditForm Model="model" OnValidSubmit="GuardarAsync" FormName="nueva-carpeta" class="card form">
+    <DataAnnotationsValidator />
+
+    <label>RUT
+        <InputText @bind-Value="model.Rut" placeholder="12.345.678-5" />
+        <ValidationMessage For="() => model.Rut" />
+    </label>
+    <label>Nombre
+        <InputText @bind-Value="model.Nombre" />
+        <ValidationMessage For="() => model.Nombre" />
+    </label>
+    <label>Apellido
+        <InputText @bind-Value="model.Apellido" />
+        <ValidationMessage For="() => model.Apellido" />
+    </label>
+    <label>Sede
+        <InputSelect @bind-Value="model.Sede">
+            @foreach (var s in Enum.GetValues<Sede>())
+            {
+                <option value="@s">@Labels.Of(s)</option>
+            }
+        </InputSelect>
+    </label>
+    <label>Fecha de citación
+        <InputDate @bind-Value="model.FechaCitacion" />
+    </label>
+
+    @if (error is not null)
+    {
+        <p class="error" role="alert">@error</p>
+    }
+
+    <div class="actions">
+        <button type="submit">Registrar</button>
+        <a class="button secondary" href="carpetas">Cancelar</a>
+    </div>
+</EditForm>
+
+@code {
+    private readonly FormModel model = new();
+    private string? error;
+
+    private async Task GuardarAsync()
+    {
+        error = null;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de registrar.";
+            return;
+        }
+
+        try
+        {
+            var id = await Carpetas.RegistrarAsync(new RegistrarCarpetaCommand(
+                model.Rut, model.Nombre, model.Apellido, model.Sede, model.FechaCitacion, Autor.Nombre));
+            Nav.NavigateTo($"carpetas/{id}");
+        }
+        catch (DomainException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private sealed class FormModel
+    {
+        [Required(ErrorMessage = "El RUT es obligatorio.")]
+        public string Rut { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre es obligatorio."), MaxLength(Ciudadano.MaxNameLength)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es obligatorio."), MaxLength(Ciudadano.MaxNameLength)]
+        public string Apellido { get; set; } = string.Empty;
+
+        public Sede Sede { get; set; } = Sede.AvArgentina;
+
+        public DateOnly FechaCitacion { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+    }
+}

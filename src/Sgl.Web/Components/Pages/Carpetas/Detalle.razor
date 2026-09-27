@@ -1,0 +1,173 @@
+@page "/carpetas/{Id:guid}"
+@inject CarpetaService Carpetas
+@inject AutorState Autor
+
+<PageTitle>Carpeta</PageTitle>
+
+@if (notFound)
+{
+    <h1>Carpeta no encontrada</h1>
+    <p><a href="carpetas">Volver al listado</a></p>
+}
+else if (carpeta is null)
+{
+    <p>Cargando…</p>
+}
+else
+{
+    <h1>@carpeta.Nombre @carpeta.Apellido <small class="muted">@carpeta.Rut</small></h1>
+
+    @if (error is not null)
+    {
+        <p class="error" role="alert">@error</p>
+    }
+    @if (mensaje is not null)
+    {
+        <p class="ok-msg" role="status">@mensaje</p>
+    }
+
+    <div class="grid">
+        <section class="card">
+            <h2>Estado</h2>
+            <p>
+                Actual: <span class="@Labels.Css(carpeta.Estado)">@Labels.Of(carpeta.Estado)</span>
+                · Decisión: <strong>@Labels.Of(carpeta.Decision)</strong>
+            </p>
+            @if (carpeta.SiguientesEstados.Count == 0)
+            {
+                <p class="muted">No hay transiciones disponibles desde este estado.</p>
+            }
+            else
+            {
+                <div class="inline">
+                    <select @bind="nuevoEstado" aria-label="Nuevo estado">
+                        <option value="">Seleccione el nuevo estado…</option>
+                        @foreach (var e in carpeta.SiguientesEstados)
+                        {
+                            <option value="@e">@Labels.Of(e)</option>
+                        }
+                    </select>
+                    <button disabled="@(nuevoEstado is null)" @onclick="CambiarEstadoAsync">Cambiar estado</button>
+                </div>
+            }
+        </section>
+
+        <section class="card">
+            <h2>Datos de la carpeta</h2>
+            <div class="form">
+                <label>Sede
+                    <select @bind="edit.Sede">
+                        @foreach (var s in Enum.GetValues<Sede>())
+                        {
+                            <option value="@s">@Labels.Of(s)</option>
+                        }
+                    </select>
+                </label>
+                <label>Fecha de citación <input type="date" @bind="edit.FechaCitacion" /></label>
+                <label>Fecha de subida <input type="date" @bind="edit.FechaSubida" /></label>
+                <label>Idoneidad moral <input @bind="edit.IdoneidadMoral" maxlength="@Carpeta.MaxIdoneidadLength" /></label>
+                <div class="actions"><button @onclick="GuardarAsync">Guardar cambios</button></div>
+            </div>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Historial de cambios</h2>
+        <table>
+            <thead><tr><th>Fecha (UTC)</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
+            <tbody>
+                @foreach (var h in carpeta.Historial)
+                {
+                    <tr>
+                        <td>@h.Fecha.ToString("dd-MM-yyyy HH:mm")</td>
+                        <td>@h.Usuario</td>
+                        <td>@Labels.Campo(h.Campo)</td>
+                        <td>@h.Anterior</td>
+                        <td>@h.Nuevo</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    <p><a href="carpetas">‹ Volver al listado</a></p>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private CarpetaDetalleDto? carpeta;
+    private EstadoCarpeta? nuevoEstado;
+    private EditModel edit = new();
+    private bool notFound;
+    private string? error;
+    private string? mensaje;
+
+    protected override Task OnParametersSetAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            carpeta = await Carpetas.ObtenerAsync(Id);
+            nuevoEstado = null;
+            edit = new EditModel
+            {
+                Sede = carpeta.Sede,
+                FechaCitacion = carpeta.FechaCitacion,
+                FechaSubida = carpeta.FechaSubida,
+                IdoneidadMoral = carpeta.IdoneidadMoral,
+            };
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
+    }
+
+    private Task CambiarEstadoAsync() =>
+        nuevoEstado is { } estado
+            ? EjecutarAsync(() => Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre)), "Estado actualizado.")
+            : Task.CompletedTask;
+
+    private Task GuardarAsync() =>
+        EjecutarAsync(
+            () => Carpetas.EditarAsync(new EditarCarpetaCommand(
+                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre)),
+            "Cambios guardados.");
+
+    private async Task EjecutarAsync(Func<Task> action, string ok)
+    {
+        error = null;
+        mensaje = null;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar la carpeta.";
+            return;
+        }
+
+        try
+        {
+            await action();
+            mensaje = ok;
+        }
+        catch (DomainException ex)
+        {
+            error = ex.Message;
+        }
+
+        await CargarAsync();
+    }
+
+    private sealed class EditModel
+    {
+        public Sede Sede { get; set; }
+
+        public DateOnly FechaCitacion { get; set; }
+
+        public DateOnly? FechaSubida { get; set; }
+
+        public string? IdoneidadMoral { get; set; }
+    }
+}

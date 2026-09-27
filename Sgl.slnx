@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sgl.Application/Sgl.Application.csproj" />
+    <Project Path="src/Sgl.Domain/Sgl.Domain.csproj" />
+    <Project Path="src/Sgl.Infrastructure/Sgl.Infrastructure.csproj" />
+    <Project Path="src/Sgl.Web/Sgl.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sgl.Application.Tests/Sgl.Application.Tests.csproj" />
+    <Project Path="tests/Sgl.Domain.Tests/Sgl.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
