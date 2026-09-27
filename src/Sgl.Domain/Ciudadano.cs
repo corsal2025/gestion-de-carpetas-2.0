@@ -14,6 +14,18 @@ public sealed class Ciudadano
 
     public string NombreCompleto => $"{Nombre} {Apellido}";
 
+    /// <summary>Lowercase, accent-free "nombre apellido" used for provider-independent searching.</summary>
+    public string NombreBusqueda { get; private set; } = string.Empty;
+
+    public static string NormalizeForSearch(string text)
+    {
+        var decomposed = text.Trim().Normalize(System.Text.NormalizationForm.FormD);
+        var chars = decomposed
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray();
+        return new string(chars).Normalize(System.Text.NormalizationForm.FormC).ToLowerInvariant();
+    }
+
     private Ciudadano()
     {
     }
@@ -24,6 +36,7 @@ public sealed class Ciudadano
         Rut = rut ?? throw new DomainException("El RUT es obligatorio.");
         Nombre = RequireName(nombre, "nombre");
         Apellido = RequireName(apellido, "apellido");
+        NombreBusqueda = NormalizeForSearch(NombreCompleto);
     }
 
     private static string RequireName(string value, string field)
