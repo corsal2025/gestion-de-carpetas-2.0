@@ -196,4 +196,41 @@ public sealed class CarpetaServiceTests : IDisposable
         Assert.Equal(1, result.Page);
         Assert.Equal(ListarCarpetasQuery.MaxPageSize, result.PageSize);
     }
+
+    [Fact]
+    public async Task ForzarEstado_changes_state_directly()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SubidaConaset, "test_user");
+
+        var c = await _db.NewService().ObtenerAsync(id);
+        Assert.Equal(EstadoCarpeta.SubidaConaset, c.Estado);
+    }
+
+    [Fact]
+    public async Task ModificarRut_updates_rut_and_writes_audit()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));
+        await _db.NewService().ModificarRutAsync(id, "11.111.111-1", "operador");
+
+        var c = await _db.NewService().ObtenerAsync(id);
+        Assert.Equal("11.111.111-1", c.Rut);
+
+        var audit = c.Historial.FirstOrDefault(h => h.Campo == "RUT");
+        Assert.NotNull(audit);
+        Assert.Equal("12.345.678-5", audit.Anterior);
+        Assert.Equal("11.111.111-1", audit.Nuevo);
+    }
+
+    [Fact]
+    public async Task EditarAsync_with_new_rut_updates_rut_correctly()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));
+        await _db.NewService().EditarAsync(new EditarCarpetaCommand(
+            id, Sede.Placilla, new DateOnly(2026, 6, 1), null, null, "operador", "11.111.111-1"));
+
+        var c = await _db.NewService().ObtenerAsync(id);
+        Assert.Equal("11.111.111-1", c.Rut);
+        Assert.Equal(Sede.Placilla, c.Sede);
+    }
 }

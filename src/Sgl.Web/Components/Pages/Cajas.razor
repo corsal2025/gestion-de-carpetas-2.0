@@ -1,0 +1,471 @@
+@page "/cajas"
+@inject CarpetaService Carpetas
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject AutorState Autor
+
+<PageTitle>@(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada} · SGL 2026" : "Cajas de Ordenamiento y Archivo · SGL 2026")</PageTitle>
+
+<div class="page-container">
+    @if (!string.IsNullOrEmpty(cajaSeleccionada))
+    {
+        <!-- VISTA DE ACTA Y DETALLE IMPRIMIBLE DE LA CAJA (ESTILO F8 Y CAMBIO DE DOMICILIO) -->
+        <div class="no-print caja-toolbar">
+            <button type="button" class="btn-secondary" @onclick="VolverAInventario">
+                &larr; Volver a Cajas
+            </button>
+            <button type="button" class="btn-primary btn-print" @onclick="ImprimirActa">
+                🖨️ Imprimir / Guardar como PDF
+            </button>
+            <button type="button" class="btn-warning-outline" @onclick="ReabrirCajaActualAsync" title="Desempaquetar la caja y devolver las carpetas a la cola abierta">
+                🔓 Reabrir Caja
+            </button>
+            <a class="btn-outline-link" href="carpetas?caja=@Uri.EscapeDataString(cajaSeleccionada)">
+                📁 Ver en listado general &rarr;
+            </a>
+        </div>
+
+        <div class="acta">
+            <div class="acta-letterhead">
+                <img src="img/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="acta-logo" />
+                <div class="acta-inst">
+                    <div class="l1">Ilustre Municipalidad de Valparaíso</div>
+                    <div class="l2">Departamento de Licencias de Conducir</div>
+                    <div class="l3">Sistema SGL 2026 · Control y Archivo de Carpetas</div>
+                </div>
+                <div class="acta-code">
+                    <div class="k">Caja</div>
+                    <div class="v">@cajaSeleccionada</div>
+                </div>
+            </div>
+
+            <div class="acta-title">
+                <h2>Listado Oficial de Carpetas en Caja</h2>
+                <p>Carpetas en el orden en que fueron ingresadas a la caja física</p>
+            </div>
+
+            <div class="acta-meta">
+                <div>
+                    <span class="k">Código / Rótulo de Caja</span>
+                    <span class="v">@cajaSeleccionada</span>
+                </div>
+                <div>
+                    <span class="k">Fecha de Cierre / Emisión</span>
+                    <span class="v">@DateTime.Now.ToString("dd-MM-yyyy HH:mm")</span>
+                </div>
+                <div>
+                    <span class="k">Total de Carpetas</span>
+                    <span class="v">@(carpetasDeCaja?.Count ?? 0) carpetas</span>
+                </div>
+            </div>
+
+            @if (cargandoDetalle)
+            {
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Cargando detalle de la caja…</p>
+                </div>
+            }
+            else if (carpetasDeCaja is null || carpetasDeCaja.Count == 0)
+            {
+                <p class="caja-empty">Esta caja no tiene carpetas asignadas.</p>
+            }
+            else
+            {
+                <table class="acta-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 42px;">N°</th>
+                            <th style="text-align: left;">Nombre Completo del Ciudadano</th>
+                            <th>RUT</th>
+                            <th>Sede</th>
+                            <th>Trámite / Tipo</th>
+                            <th>Última Carpeta</th>
+                            <th>Fecha Citación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var correlativo = 0; }
+                        @foreach (var item in carpetasDeCaja)
+                        {
+                            correlativo++;
+                            <tr>
+                                <td class="n">@correlativo</td>
+                                <td class="nom">@item.NombreCompleto</td>
+                                <td class="mono">@item.Rut</td>
+                                <td>@Labels.Of(item.Sede)</td>
+                                <td>@(item.TipoTramite ?? Labels.Of(item.Estado))</td>
+                                <td>@(string.IsNullOrEmpty(item.FechaUltimaCarpeta) ? "S/C" : item.FechaUltimaCarpeta)</td>
+                                <td>@item.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="7">Total de carpetas en esta caja: @carpetasDeCaja.Count</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            }
+
+            <div class="acta-signs">
+                <div>
+                    Entregado por
+                    <small>Nombre, firma y fecha</small>
+                </div>
+                <div>
+                    Recibido por Archivo
+                    <small>Nombre, firma y fecha</small>
+                </div>
+            </div>
+
+            <div class="acta-foot">
+                <span>Municipalidad de Valparaíso · Licencias de Conducir</span>
+                <span>Emitido: @DateTime.Now.ToString("dd-MM-yyyy HH:mm") por @(Autor.HasNombre ? Autor.Nombre : "Funcionario")</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- VISTA PRINCIPAL: RESUMEN, CAJAS CERRADAS Y COLA POR GUARDAR -->
+        <div class="header-section">
+            <h1>📦 Gestión y Almacenamiento de Cajas Físicas</h1>
+            <p class="subtitle">Ordenamiento de carpetas encontradas, rotulación de cajas y emisión de actas de entrega para archivo.</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensajeExito))
+        {
+            <div class="alert-banner alert-success">
+                <span>✅ @mensajeExito</span>
+                <button class="btn-close-alert" @onclick="() => mensajeExito = null">✕</button>
+            </div>
+        }
+
+        <div class="cajas-kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-data">
+                    <span class="kpi-number">@(cajas?.Count ?? 0)</span>
+                    <span class="kpi-label">Cajas registradas</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">📁</div>
+                <div class="kpi-data">
+                    <span class="kpi-number">@(cajas?.Sum(x => x.TotalCarpetas).ToString("N0") ?? "0")</span>
+                    <span class="kpi-label">Carpetas en cajas</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">📥</div>
+                <div class="kpi-data">
+                    <span class="kpi-number">@totalSinCaja.ToString("N0")</span>
+                    <span class="kpi-label">Pendientes por guardar</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas: Cajas Cerradas vs Cola por Guardar -->
+        <div class="cajas-tab-nav">
+            <button class="tab-btn @(pestanaActiva == "cerradas" ? "active" : "")" @onclick='() => pestanaActiva = "cerradas"'>
+                📦 Cajas Archivadas (@(cajas?.Count ?? 0))
+            </button>
+            <button class="tab-btn @(pestanaActiva == "cola" ? "active" : "")" @onclick='() => pestanaActiva = "cola"'>
+                📥 Cola de Carpetas por Guardar en Caja (@totalSinCaja.ToString("N0"))
+            </button>
+        </div>
+
+        @if (pestanaActiva == "cerradas")
+        {
+            <div class="cajas-toolbar">
+                <div class="search-input-wrapper" style="max-width: 380px;">
+                    <span class="search-icon">🔍</span>
+                    <input @bind="filtroCajaTexto" @bind:event="oninput" placeholder="Buscar caja por nombre o código..." />
+                </div>
+                <div class="cajas-count-note">
+                    Mostrando @CajasFiltradas.Count de @(cajas?.Count ?? 0) cajas
+                </div>
+            </div>
+
+            @if (cajas is null)
+            {
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Cargando inventario de cajas…</p>
+                </div>
+            }
+            else if (CajasFiltradas.Count == 0)
+            {
+                <div class="empty-state">
+                    <p>No se encontraron cajas con el filtro "@filtroCajaTexto".</p>
+                </div>
+            }
+            else
+            {
+                <div class="cajas-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Rótulo / Código de Caja</th>
+                                <th style="text-align: center;">Carpetas Archivadas</th>
+                                <th style="min-width: 250px; text-align: right;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in CajasFiltradas)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="caja-title-cell">
+                                            <span class="caja-badge-icon">📦</span>
+                                            <strong>@c.Caja</strong>
+                                        </div>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="badge ok">@c.TotalCarpetas carpeta(s)</span>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div class="caja-actions-cell">
+                                            <button class="btn-print-caja" @onclick="() => AbrirDetalleCaja(c.Caja)" title="Ver listado e imprimir detalle oficial de la caja">
+                                                📄 Ver listado / Imprimir
+                                            </button>
+                                            <a class="btn-detail" href="carpetas?caja=@Uri.EscapeDataString(c.Caja)" title="Filtrar carpetas en el listado general">
+                                                📁 Ver en tabla &rarr;
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- PESTAÑA: COLA DE CARPETAS POR GUARDAR EN CAJA -->
+            <div class="caja-queue-card">
+                <div class="queue-header">
+                    <div>
+                        <h2>📥 Cola de carpetas por archivar en caja física</h2>
+                        <p class="subtitle">Seleccione las carpetas encontradas que desea empacar e ingrese el rótulo de la caja.</p>
+                    </div>
+                </div>
+
+                <div class="box-close-form">
+                    <div class="box-input-group">
+                        <label for="nuevoRotuloInput"><strong>Rótulo / N° de Caja:</strong></label>
+                        <input id="nuevoRotuloInput" @bind="nuevoRotuloCaja" placeholder="Ej: CAJA AA-48 o A1-SGL" class="input-rotulo" />
+                    </div>
+                    <button class="btn-primary" disabled="@(colaSeleccionadas.Count == 0 || string.IsNullOrWhiteSpace(nuevoRotuloCaja))" @onclick="AsignarCajaColaAsync">
+                        📦 Almacenar @colaSeleccionadas.Count carpeta(s) en @(string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "Caja" : nuevoRotuloCaja)
+                    </button>
+                </div>
+
+                @if (carpetasCola is null)
+                {
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Cargando carpetas pendientes…</p>
+                    </div>
+                }
+                else if (carpetasCola.Count == 0)
+                {
+                    <div class="empty-state">
+                        <p>No hay carpetas pendientes de archivar en caja en este lote.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="cajas-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-check">
+                                        <input type="checkbox" checked="@TodosColaSeleccionados" @onchange="ToggleSelectAllCola" title="Seleccionar todas" />
+                                    </th>
+                                    <th>N°</th>
+                                    <th>RUT</th>
+                                    <th>Nombre Completo del Ciudadano</th>
+                                    <th>Sede</th>
+                                    <th>Trámite</th>
+                                    <th>Fecha Citación</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ var nro = 0; }
+                                @foreach (var c in carpetasCola)
+                                {
+                                    nro++;
+                                    var sel = colaSeleccionadas.Contains(c.Id);
+                                    <tr class="@(sel ? "row-selected" : "")">
+                                        <td class="td-check">
+                                            <input type="checkbox" checked="@sel" @onchange="() => ToggleSelectCola(c.Id)" />
+                                        </td>
+                                        <td>@nro</td>
+                                        <td><span class="rut-cell">@c.Rut</span></td>
+                                        <td><span class="name-cell">@c.NombreCompleto</span></td>
+                                        <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
+                                        <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
+                                        <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                        <td>
+                                            <button class="btn-action-caja" @onclick="() => AsignarIndividualColaAsync(c)">
+                                                📦 Guardar en Caja
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "caja")]
+    public string? CajaQuery { get; set; }
+
+    private string? cajaSeleccionada;
+    private string pestanaActiva = "cerradas";
+    private string filtroCajaTexto = "";
+    private string nuevoRotuloCaja = "";
+    private string? mensajeExito;
+    private bool cargandoDetalle;
+
+    private IReadOnlyList<CajaResumenDto>? cajas;
+    private IReadOnlyList<CarpetaResumenDto>? carpetasDeCaja;
+    private IReadOnlyList<CarpetaResumenDto>? carpetasCola;
+    private int totalSinCaja;
+    private readonly HashSet<Guid> colaSeleccionadas = [];
+
+    private IReadOnlyList<CajaResumenDto> CajasFiltradas =>
+        string.IsNullOrWhiteSpace(filtroCajaTexto)
+            ? (cajas ?? [])
+            : (cajas ?? []).Where(c => c.Caja.Contains(filtroCajaTexto, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private bool TodosColaSeleccionados =>
+        carpetasCola is not null && carpetasCola.Count > 0 && carpetasCola.All(c => colaSeleccionadas.Contains(c.Id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+        if (!string.IsNullOrWhiteSpace(CajaQuery))
+        {
+            await AbrirDetalleCaja(CajaQuery);
+        }
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        cajas = await Carpetas.ObtenerCajasAsync();
+
+        // Primero las enviadas explícitamente a cola de caja, luego las que no tienen caja
+        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja", PageSize: 100));
+        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true, PageSize: 100));
+
+        var listaCombinada = new List<CarpetaResumenDto>();
+        listaCombinada.AddRange(resEnCola.Items);
+        foreach (var item in resSinCaja.Items)
+        {
+            if (!listaCombinada.Any(x => x.Id == item.Id))
+                listaCombinada.Add(item);
+        }
+
+        carpetasCola = listaCombinada;
+        totalSinCaja = resEnCola.Total + resSinCaja.Total;
+
+        if (string.IsNullOrWhiteSpace(nuevoRotuloCaja))
+        {
+            var maxNum = 1;
+            foreach (var c in cajas)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(c.Caja, @"\d+");
+                if (match.Success && int.TryParse(match.Value, out var n) && n >= maxNum)
+                {
+                    maxNum = n + 1;
+                }
+            }
+            nuevoRotuloCaja = $"CAJA AA-{maxNum}";
+        }
+    }
+
+    private async Task AbrirDetalleCaja(string caja)
+    {
+        cajaSeleccionada = caja;
+        cargandoDetalle = true;
+        carpetasDeCaja = await Carpetas.ObtenerCarpetasDeCajaAsync(caja);
+        cargandoDetalle = false;
+    }
+
+    private void VolverAInventario()
+    {
+        cajaSeleccionada = null;
+        carpetasDeCaja = null;
+    }
+
+    private async Task ReabrirCajaActualAsync()
+    {
+        if (string.IsNullOrWhiteSpace(cajaSeleccionada)) return;
+        var rotulo = cajaSeleccionada;
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        await Carpetas.ReabrirCajaAsync(rotulo, autor);
+        mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
+        cajaSeleccionada = null;
+        pestanaActiva = "cola";
+        await CargarDatosAsync();
+    }
+
+    private async Task ImprimirActa()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private void ToggleSelectCola(Guid id)
+    {
+        if (!colaSeleccionadas.Add(id))
+            colaSeleccionadas.Remove(id);
+    }
+
+    private void ToggleSelectAllCola(ChangeEventArgs e)
+    {
+        if (carpetasCola is null) return;
+        var check = (bool)(e.Value ?? false);
+        if (check)
+        {
+            foreach (var item in carpetasCola)
+                colaSeleccionadas.Add(item.Id);
+        }
+        else
+        {
+            colaSeleccionadas.Clear();
+        }
+    }
+
+    private async Task AsignarCajaColaAsync()
+    {
+        if (colaSeleccionadas.Count == 0 || string.IsNullOrWhiteSpace(nuevoRotuloCaja)) return;
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        var rotulo = nuevoRotuloCaja.Trim();
+
+        await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
+        colaSeleccionadas.Clear();
+        mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
+
+        await CargarDatosAsync();
+        await AbrirDetalleCaja(rotulo);
+    }
+
+    private async Task AsignarIndividualColaAsync(CarpetaResumenDto c)
+    {
+        var rotulo = string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "CAJA-01" : nuevoRotuloCaja.Trim();
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+
+        await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
+        mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
+        await CargarDatosAsync();
+    }
+}

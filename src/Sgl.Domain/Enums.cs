@@ -28,3 +28,4 @@ public enum Decision
     Otorgado = 1,
     Denegado = 2,
 }
+

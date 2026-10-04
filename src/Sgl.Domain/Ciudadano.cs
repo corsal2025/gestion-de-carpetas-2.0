@@ -39,6 +39,11 @@ public sealed class Ciudadano
         NombreBusqueda = NormalizeForSearch(NombreCompleto);
     }
 
+    public void CambiarRut(Rut nuevoRut)
+    {
+        Rut = nuevoRut ?? throw new DomainException("El RUT es obligatorio.");
+    }
+
     private static string RequireName(string value, string field)
     {
         if (string.IsNullOrWhiteSpace(value))

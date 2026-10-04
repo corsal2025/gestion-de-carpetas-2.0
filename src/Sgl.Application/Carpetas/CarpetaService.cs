@@ -37,6 +37,73 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
         ArgumentNullException.ThrowIfNull(cmd);
         var carpeta = await LoadAsync(cmd.CarpetaId, ct);
         carpeta.Editar(cmd.Sede, cmd.FechaCitacion, cmd.FechaSubida, cmd.IdoneidadMoral, cmd.Autor, Now);
+        if (!string.IsNullOrWhiteSpace(cmd.Rut))
+        {
+            var nuevoRut = Rut.Parse(cmd.Rut);
+            if (carpeta.Ciudadano.Rut != nuevoRut)
+            {
+                var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
+                carpeta.ModificarRut(nuevoRut, existente, cmd.Autor, Now);
+            }
+        }
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task ModificarRutAsync(Guid id, string nuevoRutTexto, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        var nuevoRut = Rut.Parse(nuevoRutTexto);
+        if (carpeta.Ciudadano.Rut == nuevoRut)
+        {
+            return;
+        }
+
+        var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
+        carpeta.ModificarRut(nuevoRut, existente, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task AsignarCajaAsync(AsignarCajaCommand cmd, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(cmd);
+        var carpeta = await LoadAsync(cmd.CarpetaId, ct);
+        carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task AsignarCajaLoteAsync(AsignarCajaLoteCommand cmd, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(cmd);
+        foreach (var id in cmd.CarpetaIds)
+        {
+            var carpeta = await LoadAsync(id, ct);
+            carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+        }
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task ForzarEstadoAsync(Guid id, EstadoCarpeta nuevoEstado, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.ForzarEstado(nuevoEstado, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.CambiarDecision(nuevaDecision, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task ReabrirCajaAsync(string caja, string autor, CancellationToken ct = default)
+    {
+        var carpetas = await repository.GetCarpetasByCajaAsync(caja, ct);
+        foreach (var c in carpetas)
+        {
+            var carpeta = await LoadAsync(c.Id, ct);
+            carpeta.AsignarCaja("Cola de Caja", autor, Now);
+        }
         await repository.SaveChangesAsync(ct);
     }
 
@@ -57,9 +124,12 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
             c.Sede,
             c.FechaCitacion,
             c.FechaSubida,
+            c.FechaUltimaCarpeta,
+            c.IdoneidadMoral,
+            c.TipoTramite,
+            c.CajaArchivo,
             c.Estado,
             c.Decision,
-            c.IdoneidadMoral,
             EstadoTransitions.NextStates(c.Estado),
             historial);
     }
@@ -83,10 +153,31 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
             }
         }
 
-        var search = new CarpetaSearch(rutFragment, nameFragment, q.Sede, q.Estado, (q.Page - 1) * q.PageSize, q.PageSize);
+        var search = new CarpetaSearch(
+            rutFragment,
+            nameFragment,
+            q.Sede,
+            q.Estado,
+            q.TipoTramite,
+            q.CajaArchivo,
+            q.SinCaja,
+            (q.Page - 1) * q.PageSize,
+            q.PageSize);
         var (items, total) = await repository.SearchAsync(search, ct);
         return new PagedResult<CarpetaResumenDto>(items, total, q.Page, q.PageSize);
     }
+
+    public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>
+        repository.GetEstadisticasAsync(ct);
+
+    public Task<IReadOnlyList<CajaResumenDto>> ObtenerCajasAsync(CancellationToken ct = default) =>
+        repository.GetCajasAsync(ct);
+
+    public Task<IReadOnlyList<CarpetaResumenDto>> ObtenerCarpetasDeCajaAsync(string caja, CancellationToken ct = default) =>
+        repository.GetCarpetasByCajaAsync(caja, ct);
+
+    public Task<IReadOnlyList<string>> ObtenerTiposTramiteAsync(CancellationToken ct = default) =>
+        repository.GetTiposTramiteAsync(ct);
 
     private async Task<Carpeta> LoadAsync(Guid id, CancellationToken ct) =>
         await repository.GetAsync(id, ct) ?? throw new NotFoundException($"Carpeta {id} no encontrada.");

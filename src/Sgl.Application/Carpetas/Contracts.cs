@@ -18,21 +18,31 @@ public sealed record EditarCarpetaCommand(
     DateOnly FechaCitacion,
     DateOnly? FechaSubida,
     string? IdoneidadMoral,
-    string Autor);
+    string Autor,
+    string? Rut = null);
+
+public sealed record AsignarCajaCommand(Guid CarpetaId, string? NuevaCaja, string Autor);
+
+public sealed record AsignarCajaLoteCommand(IReadOnlyList<Guid> CarpetaIds, string NuevaCaja, string Autor);
 
 public sealed record ListarCarpetasQuery(
     string? Texto = null,
     Sede? Sede = null,
     EstadoCarpeta? Estado = null,
+    string? TipoTramite = null,
+    string? CajaArchivo = null,
+    bool? SinCaja = null,
     int Page = 1,
     int PageSize = ListarCarpetasQuery.DefaultPageSize)
 {
-    public const int DefaultPageSize = 20;
+    public const int DefaultPageSize = 25;
     public const int MaxPageSize = 100;
 
     public ListarCarpetasQuery Normalized() => this with
     {
         Texto = string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim(),
+        TipoTramite = string.IsNullOrWhiteSpace(TipoTramite) ? null : TipoTramite.Trim(),
+        CajaArchivo = string.IsNullOrWhiteSpace(CajaArchivo) ? null : CajaArchivo.Trim(),
         Page = Math.Max(1, Page),
         PageSize = Math.Clamp(PageSize, 1, MaxPageSize),
     };
@@ -44,6 +54,11 @@ public sealed record CarpetaResumenDto(
     string NombreCompleto,
     Sede Sede,
     DateOnly FechaCitacion,
+    DateOnly? FechaSubida,
+    string? FechaUltimaCarpeta,
+    string? IdoneidadMoral,
+    string? TipoTramite,
+    string? CajaArchivo,
     EstadoCarpeta Estado,
     Decision Decision);
 
@@ -57,9 +72,12 @@ public sealed record CarpetaDetalleDto(
     Sede Sede,
     DateOnly FechaCitacion,
     DateOnly? FechaSubida,
+    string? FechaUltimaCarpeta,
+    string? IdoneidadMoral,
+    string? TipoTramite,
+    string? CajaArchivo,
     EstadoCarpeta Estado,
     Decision Decision,
-    string? IdoneidadMoral,
     IReadOnlyList<EstadoCarpeta> SiguientesEstados,
     IReadOnlyList<HistorialDto> Historial);
 
@@ -68,5 +86,34 @@ public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page,
     public int TotalPages => Total == 0 ? 1 : (int)Math.Ceiling(Total / (double)PageSize);
 }
 
+public sealed record SedeMetricDto(
+    Sede Sede,
+    string NombreSede,
+    int Total,
+    int Otorgadas,
+    int Denegadas,
+    int Alertadas,
+    int SubidasConaset,
+    int PrimeraLicencia,
+    int CambioDomicilio);
+
+public sealed record EstadisticasGlobalesDto(
+    int TotalCarpetas,
+    int TotalOtorgadas,
+    int TotalDenegadas,
+    int TotalAlertadas,
+    IReadOnlyList<SedeMetricDto> Sedes);
+
+public sealed record CajaResumenDto(string Caja, int TotalCarpetas);
+
 /// <summary>Search criteria already normalized by the application layer, ready for the repository.</summary>
-public sealed record CarpetaSearch(string? RutFragment, string? NameFragment, Sede? Sede, EstadoCarpeta? Estado, int Skip, int Take);
+public sealed record CarpetaSearch(
+    string? RutFragment,
+    string? NameFragment,
+    Sede? Sede,
+    EstadoCarpeta? Estado,
+    string? TipoTramite,
+    string? CajaArchivo,
+    bool? SinCaja,
+    int Skip,
+    int Take);

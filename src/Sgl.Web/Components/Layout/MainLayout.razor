@@ -2,15 +2,26 @@
 @inject AutorState Autor
 
 <header class="topbar">
-    <a class="brand" href="carpetas">SGL · Carpetas de licencias</a>
-    <nav>
-        <NavLink href="carpetas" Match="NavLinkMatch.All">Carpetas</NavLink>
-        <NavLink href="carpetas/nueva">Nueva carpeta</NavLink>
+    <div class="brand-group">
+        <a class="brand" href="carpetas">
+            <span class="brand-logo">🏛️</span>
+            <span class="brand-text"><strong>Gestión de Carpetas 2.0</strong> · Licencias de Conducir</span>
+        </a>
+    </div>
+    <nav class="main-nav">
+        <NavLink href="carpetas" Match="NavLinkMatch.Prefix" class="nav-item">
+            📁 Gestión de Carpetas
+        </NavLink>
+        <NavLink href="cajas" class="nav-item">
+            📦 Cajas de Archivo
+        </NavLink>
     </nav>
-    <label class="autor">
-        Funcionario:
-        <input @bind="Autor.Nombre" @bind:event="oninput" placeholder="Su nombre" maxlength="100" />
-    </label>
+    <div class="user-block">
+        <label class="autor">
+            👤 Funcionario:
+            <input @bind="Autor.Nombre" @bind:event="oninput" placeholder="Su nombre" maxlength="100" />
+        </label>
+    </div>
 </header>
 
 <main class="content">

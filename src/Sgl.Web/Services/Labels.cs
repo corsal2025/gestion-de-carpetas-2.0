@@ -18,24 +18,26 @@ public static class Labels
         EstadoCarpeta.Citada => "Citada",
         EstadoCarpeta.Revision => "Revisión",
         EstadoCarpeta.Alertada => "Alertada",
-        EstadoCarpeta.SubidaConaset => "Subida CONASET",
-        EstadoCarpeta.PrimeraLicencia => "Primera licencia",
-        EstadoCarpeta.CambioDomicilio => "Cambio de domicilio",
-        EstadoCarpeta.EsperaExamen => "Espera examen",
-        EstadoCarpeta.ClasePendiente => "Clase pendiente",
-        EstadoCarpeta.Otorgado => "Otorgado",
-        EstadoCarpeta.ParaDenegar => "Para denegar",
-        EstadoCarpeta.Denegado => "Denegado",
+        EstadoCarpeta.SubidaConaset => "SUBIDA A CONASET",
+        EstadoCarpeta.PrimeraLicencia => "1° LICENCIA",
+        EstadoCarpeta.CambioDomicilio => "CAMBIO DE DOMICILIO",
+        EstadoCarpeta.EsperaExamen => "ESPERA EXAMEN",
+        EstadoCarpeta.ClasePendiente => "CLASE PENDIENTE",
+        EstadoCarpeta.Otorgado => "OTORGADO",
+        EstadoCarpeta.ParaDenegar => "PARA DENEGAR",
+        EstadoCarpeta.Denegado => "DENEGADO",
         _ => estado.ToString(),
     };
 
     public static string Of(Decision decision) => decision switch
     {
         Decision.Pendiente => "Pendiente",
-        Decision.Otorgado => "Otorgado",
-        Decision.Denegado => "Denegado",
+        Decision.Otorgado => "OTORGADO",
+        Decision.Denegado => "DENEGADO",
         _ => decision.ToString(),
     };
+
+    public static string EstadoRowCss(EstadoCarpeta estado) => $"estado-{estado.ToString().ToLowerInvariant()}";
 
     public static string Campo(string campo) => campo switch
     {
@@ -55,4 +57,28 @@ public static class Labels
         EstadoCarpeta.Denegado or EstadoCarpeta.ParaDenegar or EstadoCarpeta.Alertada => "badge bad",
         _ => "badge",
     };
+
+    public static string DecisionCss(Decision decision) => decision switch
+    {
+        Decision.Otorgado => "badge ok",
+        Decision.Denegado => "badge bad",
+        _ => "badge muted-badge",
+    };
+
+    public static string IdoneidadCss(string? idoneidad)
+    {
+        if (string.IsNullOrWhiteSpace(idoneidad)) return "";
+        if (idoneidad.Contains("ALERTADA", StringComparison.OrdinalIgnoreCase)) return "badge bad";
+        if (idoneidad.Contains("REVISAR", StringComparison.OrdinalIgnoreCase)) return "badge warn";
+        return "badge info";
+    }
+
+    public static string TramiteCss(string? tramite)
+    {
+        if (string.IsNullOrWhiteSpace(tramite)) return "badge";
+        if (tramite.Contains("CONASET", StringComparison.OrdinalIgnoreCase)) return "badge conaset";
+        if (tramite.Contains("1°", StringComparison.OrdinalIgnoreCase)) return "badge primera";
+        if (tramite.Contains("DOMICILIO", StringComparison.OrdinalIgnoreCase)) return "badge domicilio";
+        return "badge";
+    }
 }

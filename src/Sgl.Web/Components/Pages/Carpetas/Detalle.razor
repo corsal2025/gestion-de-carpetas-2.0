@@ -1,8 +1,9 @@
 @page "/carpetas/{Id:guid}"
 @inject CarpetaService Carpetas
 @inject AutorState Autor
+@inject IJSRuntime JS
 
-<PageTitle>Carpeta</PageTitle>
+<PageTitle>Gestión de Carpetas 2.0 · Detalle</PageTitle>
 
 @if (notFound)
 {
@@ -53,8 +54,14 @@ else
         </section>
 
         <section class="card">
-            <h2>Datos de la carpeta</h2>
+            <h2>Datos de la carpeta y ciudadano</h2>
             <div class="form">
+                <label>RUT del Ciudadano
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input class="rut-input" @bind="editRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
+                        <button type="button" class="btn-copy-rut" title="Copiar RUT para CAS-Chile" @onclick="() => CopiarRutCasChileAsync(editRut)">📋 Copiar</button>
+                    </div>
+                </label>
                 <label>Sede
                     <select @bind="edit.Sede">
                         @foreach (var s in Enum.GetValues<Sede>())
@@ -65,7 +72,11 @@ else
                 </label>
                 <label>Fecha de citación <input type="date" @bind="edit.FechaCitacion" /></label>
                 <label>Fecha de subida <input type="date" @bind="edit.FechaSubida" /></label>
-                <label>Idoneidad moral <input @bind="edit.IdoneidadMoral" maxlength="@Carpeta.MaxIdoneidadLength" /></label>
+                <label>Caja / Archivo físico <input @bind="editCaja" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
+                <div class="info-block">
+                    <p>Trámite / Tipo: <strong>@(string.IsNullOrEmpty(carpeta.TipoTramite) ? "—" : carpeta.TipoTramite)</strong></p>
+                    <p>Última carpeta / Comuna: <strong>@(string.IsNullOrEmpty(carpeta.FechaUltimaCarpeta) ? "—" : carpeta.FechaUltimaCarpeta)</strong></p>
+                </div>
                 <div class="actions"><button @onclick="GuardarAsync">Guardar cambios</button></div>
             </div>
         </section>
@@ -100,6 +111,8 @@ else
     private CarpetaDetalleDto? carpeta;
     private EstadoCarpeta? nuevoEstado;
     private EditModel edit = new();
+    private string editRut = "";
+    private string editCaja = "";
     private bool notFound;
     private string? error;
     private string? mensaje;
@@ -112,6 +125,8 @@ else
         {
             carpeta = await Carpetas.ObtenerAsync(Id);
             nuevoEstado = null;
+            editRut = carpeta.Rut;
+            editCaja = carpeta.CajaArchivo ?? "";
             edit = new EditModel
             {
                 Sede = carpeta.Sede,
@@ -132,10 +147,21 @@ else
             : Task.CompletedTask;
 
     private Task GuardarAsync() =>
-        EjecutarAsync(
-            () => Carpetas.EditarAsync(new EditarCarpetaCommand(
-                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre)),
-            "Cambios guardados.");
+        EjecutarAsync(async () =>
+        {
+            await Carpetas.EditarAsync(new EditarCarpetaCommand(
+                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut));
+            if (editCaja != (carpeta?.CajaArchivo ?? ""))
+            {
+                await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(Id, editCaja, Autor.Nombre));
+            }
+        }, "Cambios guardados.");
+
+    private async Task CopiarRutCasChileAsync(string? rut)
+    {
+        if (string.IsNullOrWhiteSpace(rut)) return;
+        await JS.InvokeVoidAsync("copyRutCasChile", rut);
+    }
 
     private async Task EjecutarAsync(Func<Task> action, string ok)
     {

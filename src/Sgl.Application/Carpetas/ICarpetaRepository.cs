@@ -13,5 +13,13 @@ public interface ICarpetaRepository
 
     Task<(IReadOnlyList<CarpetaResumenDto> Items, int Total)> SearchAsync(CarpetaSearch search, CancellationToken ct = default);
 
+    Task<EstadisticasGlobalesDto> GetEstadisticasAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<CajaResumenDto>> GetCajasAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<CarpetaResumenDto>> GetCarpetasByCajaAsync(string caja, CancellationToken ct = default);
+
+    Task<IReadOnlyList<string>> GetTiposTramiteAsync(CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

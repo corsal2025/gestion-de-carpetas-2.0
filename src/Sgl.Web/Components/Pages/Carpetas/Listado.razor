@@ -1,83 +1,1028 @@
 @page "/carpetas"
 @inject CarpetaService Carpetas
+@inject AutorState Autor
+@inject IJSRuntime JS
 
-<PageTitle>Carpetas</PageTitle>
+<PageTitle>Gestión de Carpetas 2.0 · SGL</PageTitle>
 
-<h1>Carpetas</h1>
+<div class="page-container">
+    <!-- Panel estático y fijo de filtros, sedes y búsqueda siempre visible -->
+    <div class="sticky-controls-panel">
+        <div class="sede-tabs-container">
+            <div class="sede-pills">
+                <button class="pill @(filtroSede is null ? "active" : "")" @onclick="() => SeleccionarSede(null)">
+                    Todas <span class="badge-count">@(stats?.TotalCarpetas ?? 0)</span>
+                </button>
+                <button class="pill @(filtroSede == Sede.AvArgentina ? "active" : "")" @onclick="() => SeleccionarSede(Sede.AvArgentina)">
+                    Av. Argentina <span class="badge-count">@(GetCount(Sede.AvArgentina))</span>
+                </button>
+                <button class="pill @(filtroSede == Sede.Placilla ? "active" : "")" @onclick="() => SeleccionarSede(Sede.Placilla)">
+                    Placilla <span class="badge-count">@(GetCount(Sede.Placilla))</span>
+                </button>
+                <button class="pill @(filtroSede == Sede.MercadoPuerto ? "active" : "")" @onclick="() => SeleccionarSede(Sede.MercadoPuerto)">
+                    Mercado Puerto <span class="badge-count">@(GetCount(Sede.MercadoPuerto))</span>
+                </button>
+            </div>
 
-<form class="filters" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
-    <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar" maxlength="100" />
-    <select @bind="sede" aria-label="Sede">
-        <option value="">Todas las sedes</option>
-        @foreach (var s in Enum.GetValues<Sede>())
-        {
-            <option value="@s">@Labels.Of(s)</option>
-        }
-    </select>
-    <select @bind="estado" aria-label="Estado">
-        <option value="">Todos los estados</option>
-        @foreach (var e in Enum.GetValues<EstadoCarpeta>())
-        {
-            <option value="@e">@Labels.Of(e)</option>
-        }
-    </select>
-    <button type="submit">Buscar</button>
-    <a class="button secondary" href="carpetas/nueva">+ Nueva carpeta</a>
-</form>
+            <div class="quick-actions">
+                <a class="btn-primary" href="carpetas/nueva">+ Nueva carpeta</a>
+            </div>
+        </div>
 
-@if (resultado is null)
-{
-    <p>Cargando…</p>
-}
-else if (resultado.Total == 0)
-{
-    <p class="muted">No hay carpetas que coincidan con la búsqueda.</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr><th>RUT</th><th>Nombre</th><th>Sede</th><th>Citación</th><th>Estado</th><th>Decisión</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var c in resultado.Items)
+        <!-- Filtros de operación: Almacenamiento y Tipo de trámite -->
+        <div class="tramite-filters">
+            <span class="filter-label">Almacenamiento:</span>
+            <button class="filter-chip @(filtroSinCaja is null && string.IsNullOrEmpty(filtroCaja) ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">
+                Todas
+            </button>
+            <button class="filter-chip @(filtroSinCaja == true ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(true)">
+                📥 Por Guardar / Sin Caja
+            </button>
+            <button class="filter-chip @(filtroSinCaja == false ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(false)">
+                📦 Archivadas en Caja
+            </button>
+
+            <span class="filter-label" style="margin-left: 1rem;">Trámite:</span>
+            <button class="filter-chip @(string.IsNullOrEmpty(filtroTramite) ? "active" : "")" @onclick="() => SeleccionarTramite(null)">Todos</button>
+            <button class="filter-chip @(filtroTramite == TramitePrimera ? "active" : "")" @onclick="() => SeleccionarTramite(TramitePrimera)">1° Licencia</button>
+            <button class="filter-chip @(filtroTramite == TramiteConaset ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteConaset)">Subida CONASET</button>
+            <button class="filter-chip @(filtroTramite == TramiteDomicilio ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteDomicilio)">Cambio Domicilio</button>
+            <button class="filter-chip @(filtroTramite == TramiteF8 ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteF8)">Subida con F8</button>
+
+            @if (cajasDisponibles.Count > 0)
             {
-                <tr>
-                    <td><a href="carpetas/@c.Id">@c.Rut</a></td>
-                    <td>@c.NombreCompleto</td>
-                    <td>@Labels.Of(c.Sede)</td>
-                    <td>@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                    <td><span class="@Labels.Css(c.Estado)">@Labels.Of(c.Estado)</span></td>
-                    <td>@Labels.Of(c.Decision)</td>
-                </tr>
+                <div class="caja-filter-dropdown">
+                    <select @bind="filtroCaja" @bind:after="BuscarAsync" class="select-caja">
+                        <option value="">Filtrar por caja específica...</option>
+                        @foreach (var c in cajasDisponibles)
+                        {
+                            <option value="@c.Caja">@c.Caja (@c.TotalCarpetas carpetas)</option>
+                        }
+                    </select>
+                </div>
             }
-        </tbody>
-    </table>
+        </div>
 
-    <div class="pager">
-        <button disabled="@(page <= 1)" @onclick="() => IrAsync(page - 1)">‹ Anterior</button>
-        <span>Página @resultado.Page de @resultado.TotalPages · @resultado.Total carpetas</span>
-        <button disabled="@(page >= resultado.TotalPages)" @onclick="() => IrAsync(page + 1)">Siguiente ›</button>
+        <!-- Barra de búsqueda principal por RUT o Nombre legible -->
+        <div class="search-bar-row">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input @bind="texto" @bind:event="oninput" @onkeyup="OnSearchKeyUp" placeholder="Escriba RUT, nombre o apellido para encontrar la carpeta..." aria-label="Buscar" />
+                @if (!string.IsNullOrEmpty(texto))
+                {
+                    <button class="btn-clear" @onclick="LimpiarBusqueda" title="Borrar búsqueda">✕</button>
+                }
+            </div>
+
+            <div class="state-select-wrapper">
+                <select @bind="filtroEstado" @bind:after="BuscarAsync">
+                    <option value="">Todos los estados</option>
+                    @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                    {
+                        <option value="@e">@Labels.Of(e)</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acordeón para Agregar Caso Rápido a la agenda -->
+    <div class="quick-add-accordion card">
+        <div class="quick-add-summary" @onclick="() => mostrarAcordeonNuevo = !mostrarAcordeonNuevo" role="button" tabindex="0">
+            <span>➕ Agregar nueva carpeta a la agenda</span>
+            <span class="quick-add-hint">@(mostrarAcordeonNuevo ? "Ocultar formulario ▲" : "Registro rápido sin salir de la lista ▼")</span>
+        </div>
+        @if (mostrarAcordeonNuevo)
+        {
+            <div class="quick-add-body">
+                <div class="quick-add-grid">
+                    <div class="quick-add-field">
+                        <label>RUT *</label>
+                        <input @bind="nuevoRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
+                    </div>
+                    <div class="quick-add-field">
+                        <label>Nombres *</label>
+                        <input @bind="nuevoNombre" placeholder="Ej: Juan Andrés" />
+                    </div>
+                    <div class="quick-add-field">
+                        <label>Apellidos *</label>
+                        <input @bind="nuevoApellido" placeholder="Ej: Pérez González" />
+                    </div>
+                    <div class="quick-add-field">
+                        <label>Sede</label>
+                        <select @bind="nuevaSede">
+                            <option value="@Sede.AvArgentina">Av. Argentina</option>
+                            <option value="@Sede.Placilla">Placilla</option>
+                            <option value="@Sede.MercadoPuerto">Mercado Puerto</option>
+                        </select>
+                    </div>
+                    <div class="quick-add-field">
+                        <label>Fecha Citación</label>
+                        <input type="date" @bind="nuevaFechaCitacion" />
+                    </div>
+                    <div class="quick-add-field" style="justify-content: flex-end;">
+                        <button class="btn-primary" @onclick="RegistrarCarpetaRapidaAsync" disabled="@(string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido) || guardandoNuevo)">
+                            @(guardandoNuevo ? "Guardando..." : "💾 Registrar Carpeta")
+                        </button>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(errorNuevo))
+                {
+                    <div class="alert error" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Grilla de resultados con máxima legibilidad -->
+    @if (resultado is null)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Cargando carpetas operativas…</p>
+        </div>
+    }
+    else if (resultado.Total == 0)
+    {
+        <div class="empty-state">
+            <p>No se encontraron carpetas con los criterios seleccionados.</p>
+            <button class="btn-secondary" @onclick="ResetFiltros">Restablecer filtros</button>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th class="th-check col-sticky-check">
+                            <input type="checkbox" checked="@TodosSeleccionados" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta página" />
+                        </th>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th class="col-sticky-nombre">Nombre Completo del Ciudadano</th>
+                        <th>Sede</th>
+                        <th>Fecha Citación</th>
+                        <th>Fecha Subida</th>
+                        <th>Última Carpeta</th>
+                        <th>Estado de la Carpeta</th>
+                        <th>Decisión</th>
+                        <th style="min-width: 175px;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in resultado.Items)
+                    {
+                        var isSelected = seleccionadas.Contains(c.Id);
+                        var estadoClass = Labels.EstadoRowCss(c.Estado);
+                        var isSaving = guardandoId == c.Id;
+                        var isSaved = guardadoOkId == c.Id;
+                        <tr class="@estadoClass @(isSelected ? "row-selected" : "") @(isSaving ? "fila-guardando" : "") @(isSaved ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
+                            @ondblclick="() => AbrirDrawerAsync(c.Id)">
+                            <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
+                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c.Id)" />
+                            </td>
+                            <td class="col-sticky-rut" @ondblclick:stopPropagation>
+                                <div class="rut-wrapper-cell">
+                                    <input class="excel-rut-input rut-input"
+                                           value="@c.Rut"
+                                           @onchange="(e) => CambiarRutRapidoAsync(c.Id, e)"
+                                           oninput="formatRutInput(this)"
+                                           title="Modificar RUT directamente (Enter para guardar)" />
+                                    <button class="btn-copy-rut"
+                                            title="Copiar RUT para CAS-Chile (sin puntos, con ceros a la izquierda)"
+                                            @onclick="() => CopiarRutCasChileAsync(c.Rut)"
+                                            type="button">
+                                        📋
+                                    </button>
+                                    <button class="btn-obs-trigger"
+                                            title="Ver observaciones y detalle"
+                                            @onclick="() => AbrirDrawerAsync(c.Id)"
+                                            type="button">
+                                        📝
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="col-sticky-nombre"><span class="name-cell">@c.NombreCompleto</span></td>
+                            <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
+                            <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                            <td class="muted-cell">@(string.IsNullOrEmpty(c.FechaUltimaCarpeta) ? "—" : c.FechaUltimaCarpeta)</td>
+                            <td class="excel-cell" @ondblclick:stopPropagation>
+                                <select class="excel-select"
+                                        value="@c.Estado"
+                                        @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)"
+                                        title="Cambiar estado de carpeta directamente (como en Excel)">
+                                    @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                                    {
+                                        <option value="@e">@Labels.Of(e)</option>
+                                    }
+                                </select>
+                            </td>
+                            <td class="excel-cell" @ondblclick:stopPropagation>
+                                <select class="excel-select"
+                                        value="@c.Decision"
+                                        @onchange="(e) => CambiarDecisionRapidaAsync(c.Id, e)"
+                                        title="Cambiar decisión directamente">
+                                    @foreach (var d in Enum.GetValues<Decision>())
+                                    {
+                                        <option value="@d">@Labels.Of(d)</option>
+                                    }
+                                </select>
+                            </td>
+                            <td class="action-cell" @ondblclick:stopPropagation>
+                                @if (string.IsNullOrEmpty(c.CajaArchivo))
+                                {
+                                    <button class="btn-action-caja"
+                                            title="Enviar directamente a la cola de Caja"
+                                            @onclick="() => EnviarACajaDirectoAsync(c)">
+                                        📦 Caja
+                                    </button>
+                                }
+                                else if (c.CajaArchivo == "Cola de Caja")
+                                {
+                                    <span class="badge warn" title="En cola para la próxima caja">
+                                        📦 En Cola
+                                    </span>
+                                }
+                                else
+                                {
+                                    <a class="btn-action-caja-ok"
+                                       href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo)"
+                                       title="Almacenada en @c.CajaArchivo. Clic para ver acta e imprimir">
+                                        📦 @c.CajaArchivo
+                                    </a>
+                                }
+                                <button class="btn-detail"
+                                        @onclick="() => AbrirDrawerAsync(c.Id)"
+                                        title="Abrir panel lateral de detalle e historial">
+                                    Abrir →
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Barra de paginación e información al final de la hoja -->
+        <div class="table-bottom-bar">
+            <div class="table-bottom-info">
+                Mostrando <strong>@(((page - 1) * pageSize) + 1)</strong> - <strong>@(Math.Min(page * pageSize, resultado.Total))</strong> de <strong>@resultado.Total.ToString("N0")</strong> carpetas
+            </div>
+            <div class="page-size-selector">
+                <label>Carpetas por página:
+                    <select @bind="pageSize" @bind:after="CambiarTamanoPagina">
+                        <option value="25">25 carpetas</option>
+                        <option value="50">50 carpetas</option>
+                        <option value="100">100 carpetas</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <!-- Barra flotante para archivar múltiples carpetas encontradas a la vez -->
+        @if (seleccionadas.Count > 0)
+        {
+            <div class="batch-bar">
+                <div class="batch-info">
+                    ✅ <strong>@seleccionadas.Count</strong> carpeta(s) seleccionada(s)
+                </div>
+                <div class="batch-actions">
+                    <button class="btn-batch-caja" @onclick="EnviarSeleccionadasACajaColaAsync" title="Enviar seleccionadas a la cola de caja">
+                        📦 Enviar a Cola de Caja
+                    </button>
+                    <button class="btn-batch-caja" style="background:#0284c7;" @onclick="AbrirModalCajaLote" title="Asignar caja física específica">
+                        🏷️ Asignar Caja Específica…
+                    </button>
+                    <button class="btn-batch-cancel" @onclick="() => seleccionadas.Clear()">
+                        Cancelar selección
+                    </button>
+                </div>
+            </div>
+        }
+
+
+    }
+</div>
+
+<!-- Modal para mecanismo de almacenamiento en Caja física -->
+@if (mostrarModalCaja)
+{
+    <div class="modal-overlay" @onclick="CerrarModalCaja">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h3>📦 Almacenamiento en Caja Física</h3>
+            @if (esModoLote)
+            {
+                <p>Se guardarán <strong>@seleccionadas.Count carpetas</strong> en la caja indicada para su posterior archivo.</p>
+            }
+            else if (carpetaParaCaja is not null)
+            {
+                <p>Carpeta: <strong>@carpetaParaCaja.NombreCompleto</strong> (@carpetaParaCaja.Rut)</p>
+            }
+
+            <div class="modal-form">
+                <label>Código / Identificador de la Caja o Estante:
+                    <input @bind="nuevaCajaTexto" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
+                </label>
+
+                @if (cajasDisponibles.Count > 0)
+                {
+                    <div class="cajas-sugeridas">
+                        <span class="sugeridas-label">Cajas activas existentes:</span>
+                        @foreach (var c in cajasDisponibles.Take(6))
+                        {
+                            <button type="button" class="btn-sug" @onclick="() => nuevaCajaTexto = c.Caja">
+                                @c.Caja (@c.TotalCarpetas)
+                            </button>
+                        }
+                    </div>
+                }
+
+                <div class="modal-actions">
+                    <button class="btn-primary" @onclick="GuardarCajaAsync" disabled="@string.IsNullOrWhiteSpace(nuevaCajaTexto)">
+                        Confirmar almacenamiento
+                    </button>
+                    <button class="btn-secondary" @onclick="CerrarModalCaja">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 }
 
+<!-- Backdrop y Side Drawer (Master-Detail interactivo) -->
+<div class="drawer-backdrop @(drawerAbierto ? "open" : "")" @onclick="CerrarDrawer"></div>
+
+<aside class="case-drawer @(drawerAbierto ? "open" : "")" aria-hidden="@(!drawerAbierto)">
+    @if (drawerCargando)
+    {
+        <div class="drawer-loading">
+            <div class="spinner"></div>
+            <p>Cargando detalle de la carpeta…</p>
+        </div>
+    }
+    else if (drawerDetalle is not null)
+    {
+        <div class="drawer-header">
+            <div>
+                <h2 class="drawer-title-name">@drawerDetalle.Nombre @drawerDetalle.Apellido</h2>
+                <div class="drawer-title-meta">
+                    <span><strong>RUT:</strong> @drawerDetalle.Rut</span>
+                    <span class="sede-tag">@Labels.Of(drawerDetalle.Sede)</span>
+                    @if (!string.IsNullOrEmpty(drawerDetalle.CajaArchivo))
+                    {
+                        <span class="badge info">📦 @drawerDetalle.CajaArchivo</span>
+                    }
+                </div>
+            </div>
+            <button class="drawer-close-btn" @onclick="CerrarDrawer" title="Cerrar panel">✕</button>
+        </div>
+
+        <div class="drawer-body">
+            @if (!string.IsNullOrEmpty(errorDrawer))
+            {
+                <div class="alert error">@errorDrawer</div>
+            }
+
+            <!-- Sección 1: Estado y Decisión rápidos -->
+            <div class="drawer-section">
+                <h3 class="drawer-section-title">⚡ Estado y Decisión Operativa</h3>
+                <div class="drawer-grid-2">
+                    <div class="drawer-field">
+                        <label>Estado de la Carpeta</label>
+                        <select class="excel-select" value="@drawerDetalle.Estado" @onchange="OnDrawerEstadoChangedAsync">
+                            @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                            {
+                                <option value="@e">@Labels.Of(e)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="drawer-field">
+                        <label>Decisión</label>
+                        <select class="excel-select" value="@drawerDetalle.Decision" @onchange="OnDrawerDecisionChangedAsync">
+                            @foreach (var d in Enum.GetValues<Decision>())
+                            {
+                                <option value="@d">@Labels.Of(d)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 2: Fechas, Sede y Caja -->
+            <div class="drawer-section">
+                <h3 class="drawer-section-title">📅 Parámetros de la Carpeta y Ciudadano</h3>
+                <div class="drawer-grid-2">
+                    <div class="drawer-field">
+                        <label>RUT del Ciudadano (Modificable)</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input class="rut-input"
+                                   @bind="drawerRut"
+                                   oninput="formatRutInput(this)"
+                                   placeholder="12.345.678-9" />
+                            <button type="button"
+                                    class="btn-copy-rut"
+                                    title="Copiar RUT para CAS-Chile"
+                                    @onclick="() => CopiarRutCasChileAsync(drawerRut)">
+                                📋
+                            </button>
+                        </div>
+                    </div>
+                    <div class="drawer-field">
+                        <label>Sede Operativa</label>
+                        <select @bind="drawerSede">
+                            <option value="@Sede.AvArgentina">Av. Argentina</option>
+                            <option value="@Sede.Placilla">Placilla</option>
+                            <option value="@Sede.MercadoPuerto">Mercado Puerto</option>
+                        </select>
+                    </div>
+                    <div class="drawer-field">
+                        <label>Fecha Citación</label>
+                        <input type="date" @bind="drawerFechaCitacion" />
+                    </div>
+                    <div class="drawer-field">
+                        <label>Fecha Subida</label>
+                        <input type="date" @bind="drawerFechaSubida" />
+                    </div>
+                    <div class="drawer-field">
+                        <label>Caja de Archivo</label>
+                        <input @bind="drawerCaja" placeholder="Ej: CAJA AA-01" />
+                    </div>
+                </div>
+                <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                    <button class="btn-primary" @onclick="GuardarDrawerEdicionAsync" disabled="@drawerGuardando">
+                        @(drawerGuardando ? "Guardando..." : "💾 Guardar Parámetros")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sección 3: Historial y Auditoría -->
+            <div class="drawer-section">
+                <h3 class="drawer-section-title">📋 Historial de Cambios y Trazabilidad (@drawerDetalle.Historial.Count)</h3>
+                @if (drawerDetalle.Historial.Count == 0)
+                {
+                    <p class="text-muted" style="font-size: 0.82rem; margin: 0;">Sin eventos registrados aún.</p>
+                }
+                else
+                {
+                    <div class="drawer-audit-list">
+                        @foreach (var h in drawerDetalle.Historial)
+                        {
+                            <div class="drawer-audit-item">
+                                <div class="audit-meta">
+                                    <strong>@h.Fecha.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</strong> · Por: <em>@h.Usuario</em>
+                                </div>
+                                <div class="audit-change">
+                                    <span class="audit-field">@Labels.Campo(h.Campo):</span>
+                                    @if (!string.IsNullOrEmpty(h.Anterior))
+                                    {
+                                        <span class="audit-old">@h.Anterior</span>
+                                        <span>➔</span>
+                                    }
+                                    <span class="audit-new">@h.Nuevo</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Enlace a detalle completo si se requiere ver más -->
+            <div style="text-align: right; margin-top: 6px;">
+                <a href="carpetas/@drawerDetalle.Id" class="btn-secondary" style="font-size: 0.84rem; display: inline-block;">
+                    🔍 Abrir vista de página completa →
+                </a>
+            </div>
+        </div>
+    }
+</aside>
+
 @code {
-    private string? texto;
-    private Sede? sede;
-    private EstadoCarpeta? estado;
-    private int page = 1;
+    private const string TramitePrimera = "1° LICENCIA";
+    private const string TramiteConaset = "SUBIDA A CONASET";
+    private const string TramiteDomicilio = "CAMBIO DOM. SUBIDO A CONASET";
+    private const string TramiteF8 = "SUBIDA CON F8";
+
     private PagedResult<CarpetaResumenDto>? resultado;
+    private EstadisticasGlobalesDto? stats;
+    private IReadOnlyList<CajaResumenDto> cajasDisponibles = [];
+    private Sede? filtroSede;
+    private string? filtroTramite;
+    private string? filtroCaja;
+    private bool? filtroSinCaja;
+    private EstadoCarpeta? filtroEstado;
+    private string? texto;
+    private int page = 1;
+    private int pageSize = 25;
+    private int saltoPagina = 1;
 
-    protected override Task OnInitializedAsync() => CargarAsync();
+    // Selección múltiple para almacenamiento
+    private readonly HashSet<Guid> seleccionadas = [];
+    private bool TodosSeleccionados =>
+        resultado is not null && resultado.Items.Count > 0 && resultado.Items.All(i => seleccionadas.Contains(i.Id));
 
-    private Task BuscarAsync() => IrAsync(1);
+    // Modal de caja
+    private bool mostrarModalCaja;
+    private bool esModoLote;
+    private CarpetaResumenDto? carpetaParaCaja;
+    private string nuevaCajaTexto = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarMetricasAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarMetricasAsync()
+    {
+        stats = await Carpetas.ObtenerEstadisticasAsync();
+        cajasDisponibles = await Carpetas.ObtenerCajasAsync();
+    }
+
+    private int GetCount(Sede s) =>
+        stats?.Sedes.FirstOrDefault(x => x.Sede == s)?.Total ?? 0;
+
+    private async Task SeleccionarSede(Sede? s)
+    {
+        filtroSede = s;
+        page = 1;
+        seleccionadas.Clear();
+        await CargarAsync();
+    }
+
+    private async Task SeleccionarTramite(string? tramite)
+    {
+        filtroTramite = tramite;
+        page = 1;
+        seleccionadas.Clear();
+        await CargarAsync();
+    }
+
+    private async Task SeleccionarFiltroAlmacenamiento(bool? sinCaja)
+    {
+        filtroSinCaja = sinCaja;
+        filtroCaja = null;
+        page = 1;
+        seleccionadas.Clear();
+        await CargarAsync();
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter")
+        {
+            await BuscarAsync();
+        }
+    }
+
+    private async Task LimpiarBusqueda()
+    {
+        texto = null;
+        await BuscarAsync();
+    }
+
+    private async Task ResetFiltros()
+    {
+        filtroSede = null;
+        filtroTramite = null;
+        filtroCaja = null;
+        filtroSinCaja = null;
+        filtroEstado = null;
+        texto = null;
+        page = 1;
+        seleccionadas.Clear();
+        await CargarAsync();
+    }
+
+    private Task BuscarAsync()
+    {
+        page = 1;
+        seleccionadas.Clear();
+        return CargarAsync();
+    }
 
     private Task IrAsync(int nuevaPagina)
     {
         page = nuevaPagina;
+        seleccionadas.Clear();
         return CargarAsync();
     }
 
-    private async Task CargarAsync() =>
-        resultado = await Carpetas.ListarAsync(new ListarCarpetasQuery(texto, sede, estado, page));
+    private async Task CargarAsync()
+    {
+        saltoPagina = page;
+        var query = new ListarCarpetasQuery(
+            Texto: texto,
+            Sede: filtroSede,
+            Estado: filtroEstado,
+            TipoTramite: filtroTramite,
+            CajaArchivo: filtroCaja,
+            SinCaja: filtroSinCaja,
+            Page: page,
+            PageSize: pageSize);
+
+        resultado = await Carpetas.ListarAsync(query);
+    }
+
+    private async Task CambiarTamanoPagina()
+    {
+        page = 1;
+        await CargarAsync();
+    }
+
+    private async Task OnSaltoKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter")
+        {
+            await SaltarAPagina();
+        }
+    }
+
+    private async Task SaltarAPagina()
+    {
+        if (resultado is null) return;
+        var destino = Math.Clamp(saltoPagina, 1, resultado.TotalPages);
+        await IrAsync(destino);
+    }
+
+    private void ToggleSelect(Guid id)
+    {
+        if (!seleccionadas.Add(id))
+        {
+            seleccionadas.Remove(id);
+        }
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (resultado is null) return;
+        var check = (bool)(e.Value ?? false);
+        if (check)
+        {
+            foreach (var item in resultado.Items)
+            {
+                seleccionadas.Add(item.Id);
+            }
+        }
+        else
+        {
+            foreach (var item in resultado.Items)
+            {
+                seleccionadas.Remove(item.Id);
+            }
+        }
+    }
+
+    private void AbrirModalCaja(CarpetaResumenDto c)
+    {
+        esModoLote = false;
+        carpetaParaCaja = c;
+        nuevaCajaTexto = c.CajaArchivo ?? "";
+        mostrarModalCaja = true;
+    }
+
+    private void AbrirModalCajaLote()
+    {
+        if (seleccionadas.Count == 0) return;
+        esModoLote = true;
+        carpetaParaCaja = null;
+        nuevaCajaTexto = "";
+        mostrarModalCaja = true;
+    }
+
+    private void CerrarModalCaja()
+    {
+        mostrarModalCaja = false;
+        carpetaParaCaja = null;
+        nuevaCajaTexto = "";
+        esModoLote = false;
+    }
+
+    private async Task GuardarCajaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(nuevaCajaTexto)) return;
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+
+        if (esModoLote)
+        {
+            await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(seleccionadas.ToList(), nuevaCajaTexto.Trim(), autor));
+            seleccionadas.Clear();
+        }
+        else if (carpetaParaCaja is not null)
+        {
+            await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(carpetaParaCaja.Id, nuevaCajaTexto.Trim(), autor));
+        }
+
+        CerrarModalCaja();
+        await CargarMetricasAsync();
+        await CargarAsync();
+    }
+
+    private async Task EnviarACajaDirectoAsync(CarpetaResumenDto c)
+    {
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, "Cola de Caja", autor));
+        await CargarMetricasAsync();
+        await CargarAsync();
+    }
+
+    private async Task EnviarSeleccionadasACajaColaAsync()
+    {
+        if (seleccionadas.Count == 0) return;
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(seleccionadas.ToList(), "Cola de Caja", autor));
+        seleccionadas.Clear();
+        await CargarMetricasAsync();
+        await CargarAsync();
+    }
+
+    private Guid? guardandoId;
+    private Guid? guardadoOkId;
+
+    private async Task CambiarEstadoRapidoAsync(Guid id, ChangeEventArgs e)
+    {
+        if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
+        {
+            guardandoId = id;
+            StateHasChanged();
+
+            try
+            {
+                var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+                await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
+                guardadoOkId = id;
+                await CargarMetricasAsync();
+                await CargarAsync();
+
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1800);
+                    if (guardadoOkId == id)
+                    {
+                        guardadoOkId = null;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                });
+            }
+            finally
+            {
+                guardandoId = null;
+            }
+        }
+    }
+
+    private async Task CambiarDecisionRapidaAsync(Guid id, ChangeEventArgs e)
+    {
+        if (Enum.TryParse<Decision>(e.Value?.ToString(), out var nuevaDecision))
+        {
+            guardandoId = id;
+            StateHasChanged();
+
+            try
+            {
+                var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+                await Carpetas.CambiarDecisionAsync(id, nuevaDecision, autor);
+                guardadoOkId = id;
+                await CargarMetricasAsync();
+                await CargarAsync();
+
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1800);
+                    if (guardadoOkId == id)
+                    {
+                        guardadoOkId = null;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                });
+            }
+            finally
+            {
+                guardandoId = null;
+            }
+        }
+    }
+
+    // Quick-Add agenda rápido
+    private bool mostrarAcordeonNuevo;
+    private string nuevoRut = "";
+    private string nuevoNombre = "";
+    private string nuevoApellido = "";
+    private Sede nuevaSede = Sede.AvArgentina;
+    private DateOnly nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
+    private bool guardandoNuevo;
+    private string? errorNuevo;
+
+    private async Task RegistrarCarpetaRapidaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido))
+        {
+            errorNuevo = "Por favor complete RUT, Nombre y Apellido.";
+            return;
+        }
+
+        guardandoNuevo = true;
+        errorNuevo = null;
+
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            var id = await Carpetas.RegistrarAsync(new RegistrarCarpetaCommand(
+                nuevoRut.Trim(),
+                nuevoNombre.Trim(),
+                nuevoApellido.Trim(),
+                nuevaSede,
+                nuevaFechaCitacion,
+                autor));
+
+            nuevoRut = "";
+            nuevoNombre = "";
+            nuevoApellido = "";
+            nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
+            mostrarAcordeonNuevo = false;
+
+            guardadoOkId = id;
+            await CargarMetricasAsync();
+            await CargarAsync();
+            await JS.InvokeVoidAsync("showRutToast", "Carpeta agregada con éxito a la agenda.");
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000);
+                if (guardadoOkId == id)
+                {
+                    guardadoOkId = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            errorNuevo = ex.Message;
+        }
+        finally
+        {
+            guardandoNuevo = false;
+        }
+    }
+
+    // Master-Detail Side Drawer
+    private bool drawerAbierto;
+    private bool drawerCargando;
+    private bool drawerGuardando;
+    private Guid? drawerCarpetaId;
+    private CarpetaDetalleDto? drawerDetalle;
+    private string drawerRut = "";
+    private Sede drawerSede;
+    private DateOnly drawerFechaCitacion;
+    private DateOnly? drawerFechaSubida;
+    private string drawerCaja = "";
+    private string? errorDrawer;
+
+    private async Task AbrirDrawerAsync(Guid id)
+    {
+        drawerCarpetaId = id;
+        drawerAbierto = true;
+        drawerCargando = true;
+        errorDrawer = null;
+        StateHasChanged();
+
+        try
+        {
+            drawerDetalle = await Carpetas.ObtenerAsync(id);
+            drawerRut = drawerDetalle.Rut;
+            drawerSede = drawerDetalle.Sede;
+            drawerFechaCitacion = drawerDetalle.FechaCitacion;
+            drawerFechaSubida = drawerDetalle.FechaSubida;
+            drawerCaja = drawerDetalle.CajaArchivo ?? "";
+        }
+        catch (Exception ex)
+        {
+            errorDrawer = ex.Message;
+        }
+        finally
+        {
+            drawerCargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CerrarDrawer()
+    {
+        drawerAbierto = false;
+        drawerCarpetaId = null;
+        drawerDetalle = null;
+        drawerRut = "";
+        errorDrawer = null;
+    }
+
+    private async Task GuardarDrawerEdicionAsync()
+    {
+        if (drawerDetalle is null) return;
+        drawerGuardando = true;
+        errorDrawer = null;
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.EditarAsync(new EditarCarpetaCommand(
+                drawerDetalle.Id,
+                drawerSede,
+                drawerFechaCitacion,
+                drawerFechaSubida,
+                null,
+                autor,
+                drawerRut));
+
+            if ((drawerCaja ?? "").Trim() != (drawerDetalle.CajaArchivo ?? "").Trim())
+            {
+                await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(
+                    drawerDetalle.Id,
+                    string.IsNullOrWhiteSpace(drawerCaja) ? null : drawerCaja.Trim(),
+                    autor));
+            }
+
+            drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
+            drawerRut = drawerDetalle.Rut;
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            errorDrawer = ex.Message;
+        }
+        finally
+        {
+            drawerGuardando = false;
+        }
+    }
+
+    private async Task CopiarRutCasChileAsync(string? rut)
+    {
+        if (string.IsNullOrWhiteSpace(rut)) return;
+        await JS.InvokeVoidAsync("copyRutCasChile", rut);
+    }
+
+    private async Task CambiarRutRapidoAsync(Guid id, ChangeEventArgs e)
+    {
+        var nuevoRutTexto = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(nuevoRutTexto)) return;
+
+        guardandoId = id;
+        StateHasChanged();
+
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.ModificarRutAsync(id, nuevoRutTexto, autor);
+            guardadoOkId = id;
+            await CargarMetricasAsync();
+            await CargarAsync();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1800);
+                if (guardadoOkId == id)
+                {
+                    guardadoOkId = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("showRutToast", $"Error al actualizar RUT: {ex.Message}");
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
+
+    private async Task OnDrawerEstadoChangedAsync(ChangeEventArgs e)
+    {
+        if (drawerDetalle is null) return;
+        if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.ForzarEstadoAsync(drawerDetalle.Id, nuevoEstado, autor);
+            drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+    }
+
+    private async Task OnDrawerDecisionChangedAsync(ChangeEventArgs e)
+    {
+        if (drawerDetalle is null) return;
+        if (Enum.TryParse<Decision>(e.Value?.ToString(), out var nuevaDecision))
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.CambiarDecisionAsync(drawerDetalle.Id, nuevaDecision, autor);
+            drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+    }
 }

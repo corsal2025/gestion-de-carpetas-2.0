@@ -28,10 +28,60 @@ public sealed class Carpeta
 
     public string? IdoneidadMoral { get; private set; }
 
+    public string? CajaArchivo { get; private set; }
+
+    public string? FechaUltimaCarpeta { get; private set; }
+
+    public string? TipoTramite { get; private set; }
+
     public IReadOnlyList<HistorialCambio> Historial => _historial;
 
     private Carpeta()
     {
+    }
+
+    public static Carpeta CrearImportada(
+        Guid id,
+        Ciudadano ciudadano,
+        Sede sede,
+        DateOnly fechaCitacion,
+        DateOnly? fechaSubida,
+        string? fechaUltimaCarpeta,
+        EstadoCarpeta estado,
+        Decision decision,
+        string? idoneidadMoral,
+        string? tipoTramite,
+        string? cajaArchivo,
+        DateTime now)
+    {
+        var carpeta = new Carpeta
+        {
+            Id = id == Guid.Empty ? Guid.NewGuid() : id,
+            Ciudadano = ciudadano,
+            CiudadanoId = ciudadano.Id,
+            Sede = sede,
+            FechaCitacion = fechaCitacion,
+            FechaSubida = fechaSubida,
+            FechaUltimaCarpeta = fechaUltimaCarpeta,
+            Estado = estado,
+            Decision = decision,
+            IdoneidadMoral = idoneidadMoral,
+            TipoTramite = tipoTramite,
+            CajaArchivo = cajaArchivo,
+        };
+        carpeta.Audit(now, "Sistema Importador", "Importacion", null, $"{sede} - {tipoTramite ?? estado.ToString()}");
+        return carpeta;
+    }
+
+    public void AsignarCaja(string? nuevaCaja, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        var caja = string.IsNullOrWhiteSpace(nuevaCaja) ? null : nuevaCaja.Trim();
+        if (caja != CajaArchivo)
+        {
+            Audit(now, usuario, nameof(CajaArchivo), CajaArchivo, caja);
+            CajaArchivo = caja;
+        }
     }
 
     public static Carpeta Registrar(Ciudadano ciudadano, Sede sede, DateOnly fechaCitacion, string autor, DateTime now)
@@ -73,6 +123,53 @@ public sealed class Carpeta
         }
     }
 
+    public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        if (nuevo != Estado)
+        {
+            Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
+            Estado = nuevo;
+
+            var decision = EstadoTransitions.DecisionFor(nuevo);
+            if (decision != Decision)
+            {
+                Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
+                Decision = decision;
+            }
+
+            if (EsEstadoSubida(nuevo) && FechaSubida is null)
+            {
+                FechaSubida = DateOnly.FromDateTime(now);
+                Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
+            }
+        }
+    }
+
+    private static bool EsEstadoSubida(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.SubidaConaset or
+        EstadoCarpeta.PrimeraLicencia or
+        EstadoCarpeta.Otorgado => true,
+        _ => false
+    };
+
+    public void CambiarDecision(Decision nueva, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        if (nueva != Decision)
+        {
+            Audit(now, usuario, nameof(Decision), Decision.ToString(), nueva.ToString());
+            Decision = nueva;
+
+            if (nueva is Decision.Otorgado or Decision.Denegado && FechaSubida is null)
+            {
+                FechaSubida = DateOnly.FromDateTime(now);
+                Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
+            }
+        }
+    }
+
     public void Editar(Sede sede, DateOnly fechaCitacion, DateOnly? fechaSubida, string? idoneidadMoral, string autor, DateTime now)
     {
         var usuario = RequireAutor(autor);
@@ -110,6 +207,26 @@ public sealed class Carpeta
         {
             Audit(now, usuario, nameof(IdoneidadMoral), IdoneidadMoral, idoneidad);
             IdoneidadMoral = idoneidad;
+        }
+    }
+
+    public void ModificarRut(Rut nuevoRut, Ciudadano? ciudadanoExistente, string autor, DateTime now)
+    {
+        ArgumentNullException.ThrowIfNull(nuevoRut);
+        var usuario = RequireAutor(autor);
+        if (Ciudadano.Rut != nuevoRut)
+        {
+            var anterior = Ciudadano.Rut.Formatted;
+            if (ciudadanoExistente is not null && ciudadanoExistente.Id != CiudadanoId)
+            {
+                Ciudadano = ciudadanoExistente;
+                CiudadanoId = ciudadanoExistente.Id;
+            }
+            else
+            {
+                Ciudadano.CambiarRut(nuevoRut);
+            }
+            Audit(now, usuario, "RUT", anterior, nuevoRut.Formatted);
         }
     }
 

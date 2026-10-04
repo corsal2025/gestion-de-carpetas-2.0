@@ -40,10 +40,15 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(20);
             b.Property(c => c.Decision).HasConversion<string>().HasMaxLength(20);
             b.Property(c => c.IdoneidadMoral).HasMaxLength(Carpeta.MaxIdoneidadLength);
+            b.Property(c => c.CajaArchivo).HasMaxLength(50);
+            b.Property(c => c.FechaUltimaCarpeta).HasMaxLength(50);
+            b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.HasIndex(c => c.Sede);
             b.HasIndex(c => c.Estado);
+            b.HasIndex(c => c.CajaArchivo);
+            b.HasIndex(c => c.TipoTramite);
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>
