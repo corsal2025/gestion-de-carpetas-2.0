@@ -538,3 +538,32 @@ window.printPdfDocument = function () {
     window.iniciarGuiaInteractiva = iniciarGuiaInteractiva;
     window.cerrarGuiaInteractiva = cerrarGuiaInteractiva;
 })();
+
+/* ==========================================================================
+   Preferencias de interfaz: tema (claro/oscuro) y estilo de filas (suaves/Excel).
+   Se guardan por navegador; el estado inicial lo aplica un script en App.razor.
+   ========================================================================== */
+(function () {
+    var root = document.documentElement;
+    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+    function syncRowsButton() {
+        var b = document.getElementById('btn-filas');
+        if (b) b.setAttribute('aria-pressed', root.getAttribute('data-rows') === 'classic' ? 'true' : 'false');
+    }
+    window.sglUi = {
+        toggleTheme: function () {
+            var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            save('sgl-theme', next);
+        },
+        toggleRows: function () {
+            var next = root.getAttribute('data-rows') === 'classic' ? 'soft' : 'classic';
+            root.setAttribute('data-rows', next);
+            save('sgl-rows', next);
+            syncRowsButton();
+        },
+    };
+    // El botón se vuelve a renderizar con Blazor: sincronizar su estado al cambiar el DOM.
+    new MutationObserver(syncRowsButton).observe(document.body, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', syncRowsButton);
+})();
