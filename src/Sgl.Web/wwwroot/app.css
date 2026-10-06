@@ -846,12 +846,12 @@ body {
     color: #ffffff !important;
 }
 
-.data-table tbody tr.estado-subidaaconaset td *,
-.data-table tbody tr.estado-subidaconaset td *,
-.data-table tbody tr.estado-cambiodomicilio td *,
-.data-table tbody tr.estado-seencuentraenarchivos td *,
-.data-table tbody tr.estado-seencuentraenoficina43 td *,
-.data-table tbody tr.estado-noexistecarpeta td * {
+.data-table tbody tr.estado-subidaaconaset td *:not(.sector-cell),
+.data-table tbody tr.estado-subidaconaset td *:not(.sector-cell),
+.data-table tbody tr.estado-cambiodomicilio td *:not(.sector-cell),
+.data-table tbody tr.estado-seencuentraenarchivos td *:not(.sector-cell),
+.data-table tbody tr.estado-seencuentraenoficina43 td *:not(.sector-cell),
+.data-table tbody tr.estado-noexistecarpeta td *:not(.sector-cell) {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
 }
@@ -2625,41 +2625,53 @@ table.acta-table tfoot td {
     white-space: nowrap;
 }
 
+.data-table tbody tr td .sector-cell,
+.data-table tbody tr td span.sector-cell,
 .sector-cell {
     display: inline-block;
-    padding: 0.22rem 0.65rem;
+    padding: 0.28rem 0.8rem;
     border-radius: 6px;
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.84rem;
+    font-weight: 800 !important;
     letter-spacing: 0.02em;
     text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
-.sector-cell.sector-archivo {
-    background: #e0f2fe;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
+/* Archivo: Fondo celeste suave + Letras AZUL MARINO OSCURO / NEGRO de alto contraste */
+.data-table tbody tr td .sector-cell.sector-archivo,
+.data-table tbody tr[class*="estado-"] td .sector-cell.sector-archivo,
+.data-table tbody tr td span.sector-cell.sector-archivo,
+span.sector-cell.sector-archivo {
+    background: #dbeafe !important;
+    color: #0c4a6e !important;
+    -webkit-text-fill-color: #0c4a6e !important;
+    border: 1.5px solid #0284c7 !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
 }
 
-.sector-cell.sector-oficina43 {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fde68a;
+/* Oficina 43: Fondo amarillo cálido + Letras NEGRO PURO para máxima legibilidad */
+.data-table tbody tr td .sector-cell.sector-oficina43,
+.data-table tbody tr[class*="estado-"] td .sector-cell.sector-oficina43,
+.data-table tbody tr td span.sector-cell.sector-oficina43,
+span.sector-cell.sector-oficina43 {
+    background: #fef08a !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    border: 1.5px solid #ca8a04 !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
 }
 
-.sector-cell.sector-vacio {
-    color: var(--text-muted);
-}
-
-/* En filas coloreadas, mantener contraste legible */
-tr[class*="row-"] .sector-cell.sector-archivo {
-    background: rgba(224, 242, 254, 0.95);
-    color: #0369a1;
-}
-
-tr[class*="row-"] .sector-cell.sector-oficina43 {
-    background: rgba(254, 243, 199, 0.95);
-    color: #92400e;
+.data-table tbody tr td .sector-cell.sector-vacio,
+.data-table tbody tr[class*="estado-"] td .sector-cell.sector-vacio,
+span.sector-cell.sector-vacio {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* ==========================================================================

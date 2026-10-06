@@ -391,38 +391,7 @@
             </div>
         </div>
 
-        <!-- Barra flotante para archivar múltiples carpetas encontradas a la vez -->
-        @if (seleccionadas.Count > 0)
-        {
-            <div class="batch-bar">
-                <div class="batch-info">
-                    ✅ <strong>@seleccionadas.Count</strong> carpeta(s) seleccionada(s)
-                </div>
-                <div class="batch-actions">
-                    <button class="btn-batch-caja" @onclick="EnviarSeleccionadasACajaColaAsync" title="Enviar seleccionadas a la cola de caja">
-                        📦 Enviar a Cola de Caja
-                    </button>
-                    <button class="btn-batch-caja" style="background:#0284c7;" @onclick="AbrirModalCajaLote" title="Asignar caja física específica">
-                        🏷️ Asignar Caja Específica…
-                    </button>
-                    @if (conteoArchivoSeleccionadas > 0)
-                    {
-                        <button type="button" class="btn-pdf-pill btn-pdf-archivo" @onclick='() => AbrirModalPdfSector("Archivo")' title="Imprimir PDF Archivo">
-                            📄 PDF Archivo (@conteoArchivoSeleccionadas)
-                        </button>
-                    }
-                    @if (conteoOficina43Seleccionadas > 0)
-                    {
-                        <button type="button" class="btn-pdf-pill btn-pdf-oficina43" @onclick='() => AbrirModalPdfSector("Oficina 43")' title="Imprimir PDF Oficina 43">
-                            📄 PDF Oficina 43 (@conteoOficina43Seleccionadas)
-                        </button>
-                    }
-                    <button class="btn-batch-cancel" @onclick="CancelarSeleccion">
-                        Cancelar selección
-                    </button>
-                </div>
-            </div>
-        }
+
 
 
     }
