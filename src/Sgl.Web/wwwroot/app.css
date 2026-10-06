@@ -566,32 +566,30 @@ body {
 .col-sticky-check {
     position: sticky !important;
     left: 0 !important;
-    width: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
+    width: 36px !important;
+    min-width: 36px !important;
     text-align: center !important;
     box-sizing: border-box;
 }
 
 .col-sticky-rut {
     position: sticky !important;
-    left: 34px !important;
-    width: 110px !important;
-    min-width: 110px !important;
-    max-width: 110px !important;
+    left: 36px !important;
+    width: 115px !important;
+    min-width: 115px !important;
     text-align: center !important;
     box-sizing: border-box;
 }
 
 .col-sticky-nombre {
     position: sticky !important;
-    left: 144px !important; /* 34px + 110px */
-    width: 260px !important;
-    min-width: 260px !important;
-    max-width: 300px !important;
+    left: 151px !important; /* 36px + 115px */
+    width: max-content !important;
+    min-width: 280px !important;
     box-sizing: border-box;
     border-right: 2px solid #cbd5e1 !important;
     box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.15) !important;
+    text-align: left !important;
 }
 
 /* thead sticky headers con z-index prioritario */
@@ -635,51 +633,105 @@ body {
     letter-spacing: 0.01em;
 }
 
-/* AJUSTES DE COLUMNAS PARA ADAPTACIÓN AUTOMÁTICA Y VISUALIZACIÓN FLUIDA SIN PAUSAS */
+/* ==========================================================================
+   REVISIÓN INTEGRAL: TODAS LAS COLUMNAS ADAPTADAS AL CONTENIDO DE FORMA AUTOMÁTICA
+   Layout dinámico auto-ajustable (width: max-content), centrado de datos y sin cortes
+   ========================================================================== */
+.data-table {
+    width: max-content !important;
+    min-width: 100% !important;
+    table-layout: auto !important;
+}
+
 .data-table th, .data-table td {
-    white-space: nowrap;
-    text-align: center;
+    white-space: nowrap !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    box-sizing: border-box !important;
 }
 
-.data-table th:nth-child(4), .data-table td:nth-child(4) { /* Sede */
-    min-width: 95px;
-    width: auto;
+/* Columna 1: Checkbox */
+.data-table th:nth-child(1), .data-table td:nth-child(1) {
+    width: 36px !important;
+    min-width: 36px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(5), .data-table td:nth-child(5), /* Fecha Citacion */
-.data-table th:nth-child(6), .data-table td:nth-child(6) { /* Fecha Subida */
-    min-width: 90px;
-    width: auto;
+/* Columna 2: RUT */
+.data-table th:nth-child(2), .data-table td:nth-child(2) {
+    width: 115px !important;
+    min-width: 115px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(7), .data-table td:nth-child(7) { /* Ultima Carpeta */
-    min-width: 105px;
-    width: auto;
+/* Columna 3: Nombre Completo */
+.data-table th:nth-child(3), .data-table td:nth-child(3) {
+    width: max-content !important;
+    min-width: 280px !important;
+    text-align: left !important;
 }
 
-.data-table th:nth-child(8), .data-table td:nth-child(8) { /* Sector */
-    min-width: 80px;
-    width: auto;
+/* Columna 4: Sede */
+.data-table th:nth-child(4), .data-table td:nth-child(4) {
+    width: auto !important;
+    min-width: 115px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(9), .data-table td:nth-child(9) { /* Comunas */
-    min-width: 90px;
-    width: auto;
+/* Columna 5: Fecha Citación */
+.data-table th:nth-child(5), .data-table td:nth-child(5) {
+    width: auto !important;
+    min-width: 105px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(10), .data-table td:nth-child(10) { /* Estado Carpeta */
-    min-width: 180px;
-    width: auto;
+/* Columna 6: Fecha Subida */
+.data-table th:nth-child(6), .data-table td:nth-child(6) {
+    width: auto !important;
+    min-width: 100px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(11), .data-table td:nth-child(11) { /* Decision */
-    min-width: 110px;
-    width: auto;
+/* Columna 7: Última Carpeta */
+.data-table th:nth-child(7), .data-table td:nth-child(7) {
+    width: auto !important;
+    min-width: 125px !important;
+    text-align: center !important;
 }
 
-.data-table th:nth-child(12), .data-table td:nth-child(12) { /* Accion */
-    min-width: 65px;
-    width: auto;
+/* Columna 8: Sector */
+.data-table th:nth-child(8), .data-table td:nth-child(8) {
+    width: auto !important;
+    min-width: 95px !important;
+    text-align: center !important;
+}
+
+/* Columna 9: Comunas (CENTRALIZADA) */
+.data-table th:nth-child(9), .data-table td:nth-child(9) {
+    width: auto !important;
+    min-width: 130px !important;
+    text-align: center !important;
+}
+
+/* Columna 10: Estado de la Carpeta */
+.data-table th:nth-child(10), .data-table td:nth-child(10) {
+    width: max-content !important;
+    min-width: 230px !important;
+    text-align: center !important;
+}
+
+/* Columna 11: Decisión */
+.data-table th:nth-child(11), .data-table td:nth-child(11) {
+    width: auto !important;
+    min-width: 130px !important;
+    text-align: center !important;
+}
+
+/* Columna 12: Acción */
+.data-table th:nth-child(12), .data-table td:nth-child(12) {
+    width: auto !important;
+    min-width: 85px !important;
+    text-align: center !important;
 }
 
 /* BOTÓN DE DESPLEGAR / OCULTAR FILTROS */
@@ -870,13 +922,14 @@ body {
     font-weight: 700 !important;
     border: 1px solid rgba(0, 0, 0, 0.25) !important;
     border-radius: 4px;
-    padding: 2px 4px;
-    font-size: 0.72rem !important;
+    padding: 3px 6px;
+    font-size: 0.73rem !important;
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     transition: border-color 0.2s, box-shadow 0.2s;
-    width: 135px;
-    max-width: 140px;
+    width: auto !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .data-table tbody td select.excel-select:focus {
@@ -977,7 +1030,7 @@ body {
     color: inherit !important;
     -webkit-text-fill-color: inherit !important;
     font-family: inherit !important;
-    font-size: 0.72rem !important;
+    font-size: 0.73rem !important;
     font-weight: 600 !important;
     border: 1px solid transparent !important;
     border-radius: 4px;
@@ -985,7 +1038,9 @@ body {
     outline: none;
     cursor: pointer;
     transition: all 0.15s ease;
-    width: 90px;
+    width: auto !important;
+    min-width: 112px !important;
+    text-align: center !important;
 }
 
 .date-input-inline:hover,
@@ -995,7 +1050,8 @@ body {
 }
 
 .excel-cell-comuna {
-    white-space: nowrap;
+    white-space: nowrap !important;
+    text-align: center !important;
 }
 
 .comuna-input-inline {
@@ -1003,14 +1059,25 @@ body {
     color: inherit !important;
     -webkit-text-fill-color: inherit !important;
     font-family: inherit !important;
-    font-size: 0.72rem !important;
+    font-size: 0.73rem !important;
     font-weight: 600 !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
     border: 1px solid transparent !important;
     border-radius: 4px;
-    padding: 2px 4px;
+    padding: 2px 6px;
     outline: none;
-    width: 76px;
+    width: 100%;
+    max-width: 115px;
+    margin: 0 auto !important;
+    display: inline-block !important;
     transition: all 0.15s ease;
+}
+
+.comuna-input-inline::placeholder {
+    text-align: center !important;
+    color: inherit;
+    opacity: 0.85;
 }
 
 .comuna-input-inline:hover,
