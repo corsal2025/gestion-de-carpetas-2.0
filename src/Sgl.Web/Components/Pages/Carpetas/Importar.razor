@@ -1,0 +1,187 @@
+@page "/importar"
+@using Sgl.Application.Carpetas
+@using Sgl.Infrastructure.Carpetas
+@inject ExcelImportService ExcelImport
+@inject AutorState Autor
+@inject NavigationManager Nav
+
+<PageTitle>Carga Masiva de Excels · SGL</PageTitle>
+
+<div class="page-container" style="max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem;">
+    <div class="header-section" style="margin-bottom: 1.5rem;">
+        <h1>📥 Carga Masiva de Carpetas desde Excel</h1>
+        <p class="subtitle">Integre planillas Excel oficiales (.xlsx) del Departamento de Licencias para registrar y sincronizar carpetas en lote.</p>
+    </div>
+
+    <div class="card" style="padding: 1.75rem; border-radius: 12px; box-shadow: var(--shadow-md); background: #ffffff;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; color: #1e293b;">
+            1. Seleccionar o Arrastrar Archivo Excel (.xlsx)
+        </h2>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.25rem;">
+            El sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.
+        </p>
+
+        <div class="drop-zone" style="border: 2px dashed #93c5fd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; background: #f8fafc; transition: all 0.2s ease;">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">📊</div>
+            <label class="btn-primary" style="display: inline-block; cursor: pointer; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 8px;">
+                Examinar Archivo Excel
+                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx, .xls" style="display: none;" />
+            </label>
+            <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #64748b;">
+                @(archivoSeleccionado is not null ? $"Archivo listo: {archivoSeleccionado.Name} ({archivoSeleccionado.Size / 1024} KB)" : "o arrastre el archivo .xlsx aquí (hasta 50 MB)")
+            </p>
+        </div>
+
+        @if (cargando)
+        {
+            <div style="margin-top: 1.5rem; padding: 1.25rem; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; text-align: center;">
+                <div class="spinner" style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #93c5fd; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e40af; margin-top: 0.75rem;">Procesando e Integrando Planilla Excel...</h3>
+                <p style="font-size: 0.85rem; color: #3b82f6; margin: 0.25rem 0 0;">
+                    Leyendo filas, validando RUTs y sincronizando carpetas en la base de datos. Esto puede tardar unos segundos.
+                </p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert error" style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;">
+                ⚠️ <strong>Error al cargar archivo:</strong> @error
+            </div>
+        }
+
+        @if (resultado is not null)
+        {
+            <div style="margin-top: 1.75rem; padding: 1.5rem; background: #f0fdf4; border-radius: 10px; border: 1.5px solid #86efac;">
+                <h3 style="color: #166534; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    ✅ Integración Completada con Éxito
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Filas Leídas</span>
+                        <strong style="font-size: 1.75rem; color: #14532d;">@resultado.FilasLeidas.ToString("N0")</strong>
+                    </div>
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Carpetas Creadas</span>
+                        <strong style="font-size: 1.75rem; color: #16a34a;">+@resultado.CarpetasCreadas.ToString("N0")</strong>
+                    </div>
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Carpetas Actualizadas</span>
+                        <strong style="font-size: 1.75rem; color: #2563eb;">@resultado.CarpetasActualizadas.ToString("N0")</strong>
+                    </div>
+                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Nuevos Ciudadanos</span>
+                        <strong style="font-size: 1.75rem; color: #0284c7;">+@resultado.CiudadanosCreados.ToString("N0")</strong>
+                    </div>
+                </div>
+
+                <p style="font-size: 0.9rem; color: #166534; margin-bottom: 1rem;">
+                    🏛️ <strong>Sedes procesadas:</strong> @(string.Join(", ", resultado.SedesProcesadas))
+                </p>
+
+                @if (resultado.Errores.Count > 0)
+                {
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: #fffbeb; border-radius: 6px; border: 1px solid #fde68a;">
+                        <span style="font-size: 0.85rem; font-weight: 700; color: #92400e;">Observaciones en algunas filas:</span>
+                        <ul style="font-size: 0.8rem; color: #78350f; margin: 0.35rem 0 0 1.25rem;">
+                            @foreach (var err in resultado.Errores)
+                            {
+                                <li>@err</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <a href="carpetas" class="btn-primary" style="padding: 0.65rem 1.4rem; text-decoration: none; font-weight: 700;">
+                        📋 Ver Listado de Carpetas Actualizado →
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Guía de formato de columnas soportadas -->
+    <div class="card" style="margin-top: 1.5rem; padding: 1.5rem; border-radius: 12px; background: #ffffff;">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; color: #334155;">
+            ℹ️ Formato de Columnas Compatibles del Excel
+        </h3>
+        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1rem;">
+            El importador acepta tanto los libros multicapa oficiales del departamento como planillas personalizadas.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>1. Fecha Citación:</strong> Fecha programada
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>2. Fecha Subida:</strong> Fecha al subir a sistema
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>3. Última Carpeta:</strong> Fecha carpeta anterior
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>4. Nombres / Apellidos:</strong> Ciudadano
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>5. RUT:</strong> Con o sin puntos y guión
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>6. Comuna:</strong> Comuna de procedencia
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>7. Estado:</strong> 12 estados oficiales
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong>8. Decisión:</strong> Otorgado, Denegado, etc.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private IBrowserFile? archivoSeleccionado;
+    private bool cargando;
+    private string? error;
+    private ExcelImportResult? resultado;
+
+    private async Task OnArchivoSeleccionado(InputFileChangeEventArgs e)
+    {
+        archivoSeleccionado = e.File;
+        error = null;
+        resultado = null;
+
+        if (archivoSeleccionado is null) return;
+
+        cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Permitir archivos Excel de hasta 50MB
+            using var stream = archivoSeleccionado.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var autor = Autor.HasNombre ? Autor.Nombre! : "FUNCIONARIO";
+            resultado = await ExcelImport.ImportarExcelAsync(memoryStream, autor);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+}

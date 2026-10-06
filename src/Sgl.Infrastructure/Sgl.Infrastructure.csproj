@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sgl.Application\Sgl.Application.csproj" />
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
   </ItemGroup>
 
   <ItemGroup>

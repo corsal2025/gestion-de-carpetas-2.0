@@ -209,6 +209,10 @@ public sealed class Carpeta
     private static bool EsEstadoSubida(EstadoCarpeta estado) => estado switch
     {
         EstadoCarpeta.SubidaConaset or
+        EstadoCarpeta.SubidaConF8 or
+        EstadoCarpeta.CambioDomSubidoConaset or
+        EstadoCarpeta.CambioDomSubidoCorreo or
+        EstadoCarpeta.SubidaConOficio or
         EstadoCarpeta.PrimeraLicencia or
         EstadoCarpeta.Otorgado => true,
         _ => false

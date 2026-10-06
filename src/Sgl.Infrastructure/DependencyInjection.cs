@@ -1,3 +1,4 @@
+using Sgl.Infrastructure.Carpetas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddDbContext<SglDbContext>(options => DatabaseProvider.Configure(options, provider, connectionString));
         services.AddScoped<ICarpetaRepository, CarpetaRepository>();
         services.AddScoped<CarpetaService>();
+        services.AddScoped<ExcelImportService>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

@@ -20,6 +20,16 @@ public enum EstadoCarpeta
     Otorgado = 9,
     ParaDenegar = 10,
     Denegado = 11,
+    SubidaConF8 = 12,
+    CambioDomSubidoConaset = 13,
+    CambioDomSubidoCorreo = 14,
+    SubidaConOficio = 15,
+    SeEncuentraEnArchivos = 16,
+    SeEncuentraEnOf43 = 17,
+    CambioDomicilioSolicitado = 18,
+    NoExisteCarpeta = 19,
+    CrearCertificado = 20,
+    CanjeLicExtranjera = 21,
 }
 
 public enum Decision

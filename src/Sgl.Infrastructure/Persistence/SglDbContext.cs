@@ -38,7 +38,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.CiudadanoId).UseCollation("NOCASE");
             b.HasOne(c => c.Ciudadano).WithMany().HasForeignKey(c => c.CiudadanoId).OnDelete(DeleteBehavior.Restrict);
             b.Property(c => c.Sede).HasConversion<string>().HasMaxLength(20);
-            b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(50);
             b.Property(c => c.Decision).HasConversion<string>().HasMaxLength(20);
             b.Property(c => c.IdoneidadMoral).HasMaxLength(Carpeta.MaxIdoneidadLength);
             b.Property(c => c.CajaArchivo).HasMaxLength(50);

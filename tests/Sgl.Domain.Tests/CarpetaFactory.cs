@@ -18,14 +18,22 @@ internal static class CarpetaFactory
     public static Carpeta InEstado(EstadoCarpeta target)
     {
         var carpeta = New();
-        foreach (var step in PathTo(target))
+        var path = PathTo(target);
+        if (path is not null)
         {
-            carpeta.CambiarEstado(step, "setup", Now);
+            foreach (var step in path)
+            {
+                carpeta.CambiarEstado(step, "setup", Now);
+            }
+        }
+        else
+        {
+            carpeta.ForzarEstado(target, "setup", Now);
         }
         return carpeta;
     }
 
-    private static EstadoCarpeta[] PathTo(EstadoCarpeta target) => target switch
+    private static EstadoCarpeta[]? PathTo(EstadoCarpeta target) => target switch
     {
         EstadoCarpeta.Citada => [],
         EstadoCarpeta.Revision => [EstadoCarpeta.Revision],
@@ -38,6 +46,6 @@ internal static class CarpetaFactory
         EstadoCarpeta.Otorgado => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado],
         EstadoCarpeta.ParaDenegar => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar],
         EstadoCarpeta.Denegado => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado],
-        _ => throw new ArgumentOutOfRangeException(nameof(target)),
+        _ => null,
     };
 }
