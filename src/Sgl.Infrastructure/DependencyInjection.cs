@@ -37,6 +37,7 @@ public static class DatabaseProvider
     public static void Configure(DbContextOptionsBuilder options, string provider, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(options);
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         _ = provider switch
         {
             _ when provider.Equals(Sqlite, StringComparison.OrdinalIgnoreCase) => options.UseSqlite(connectionString),

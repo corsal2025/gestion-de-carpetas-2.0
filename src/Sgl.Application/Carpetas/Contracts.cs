@@ -19,7 +19,9 @@ public sealed record EditarCarpetaCommand(
     DateOnly? FechaSubida,
     string? IdoneidadMoral,
     string Autor,
-    string? Rut = null);
+    string? Rut = null,
+    string? FechaUltimaCarpeta = null,
+    string? Comuna = null);
 
 public sealed record AsignarCajaCommand(Guid CarpetaId, string? NuevaCaja, string Autor);
 
@@ -32,6 +34,7 @@ public sealed record ListarCarpetasQuery(
     string? TipoTramite = null,
     string? CajaArchivo = null,
     bool? SinCaja = null,
+    string? Comuna = null,
     int Page = 1,
     int PageSize = ListarCarpetasQuery.DefaultPageSize)
 {
@@ -43,6 +46,7 @@ public sealed record ListarCarpetasQuery(
         Texto = string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim(),
         TipoTramite = string.IsNullOrWhiteSpace(TipoTramite) ? null : TipoTramite.Trim(),
         CajaArchivo = string.IsNullOrWhiteSpace(CajaArchivo) ? null : CajaArchivo.Trim(),
+        Comuna = string.IsNullOrWhiteSpace(Comuna) ? null : Comuna.Trim(),
         Page = Math.Max(1, Page),
         PageSize = Math.Clamp(PageSize, 1, MaxPageSize),
     };
@@ -56,6 +60,7 @@ public sealed record CarpetaResumenDto(
     DateOnly FechaCitacion,
     DateOnly? FechaSubida,
     string? FechaUltimaCarpeta,
+    string? Comuna,
     string? IdoneidadMoral,
     string? TipoTramite,
     string? CajaArchivo,
@@ -73,6 +78,7 @@ public sealed record CarpetaDetalleDto(
     DateOnly FechaCitacion,
     DateOnly? FechaSubida,
     string? FechaUltimaCarpeta,
+    string? Comuna,
     string? IdoneidadMoral,
     string? TipoTramite,
     string? CajaArchivo,
@@ -115,5 +121,6 @@ public sealed record CarpetaSearch(
     string? TipoTramite,
     string? CajaArchivo,
     bool? SinCaja,
+    string? Comuna,
     int Skip,
     int Take);

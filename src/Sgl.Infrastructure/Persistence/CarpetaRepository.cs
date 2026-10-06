@@ -80,6 +80,11 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             query = query.Where(c => c.CajaArchivo != null && c.CajaArchivo != "");
         }
 
+        if (search.Comuna is { } comuna)
+        {
+            query = query.Where(c => c.Comuna != null && c.Comuna.Contains(comuna));
+        }
+
         var total = await query.CountAsync(ct);
         var rows = await query
             .OrderByDescending(c => c.FechaCitacion)
@@ -96,6 +101,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.FechaCitacion,
                 c.FechaSubida,
                 c.FechaUltimaCarpeta,
+                c.Comuna,
                 c.IdoneidadMoral,
                 c.TipoTramite,
                 c.CajaArchivo,
@@ -113,6 +119,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.FechaCitacion,
                 r.FechaSubida,
                 r.FechaUltimaCarpeta,
+                r.Comuna,
                 r.IdoneidadMoral,
                 r.TipoTramite,
                 r.CajaArchivo,
@@ -214,6 +221,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.FechaCitacion,
                 c.FechaSubida,
                 c.FechaUltimaCarpeta,
+                c.Comuna,
                 c.IdoneidadMoral,
                 c.TipoTramite,
                 c.CajaArchivo,
@@ -230,6 +238,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             c.FechaCitacion,
             c.FechaSubida,
             c.FechaUltimaCarpeta,
+            c.Comuna,
             c.IdoneidadMoral,
             c.TipoTramite,
             c.CajaArchivo,

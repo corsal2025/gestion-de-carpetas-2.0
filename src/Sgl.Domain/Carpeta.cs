@@ -7,6 +7,7 @@ public sealed class Carpeta
 {
     public const int MaxUsuarioLength = 100;
     public const int MaxIdoneidadLength = 200;
+    public const int MaxComunaLength = 100;
 
     private readonly List<HistorialCambio> _historial = [];
 
@@ -32,6 +33,8 @@ public sealed class Carpeta
 
     public string? FechaUltimaCarpeta { get; private set; }
 
+    public string? Comuna { get; private set; }
+
     public string? TipoTramite { get; private set; }
 
     public IReadOnlyList<HistorialCambio> Historial => _historial;
@@ -52,6 +55,7 @@ public sealed class Carpeta
         string? idoneidadMoral,
         string? tipoTramite,
         string? cajaArchivo,
+        string? comuna,
         DateTime now)
     {
         var carpeta = new Carpeta
@@ -63,6 +67,7 @@ public sealed class Carpeta
             FechaCitacion = fechaCitacion,
             FechaSubida = fechaSubida,
             FechaUltimaCarpeta = fechaUltimaCarpeta,
+            Comuna = comuna,
             Estado = estado,
             Decision = decision,
             IdoneidadMoral = idoneidadMoral,
@@ -81,6 +86,47 @@ public sealed class Carpeta
         {
             Audit(now, usuario, nameof(CajaArchivo), CajaArchivo, caja);
             CajaArchivo = caja;
+        }
+    }
+
+    public void AsignarComuna(string? nuevaComuna, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        var com = string.IsNullOrWhiteSpace(nuevaComuna) ? null : nuevaComuna.Trim();
+        if (com?.Length > MaxComunaLength)
+        {
+            throw new DomainException($"La comuna excede {MaxComunaLength} caracteres.");
+        }
+        if (com != Comuna)
+        {
+            Audit(now, usuario, nameof(Comuna), Comuna, com);
+            Comuna = com;
+        }
+    }
+
+    public void ModificarFechaUltimaCarpeta(string? nuevaFecha, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        var f = string.IsNullOrWhiteSpace(nuevaFecha) ? null : nuevaFecha.Trim();
+        if (f != FechaUltimaCarpeta)
+        {
+            Audit(now, usuario, nameof(FechaUltimaCarpeta), FechaUltimaCarpeta, f);
+            FechaUltimaCarpeta = f;
+        }
+    }
+
+    public void ModificarObservacion(string? nuevaObservacion, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        var obs = string.IsNullOrWhiteSpace(nuevaObservacion) ? null : nuevaObservacion.Trim();
+        if (obs?.Length > MaxIdoneidadLength)
+        {
+            throw new DomainException($"La observación excede {MaxIdoneidadLength} caracteres.");
+        }
+        if (obs != IdoneidadMoral)
+        {
+            Audit(now, usuario, "Observación", IdoneidadMoral, obs);
+            IdoneidadMoral = obs;
         }
     }
 
@@ -121,6 +167,16 @@ public sealed class Carpeta
             Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
             Decision = decision;
         }
+
+        if (EsEstadoSubida(nuevo))
+        {
+            var hoy = DateOnly.FromDateTime(now);
+            if (FechaSubida != hoy)
+            {
+                Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
+                FechaSubida = hoy;
+            }
+        }
     }
 
     public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
@@ -138,10 +194,14 @@ public sealed class Carpeta
                 Decision = decision;
             }
 
-            if (EsEstadoSubida(nuevo) && FechaSubida is null)
+            if (EsEstadoSubida(nuevo))
             {
-                FechaSubida = DateOnly.FromDateTime(now);
-                Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
+                var hoy = DateOnly.FromDateTime(now);
+                if (FechaSubida != hoy)
+                {
+                    Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
+                    FechaSubida = hoy;
+                }
             }
         }
     }

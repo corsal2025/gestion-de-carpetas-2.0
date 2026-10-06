@@ -17,7 +17,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
         {
             b.ToTable("Ciudadanos");
             b.HasKey(c => c.Id);
-            b.Property(c => c.Id).ValueGeneratedNever();
+            b.Property(c => c.Id).ValueGeneratedNever().UseCollation("NOCASE");
             b.OwnsOne(c => c.Rut, r =>
             {
                 r.Property(x => x.Value).HasColumnName("Rut").HasMaxLength(12).IsRequired();
@@ -34,7 +34,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
         {
             b.ToTable("Carpetas");
             b.HasKey(c => c.Id);
-            b.Property(c => c.Id).ValueGeneratedNever();
+            b.Property(c => c.Id).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(c => c.CiudadanoId).UseCollation("NOCASE");
             b.HasOne(c => c.Ciudadano).WithMany().HasForeignKey(c => c.CiudadanoId).OnDelete(DeleteBehavior.Restrict);
             b.Property(c => c.Sede).HasConversion<string>().HasMaxLength(20);
             b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(20);
@@ -42,6 +43,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.IdoneidadMoral).HasMaxLength(Carpeta.MaxIdoneidadLength);
             b.Property(c => c.CajaArchivo).HasMaxLength(50);
             b.Property(c => c.FechaUltimaCarpeta).HasMaxLength(50);
+            b.Property(c => c.Comuna).HasMaxLength(Carpeta.MaxComunaLength);
             b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -49,12 +51,14 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasIndex(c => c.Estado);
             b.HasIndex(c => c.CajaArchivo);
             b.HasIndex(c => c.TipoTramite);
+            b.HasIndex(c => c.Comuna);
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>
         {
             b.ToTable("HistorialCambios");
             b.HasKey(h => h.Id);
+            b.Property(h => h.CarpetaId).UseCollation("NOCASE");
             b.Property(h => h.Usuario).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
             b.Property(h => h.Campo).HasMaxLength(50).IsRequired();
             b.Property(h => h.Anterior).HasMaxLength(250);

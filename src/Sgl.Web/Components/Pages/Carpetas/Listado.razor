@@ -1,4 +1,5 @@
 @page "/carpetas"
+@using System.Globalization
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject IJSRuntime JS
@@ -24,112 +25,196 @@
                 </button>
             </div>
 
+            <!-- Pestañas PDF Sector: Archivo y Oficina 43 (se activan al seleccionar carpetas) -->
+            <div class="pdf-sector-pills" title="Generar e imprimir listado oficial de carpetas según sector">
+                <button class="btn-pdf-pill btn-pdf-archivo @(conteoArchivoSeleccionadas > 0 ? "active" : "disabled")"
+                        @onclick='() => AbrirModalPdfSector("Archivo")'
+                        disabled="@(conteoArchivoSeleccionadas == 0)"
+                        type="button"
+                        title="@(conteoArchivoSeleccionadas > 0 ? $"Generar e imprimir PDF Archivo ({conteoArchivoSeleccionadas} carpetas marcadas)" : "Seleccione carpetas de sector Archivo (fecha < julio 2023) para activar")">
+                    <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>PDF Archivo</span>
+                    @if (conteoArchivoSeleccionadas > 0)
+                    {
+                        <span class="pdf-count-badge">@conteoArchivoSeleccionadas</span>
+                    }
+                </button>
+                <button class="btn-pdf-pill btn-pdf-oficina43 @(conteoOficina43Seleccionadas > 0 ? "active" : "disabled")"
+                        @onclick='() => AbrirModalPdfSector("Oficina 43")'
+                        disabled="@(conteoOficina43Seleccionadas == 0)"
+                        type="button"
+                        title="@(conteoOficina43Seleccionadas > 0 ? $"Generar e imprimir PDF Oficina 43 ({conteoOficina43Seleccionadas} carpetas marcadas)" : "Seleccione carpetas de sector Oficina 43 (fecha >= julio 2023) para activar")">
+                    <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>PDF Oficina 43</span>
+                    @if (conteoOficina43Seleccionadas > 0)
+                    {
+                        <span class="pdf-count-badge gold">@conteoOficina43Seleccionadas</span>
+                    }
+                </button>
+            </div>
+
             <div class="quick-actions">
+                <button class="btn-toggle-filters @(mostrarFiltros ? "active" : "")" @onclick="ToggleFiltros" type="button" title="Mostrar u ocultar panel de filtros y búsqueda">
+                    <span>@(mostrarFiltros ? "🔼 Ocultar Filtros" : "🔽 Filtros y Búsqueda")</span>
+                    @if (FiltrosActivosCount > 0)
+                    {
+                        <span class="badge-filtros-activos" title="@FiltrosActivosCount filtros activos">@FiltrosActivosCount</span>
+                    }
+                </button>
                 <a class="btn-primary" href="carpetas/nueva">+ Nueva carpeta</a>
             </div>
         </div>
 
-        <!-- Filtros de operación: Almacenamiento y Tipo de trámite -->
-        <div class="tramite-filters">
-            <span class="filter-label">Almacenamiento:</span>
-            <button class="filter-chip @(filtroSinCaja is null && string.IsNullOrEmpty(filtroCaja) ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">
-                Todas
-            </button>
-            <button class="filter-chip @(filtroSinCaja == true ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(true)">
-                📥 Por Guardar / Sin Caja
-            </button>
-            <button class="filter-chip @(filtroSinCaja == false ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(false)">
-                📦 Archivadas en Caja
-            </button>
-
-            <span class="filter-label" style="margin-left: 1rem;">Trámite:</span>
-            <button class="filter-chip @(string.IsNullOrEmpty(filtroTramite) ? "active" : "")" @onclick="() => SeleccionarTramite(null)">Todos</button>
-            <button class="filter-chip @(filtroTramite == TramitePrimera ? "active" : "")" @onclick="() => SeleccionarTramite(TramitePrimera)">1° Licencia</button>
-            <button class="filter-chip @(filtroTramite == TramiteConaset ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteConaset)">Subida CONASET</button>
-            <button class="filter-chip @(filtroTramite == TramiteDomicilio ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteDomicilio)">Cambio Domicilio</button>
-            <button class="filter-chip @(filtroTramite == TramiteF8 ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteF8)">Subida con F8</button>
-
-            @if (cajasDisponibles.Count > 0)
-            {
-                <div class="caja-filter-dropdown">
-                    <select @bind="filtroCaja" @bind:after="BuscarAsync" class="select-caja">
-                        <option value="">Filtrar por caja específica...</option>
-                        @foreach (var c in cajasDisponibles)
-                        {
-                            <option value="@c.Caja">@c.Caja (@c.TotalCarpetas carpetas)</option>
-                        }
-                    </select>
-                </div>
-            }
-        </div>
-
-        <!-- Barra de búsqueda principal por RUT o Nombre legible -->
-        <div class="search-bar-row">
-            <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input @bind="texto" @bind:event="oninput" @onkeyup="OnSearchKeyUp" placeholder="Escriba RUT, nombre o apellido para encontrar la carpeta..." aria-label="Buscar" />
-                @if (!string.IsNullOrEmpty(texto))
-                {
-                    <button class="btn-clear" @onclick="LimpiarBusqueda" title="Borrar búsqueda">✕</button>
-                }
-            </div>
-
-            <div class="state-select-wrapper">
-                <select @bind="filtroEstado" @bind:after="BuscarAsync">
-                    <option value="">Todos los estados</option>
-                    @foreach (var e in Enum.GetValues<EstadoCarpeta>())
-                    {
-                        <option value="@e">@Labels.Of(e)</option>
-                    }
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Acordeón para Agregar Caso Rápido a la agenda -->
-    <div class="quick-add-accordion card">
-        <div class="quick-add-summary" @onclick="() => mostrarAcordeonNuevo = !mostrarAcordeonNuevo" role="button" tabindex="0">
-            <span>➕ Agregar nueva carpeta a la agenda</span>
-            <span class="quick-add-hint">@(mostrarAcordeonNuevo ? "Ocultar formulario ▲" : "Registro rápido sin salir de la lista ▼")</span>
-        </div>
-        @if (mostrarAcordeonNuevo)
+        @if (mostrarFiltros)
         {
-            <div class="quick-add-body">
-                <div class="quick-add-grid">
-                    <div class="quick-add-field">
-                        <label>RUT *</label>
-                        <input @bind="nuevoRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
+            <div class="collapsible-filters-body">
+                <!-- Filtros de operación: Almacenamiento y Tipo de trámite -->
+                <div class="tramite-filters">
+                    <span class="filter-label">Almacenamiento:</span>
+                    <button class="filter-chip @(filtroSinCaja is null && string.IsNullOrEmpty(filtroCaja) ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">
+                        Todas
+                    </button>
+                    <button class="filter-chip @(filtroSinCaja == true ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(true)">
+                        📥 Por Guardar / Sin Caja
+                    </button>
+                    <button class="filter-chip @(filtroSinCaja == false ? "active" : "")" @onclick="() => SeleccionarFiltroAlmacenamiento(false)">
+                        📦 Archivadas en Caja
+                    </button>
+
+                    <span class="filter-label" style="margin-left: 1rem;">Trámite:</span>
+                    <button class="filter-chip @(string.IsNullOrEmpty(filtroTramite) ? "active" : "")" @onclick="() => SeleccionarTramite(null)">Todos</button>
+                    <button class="filter-chip @(filtroTramite == TramitePrimera ? "active" : "")" @onclick="() => SeleccionarTramite(TramitePrimera)">1° Licencia</button>
+                    <button class="filter-chip @(filtroTramite == TramiteConaset ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteConaset)">Subida CONASET</button>
+                    <button class="filter-chip @(filtroTramite == TramiteDomicilio ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteDomicilio)">Cambio Domicilio</button>
+                    <button class="filter-chip @(filtroTramite == TramiteF8 ? "active" : "")" @onclick="() => SeleccionarTramite(TramiteF8)">Subida con F8</button>
+
+                    @if (cajasDisponibles.Count > 0)
+                    {
+                        <div class="caja-filter-dropdown">
+                            <select @bind="filtroCaja" @bind:after="BuscarAsync" class="select-caja">
+                                <option value="">Filtrar por caja específica...</option>
+                                @foreach (var c in cajasDisponibles)
+                                {
+                                    <option value="@c.Caja">@c.Caja (@c.TotalCarpetas carpetas)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+
+                <!-- Barra de búsqueda principal por RUT o Nombre legible -->
+                <div class="search-bar-row">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input @bind="texto" @bind:event="oninput" @onkeyup="OnSearchKeyUp" placeholder="Escriba RUT, nombre o apellido para encontrar la carpeta..." aria-label="Buscar" />
+                        @if (!string.IsNullOrEmpty(texto))
+                        {
+                            <button class="btn-clear" @onclick="LimpiarBusqueda" title="Borrar búsqueda">✕</button>
+                        }
                     </div>
-                    <div class="quick-add-field">
-                        <label>Nombres *</label>
-                        <input @bind="nuevoNombre" placeholder="Ej: Juan Andrés" />
-                    </div>
-                    <div class="quick-add-field">
-                        <label>Apellidos *</label>
-                        <input @bind="nuevoApellido" placeholder="Ej: Pérez González" />
-                    </div>
-                    <div class="quick-add-field">
-                        <label>Sede</label>
-                        <select @bind="nuevaSede">
-                            <option value="@Sede.AvArgentina">Av. Argentina</option>
-                            <option value="@Sede.Placilla">Placilla</option>
-                            <option value="@Sede.MercadoPuerto">Mercado Puerto</option>
+
+                    <div class="state-select-wrapper">
+                        <select @bind="filtroEstado" @bind:after="BuscarAsync">
+                            <option value="">Todos los estados</option>
+                            @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                            {
+                                <option value="@e">@Labels.Of(e)</option>
+                            }
                         </select>
                     </div>
-                    <div class="quick-add-field">
-                        <label>Fecha Citación</label>
-                        <input type="date" @bind="nuevaFechaCitacion" />
-                    </div>
-                    <div class="quick-add-field" style="justify-content: flex-end;">
-                        <button class="btn-primary" @onclick="RegistrarCarpetaRapidaAsync" disabled="@(string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido) || guardandoNuevo)">
-                            @(guardandoNuevo ? "Guardando..." : "💾 Registrar Carpeta")
-                        </button>
-                    </div>
                 </div>
-                @if (!string.IsNullOrEmpty(errorNuevo))
+
+                <!-- Acordeón para Agregar Caso Rápido a la agenda -->
+                <div class="quick-add-accordion card">
+                    <div class="quick-add-summary" @onclick="() => mostrarAcordeonNuevo = !mostrarAcordeonNuevo" role="button" tabindex="0">
+                        <span>➕ Agregar nueva carpeta a la agenda</span>
+                        <span class="quick-add-hint">@(mostrarAcordeonNuevo ? "Ocultar formulario ▲" : "Registro rápido sin salir de la lista ▼")</span>
+                    </div>
+                    @if (mostrarAcordeonNuevo)
+                    {
+                        <div class="quick-add-body">
+                            <div class="quick-add-grid">
+                                <div class="quick-add-field">
+                                    <label>RUT *</label>
+                                    <input @bind="nuevoRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
+                                </div>
+                                <div class="quick-add-field">
+                                    <label>Nombres *</label>
+                                    <input @bind="nuevoNombre" placeholder="Ej: Juan Andrés" />
+                                </div>
+                                <div class="quick-add-field">
+                                    <label>Apellidos *</label>
+                                    <input @bind="nuevoApellido" placeholder="Ej: Pérez González" />
+                                </div>
+                                <div class="quick-add-field">
+                                    <label>Sede</label>
+                                    <select @bind="nuevaSede">
+                                        <option value="@Sede.AvArgentina">Av. Argentina</option>
+                                        <option value="@Sede.Placilla">Placilla</option>
+                                        <option value="@Sede.MercadoPuerto">Mercado Puerto</option>
+                                    </select>
+                                </div>
+                                <div class="quick-add-field">
+                                    <label>Fecha Citación</label>
+                                    <input type="date" @bind="nuevaFechaCitacion" />
+                                </div>
+                                <div class="quick-add-field" style="justify-content: flex-end;">
+                                    <button class="btn-primary" @onclick="RegistrarCarpetaRapidaAsync" disabled="@(string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido) || guardandoNuevo)">
+                                        @(guardandoNuevo ? "Guardando..." : "💾 Registrar Carpeta")
+                                    </button>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(errorNuevo))
+                            {
+                                <div class="alert error" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (FiltrosActivosCount > 0)
+        {
+            <!-- Resumen compacto de filtros activos cuando el panel está plegado -->
+            <div class="active-filters-summary">
+                <span class="summary-label">Filtros aplicados:</span>
+                @if (!string.IsNullOrWhiteSpace(texto))
                 {
-                    <div class="alert error" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
+                    <span class="active-filter-chip">Búsqueda: "@texto" <button type="button" @onclick="LimpiarBusqueda">✕</button></span>
                 }
+                @if (filtroEstado is not null)
+                {
+                    <span class="active-filter-chip">Estado: @Labels.Of(filtroEstado.Value) <button type="button" @onclick="() => { filtroEstado = null; BuscarAsync(); }">✕</button></span>
+                }
+                @if (!string.IsNullOrWhiteSpace(filtroTramite))
+                {
+                    <span class="active-filter-chip">Trámite: @filtroTramite <button type="button" @onclick="() => SeleccionarTramite(null)">✕</button></span>
+                }
+                @if (filtroSinCaja is true)
+                {
+                    <span class="active-filter-chip">Por Guardar / Sin Caja <button type="button" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">✕</button></span>
+                }
+                @if (filtroSinCaja is false)
+                {
+                    <span class="active-filter-chip">Archivadas en Caja <button type="button" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">✕</button></span>
+                }
+                @if (!string.IsNullOrWhiteSpace(filtroCaja))
+                {
+                    <span class="active-filter-chip">Caja: @filtroCaja <button type="button" @onclick="() => { filtroCaja = null; BuscarAsync(); }">✕</button></span>
+                }
+                <button type="button" class="btn-clear-all-compact" @onclick="ResetFiltros">Limpiar todos</button>
             </div>
         }
     </div>
@@ -151,7 +236,7 @@
     }
     else
     {
-        <div class="table-container">
+        <div class="table-container @(mostrarFiltros ? "standard-table" : "expanded-table")">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -164,6 +249,8 @@
                         <th>Fecha Citación</th>
                         <th>Fecha Subida</th>
                         <th>Última Carpeta</th>
+                        <th class="sector-header">Sector</th>
+                        <th>Comunas</th>
                         <th>Estado de la Carpeta</th>
                         <th>Decisión</th>
                         <th style="min-width: 175px;">Acción</th>
@@ -188,25 +275,49 @@
                                            @onchange="(e) => CambiarRutRapidoAsync(c.Id, e)"
                                            oninput="formatRutInput(this)"
                                            title="Modificar RUT directamente (Enter para guardar)" />
-                                    <button class="btn-copy-rut"
-                                            title="Copiar RUT para CAS-Chile (sin puntos, con ceros a la izquierda)"
-                                            @onclick="() => CopiarRutCasChileAsync(c.Rut)"
-                                            type="button">
-                                        📋
-                                    </button>
-                                    <button class="btn-obs-trigger"
-                                            title="Ver observaciones y detalle"
-                                            @onclick="() => AbrirDrawerAsync(c.Id)"
+                                </div>
+                            </td>
+                            <td class="col-sticky-nombre" @ondblclick:stopPropagation>
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell" title="@c.NombreCompleto">@c.NombreCompleto</span>
+                                    <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
+                                            title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
+                                            @onclick="() => AbrirModalObs(c)"
                                             type="button">
                                         📝
+                                        @if (!string.IsNullOrEmpty(c.IdoneidadMoral))
+                                        {
+                                            <span class="obs-badge-indicator" title="Tiene observación registrada"></span>
+                                        }
                                     </button>
                                 </div>
                             </td>
-                            <td class="col-sticky-nombre"><span class="name-cell">@c.NombreCompleto</span></td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                             <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
-                            <td class="muted-cell">@(string.IsNullOrEmpty(c.FechaUltimaCarpeta) ? "—" : c.FechaUltimaCarpeta)</td>
+                            <td class="excel-cell-date" @ondblclick:stopPropagation>
+                                <input type="date"
+                                       class="date-input-inline"
+                                       value="@c.FechaUltimaCarpeta"
+                                       @onchange="(e) => CambiarFechaUltimaRapidaAsync(c.Id, e)"
+                                       title="Fecha de la última carpeta" />
+                            </td>
+                            <td class="excel-cell-sector">
+                                @{
+                                    var sector = CalcularSector(c.FechaUltimaCarpeta);
+                                }
+                                <span class="sector-cell @(sector == "Archivo" ? "sector-archivo" : sector == "Oficina 43" ? "sector-oficina43" : "sector-vacio")">
+                                    @sector
+                                </span>
+                            </td>
+                            <td class="excel-cell-comuna" @ondblclick:stopPropagation>
+                                <input type="text"
+                                       class="comuna-input-inline"
+                                       value="@c.Comuna"
+                                       @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)"
+                                       placeholder="—"
+                                       title="Comuna de origen (Enter para guardar)" />
+                            </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"
                                         value="@c.Estado"
@@ -294,7 +405,19 @@
                     <button class="btn-batch-caja" style="background:#0284c7;" @onclick="AbrirModalCajaLote" title="Asignar caja física específica">
                         🏷️ Asignar Caja Específica…
                     </button>
-                    <button class="btn-batch-cancel" @onclick="() => seleccionadas.Clear()">
+                    @if (conteoArchivoSeleccionadas > 0)
+                    {
+                        <button type="button" class="btn-pdf-pill btn-pdf-archivo" @onclick='() => AbrirModalPdfSector("Archivo")' title="Imprimir PDF Archivo">
+                            📄 PDF Archivo (@conteoArchivoSeleccionadas)
+                        </button>
+                    }
+                    @if (conteoOficina43Seleccionadas > 0)
+                    {
+                        <button type="button" class="btn-pdf-pill btn-pdf-oficina43" @onclick='() => AbrirModalPdfSector("Oficina 43")' title="Imprimir PDF Oficina 43">
+                            📄 PDF Oficina 43 (@conteoOficina43Seleccionadas)
+                        </button>
+                    }
+                    <button class="btn-batch-cancel" @onclick="CancelarSeleccion">
                         Cancelar selección
                     </button>
                 </div>
@@ -304,6 +427,55 @@
 
     }
 </div>
+
+<!-- Modal para Agregar/Modificar Observaciones Rápidas -->
+@if (mostrarModalObs && carpetaParaObs is not null)
+{
+    <div class="modal-overlay" @onclick="CerrarModalObs">
+        <div class="modal-card modal-obs-card" @onclick:stopPropagation>
+            <div class="modal-obs-header">
+                <span class="modal-obs-icon">📝</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a; font-weight: 700;">Observación de Carpeta</h3>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: #475569;">
+                        <strong>@carpetaParaObs.NombreCompleto</strong> &bull; RUT: @carpetaParaObs.Rut &bull; Sede: @Labels.Of(carpetaParaObs.Sede)
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-form" style="margin-top: 1rem;">
+                <label style="font-weight: 600; font-size: 0.88rem; color: #334155; display: block; margin-bottom: 0.5rem;">
+                    Observación / Idoneidad moral / Detalle operativo:
+                    <textarea @bind="textoObs"
+                              @bind:event="oninput"
+                              rows="4"
+                              maxlength="200"
+                              class="obs-textarea-input"
+                              placeholder="Escriba aquí la observación de la carpeta (ej: Pendiente certificado, no tiene antecedentes, etc.)..."
+                              autofocus></textarea>
+                </label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+                    <span style="font-size: 0.8rem; color: @(textoObs.Length >= 190 ? "#dc2626" : "#64748b"); font-weight: 600;">
+                        @textoObs.Length / 200 caracteres
+                    </span>
+                    @if (!string.IsNullOrEmpty(errorObs))
+                    {
+                        <span style="font-size: 0.82rem; color: #dc2626; font-weight: 600;">@errorObs</span>
+                    }
+                </div>
+
+                <div class="modal-actions" style="margin-top: 1.25rem;">
+                    <button class="btn-primary" @onclick="GuardarObservacionModalAsync" disabled="@guardandoObs">
+                        @(guardandoObs ? "Guardando..." : "💾 Guardar Observación")
+                    </button>
+                    <button class="btn-secondary" @onclick="CerrarModalObs" disabled="@guardandoObs">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Modal para mecanismo de almacenamiento en Caja física -->
 @if (mostrarModalCaja)
@@ -345,6 +517,118 @@
                     <button class="btn-secondary" @onclick="CerrarModalCaja">
                         Cancelar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal de Vista Previa e Impresión Oficial de Documento PDF (Sector Archivo / Oficina 43) -->
+@if (mostrarModalPdf)
+{
+    <div class="pdf-modal-overlay">
+        <div class="pdf-modal-container">
+            <div class="pdf-modal-toolbar no-print">
+                <div class="pdf-toolbar-actions">
+                    <button type="button" class="btn-primary btn-print-pdf" @onclick="ImprimirPdf">
+                        🖨️ Imprimir / Guardar como PDF
+                    </button>
+                    <button type="button" class="btn-outline-danger" @onclick="VaciarListadoSectorPdf">
+                        Vaciar listado
+                    </button>
+                    <div class="page-size-selector-pdf">
+                        <label for="pdf-page-size-select">TAMAÑO DE HOJA</label>
+                        <select id="pdf-page-size-select" value="@pdfPageSize" @onchange="OnPdfPageSizeChangedAsync">
+                            <option value="A4">A4</option>
+                            <option value="letter">Carta</option>
+                            <option value="legal">Oficio</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pdf-toolbar-hint">
+                    Este listado muestra solo los nombres marcados (checkbox "Marcar") en la pantalla de Casos.
+                </div>
+                <button type="button" class="btn-close-pdf-modal" @onclick="CerrarModalPdf" title="Volver a la tabla">
+                    ✕ Cerrar
+                </button>
+            </div>
+
+            <div class="pdf-modal-scroll">
+                <div class="doc-sheet">
+                    <div class="doc-header">
+                        <div class="doc-title-block">
+                            <img src="images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                            <div>
+                                <p class="doc-org">MUNICIPALIDAD DE VALPARAÍSO — DIRECCIÓN DE TRÁNSITO</p>
+                                <h2>Cambio de Domicilio — Listado de carpetas — Sector @sectorPdfActivo</h2>
+                            </div>
+                        </div>
+                        <div class="doc-meta">
+                            <div>Folio: <strong>@(sectorPdfActivo == "Archivo" ? "Archivo" : "Oficina43")-@DateTime.Now.ToString("yyyyMMdd-HHmm")</strong></div>
+                            <div>Generado: <strong>@DateTime.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="doc-subheader">
+                        <span>Solicitudes de cambio de domicilio — carpetas físicas a retirar</span>
+                        <span>@carpetasParaPdf.Count registro(s)</span>
+                    </div>
+
+                    <div class="doc-table-card">
+                        @if (carpetasParaPdf.Count == 0)
+                        {
+                            <p class="doc-empty">
+                                No hay carpetas seleccionadas en este sector todavía. Marque las casillas de las
+                                carpetas correspondientes en la tabla (con su "Fecha última carpeta"
+                                ya ingresada) para que aparezcan aquí.
+                            </p>
+                        }
+                        else
+                        {
+                            <table class="cases doc-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 38px;">N°</th>
+                                        <th style="text-align: left;">NOMBRE COMPLETO</th>
+                                        <th>RUT</th>
+                                        <th>COMUNA</th>
+                                        <th>FECHA ÚLTIMA CARPETA</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ var correlativo = 0; }
+                                    @foreach (var item in carpetasParaPdf)
+                                    {
+                                        correlativo++;
+                                        <tr>
+                                            <td style="text-align: center;">@correlativo</td>
+                                            <td style="text-align: left; font-weight: 700;">@item.NombreCompleto.ToUpperInvariant()</td>
+                                            <td style="text-align: center; font-weight: 600;">@item.Rut</td>
+                                            <td style="text-align: center; text-transform: uppercase;">@(string.IsNullOrWhiteSpace(item.Comuna) ? "—" : item.Comuna.ToUpperInvariant())</td>
+                                            <td style="text-align: center; font-weight: 600;">@FormatearFechaFormal(item.FechaUltimaCarpeta)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+
+                    @if (carpetasParaPdf.Count > 0)
+                    {
+                        <p class="doc-count">Total: @carpetasParaPdf.Count carpeta(s)</p>
+
+                        <div class="doc-signoff">
+                            <div>
+                                <div class="sig-line"></div>
+                                Quien solicita
+                            </div>
+                        </div>
+                    }
+
+                    <div class="doc-footer-bottom">
+                        <span>Cambio de Domicilio · Municipalidad de Valparaíso</span>
+                        <span>Modelo y sistema creados por <strong>Raúl Salazar</strong> · 2026</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -517,16 +801,41 @@
     private int pageSize = 25;
     private int saltoPagina = 1;
 
-    // Selección múltiple para almacenamiento
+    // Selección múltiple para almacenamiento y PDF por Sector
     private readonly HashSet<Guid> seleccionadas = [];
+    private readonly Dictionary<Guid, CarpetaResumenDto> itemsSeleccionadosMap = new();
+
     private bool TodosSeleccionados =>
         resultado is not null && resultado.Items.Count > 0 && resultado.Items.All(i => seleccionadas.Contains(i.Id));
+
+    private int conteoArchivoSeleccionadas =>
+        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "Archivo");
+
+    private int conteoOficina43Seleccionadas =>
+        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "Oficina 43");
 
     // Modal de caja
     private bool mostrarModalCaja;
     private bool esModoLote;
     private CarpetaResumenDto? carpetaParaCaja;
     private string nuevaCajaTexto = "";
+
+    // Panel de filtros replegable
+    private bool mostrarFiltros = false;
+    private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
+
+    private int FiltrosActivosCount
+    {
+        get
+        {
+            var count = 0;
+            if (!string.IsNullOrWhiteSpace(texto)) count++;
+            if (filtroEstado is not null) count++;
+            if (filtroSinCaja is not null || !string.IsNullOrWhiteSpace(filtroCaja)) count++;
+            if (!string.IsNullOrWhiteSpace(filtroTramite)) count++;
+            return count;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -547,7 +856,7 @@
     {
         filtroSede = s;
         page = 1;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         await CargarAsync();
     }
 
@@ -555,7 +864,7 @@
     {
         filtroTramite = tramite;
         page = 1;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         await CargarAsync();
     }
 
@@ -564,7 +873,7 @@
         filtroSinCaja = sinCaja;
         filtroCaja = null;
         page = 1;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         await CargarAsync();
     }
 
@@ -591,21 +900,21 @@
         filtroEstado = null;
         texto = null;
         page = 1;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         await CargarAsync();
     }
 
     private Task BuscarAsync()
     {
         page = 1;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         return CargarAsync();
     }
 
     private Task IrAsync(int nuevaPagina)
     {
         page = nuevaPagina;
-        seleccionadas.Clear();
+        CancelarSeleccion();
         return CargarAsync();
     }
 
@@ -623,6 +932,16 @@
             PageSize: pageSize);
 
         resultado = await Carpetas.ListarAsync(query);
+        if (resultado is not null)
+        {
+            foreach (var item in resultado.Items)
+            {
+                if (seleccionadas.Contains(item.Id))
+                {
+                    itemsSeleccionadosMap[item.Id] = item;
+                }
+            }
+        }
     }
 
     private async Task CambiarTamanoPagina()
@@ -651,6 +970,15 @@
         if (!seleccionadas.Add(id))
         {
             seleccionadas.Remove(id);
+            itemsSeleccionadosMap.Remove(id);
+        }
+        else
+        {
+            var item = resultado?.Items.FirstOrDefault(i => i.Id == id);
+            if (item is not null)
+            {
+                itemsSeleccionadosMap[id] = item;
+            }
         }
     }
 
@@ -663,6 +991,7 @@
             foreach (var item in resultado.Items)
             {
                 seleccionadas.Add(item.Id);
+                itemsSeleccionadosMap[item.Id] = item;
             }
         }
         else
@@ -670,8 +999,15 @@
             foreach (var item in resultado.Items)
             {
                 seleccionadas.Remove(item.Id);
+                itemsSeleccionadosMap.Remove(item.Id);
             }
         }
+    }
+
+    private void CancelarSeleccion()
+    {
+        seleccionadas.Clear();
+        itemsSeleccionadosMap.Clear();
     }
 
     private void AbrirModalCaja(CarpetaResumenDto c)
@@ -707,7 +1043,7 @@
         if (esModoLote)
         {
             await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(seleccionadas.ToList(), nuevaCajaTexto.Trim(), autor));
-            seleccionadas.Clear();
+            CancelarSeleccion();
         }
         else if (carpetaParaCaja is not null)
         {
@@ -732,13 +1068,60 @@
         if (seleccionadas.Count == 0) return;
         var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
         await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(seleccionadas.ToList(), "Cola de Caja", autor));
-        seleccionadas.Clear();
+        CancelarSeleccion();
         await CargarMetricasAsync();
         await CargarAsync();
     }
 
     private Guid? guardandoId;
     private Guid? guardadoOkId;
+
+    // Modal de Observaciones Rápidas (📝)
+    private bool mostrarModalObs;
+    private CarpetaResumenDto? carpetaParaObs;
+    private string textoObs = "";
+    private string? errorObs;
+    private bool guardandoObs;
+
+    private void AbrirModalObs(CarpetaResumenDto c)
+    {
+        carpetaParaObs = c;
+        textoObs = c.IdoneidadMoral ?? "";
+        errorObs = null;
+        guardandoObs = false;
+        mostrarModalObs = true;
+    }
+
+    private void CerrarModalObs()
+    {
+        mostrarModalObs = false;
+        carpetaParaObs = null;
+        textoObs = "";
+        errorObs = null;
+    }
+
+    private async Task GuardarObservacionModalAsync()
+    {
+        if (carpetaParaObs is null) return;
+        guardandoObs = true;
+        errorObs = null;
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.GuardarObservacionAsync(carpetaParaObs.Id, textoObs, autor);
+            CerrarModalObs();
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            errorObs = $"Error al guardar: {ex.Message}";
+        }
+        finally
+        {
+            guardandoObs = false;
+        }
+    }
 
     private async Task CambiarEstadoRapidoAsync(Guid id, ChangeEventArgs e)
     {
@@ -764,6 +1147,11 @@
                         await InvokeAsync(StateHasChanged);
                     }
                 });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al cambiar estado rápido: {ex.Message}");
+                await CargarAsync();
             }
             finally
             {
@@ -797,10 +1185,83 @@
                     }
                 });
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al cambiar decisión rápida: {ex.Message}");
+                await CargarAsync();
+            }
             finally
             {
                 guardandoId = null;
             }
+        }
+    }
+
+    private async Task CambiarFechaUltimaRapidaAsync(Guid id, ChangeEventArgs e)
+    {
+        guardandoId = id;
+        StateHasChanged();
+
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            var nuevaFecha = e.Value?.ToString();
+            await Carpetas.GuardarFechaUltimaCarpetaAsync(id, nuevaFecha, autor);
+            guardadoOkId = id;
+            await CargarAsync();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1800);
+                if (guardadoOkId == id)
+                {
+                    guardadoOkId = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar fecha última carpeta: {ex.Message}");
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
+
+    private async Task CambiarComunaRapidaAsync(Guid id, ChangeEventArgs e)
+    {
+        guardandoId = id;
+        StateHasChanged();
+
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            var nuevaComuna = e.Value?.ToString();
+            await Carpetas.GuardarComunaAsync(id, nuevaComuna, autor);
+            guardadoOkId = id;
+            await CargarAsync();
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1800);
+                if (guardadoOkId == id)
+                {
+                    guardadoOkId = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar comuna: {ex.Message}");
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
         }
     }
 
@@ -1024,5 +1485,126 @@
             await CargarMetricasAsync();
             await CargarAsync();
         }
+    }
+
+    // ==========================================================================
+    // REGLA DE NEGOCIO: CÁLCULO DE SECTOR E IMPRESIÓN OFICIAL PDF
+    // ==========================================================================
+    private static readonly DateOnly CutoffSectorJulio2023 = new(2023, 7, 1);
+    private static readonly string[] SpanishMonthNames =
+    [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+
+    private static string CalcularSector(string? fechaStr)
+    {
+        if (string.IsNullOrWhiteSpace(fechaStr)) return "—";
+
+        if (DateOnly.TryParse(fechaStr, CultureInfo.InvariantCulture, out var d)
+            || DateOnly.TryParse(fechaStr, CultureInfo.GetCultureInfo("es-CL"), out d)
+            || DateOnly.TryParse(fechaStr, out d)
+            || SpanishDateTryParse(fechaStr, out d))
+        {
+            return d < CutoffSectorJulio2023 ? "Archivo" : "Oficina 43";
+        }
+
+        return "—";
+    }
+
+    private static string FormatearFechaFormal(string? fechaStr)
+    {
+        if (string.IsNullOrWhiteSpace(fechaStr)) return "—";
+
+        if (DateOnly.TryParse(fechaStr, CultureInfo.InvariantCulture, out var d)
+            || DateOnly.TryParse(fechaStr, CultureInfo.GetCultureInfo("es-CL"), out d)
+            || DateOnly.TryParse(fechaStr, out d)
+            || SpanishDateTryParse(fechaStr, out d))
+        {
+            return $"{d.Day} {SpanishMonthNames[d.Month - 1].ToUpperInvariant()} {d.Year}";
+        }
+
+        return fechaStr.ToUpperInvariant();
+    }
+
+    private static bool SpanishDateTryParse(string? input, out DateOnly date)
+    {
+        date = default;
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var words = input
+            .Split(new[] { ' ', '\t', ',', '/', '-', '.' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => !w.Equals("de", StringComparison.OrdinalIgnoreCase) && !w.Equals("del", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (words.Length != 3 || !int.TryParse(words[0], out var day)) return false;
+
+        var months = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["enero"] = 1, ["febrero"] = 2, ["marzo"] = 3, ["abril"] = 4,
+            ["mayo"] = 5, ["junio"] = 6, ["julio"] = 7, ["agosto"] = 8,
+            ["septiembre"] = 9, ["setiembre"] = 9, ["octubre"] = 10,
+            ["noviembre"] = 11, ["diciembre"] = 12
+        };
+
+        if (!months.TryGetValue(words[1], out var month) && (!int.TryParse(words[1], out month) || month < 1 || month > 12))
+            return false;
+
+        if (!int.TryParse(words[2], out var year)) return false;
+        if (words[2].Length <= 2) year += year >= 50 ? 1900 : 2000;
+        if (year < 1900 || year > 2100 || day < 1 || day > DateTime.DaysInMonth(year, month)) return false;
+
+        date = new DateOnly(year, month, day);
+        return true;
+    }
+
+    // Modal de Impresión / Guardado PDF por Sector
+    private bool mostrarModalPdf;
+    private string sectorPdfActivo = "Archivo";
+    private string pdfPageSize = "A4";
+    private List<CarpetaResumenDto> carpetasParaPdf = new();
+
+    private void AbrirModalPdfSector(string sector)
+    {
+        sectorPdfActivo = sector;
+        carpetasParaPdf = itemsSeleccionadosMap.Values
+            .Where(c => CalcularSector(c.FechaUltimaCarpeta) == sector)
+            .OrderBy(c => c.NombreCompleto)
+            .ToList();
+        mostrarModalPdf = true;
+    }
+
+    private void CerrarModalPdf()
+    {
+        mostrarModalPdf = false;
+        carpetasParaPdf.Clear();
+    }
+
+    private void VaciarListadoSectorPdf()
+    {
+        var idsToRemove = itemsSeleccionadosMap.Values
+            .Where(c => CalcularSector(c.FechaUltimaCarpeta) == sectorPdfActivo)
+            .Select(c => c.Id)
+            .ToList();
+
+        foreach (var id in idsToRemove)
+        {
+            seleccionadas.Remove(id);
+            itemsSeleccionadosMap.Remove(id);
+        }
+
+        CerrarModalPdf();
+        StateHasChanged();
+    }
+
+    private async Task OnPdfPageSizeChangedAsync(ChangeEventArgs e)
+    {
+        pdfPageSize = e.Value?.ToString() ?? "A4";
+        await JS.InvokeVoidAsync("updatePdfPageSize", pdfPageSize);
+    }
+
+    private async Task ImprimirPdf()
+    {
+        await JS.InvokeVoidAsync("printPdfDocument");
     }
 }

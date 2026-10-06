@@ -96,6 +96,27 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
         await repository.SaveChangesAsync(ct);
     }
 
+    public async Task GuardarObservacionAsync(Guid id, string? observacion, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.ModificarObservacion(observacion, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task GuardarComunaAsync(Guid id, string? comuna, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.AsignarComuna(comuna, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public async Task GuardarFechaUltimaCarpetaAsync(Guid id, string? fecha, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.ModificarFechaUltimaCarpeta(fecha, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
     public async Task ReabrirCajaAsync(string caja, string autor, CancellationToken ct = default)
     {
         var carpetas = await repository.GetCarpetasByCajaAsync(caja, ct);
@@ -125,6 +146,7 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
             c.FechaCitacion,
             c.FechaSubida,
             c.FechaUltimaCarpeta,
+            c.Comuna,
             c.IdoneidadMoral,
             c.TipoTramite,
             c.CajaArchivo,
@@ -161,6 +183,7 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
             q.TipoTramite,
             q.CajaArchivo,
             q.SinCaja,
+            q.Comuna,
             (q.Page - 1) * q.PageSize,
             q.PageSize);
         var (items, total) = await repository.SearchAsync(search, ct);

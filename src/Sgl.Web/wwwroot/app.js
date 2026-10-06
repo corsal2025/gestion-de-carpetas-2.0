@@ -151,3 +151,20 @@ document.addEventListener('copy', function (event) {
         }
     }
 });
+
+// Control de tamaño de hoja para documentos PDF imprimibles
+window.updatePdfPageSize = function (size) {
+    var style = document.getElementById('pdf-page-size-style');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'pdf-page-size-style';
+        document.head.appendChild(style);
+    }
+    style.textContent = '@page { size: ' + size + '; margin: 12mm; }';
+};
+
+// Disparador de impresión del navegador para PDF
+window.printPdfDocument = function () {
+    window.print();
+};
+
