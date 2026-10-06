@@ -168,8 +168,9 @@ window.printPdfDocument = function () {
     window.print();
 };
 
+
 /* ==========================================================================
-   SIMULADOR INTERACTIVO CON SPOTLIGHT Y GUÃA CON FLECHA EXPLICATIVA (SGL)
+   SIMULADOR INTERACTIVO CON SPOTLIGHT Y GUÍA CON FLECHA EXPLICATIVA (SGL)
    ========================================================================== */
 (function () {
     let tourPasoActual = 0;
@@ -178,45 +179,45 @@ window.printPdfDocument = function () {
     const PASOS_TOUR = [
         {
             target: '.brand, .brand-group',
-            titulo: '1. Sistema de GestiÃ³n de Carpetas 2.0',
-            icono: 'ðŸ›ï¸',
-            descripcion: 'Plataforma oficial del SGL para el control integral de expedientes y carpetas fÃ­sicas de licencias de conducir en la Municipalidad de ValparaÃ­so.'
+            titulo: '1. Sistema de Gestión de Carpetas 2.0',
+            icono: '🏛️',
+            descripcion: 'Plataforma oficial del SGL para el control integral de expedientes y carpetas físicas de licencias de conducir en la Municipalidad de Valparaíso.'
         },
         {
             target: '.user-block, .autor',
-            titulo: '2. IdentificaciÃ³n del Funcionario',
-            icono: 'ðŸ‘¤',
-            descripcion: 'Ingresa tu nombre en esta casilla. Cada acciÃ³n, cambio de estado, ediciÃ³n o embalaje en caja quedarÃ¡ registrado con tu autorÃ­a para mÃ¡xima trazabilidad y auditorÃ­a.'
+            titulo: '2. Identificación del Funcionario',
+            icono: '👤',
+            descripcion: 'Ingresa tu nombre en esta casilla. Cada acción, cambio de estado, edición o embalaje en caja quedará registrado con tu autoría para máxima trazabilidad y auditoría.'
         },
         {
             target: '.sede-pills, .sede-tabs-container',
             titulo: '3. Sedes y Conteo en Vivo',
-            icono: 'ðŸ“',
+            icono: '📍',
             descripcion: 'Filtra al instante las carpetas por sede: <b>Todas</b>, <b>Av. Argentina</b>, <b>Placilla</b> o <b>Mercado Puerto</b>, visualizando los totales de expedientes actualizados en tiempo real.'
         },
         {
             target: '.pdf-sector-pills',
             titulo: '4. Listados PDF Oficiales por Sector',
-            icono: 'ðŸ“„',
-            descripcion: 'Genera las nÃ³minas oficiales para los estanteros segÃºn fecha: <b>PDF Archivo</b> (anteriores a julio 2023) y <b>PDF Oficina 43</b> (julio 2023 en adelante) con las carpetas seleccionadas.'
+            icono: '📄',
+            descripcion: 'Genera las nóminas oficiales para los estanteros según fecha: <b>PDF Archivo</b> (anteriores a julio 2023) y <b>PDF Oficina 43</b> (julio 2023 en adelante) con las carpetas seleccionadas.'
         },
         {
             target: '.btn-toggle-filters, .quick-actions',
-            titulo: '5. BÃºsqueda y Filtros Avanzados',
-            icono: 'ðŸ”',
-            descripcion: 'Despliega el panel para buscar por <b>RUT</b> o nombre, filtrar por estado o fecha, facilitando la ubicaciÃ³n inmediata de cualquier contribuyente en segundos.'
+            titulo: '5. Búsqueda y Filtros Avanzados',
+            icono: '🔍',
+            descripcion: 'Despliega el panel para buscar por <b>RUT</b> o nombre, filtrar por estado o fecha, facilitando la ubicación inmediata de cualquier contribuyente en segundos.'
         },
         {
             target: '.data-table, .table-container, main',
             titulo: '6. Grilla de Carpetas y CAS Chile',
-            icono: 'ðŸ“‹',
-            descripcion: 'Visualiza y gestiona las carpetas del sistema. Incluye copiado automÃ¡tico de <b>RUT al portapapeles con formato CAS Chile</b> (8 dÃ­gitos y guion) con un solo clic.'
+            icono: '📋',
+            descripcion: 'Visualiza y gestiona las carpetas del sistema. Incluye copiado automático de <b>RUT al portapapeles con formato CAS Chile</b> (8 dígitos y guion) con un solo clic.'
         },
         {
             target: 'a[href="cajas"], .main-nav',
             titulo: '7. Cajas de Archivo y Embalaje',
-            icono: 'ðŸ“¦',
-            descripcion: 'Accede al mÃ³dulo de <b>Cajas de Archivo</b> para agrupar expedientes fÃ­sicos en cajas foliadas oficiales con rotulado estÃ¡ndar para entrega segura a bodega.'
+            icono: '📦',
+            descripcion: 'Accede al módulo de <b>Cajas de Archivo</b> para agrupar expedientes físicos en cajas foliadas oficiales con rotulado estándar para entrega segura a bodega.'
         }
     ];
 
@@ -231,14 +232,14 @@ window.printPdfDocument = function () {
         overlay.id = 'tour-overlay';
         overlay.className = 'tour-overlay';
         overlay.innerHTML = `
-            <button class="tour-btn-salir-flotante" id="tour-salir-flotante" title="Terminar y cerrar la guÃ­a">
-                <span>âœ•</span> Cerrar guÃ­a
+            <button class="tour-btn-salir-flotante" id="tour-salir-flotante" title="Terminar y cerrar la guía">
+                <span>✕</span> Cerrar guía
             </button>
             <div id="tour-spotlight" class="tour-spotlight"></div>
             <div id="tour-card" class="tour-card">
                 <div class="tour-card-header">
                     <span class="tour-paso-badge" id="tour-badge">Paso 1 de ${PASOS_TOUR.length}</span>
-                    <button class="tour-btn-cerrar" id="tour-cerrar" title="Cerrar guÃ­a">&times;</button>
+                    <button class="tour-btn-cerrar" id="tour-cerrar" title="Cerrar guía">&times;</button>
                 </div>
                 <div class="tour-card-body">
                     <h3 id="tour-titulo" class="tour-card-titulo"></h3>
@@ -318,16 +319,16 @@ window.printPdfDocument = function () {
         const esUltimo = tourPasoActual === PASOS_TOUR.length - 1;
         const btnNext = document.getElementById('tour-next');
         if (esUltimo) {
-            btnNext.textContent = 'âœ” Â¡Finalizar!';
+            btnNext.textContent = '✔ ¡Finalizar!';
             btnNext.style.background = '#10b981';
             btnNext.style.borderColor = '#059669';
             btnNext.style.color = '#fff';
             btnNext.style.fontWeight = '700';
         } else {
             btnNext.textContent = 'Siguiente';
-            btnNext.style.background = '';
-            btnNext.style.borderColor = '';
-            btnNext.style.color = '';
+            btnNext.style.background = '#2563eb';
+            btnNext.style.borderColor = '#1d4ed8';
+            btnNext.style.color = '#fff';
             btnNext.style.fontWeight = '';
         }
 
@@ -448,7 +449,7 @@ window.printPdfDocument = function () {
             transform: translateY(10px);
             transition: all 0.3s ease;
         `;
-        toast.innerHTML = 'ðŸŽ‰ Â¡GuÃ­a interactiva completada! Ya conoces el funcionamiento de GestiÃ³n de Carpetas 2.0.';
+        toast.innerHTML = '🎉 ¡Guía interactiva completada! Ya conoces el funcionamiento de Gestión de Carpetas 2.0.';
         document.body.appendChild(toast);
         requestAnimationFrame(() => {
             toast.style.opacity = '1';
