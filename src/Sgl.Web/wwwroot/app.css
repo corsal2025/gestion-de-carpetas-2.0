@@ -88,21 +88,30 @@ body {
 .main-nav {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
+    flex-wrap: nowrap;
 }
 
 .nav-item {
     color: #cbd5e1;
     text-decoration: none;
-    font-size: 0.88rem;
-    font-weight: 600;
-    padding: 0.42rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.32rem 0.75rem;
+    height: 32px;
     border-radius: 6px;
     transition: all 0.18s ease-in-out;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.4rem;
     border: 1px solid transparent;
+    white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
+    line-height: 1;
 }
 
 .nav-item:hover {
@@ -111,62 +120,62 @@ body {
     transform: translateY(-1px);
 }
 
-/* MÓDULOS CON COLORES DISTINTOS Y VIBRANTES */
+/* MÓDULOS CON COLORES DISTINTOS Y VIBRANTES (COMPACTOS Y CENTRALIZADOS) */
 /* 1. Gestión de Carpetas: Azul vibrante */
 .nav-item.nav-carpetas {
-    color: #bfdbfe;
-    background: rgba(37, 99, 235, 0.18);
+    color: #dbeafe;
+    background: rgba(37, 99, 235, 0.16);
     border-color: rgba(59, 130, 246, 0.35);
 }
 .nav-item.nav-carpetas:hover {
-    background: rgba(37, 99, 235, 0.35);
+    background: rgba(37, 99, 235, 0.32);
     color: #ffffff;
     border-color: #3b82f6;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 .nav-item.nav-carpetas.active {
     background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
     color: #ffffff !important;
     border-color: #60a5fa !important;
-    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4) !important;
 }
 
 /* 2. Cajas de Archivo: Ámbar / Dorado */
 .nav-item.nav-cajas {
-    color: #fde68a;
-    background: rgba(217, 119, 6, 0.18);
+    color: #fef08a;
+    background: rgba(217, 119, 6, 0.16);
     border-color: rgba(245, 158, 11, 0.35);
 }
 .nav-item.nav-cajas:hover {
-    background: rgba(217, 119, 6, 0.35);
+    background: rgba(217, 119, 6, 0.32);
     color: #ffffff;
     border-color: #f59e0b;
-    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
 }
 .nav-item.nav-cajas.active {
     background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
     color: #ffffff !important;
     border-color: #fbbf24 !important;
-    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4) !important;
 }
 
 /* 3. Cargar Excel Masivo: Esmeralda / Verde azulado */
 .nav-item.nav-importar {
     color: #a7f3d0;
-    background: rgba(5, 150, 105, 0.18);
+    background: rgba(5, 150, 105, 0.16);
     border-color: rgba(16, 185, 129, 0.35);
 }
 .nav-item.nav-importar:hover {
-    background: rgba(5, 150, 105, 0.35);
+    background: rgba(5, 150, 105, 0.32);
     color: #ffffff;
     border-color: #10b981;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
 }
 .nav-item.nav-importar.active {
     background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
     color: #ffffff !important;
     border-color: #34d399 !important;
-    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.45) !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4) !important;
 }
 
 .user-block .autor {
@@ -3673,19 +3682,25 @@ table.cases.doc-table td:first-child {
     color: #ffffff !important;
     border: 1px solid rgba(255, 255, 255, 0.25) !important;
     font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 0.45rem !important;
-    padding: 0.42rem 0.85rem !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    padding: 0.32rem 0.75rem !important;
+    height: 32px !important;
     border-radius: 6px !important;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35) !important;
-    transition: all 0.15s ease !important;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35) !important;
+    transition: all 0.18s ease !important;
     cursor: pointer !important;
-    font-size: 0.82rem !important;
+    font-size: 0.78rem !important;
     text-decoration: none !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
     font-family: inherit !important;
     margin-left: 0.25rem !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
 }
 
 .btn-guia-accion:hover {
