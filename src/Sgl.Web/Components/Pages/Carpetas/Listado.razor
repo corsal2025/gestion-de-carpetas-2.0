@@ -9,6 +9,15 @@
 <div class="page-container">
     <!-- Panel estático y fijo de filtros, sedes y búsqueda siempre visible -->
     <div class="sticky-controls-panel">
+        <button type="button" class="btn-panel-toggle @(mostrarPanelSuperior ? "open" : "")" @onclick="() => mostrarPanelSuperior = !mostrarPanelSuperior" title="Mostrar u ocultar sedes y acciones">
+            <span>@(mostrarPanelSuperior ? "▲ OCULTAR SEDES Y ACCIONES" : "▼ MOSTRAR SEDES Y ACCIONES")</span>
+            @if (!mostrarPanelSuperior)
+            {
+                <span class="panel-toggle-resumen">@(filtroSede is null ? "TODAS" : Labels.Of(filtroSede.Value)) · @(seleccionadas.Count) MARCADAS</span>
+            }
+        </button>
+        @if (mostrarPanelSuperior)
+        {
         <div class="sede-tabs-container">
             <div class="sede-pills">
                 <button class="pill @(filtroSede is null ? "active" : "")" @onclick="() => SeleccionarSede(null)">
@@ -28,7 +37,7 @@
             <!-- Pestañas PDF Sector: Archivo y Oficina 43 (se activan al seleccionar carpetas) -->
             <div class="pdf-sector-pills" title="Generar e imprimir listado oficial de carpetas según sector">
                 <button class="btn-pdf-pill btn-pdf-archivo @(conteoArchivoSeleccionadas > 0 ? "active" : "disabled")"
-                        @onclick='() => AbrirModalPdfSector("Archivo")'
+                        @onclick='() => AbrirModalPdfSector("ARCHIVO")'
                         disabled="@(conteoArchivoSeleccionadas == 0)"
                         type="button"
                         title="@(conteoArchivoSeleccionadas > 0 ? $"Generar e imprimir PDF Archivo ({conteoArchivoSeleccionadas} carpetas marcadas)" : "Seleccione carpetas de sector Archivo (fecha < julio 2023) para activar")">
@@ -46,7 +55,7 @@
                     }
                 </button>
                 <button class="btn-pdf-pill btn-pdf-oficina43 @(conteoOficina43Seleccionadas > 0 ? "active" : "disabled")"
-                        @onclick='() => AbrirModalPdfSector("Oficina 43")'
+                        @onclick='() => AbrirModalPdfSector("OFICINA 43")'
                         disabled="@(conteoOficina43Seleccionadas == 0)"
                         type="button"
                         title="@(conteoOficina43Seleccionadas > 0 ? $"Generar e imprimir PDF Oficina 43 ({conteoOficina43Seleccionadas} carpetas marcadas)" : "Seleccione carpetas de sector Oficina 43 (fecha >= julio 2023) para activar")">
@@ -73,9 +82,13 @@
                         <span class="badge-filtros-activos" title="@FiltrosActivosCount filtros activos">@FiltrosActivosCount</span>
                     }
                 </button>
+                <a class="btn-secondary btn-import-link" href="importar" title="Cargar planilla Excel masiva para integrar datos" style="text-transform: uppercase !important; font-weight: 700;">
+                    📥 Cargar Excel
+                </a>
                 <a class="btn-primary" href="carpetas/nueva">+ Nueva carpeta</a>
             </div>
         </div>
+        }
 
         @if (mostrarFiltros)
         {
@@ -126,9 +139,9 @@
                     </div>
 
                     <div class="state-select-wrapper">
-                        <select @bind="filtroEstado" @bind:after="BuscarAsync">
-                            <option value="">Todos los estados</option>
-                            @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                        <select @bind="filtroEstado" @bind:after="BuscarAsync" style="text-transform: uppercase !important;">
+                            <option value="">TODOS LOS ESTADOS</option>
+                            @foreach (var e in Labels.OpcionesDesplegable)
                             {
                                 <option value="@e">@Labels.Of(e)</option>
                             }
@@ -236,7 +249,7 @@
     }
     else
     {
-        <div class="table-container @(mostrarFiltros ? "standard-table" : "expanded-table")">
+        <div class="table-container @(!mostrarPanelSuperior ? "panel-colapsado" : (mostrarFiltros ? "standard-table" : "expanded-table"))">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -244,16 +257,16 @@
                             <input type="checkbox" checked="@TodosSeleccionados" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta página" />
                         </th>
                         <th class="col-sticky-rut">RUT</th>
-                        <th class="col-sticky-nombre">Nombre Completo del Ciudadano</th>
-                        <th>Sede</th>
-                        <th>Fecha Citación</th>
-                        <th>Fecha Subida</th>
-                        <th>Última Carpeta</th>
-                        <th class="sector-header">Sector</th>
-                        <th>Comunas</th>
-                        <th>Estado de la Carpeta</th>
-                        <th>Decisión</th>
-                        <th style="min-width: 175px;">Acción</th>
+                        <th class="col-sticky-nombre">NOMBRE COMPLETO DEL CIUDADANO</th>
+                        <th>SEDE</th>
+                        <th>FECHA CITACIÓN</th>
+                        <th>FECHA SUBIDA</th>
+                        <th>ÚLTIMA CARPETA</th>
+                        <th class="sector-header">SECTOR</th>
+                        <th>COMUNAS</th>
+                        <th>ESTADO DE LA CARPETA</th>
+                        <th>DECISIÓN</th>
+                        <th>ACCIÓN</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -306,7 +319,7 @@
                                 @{
                                     var sector = CalcularSector(c.FechaUltimaCarpeta);
                                 }
-                                <span class="sector-cell @(sector == "Archivo" ? "sector-archivo" : sector == "Oficina 43" ? "sector-oficina43" : "sector-vacio")">
+                                <span class="sector-cell @(sector == "ARCHIVO" ? "sector-archivo" : sector == "OFICINA 43" ? "sector-oficina43" : "sector-vacio")">
                                     @sector
                                 </span>
                             </td>
@@ -323,7 +336,11 @@
                                         value="@c.Estado"
                                         @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)"
                                         title="Cambiar estado de carpeta directamente (como en Excel)">
-                                    @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                                    @if (!Labels.OpcionesDesplegable.Contains(c.Estado))
+                                    {
+                                        <option value="@c.Estado" disabled>@Labels.Of(c.Estado)</option>
+                                    }
+                                    @foreach (var e in Labels.OpcionesDesplegable)
                                     {
                                         <option value="@e">@Labels.Of(e)</option>
                                     }
@@ -643,9 +660,13 @@
                 <h3 class="drawer-section-title">⚡ Estado y Decisión Operativa</h3>
                 <div class="drawer-grid-2">
                     <div class="drawer-field">
-                        <label>Estado de la Carpeta</label>
+                        <label>ESTADO DE LA CARPETA</label>
                         <select class="excel-select" value="@drawerDetalle.Estado" @onchange="OnDrawerEstadoChangedAsync">
-                            @foreach (var e in Enum.GetValues<EstadoCarpeta>())
+                            @if (!Labels.OpcionesDesplegable.Contains(drawerDetalle.Estado))
+                            {
+                                <option value="@drawerDetalle.Estado" disabled>@Labels.Of(drawerDetalle.Estado)</option>
+                            }
+                            @foreach (var e in Labels.OpcionesDesplegable)
                             {
                                 <option value="@e">@Labels.Of(e)</option>
                             }
@@ -778,10 +799,10 @@
         resultado is not null && resultado.Items.Count > 0 && resultado.Items.All(i => seleccionadas.Contains(i.Id));
 
     private int conteoArchivoSeleccionadas =>
-        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "Archivo");
+        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "ARCHIVO");
 
     private int conteoOficina43Seleccionadas =>
-        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "Oficina 43");
+        itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "OFICINA 43");
 
     // Modal de caja
     private bool mostrarModalCaja;
@@ -791,6 +812,7 @@
 
     // Panel de filtros replegable
     private bool mostrarFiltros = false;
+    private bool mostrarPanelSuperior = true;
     private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
 
     private int FiltrosActivosCount
@@ -1475,7 +1497,7 @@
             || DateOnly.TryParse(fechaStr, out d)
             || SpanishDateTryParse(fechaStr, out d))
         {
-            return d < CutoffSectorJulio2023 ? "Archivo" : "Oficina 43";
+            return d < CutoffSectorJulio2023 ? "ARCHIVO" : "OFICINA 43";
         }
 
         return "—";
@@ -1529,7 +1551,7 @@
 
     // Modal de Impresión / Guardado PDF por Sector
     private bool mostrarModalPdf;
-    private string sectorPdfActivo = "Archivo";
+    private string sectorPdfActivo = "ARCHIVO";
     private string pdfPageSize = "A4";
     private List<CarpetaResumenDto> carpetasParaPdf = new();
 

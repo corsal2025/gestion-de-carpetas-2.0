@@ -92,23 +92,81 @@ body {
 }
 
 .nav-item {
-    color: #94a3b8;
+    color: #cbd5e1;
     text-decoration: none;
-    font-size: 0.92rem;
-    font-weight: 500;
-    padding: 0.45rem 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.42rem 0.85rem;
     border-radius: 6px;
-    transition: all 0.15s ease-in-out;
+    transition: all 0.18s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid transparent;
 }
 
 .nav-item:hover {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
 }
 
-.nav-item.active {
+/* MÓDULOS CON COLORES DISTINTOS Y VIBRANTES */
+/* 1. Gestión de Carpetas: Azul vibrante */
+.nav-item.nav-carpetas {
+    color: #bfdbfe;
+    background: rgba(37, 99, 235, 0.18);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+.nav-item.nav-carpetas:hover {
+    background: rgba(37, 99, 235, 0.35);
     color: #ffffff;
-    background: var(--brand-primary);
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+.nav-item.nav-carpetas.active {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45) !important;
+}
+
+/* 2. Cajas de Archivo: Ámbar / Dorado */
+.nav-item.nav-cajas {
+    color: #fde68a;
+    background: rgba(217, 119, 6, 0.18);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.nav-item.nav-cajas:hover {
+    background: rgba(217, 119, 6, 0.35);
+    color: #ffffff;
+    border-color: #f59e0b;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+.nav-item.nav-cajas.active {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    border-color: #fbbf24 !important;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.45) !important;
+}
+
+/* 3. Cargar Excel Masivo: Esmeralda / Verde azulado */
+.nav-item.nav-importar {
+    color: #a7f3d0;
+    background: rgba(5, 150, 105, 0.18);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+.nav-item.nav-importar:hover {
+    background: rgba(5, 150, 105, 0.35);
+    color: #ffffff;
+    border-color: #10b981;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+}
+.nav-item.nav-importar.active {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    border-color: #34d399 !important;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.45) !important;
 }
 
 .user-block .autor {
@@ -193,6 +251,48 @@ body {
     flex-direction: column;
     gap: 0.45rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* BOTÓN DESPLEGABLE PARA COLAPSAR/EXPANDIR SEDES Y ACCIONES */
+.btn-panel-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.35rem 0.85rem;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-panel-toggle:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #94a3b8;
+}
+
+.btn-panel-toggle.open {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+}
+
+.panel-toggle-resumen {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #0284c7;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid #bae6fd;
+    text-transform: uppercase;
 }
 
 /* SEDE TABS / PILLS */
@@ -390,6 +490,12 @@ body {
     min-height: 300px;
 }
 
+.table-container.panel-colapsado {
+    height: calc(100vh - 145px) !important;
+    max-height: calc(100vh - 145px) !important;
+    min-height: 480px;
+}
+
 /* ESTILO DEL SCROLL LATERAL (SIEMPRE VISIBLE Y FÁCIL DE ARRASTRAR) */
 .table-container::-webkit-scrollbar {
     height: 16px;
@@ -420,33 +526,36 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 0.88rem;
+    font-size: 0.74rem;
     white-space: nowrap;
 }
 
 .data-table th {
-    position: sticky;
-    top: 0;
-    z-index: 35;
-    background: #f1f5f9;
-    color: #1e293b;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 45 !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
     font-weight: 700;
     text-align: center !important;
     vertical-align: middle;
-    padding: 0.75rem 1rem;
+    padding: 0.32rem 0.38rem !important;
     border-top: none;
-    border-bottom: 2px solid #cbd5e1;
-    font-size: 0.82rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    border-bottom: 2px solid #cbd5e1 !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .data-table td {
-    padding: 0.75rem 1rem;
+    padding: 0.25rem 0.32rem !important;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
-    background-color: #ffffff; /* Base sólida para evitar transparencia al congelar columnas */
+    background-color: #ffffff;
+    font-size: 0.74rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
 }
 
 /* ==========================================================================
@@ -457,29 +566,29 @@ body {
 .col-sticky-check {
     position: sticky !important;
     left: 0 !important;
-    width: 44px !important;
-    min-width: 44px !important;
-    max-width: 44px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
     text-align: center !important;
     box-sizing: border-box;
 }
 
 .col-sticky-rut {
     position: sticky !important;
-    left: 44px !important;
-    width: 145px !important;
-    min-width: 145px !important;
-    max-width: 145px !important;
+    left: 32px !important;
+    width: 102px !important;
+    min-width: 102px !important;
+    max-width: 102px !important;
     text-align: center !important;
     box-sizing: border-box;
 }
 
 .col-sticky-nombre {
     position: sticky !important;
-    left: 189px !important; /* 44px + 145px */
-    width: 290px !important;
-    min-width: 260px !important;
-    max-width: 340px !important;
+    left: 134px !important; /* 32px + 102px */
+    width: 185px !important;
+    min-width: 170px !important;
+    max-width: 200px !important;
     box-sizing: border-box;
     border-right: 2px solid #cbd5e1 !important;
     box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.15) !important;
@@ -491,7 +600,7 @@ body {
 .data-table th.col-sticky-nombre {
     position: sticky !important;
     top: 0 !important;
-    z-index: 60 !important;
+    z-index: 75 !important;
     background: #e2e8f0 !important;
     color: #1e293b !important;
     border-bottom: 2px solid #94a3b8 !important;
@@ -517,11 +626,59 @@ body {
 /* Truncado suave para nombres de ciudadanos */
 .name-cell {
     display: inline-block;
-    max-width: 230px;
+    max-width: 260px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     vertical-align: middle;
+    letter-spacing: 0.01em;
+}
+
+/* AJUSTES DE COLUMNAS PARA ADAPTACIÓN AUTOMÁTICA Y VISUALIZACIÓN FLUIDA SIN PAUSAS */
+.data-table th, .data-table td {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.data-table th:nth-child(4), .data-table td:nth-child(4) { /* Sede */
+    min-width: 95px;
+    width: auto;
+}
+
+.data-table th:nth-child(5), .data-table td:nth-child(5), /* Fecha Citacion */
+.data-table th:nth-child(6), .data-table td:nth-child(6) { /* Fecha Subida */
+    min-width: 90px;
+    width: auto;
+}
+
+.data-table th:nth-child(7), .data-table td:nth-child(7) { /* Ultima Carpeta */
+    min-width: 105px;
+    width: auto;
+}
+
+.data-table th:nth-child(8), .data-table td:nth-child(8) { /* Sector */
+    min-width: 80px;
+    width: auto;
+}
+
+.data-table th:nth-child(9), .data-table td:nth-child(9) { /* Comunas */
+    min-width: 90px;
+    width: auto;
+}
+
+.data-table th:nth-child(10), .data-table td:nth-child(10) { /* Estado Carpeta */
+    min-width: 180px;
+    width: auto;
+}
+
+.data-table th:nth-child(11), .data-table td:nth-child(11) { /* Decision */
+    min-width: 110px;
+    width: auto;
+}
+
+.data-table th:nth-child(12), .data-table td:nth-child(12) { /* Accion */
+    min-width: 65px;
+    width: auto;
 }
 
 /* BOTÓN DE DESPLEGAR / OCULTAR FILTROS */
@@ -712,11 +869,13 @@ body {
     font-weight: 700 !important;
     border: 1px solid rgba(0, 0, 0, 0.25) !important;
     border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 0.84rem;
+    padding: 2px 4px;
+    font-size: 0.72rem !important;
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     transition: border-color 0.2s, box-shadow 0.2s;
+    width: 135px;
+    max-width: 140px;
 }
 
 .data-table tbody td select.excel-select:focus {
@@ -729,15 +888,19 @@ body {
    Todas las palabras de la fila comparten exactamente la misma fuente y color
    ========================================================================== */
 
-/* 1. Fuente y tamaño uniforme en toda la tabla */
+/* 1. Fuente y tamaño uniforme en toda la tabla (SIEMPRE EN MAYÚSCULAS) */
 .data-table,
 .data-table th,
 .data-table td,
 .data-table td *,
 .data-table input,
 .data-table select,
-.data-table span {
+.data-table option,
+.data-table span,
+.data-table button,
+.data-table a {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    text-transform: uppercase !important;
 }
 
 .data-table td {
@@ -748,22 +911,23 @@ body {
 
 .name-cell {
     font-weight: 600 !important;
-    font-size: 0.88rem !important;
+    font-size: 0.74rem !important;
     color: inherit !important;
     white-space: normal;
-    min-width: 230px;
-    line-height: 1.35;
+    min-width: 150px;
+    max-width: 165px;
+    line-height: 1.25;
 }
 
 .sede-tag {
-    font-size: 0.88rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
     color: inherit !important;
     white-space: nowrap;
 }
 
 .date-cell {
-    font-size: 0.88rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
     font-variant-numeric: tabular-nums;
     color: inherit !important;
@@ -785,12 +949,12 @@ body {
     background: transparent !important;
     color: inherit !important;
     font-family: inherit !important;
-    font-size: 0.88rem !important;
+    font-size: 0.74rem !important;
     font-weight: 700 !important;
     border: 1px solid transparent !important;
     border-radius: 4px;
-    padding: 3px 6px;
-    width: 105px;
+    padding: 2px 4px;
+    width: 88px;
     transition: all 0.15s ease;
 }
 
@@ -810,15 +974,15 @@ body {
     color: inherit !important;
     -webkit-text-fill-color: inherit !important;
     font-family: inherit !important;
-    font-size: 0.88rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
     border: 1px solid transparent !important;
     border-radius: 4px;
-    padding: 3px 6px;
+    padding: 2px 4px;
     outline: none;
     cursor: pointer;
     transition: all 0.15s ease;
-    width: 140px;
+    width: 90px;
 }
 
 .date-input-inline:hover,
@@ -836,13 +1000,13 @@ body {
     color: inherit !important;
     -webkit-text-fill-color: inherit !important;
     font-family: inherit !important;
-    font-size: 0.88rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
     border: 1px solid transparent !important;
     border-radius: 4px;
-    padding: 3px 6px;
+    padding: 2px 4px;
     outline: none;
-    width: 130px;
+    width: 76px;
     transition: all 0.15s ease;
 }
 
@@ -2647,7 +2811,7 @@ table.acta-table tfoot td {
    COLUMNA SECTOR EN LA TABLA OPERATIVA
    ========================================================================== */
 .sector-header {
-    min-width: 95px;
+    min-width: 75px;
     text-align: center;
 }
 
@@ -2661,13 +2825,13 @@ table.acta-table tfoot td {
 .data-table tbody tr td span.sector-cell,
 .sector-cell {
     display: inline-block;
-    padding: 0.28rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.84rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.70rem !important;
     font-weight: 800 !important;
     letter-spacing: 0.02em;
     text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 /* Archivo: Fondo celeste suave + Letras AZUL MARINO OSCURO / NEGRO de alto contraste */
