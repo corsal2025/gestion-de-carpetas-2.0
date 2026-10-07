@@ -37,6 +37,12 @@ public sealed class Carpeta
 
     public string? TipoTramite { get; private set; }
 
+    /// <summary>
+    /// Marca "pendiente de búsqueda". Solo es válida mientras la carpeta se encuentra en
+    /// Archivos u Of. 43; al pasar a cualquier otro estado se limpia automáticamente.
+    /// </summary>
+    public bool PendienteBusqueda { get; private set; }
+
     public IReadOnlyList<HistorialCambio> Historial => _historial;
 
     private Carpeta()
@@ -160,6 +166,7 @@ public sealed class Carpeta
 
         Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
         Estado = nuevo;
+        LimpiarPendienteBusquedaSiCorresponde(usuario, now);
 
         var decision = EstadoTransitions.DecisionFor(nuevo);
         if (decision != Decision)
@@ -179,6 +186,35 @@ public sealed class Carpeta
         }
     }
 
+    public static bool PermiteBusquedaPendiente(EstadoCarpeta estado) =>
+        estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43;
+
+    public void MarcarPendienteBusqueda(bool valor, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        if (valor && !PermiteBusquedaPendiente(Estado))
+        {
+            throw new DomainException("Solo se puede marcar pendiente de búsqueda una carpeta en Archivos u Of. 43.");
+        }
+
+        if (valor != PendienteBusqueda)
+        {
+            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(PendienteBusqueda), SiNo(valor));
+            PendienteBusqueda = valor;
+        }
+    }
+
+    private void LimpiarPendienteBusquedaSiCorresponde(string usuario, DateTime now)
+    {
+        if (PendienteBusqueda && !PermiteBusquedaPendiente(Estado))
+        {
+            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(true), SiNo(false));
+            PendienteBusqueda = false;
+        }
+    }
+
+    private static string SiNo(bool v) => v ? "Si" : "No";
+
     public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
         var usuario = RequireAutor(autor);
@@ -186,6 +222,7 @@ public sealed class Carpeta
         {
             Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
             Estado = nuevo;
+            LimpiarPendienteBusquedaSiCorresponde(usuario, now);
 
             var decision = EstadoTransitions.DecisionFor(nuevo);
             if (decision != Decision)

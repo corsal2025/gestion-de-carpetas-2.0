@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo de Lico</title>
+  <!-- En un sistema real, Bootstrap 5 va ANTES de tema-lico.css. La demo funciona sin él. -->
+  <link rel="stylesheet" href="tema-lico.css">
+  <style>body { padding: 24px; max-width: 1100px; margin: 0 auto; } h2 { margin: 28px 0 10px; font-size: 1.1rem; color: var(--accent); }
+    .poses { display: flex; gap: 24px; flex-wrap: wrap; } .poses figure { margin: 0; text-align: center; width: 150px; } .poses svg { width: 140px; height: 140px; }</style>
+</head>
+<body>
+
+  <!-- 1) ENCABEZADO CON LICO, PLACA Y GLOBO "¡Hola! Me llamo Lico" -->
+  <h2>1) Encabezado con Lico y globo de diálogo</h2>
+  <div class="page-head">
+    <button type="button" class="head-lico" data-lico="saluda" aria-label="Abrir la guía con Lico">
+      <span class="head-lico-burbuja">¡Hola! Me llamo Lico</span>
+    </button>
+    <div style="flex:1 1 280px">
+      <h1 class="h3">Título de la página</h1>
+      <div class="sub">Subtítulo o descripción</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-chip"><b class="num">120</b><span>Total</span></div>
+      <div class="stat-chip stat-chip--soft"><b class="num">12</b><span>Pendientes</span></div>
+      <div class="stat-chip stat-chip--ok"><b class="num">100</b><span>Listas</span></div>
+      <div class="stat-chip stat-chip--bad"><b class="num">8</b><span>Vencidas</span></div>
+    </div>
+  </div>
+
+  <!-- 2) BOTÓN DE AYUDA CON LA CARITA DE LICO -->
+  <h2>2) Botón de ayuda con la carita de Lico</h2>
+  <button class="btn-guia-accion" type="button">
+    <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
+    <span>Cómo usar el sistema</span>
+  </button>
+
+  <!-- 3) LAS 4 POSES (placa "LICO" incluida en el dibujo) -->
+  <h2>3) Las 4 poses</h2>
+  <div class="poses">
+    <figure><span data-lico="saluda"></span><figcaption>saluda</figcaption></figure>
+    <figure><span data-lico="explica"></span><figcaption>explica</figcaption></figure>
+    <figure><span data-lico="alerta"></span><figcaption>alerta</figcaption></figure>
+    <figure><span data-lico="celebra"></span><figcaption>celebra</figcaption></figure>
+  </div>
+
+  <script src="lico.js"></script>
+</body>
+</html>

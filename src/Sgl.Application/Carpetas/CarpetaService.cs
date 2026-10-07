@@ -89,6 +89,13 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
         await repository.SaveChangesAsync(ct);
     }
 
+    public async Task MarcarPendienteBusquedaAsync(Guid id, bool valor, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.MarcarPendienteBusqueda(valor, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
     public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
         var carpeta = await LoadAsync(id, ct);

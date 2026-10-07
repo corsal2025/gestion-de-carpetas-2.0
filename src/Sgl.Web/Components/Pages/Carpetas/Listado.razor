@@ -6,6 +6,13 @@
 
 <PageTitle>Gestión de Carpetas 2.0 · SGL</PageTitle>
 
+<datalist id="lista-comunas-chile">
+    @foreach (var comuna in Sgl.Web.ComunasChile.Todas)
+    {
+        <option value="@comuna"></option>
+    }
+</datalist>
+
 <div class="page-container">
     <!-- Panel estático y fijo de filtros, sedes y búsqueda siempre visible -->
     <div class="sticky-controls-panel">
@@ -191,7 +198,7 @@
                             </div>
                             @if (!string.IsNullOrEmpty(errorNuevo))
                             {
-                                <div class="alert error" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
+                                <div class="alert error" role="alert" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
                             }
                         </div>
                     }
@@ -243,6 +250,7 @@
     else if (resultado.Total == 0)
     {
         <div class="empty-state">
+            <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
             <p>No se encontraron carpetas con los criterios seleccionados.</p>
             <button class="btn-secondary" @onclick="ResetFiltros">Restablecer filtros</button>
         </div>
@@ -258,6 +266,7 @@
                         </th>
                         <th class="col-sticky-rut">RUT</th>
                         <th class="col-sticky-nombre">NOMBRE COMPLETO DEL CIUDADANO</th>
+                        <th class="th-pend">PENDIENTE BÚSQUEDA</th>
                         <th>SEDE</th>
                         <th>FECHA CITACIÓN</th>
                         <th>FECHA SUBIDA</th>
@@ -291,8 +300,15 @@
                                 </div>
                             </td>
                             <td class="col-sticky-nombre" @ondblclick:stopPropagation>
+                                @{
+                                    var puedeMarcar = Carpeta.PermiteBusquedaPendiente(c.Estado);
+                                    var parpadea = c.PendienteBusqueda && puedeMarcar;
+                                    var tituloPend = !puedeMarcar
+                                        ? "Solo disponible cuando la carpeta está en Archivos u Of. 43"
+                                        : (c.PendienteBusqueda ? "Quitar marca de pendiente de búsqueda" : "Marcar como pendiente de búsqueda");
+                                }
                                 <div class="nombre-wrapper-cell">
-                                    <span class="name-cell" title="@c.NombreCompleto">@c.NombreCompleto</span>
+                                    <span class="name-cell @(parpadea ? "nombre-pend-parpadeo" : "")" title="@c.NombreCompleto">@c.NombreCompleto</span>
                                     <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
                                             title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
                                             @onclick="() => AbrirModalObs(c)"
@@ -304,6 +320,17 @@
                                         }
                                     </button>
                                 </div>
+                            </td>
+                            <td class="td-pend" @ondblclick:stopPropagation>
+                                <button type="button"
+                                        class="btn-pend-busqueda @(c.PendienteBusqueda ? "activo" : "") @(parpadea ? "parpadeo" : "")"
+                                        aria-pressed="@(c.PendienteBusqueda ? "true" : "false")"
+                                        aria-label="Pendiente búsqueda"
+                                        title="@tituloPend"
+                                        disabled="@(!puedeMarcar)"
+                                        @onclick="() => TogglePendienteBusquedaAsync(c)">
+                                    <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                                </button>
                             </td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                             <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
@@ -326,10 +353,12 @@
                             <td class="excel-cell-comuna" @ondblclick:stopPropagation>
                                 <input type="text"
                                        class="comuna-input-inline"
+                                       list="lista-comunas-chile"
+                                       autocomplete="off"
                                        value="@c.Comuna"
                                        @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)"
                                        placeholder="—"
-                                       title="Comuna de origen (Enter para guardar)" />
+                                       title="Comuna de origen: escribe o elige de la lista" />
                             </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"
@@ -363,7 +392,8 @@
                                     <button class="btn-action-caja"
                                             title="Enviar directamente a la cola de Caja"
                                             @onclick="() => EnviarACajaDirectoAsync(c)">
-                                        Caja
+                                        <svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                                        <span>Caja</span>
                                     </button>
                                 }
                                 else if (c.CajaArchivo == "Cola de Caja")
@@ -393,6 +423,15 @@
         </div>
 
         <!-- Barra de paginación e información al final de la hoja -->
+        <button type="button" class="btn-panel-toggle btn-bottom-toggle @(mostrarBarraInferior ? "open" : "")" @onclick="() => mostrarBarraInferior = !mostrarBarraInferior" aria-expanded="@(mostrarBarraInferior ? "true" : "false")" title="Mostrar u ocultar paginación e información">
+            <span>@(mostrarBarraInferior ? "Ocultar paginación" : "Mostrar paginación")</span>
+            @if (!mostrarBarraInferior)
+            {
+                <span class="panel-toggle-resumen">@(((page - 1) * pageSize) + 1)-@(Math.Min(page * pageSize, resultado.Total)) DE @resultado.Total.ToString("N0")</span>
+            }
+        </button>
+        @if (mostrarBarraInferior)
+        {
         <div class="table-bottom-bar">
             <div class="table-bottom-info">
                 Mostrando <strong>@(((page - 1) * pageSize) + 1)</strong> - <strong>@(Math.Min(page * pageSize, resultado.Total))</strong> de <strong>@resultado.Total.ToString("N0")</strong> carpetas
@@ -407,6 +446,7 @@
                 </label>
             </div>
         </div>
+        }
 
 
 
@@ -646,13 +686,13 @@
                     }
                 </div>
             </div>
-            <button class="drawer-close-btn" @onclick="CerrarDrawer" title="Cerrar panel">✕</button>
+            <button class="drawer-close-btn" type="button" @onclick="CerrarDrawer" title="Cerrar panel" aria-label="Cerrar panel">✕</button>
         </div>
 
         <div class="drawer-body">
             @if (!string.IsNullOrEmpty(errorDrawer))
             {
-                <div class="alert error">@errorDrawer</div>
+                <div class="alert error" role="alert">@errorDrawer</div>
             }
 
             <!-- Sección 1: Estado y Decisión rápidos -->
@@ -813,6 +853,7 @@
     // Panel de filtros replegable
     private bool mostrarFiltros = false;
     private bool mostrarPanelSuperior = true;
+    private bool mostrarBarraInferior = true;
     private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
 
     private int FiltrosActivosCount
@@ -1112,6 +1153,22 @@
         {
             guardandoObs = false;
         }
+    }
+
+    private async Task TogglePendienteBusquedaAsync(CarpetaResumenDto c)
+    {
+        if (!Carpeta.PermiteBusquedaPendiente(c.Estado)) return;
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.MarcarPendienteBusquedaAsync(c.Id, !c.PendienteBusqueda, autor);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al marcar pendiente de búsqueda: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"No se pudo marcar la búsqueda pendiente: {ex.Message}");
+        }
+        await CargarAsync();
     }
 
     private async Task CambiarEstadoRapidoAsync(Guid id, ChangeEventArgs e)

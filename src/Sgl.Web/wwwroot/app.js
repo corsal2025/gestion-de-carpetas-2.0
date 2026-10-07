@@ -181,42 +181,49 @@ window.printPdfDocument = function () {
             target: '.brand, .brand-group',
             titulo: '1. Sistema de Gestión de Carpetas 2.0',
             icono: '🏛️',
+            pose: 'saluda',
             descripcion: 'Plataforma oficial del SGL para el control integral de expedientes y carpetas físicas de licencias de conducir en la Municipalidad de Valparaíso.'
         },
         {
             target: '.user-block, .autor',
             titulo: '2. Identificación del Funcionario',
             icono: '👤',
+            pose: 'explica',
             descripcion: 'Ingresa tu nombre en esta casilla. Cada acción, cambio de estado, edición o embalaje en caja quedará registrado con tu autoría para máxima trazabilidad y auditoría.'
         },
         {
             target: '.sede-pills, .sede-tabs-container',
             titulo: '3. Sedes y Conteo en Vivo',
             icono: '📍',
+            pose: 'explica',
             descripcion: 'Filtra al instante las carpetas por sede: <b>Todas</b>, <b>Av. Argentina</b>, <b>Placilla</b> o <b>Mercado Puerto</b>, visualizando los totales de expedientes actualizados en tiempo real.'
         },
         {
             target: '.pdf-sector-pills',
             titulo: '4. Listados PDF Oficiales por Sector',
             icono: '📄',
+            pose: 'alerta',
             descripcion: 'Genera las nóminas oficiales para los estanteros según fecha: <b>PDF Archivo</b> (anteriores a julio 2023) y <b>PDF Oficina 43</b> (julio 2023 en adelante) con las carpetas seleccionadas.'
         },
         {
             target: '.btn-toggle-filters, .quick-actions',
             titulo: '5. Búsqueda y Filtros Avanzados',
             icono: '🔍',
+            pose: 'explica',
             descripcion: 'Despliega el panel para buscar por <b>RUT</b> o nombre, filtrar por estado o fecha, facilitando la ubicación inmediata de cualquier contribuyente en segundos.'
         },
         {
             target: '.data-table, .table-container, main',
             titulo: '6. Grilla de Carpetas y CAS Chile',
             icono: '📋',
+            pose: 'explica',
             descripcion: 'Visualiza y gestiona las carpetas del sistema. Incluye copiado automático de <b>RUT al portapapeles con formato CAS Chile</b> (8 dígitos y guion) con un solo clic.'
         },
         {
             target: 'a[href="cajas"], .main-nav',
             titulo: '7. Cajas de Archivo y Embalaje',
             icono: '📦',
+            pose: 'celebra',
             descripcion: 'Accede al módulo de <b>Cajas de Archivo</b> para agrupar expedientes físicos en cajas foliadas oficiales con rotulado estándar para entrega segura a bodega.'
         }
     ];
@@ -236,14 +243,17 @@ window.printPdfDocument = function () {
                 <span>✕</span> Cerrar guía
             </button>
             <div id="tour-spotlight" class="tour-spotlight"></div>
-            <div id="tour-card" class="tour-card">
+            <div id="tour-card" class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-titulo">
                 <div class="tour-card-header">
                     <span class="tour-paso-badge" id="tour-badge">Paso 1 de ${PASOS_TOUR.length}</span>
-                    <button class="tour-btn-cerrar" id="tour-cerrar" title="Cerrar guía">&times;</button>
+                    <button class="tour-btn-cerrar" id="tour-cerrar" title="Cerrar guía" aria-label="Cerrar guía">&times;</button>
                 </div>
                 <div class="tour-card-body">
-                    <h3 id="tour-titulo" class="tour-card-titulo"></h3>
-                    <p id="tour-desc" class="tour-card-desc"></p>
+                    <div class="tour-mascota" data-lico="explica" aria-hidden="true"></div>
+                    <div class="tour-card-texto">
+                        <h3 id="tour-titulo" class="tour-card-titulo"></h3>
+                        <p id="tour-desc" class="tour-card-desc"></p>
+                    </div>
                 </div>
                 <div class="tour-card-footer">
                     <button class="tour-btn-nav" id="tour-prev">Anterior</button>
@@ -314,22 +324,18 @@ window.printPdfDocument = function () {
         document.getElementById('tour-badge').textContent = `Paso ${tourPasoActual + 1} de ${PASOS_TOUR.length}`;
         document.getElementById('tour-titulo').innerHTML = `<span class="tour-ico">${paso.icono}</span> ${paso.titulo}`;
         document.getElementById('tour-desc').innerHTML = paso.descripcion;
+        const mascota = document.querySelector('#tour-overlay .tour-mascota');
+        if (mascota && window.Lico && typeof window.Lico.svg === 'function') mascota.innerHTML = window.Lico.svg(paso.pose || 'explica');
         document.getElementById('tour-prev').disabled = tourPasoActual === 0;
 
         const esUltimo = tourPasoActual === PASOS_TOUR.length - 1;
         const btnNext = document.getElementById('tour-next');
         if (esUltimo) {
             btnNext.textContent = '✔ ¡Finalizar!';
-            btnNext.style.background = '#10b981';
-            btnNext.style.borderColor = '#059669';
-            btnNext.style.color = '#fff';
-            btnNext.style.fontWeight = '700';
+            btnNext.classList.add('tour-btn-final');
         } else {
             btnNext.textContent = 'Siguiente';
-            btnNext.style.background = '#2563eb';
-            btnNext.style.borderColor = '#1d4ed8';
-            btnNext.style.color = '#fff';
-            btnNext.style.fontWeight = '';
+            btnNext.classList.remove('tour-btn-final');
         }
 
         // Dots
@@ -344,8 +350,8 @@ window.printPdfDocument = function () {
             const flecha = document.getElementById('tour-flecha');
             if (!spot || !card) return;
 
-            const cardW = 390;
-            const cardH = 260;
+            const cardW = Math.min(480, window.innerWidth - 32);
+            const cardH = 300;
             const pad = 6;
             const esGrilla = r.height > window.innerHeight * 0.55 || r.width > window.innerWidth * 0.85;
 
@@ -510,16 +516,16 @@ window.printPdfDocument = function () {
     document.addEventListener('DOMContentLoaded', function () {
         iniciarTooltipsGlobales();
 
-        document.querySelectorAll('#btn-guia-global, .btn-guia-accion').forEach(btn => {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                const path = window.location.pathname.toLowerCase();
-                if (!path.includes('carpetas') && path !== '/') {
-                    window.location.href = '/carpetas?simulador=1';
-                } else {
-                    iniciarGuiaInteractiva();
-                }
-            });
+        // Delegado: sobrevive a los re-renders de Blazor (un solo disparo; el boton ya no tiene onclick inline).
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest || !e.target.closest('#btn-guia-global, .btn-guia-accion')) return;
+            e.preventDefault();
+            const path = window.location.pathname.toLowerCase();
+            if (!path.includes('carpetas') && path !== '/') {
+                window.location.href = '/carpetas?simulador=1';
+            } else {
+                iniciarGuiaInteractiva();
+            }
         });
 
         const params = new URLSearchParams(window.location.search);

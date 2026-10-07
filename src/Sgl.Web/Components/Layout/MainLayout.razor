@@ -23,12 +23,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
             Cargar Excel Masivo
         </NavLink>
-        <button id="btn-guia-global" class="btn-guia-accion" type="button" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema" onclick="window.iniciarGuiaInteractiva()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <button id="btn-guia-global" class="btn-guia-accion" type="button" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
+            <span class="guia-avatar lico-slot" data-lico="explica" aria-hidden="true"></span>
             <span>Cómo usar el sistema</span>
         </button>
     </nav>
     <div class="topbar-tools">
+        <button class="head-lico" type="button" aria-label="Lico, tu asistente: abrir la guía de uso del sistema" title="Lico: abrir la guía de uso" onclick="document.getElementById('btn-guia-global').click()">
+            <span class="lico-slot" data-lico="saluda" aria-hidden="true"></span>
+            <span class="head-lico-burbuja" aria-hidden="true">¡Hola! Me llamo Lico</span>
+        </button>
         <button class="tool-btn" type="button" id="btn-filas" aria-pressed="false" title="Alternar entre filas suaves y los colores originales del Excel" aria-label="Alternar colores de filas" onclick="window.sglUi.toggleRows()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
         </button>
