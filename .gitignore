@@ -22,3 +22,10 @@ TestResults/
 
 # Local configuration
 appsettings.Local.json
+
+# Respaldos de BD y estado local de herramientas (contienen datos personales)
+*.db.*
+*.db-*.*
+.atl/
+scripts/migrate_estados.py
+scripts/update_listado.py
