@@ -9,6 +9,7 @@
 
 <div class="page-container" style="max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem;">
     <div class="header-section" style="margin-bottom: 1.5rem;">
+        <span class="lico-slot head-art" data-lico="saluda" aria-hidden="true"></span>
         <h1>📥 Carga Masiva de Carpetas desde Excel</h1>
         <p class="subtitle">Integre planillas Excel oficiales (.xlsx) del Departamento de Licencias para registrar y sincronizar carpetas en lote.</p>
     </div>
@@ -34,10 +35,10 @@
 
         @if (cargando)
         {
-            <div style="margin-top: 1.5rem; padding: 1.25rem; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; text-align: center;">
-                <div class="spinner" style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #93c5fd; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e40af; margin-top: 0.75rem;">Procesando e Integrando Planilla Excel...</h3>
-                <p style="font-size: 0.85rem; color: #3b82f6; margin: 0.25rem 0 0;">
+            <div class="imp-box imp-loading" role="status">
+                <div class="spinner" style="display: inline-block; width: 2rem; height: 2rem; margin-bottom: 0;"></div>
+                <h3>Procesando e Integrando Planilla Excel...</h3>
+                <p>
                     Leyendo filas, validando RUTs y sincronizando carpetas en la base de datos. Esto puede tardar unos segundos.
                 </p>
             </div>
@@ -45,46 +46,48 @@
 
         @if (!string.IsNullOrEmpty(error))
         {
-            <div class="alert error" style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;">
-                ⚠️ <strong>Error al cargar archivo:</strong> @error
+            <div class="alert error imp-box imp-error" role="alert">
+                <span class="lico-slot lico-msg" data-lico="alerta" aria-hidden="true"></span>
+                <span>⚠️ <strong>Error al cargar archivo:</strong> @error</span>
             </div>
         }
 
         @if (resultado is not null)
         {
-            <div style="margin-top: 1.75rem; padding: 1.5rem; background: #f0fdf4; border-radius: 10px; border: 1.5px solid #86efac;">
-                <h3 style="color: #166534; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="imp-box imp-ok" role="status">
+                <h3>
+                    <span class="lico-slot lico-msg" data-lico="celebra" aria-hidden="true"></span>
                     ✅ Integración Completada con Éxito
                 </h3>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
-                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
-                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Filas Leídas</span>
-                        <strong style="font-size: 1.75rem; color: #14532d;">@resultado.FilasLeidas.ToString("N0")</strong>
+                <div class="imp-tiles">
+                    <div class="imp-tile">
+                        <span class="imp-tile-label">Filas Leídas</span>
+                        <strong class="imp-tile-num">@resultado.FilasLeidas.ToString("N0")</strong>
                     </div>
-                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
-                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Carpetas Creadas</span>
-                        <strong style="font-size: 1.75rem; color: #16a34a;">+@resultado.CarpetasCreadas.ToString("N0")</strong>
+                    <div class="imp-tile">
+                        <span class="imp-tile-label">Carpetas Creadas</span>
+                        <strong class="imp-tile-num">+@resultado.CarpetasCreadas.ToString("N0")</strong>
                     </div>
-                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
-                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Carpetas Actualizadas</span>
-                        <strong style="font-size: 1.75rem; color: #2563eb;">@resultado.CarpetasActualizadas.ToString("N0")</strong>
+                    <div class="imp-tile">
+                        <span class="imp-tile-label">Carpetas Actualizadas</span>
+                        <strong class="imp-tile-num">@resultado.CarpetasActualizadas.ToString("N0")</strong>
                     </div>
-                    <div style="background: #ffffff; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
-                        <span style="display: block; font-size: 0.8rem; color: #15803d; font-weight: 600; text-transform: uppercase;">Nuevos Ciudadanos</span>
-                        <strong style="font-size: 1.75rem; color: #0284c7;">+@resultado.CiudadanosCreados.ToString("N0")</strong>
+                    <div class="imp-tile">
+                        <span class="imp-tile-label">Nuevos Ciudadanos</span>
+                        <strong class="imp-tile-num">+@resultado.CiudadanosCreados.ToString("N0")</strong>
                     </div>
                 </div>
 
-                <p style="font-size: 0.9rem; color: #166534; margin-bottom: 1rem;">
+                <p class="imp-sedes">
                     🏛️ <strong>Sedes procesadas:</strong> @(string.Join(", ", resultado.SedesProcesadas))
                 </p>
 
                 @if (resultado.Errores.Count > 0)
                 {
-                    <div style="margin-top: 1rem; padding: 0.75rem; background: #fffbeb; border-radius: 6px; border: 1px solid #fde68a;">
-                        <span style="font-size: 0.85rem; font-weight: 700; color: #92400e;">Observaciones en algunas filas:</span>
-                        <ul style="font-size: 0.8rem; color: #78350f; margin: 0.35rem 0 0 1.25rem;">
+                    <div class="imp-obs">
+                        <span class="imp-obs-title">Observaciones en algunas filas:</span>
+                        <ul class="imp-obs-list">
                             @foreach (var err in resultado.Errores)
                             {
                                 <li>@err</li>

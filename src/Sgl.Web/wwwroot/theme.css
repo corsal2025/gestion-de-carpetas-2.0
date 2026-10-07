@@ -6,34 +6,51 @@
      html[data-rows="soft|classic"]  filas: suaves (nuevo) o colores del Excel
    ========================================================================== */
 
-/* ---------- 1. Tokens ---------------------------------------------------- */
+/* ---------- 1. Tokens (paleta Lico) --------------------------------------
+   Azul institucional #26388c, cian #1fb5d9, verde #2fb56a, rosa #e889c4,
+   amarillo #f6d23c, rojo #e8503f. Lienzo #eef2fb, tinta #1b2140/#4d5578. */
 html {
-    --bg-page: #f3f5f9;
+    --lico-accent: #26388c;
+    --lico-accent-hover: #1a2766;
+    --lico-accent-soft: #e6e9f6;
+    --lico-cyan: #1fb5d9;
+    --lico-green: #2fb56a;
+    --lico-pink: #e889c4;
+    --lico-yellow: #f6d23c;
+    --lico-red: #e8503f;
+    --lico-road: repeating-linear-gradient(90deg, var(--lico-yellow) 0 22px, transparent 22px 40px);
+    --lico-stripe: linear-gradient(90deg, #26388c 0 30%, #1fb5d9 30% 45%, #2fb56a 45% 60%, #f6d23c 60% 72%, #e889c4 72% 86%, #e8503f 86% 100%);
+    --btn-grad: linear-gradient(135deg, #26388c, #3a55cf);
+    --btn-grad-hover: linear-gradient(135deg, #1a2766, #26388c);
+    --head-grad: linear-gradient(120deg, #1d2c75, #26388c 55%, #3550c8);
+    --dots: rgb(38 56 140 / 0.07);
+
+    --bg-page: #eef2fb;
     --surface: #ffffff;
-    --surface-alt: #f6f8fc;
+    --surface-alt: #f4f6fc;
     --surface-raised: #ffffff;
-    --text-primary: #0e1a2b;
-    --text-secondary: #3f4b5e;
-    --text-muted: #5b6678;
-    --border-color: #e3e7ef;
-    --border-hover: #c5cddb;
-    --ring: #7fa6ff;
+    --text-primary: #1b2140;
+    --text-secondary: #4d5578;
+    --text-muted: #5f6788; /* #7a82a3 de la guía no alcanza 4.5:1 sobre blanco */
+    --border-color: #dde2f2;
+    --border-hover: #b6bfdc;
+    --ring: #26388c;
 
-    --brand-primary: #2457e6;
-    --brand-primary-hover: #1b46c4;
-    --brand-light: #e8eefc;
+    --brand-primary: #26388c;
+    --brand-primary-hover: #1a2766;
+    --brand-light: #e6e9f6;
 
-    --topbar-bg: #0b1424;
-    --topbar-border: #1b2a44;
-    --topbar-text: #c9d4e5;
-    --topbar-muted: #8fa3c2;
+    --topbar-bg: #26388c;
+    --topbar-border: #1a2766;
+    --topbar-text: #e6e9f6;
+    --topbar-muted: #c3cbee;
 
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --shadow-sm: 0 1px 2px rgb(14 26 43 / 0.06);
-    --shadow-md: 0 4px 12px -2px rgb(14 26 43 / 0.08), 0 2px 4px -2px rgb(14 26 43 / 0.05);
-    --shadow-lg: 0 16px 40px -12px rgb(14 26 43 / 0.22);
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+    --shadow-sm: 0 1px 2px rgb(27 33 80 / 0.06), 0 4px 12px rgb(27 33 80 / 0.06);
+    --shadow-md: 0 8px 24px rgb(27 33 80 / 0.14);
+    --shadow-lg: 0 16px 40px -12px rgb(27 33 80 / 0.3);
 
     --font-ui: 'Public Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -43,23 +60,28 @@ html {
 }
 
 html[data-theme="dark"] {
-    --bg-page: #0a101c;
-    --surface: #111a2c;
-    --surface-alt: #162238;
-    --surface-raised: #17233a;
-    --text-primary: #e6ebf5;
-    --text-secondary: #b8c3d9;
-    --text-muted: #8f9cb6;
-    --border-color: #243249;
-    --border-hover: #35496b;
-    --ring: #5b8cff;
+    --btn-grad: linear-gradient(135deg, #3a55cf, #5570e6);
+    --btn-grad-hover: linear-gradient(135deg, #2f49bd, #3a55cf);
+    --head-grad: linear-gradient(120deg, #131a4a, #1d2c75 55%, #2a3fa8);
+    --dots: rgb(143 162 240 / 0.06);
 
-    --brand-primary: #5b8cff;
-    --brand-primary-hover: #7ba2ff;
-    --brand-light: #152349;
+    --bg-page: #0e1330;
+    --surface: #161d42;
+    --surface-alt: #1b2350;
+    --surface-raised: #1e2756;
+    --text-primary: #e8ebf8;
+    --text-secondary: #b9c0e0;
+    --text-muted: #98a1c8;
+    --border-color: #2b3566;
+    --border-hover: #3d4a85;
+    --ring: #f6d23c;
 
-    --topbar-bg: #070c16;
-    --topbar-border: #17233a;
+    --brand-primary: #8fa2f0;
+    --brand-primary-hover: #b0bdf6;
+    --brand-light: #232d63;
+
+    --topbar-bg: #1a2766;
+    --topbar-border: #0e1330;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.5);
@@ -339,6 +361,7 @@ html body .data-table thead th {
     height: 44px;
 }
 html body .data-table thead th.col-sticky-check,
+html body .data-table thead th.col-sticky-pend,
 html body .data-table thead th.col-sticky-rut,
 html body .data-table thead th.col-sticky-nombre {
     background: var(--surface-alt) !important;
@@ -691,3 +714,748 @@ html .drawer-close-btn:hover { background: var(--surface-alt); color: var(--text
 html .drawer-loading, html .case-drawer .text-muted { color: var(--text-muted); }
 html .case-drawer .excel-select { background: var(--surface) !important; color: var(--text-primary) !important; border: 1px solid var(--border-color) !important; border-radius: 10px; height: 40px; -webkit-text-fill-color: currentColor; }
 html .case-drawer .btn-secondary { width: 100%; }
+
+/* ==========================================================================
+   13. TEMATICA "LICO"  (tarjeta de licencia + carretera)
+   Traduccion manual del kit tematica-lico/tema-lico.css (que asume Bootstrap).
+   Va AL FINAL a proposito: gana por orden a las reglas anteriores de igual
+   especificidad. No toca colores de fila por estado (modo classic / soft).
+   ========================================================================== */
+
+/* Fondo con puntitos sutiles */
+html body {
+    background:
+        radial-gradient(circle at 1px 1px, var(--dots) 1px, transparent 0) 0 0 / 22px 22px,
+        var(--bg-page);
+}
+
+/* Foco visible: amarillo de 3px en botones/controles, con filete azul para contraste en fondo claro */
+html button:focus-visible,
+html a.btn-primary:focus-visible,
+html a.btn-secondary:focus-visible,
+html .nav-item:focus-visible,
+html .tool-btn:focus-visible,
+html .pill:focus-visible,
+html .filter-chip:focus-visible,
+html .pager-btn:focus-visible {
+    outline: 3px solid var(--lico-yellow);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--lico-accent);
+}
+html[data-theme="dark"] button:focus-visible { box-shadow: none; }
+
+/* ---------- Barra superior: degrade azul + franja de colores + linea de carretera ---------- */
+html .topbar {
+    background: var(--head-grad);
+    border-bottom: 0;
+    box-shadow: var(--shadow-md);
+    padding-top: 5px;
+    height: 69px;
+}
+html .topbar::before {
+    content: "";
+    position: absolute; left: 0; right: 0; top: 0; height: 5px;
+    background: var(--lico-stripe);
+    pointer-events: none;
+}
+html .topbar::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 5px; height: 3px;
+    background: var(--lico-road);
+    opacity: .85;
+    pointer-events: none;
+}
+html .brand-text { border-left: 4px solid var(--lico-yellow); padding-left: .65rem; color: var(--topbar-muted); }
+html .brand-mark { background: linear-gradient(145deg, #3a55cf, #26388c); box-shadow: 0 6px 14px -4px rgb(10 16 60 / .6), inset 0 1px 0 rgb(255 255 255 / .3); border-radius: 14px; }
+
+/* Navegacion en pildoras; activa con relleno claro y borde amarillo inferior */
+html .main-nav .nav-item,
+html .main-nav .nav-item.nav-carpetas,
+html .main-nav .nav-item.nav-cajas,
+html .main-nav .nav-item.nav-importar { border-radius: 999px; }
+html .main-nav .nav-item:hover { background: rgb(255 255 255 / .14); }
+html .main-nav .nav-item.active,
+html .main-nav .nav-item.nav-carpetas.active,
+html .main-nav .nav-item.nav-cajas.active,
+html .main-nav .nav-item.nav-importar.active {
+    background: rgb(255 255 255 / .2) !important;
+    color: #fff !important;
+    border-color: rgb(255 255 255 / .35) !important;
+    box-shadow: inset 0 -3px 0 0 var(--lico-yellow), 0 4px 12px rgb(10 16 60 / .3) !important;
+}
+html .btn-guia-accion { border-radius: 999px; border-color: rgb(255 255 255 / .35); color: #fff; }
+html .btn-guia-accion:hover { background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .55); }
+html .tool-btn { border-radius: 999px; border-color: rgb(255 255 255 / .35); color: #fff; }
+html .tool-btn:hover { background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .55); }
+html .tool-btn[aria-pressed="true"] { background: rgb(246 210 60 / .22); border-color: var(--lico-yellow); color: #fff; }
+html .user-block .autor { color: var(--topbar-muted); }
+html .user-block .autor input { border-radius: 999px; border-color: rgb(255 255 255 / .35); background: rgb(10 16 60 / .35); }
+html .user-block .autor input::placeholder { color: #b7c0ea; }
+html .user-block .autor input:focus { border-color: var(--lico-yellow); outline: 3px solid var(--lico-yellow); outline-offset: 1px; }
+
+/* ---------- Botones en pildora ---------- */
+html .btn-primary,
+html a.btn-primary {
+    border-radius: 999px;
+    background: var(--btn-grad);
+    color: #fff;
+    box-shadow: 0 4px 12px rgb(38 56 140 / .3), inset 0 1px 0 rgb(255 255 255 / .2);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+html .btn-primary:hover { background: var(--btn-grad-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgb(38 56 140 / .4), inset 0 1px 0 rgb(255 255 255 / .2); }
+html[data-theme="dark"] .btn-primary { color: #fff; }
+html .btn-secondary, html a.btn-secondary, html .btn-toggle-filters,
+html .btn-pdf-pill, html .btn-outline-link, html .btn-print-caja, html .btn-warning-outline, html a.btn-outline-link,
+html .content a.button.secondary, html .btn-copy-rut { border-radius: 999px; }
+html .content .actions button, html .content .inline button, html .content form .actions button[type="submit"] {
+    border-radius: 999px; background: var(--btn-grad); color: #fff;
+    box-shadow: 0 4px 12px rgb(38 56 140 / .3), inset 0 1px 0 rgb(255 255 255 / .2);
+}
+html[data-theme="dark"] .content .actions button, html[data-theme="dark"] .content .inline button { color: #fff; }
+html .content .actions button:hover, html .content .inline button:hover { background: var(--btn-grad-hover); }
+html .content .inline button:disabled { background: var(--border-color); color: var(--text-muted); box-shadow: none; }
+html .btn-toggle-filters.active { background: var(--brand-light); border-color: var(--lico-accent); }
+html[data-theme="dark"] .btn-toggle-filters.active { border-color: var(--brand-primary); }
+
+/* Selector de sedes: pildoras sobre capsula */
+html .sede-pills { border-radius: 999px; }
+html .pill { border-radius: 999px; }
+html .pill.active { background: var(--btn-grad); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgb(38 56 140 / .35); }
+html[data-theme="dark"] .pill.active { background: var(--btn-grad); box-shadow: 0 4px 12px rgb(0 0 0 / .5); }
+html .pill.active .badge-count { background: rgb(255 255 255 / .92); color: var(--lico-accent); }
+
+/* Controles de formulario: esquinas mas suaves, foco acorde a la paleta */
+html .search-input-wrapper input,
+html .state-select-wrapper select,
+html .select-caja,
+html .page-size-selector select,
+html .quick-add-field input,
+html .quick-add-field select { border-radius: 14px; }
+html .search-input-wrapper input:focus,
+html .state-select-wrapper select:focus,
+html .select-caja:focus,
+html .content .form input:focus, html .content .form select:focus, html .content .inline select:focus {
+    border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(38 56 140 / .25);
+}
+html[data-theme="dark"] .search-input-wrapper input:focus,
+html[data-theme="dark"] .state-select-wrapper select:focus,
+html[data-theme="dark"] .select-caja:focus,
+html[data-theme="dark"] .content .form input:focus,
+html[data-theme="dark"] .content .form select:focus,
+html[data-theme="dark"] .content .inline select:focus { box-shadow: 0 0 0 3px rgb(246 210 60 / .35); }
+html .content .form input:not([type="checkbox"]), html .content .form select, html .content .inline select { border-radius: 14px; }
+
+/* ---------- Tarjetas y paneles: esquinas muy redondeadas ---------- */
+html .sede-tabs-container,
+html .table-container,
+html .content .card,
+html .modal-card, html .modal-obs-card, html .case-drawer, html .tramites-breakdown,
+html .cajas-table-wrapper, html .box-close-form,
+html .kpi-card, html .cajas-kpi-row .kpi-card,
+html .quick-add-accordion, html .active-filters-summary,
+html .caja-queue-card, html .cajas-sugeridas { border-radius: 22px; }
+html .table-bottom-bar, html .table-top-bar, html .pager-row { border-radius: 18px; }
+html .sede-tabs-container, html .table-container { box-shadow: var(--shadow-md); }
+
+/* ---------- Encabezado de tabla: azul con borde cian de 4px ---------- */
+html body .data-table thead th,
+html body .data-table thead th.col-sticky-check,
+html body .data-table thead th.col-sticky-pend,
+html body .data-table thead th.col-sticky-rut,
+html body .data-table thead th.col-sticky-nombre {
+    background: var(--lico-accent) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    border-bottom: 4px solid var(--lico-cyan) !important;
+    font-size: 0.92rem !important;
+    letter-spacing: 0.04em;
+    height: 52px;
+}
+html[data-theme="dark"] body .data-table thead th,
+html[data-theme="dark"] body .data-table thead th.col-sticky-check,
+html[data-theme="dark"] body .data-table thead th.col-sticky-pend,
+html[data-theme="dark"] body .data-table thead th.col-sticky-rut,
+html[data-theme="dark"] body .data-table thead th.col-sticky-nombre { background: #1a2766 !important; }
+html .content .card table:not(.data-table) th { color: var(--lico-accent); border-bottom: 3px solid var(--lico-cyan); }
+html[data-theme="dark"] .content .card table:not(.data-table) th { color: var(--brand-primary); }
+
+/* ---------- Titulos de pantalla ---------- */
+html .page-container .header-section h1,
+html .content:not(:has(.page-container)) > h1 { color: var(--lico-accent); }
+html[data-theme="dark"] .page-container .header-section h1,
+html[data-theme="dark"] .content:not(:has(.page-container)) > h1 { color: var(--text-primary); }
+
+/* Linea de carretera como firma bajo los titulos de las pantallas sueltas */
+html .content:not(:has(.page-container)) > h1::after {
+    content: ""; display: block; height: 4px; margin-top: .6rem; width: 120px; border-radius: 4px;
+    background: var(--lico-road);
+}
+
+/* ---------- Lico: mascota (tomado de tema-lico.css) ---------- */
+.lico-svg { overflow: visible; }
+.lico-svg .lico-cuerpo { transform-origin: 50% 90%; animation: lico-rebote 2.6s ease-in-out infinite; }
+.lico-svg .lico-ojos { transform-box: fill-box; transform-origin: center; animation: lico-parpadeo 4.5s infinite; }
+.lico-svg .lico-saludo { transform-box: fill-box; transform-origin: 20% 90%; animation: lico-saludo 1.4s ease-in-out infinite; }
+@keyframes lico-rebote { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes lico-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes lico-saludo { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .lico-svg .lico-cuerpo, .lico-svg .lico-ojos, .lico-svg .lico-saludo { animation: none; }
+}
+
+.lico-mini { display: inline-flex; width: 34px; height: 34px; background: #fff; border-radius: 50%; overflow: hidden; align-items: flex-end; justify-content: center; }
+.lico-mini svg { width: 40px; height: 40px; margin-bottom: -6px; }
+
+.head-lico {
+    display: inline-flex; align-items: flex-end; gap: .4rem;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    position: relative; z-index: 1;
+}
+.head-lico svg { width: 78px; height: 78px; flex-shrink: 0; margin-bottom: -1.9rem; }
+.head-lico-burbuja {
+    position: relative;
+    align-self: center;
+    background: #fff; color: var(--lico-accent);
+    font-weight: 800; font-size: .8rem;
+    padding: .45rem .8rem; border-radius: 14px 14px 14px 4px;
+    box-shadow: 0 4px 12px rgba(10, 16, 60, .25);
+    white-space: nowrap;
+    transition: transform .15s ease;
+}
+.head-lico:hover .head-lico-burbuja { transform: scale(1.06); }
+.head-lico:focus-visible { outline: 3px solid var(--lico-yellow); outline-offset: 4px; border-radius: 12px; }
+@media (max-width: 900px) { .head-lico-burbuja { display: none; } }
+
+/* Lico en la topbar: mascota contenida dentro de la barra (sin colgar), burbuja
+   de saludo solo en pantallas muy anchas; en el resto aparece al pasar el cursor. */
+html .topbar { z-index: 60; gap: .9rem; }
+html .brand-group { flex-shrink: 0; }
+html .brand-text, html .brand-text strong { white-space: nowrap; }
+html .topbar-tools { flex-shrink: 0; }
+html .topbar .head-lico { align-items: center; gap: .5rem; box-shadow: none; height: 56px; overflow: visible; }
+html .topbar .head-lico .lico-slot { display: inline-flex; width: 56px; height: 56px; align-self: center; margin: 0; }
+html .topbar .head-lico svg { width: 56px; height: 56px; margin-bottom: 0; transform: none; }
+html .topbar .head-lico-burbuja {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 120;
+    border-radius: 14px 4px 14px 14px;
+    pointer-events: none; animation: none;
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+}
+html .topbar .head-lico-burbuja::before {
+    content: ""; position: absolute; top: -5px; right: 20px; width: 11px; height: 11px;
+    background: #fff; transform: rotate(45deg); border-radius: 2px;
+}
+html .topbar .head-lico:hover .head-lico-burbuja,
+html .topbar .head-lico:focus-visible .head-lico-burbuja { opacity: 1; visibility: visible; transform: none; }
+@media (min-width: 2100px) {
+    html .topbar .head-lico-burbuja {
+        position: relative; top: auto; right: auto; opacity: 1; visibility: visible; transform: none;
+        border-radius: 14px 14px 14px 4px;
+    }
+    html .topbar .head-lico-burbuja::before { top: 50%; left: -5px; right: auto; transform: translateY(-50%) rotate(45deg); }
+}
+@media (max-width: 1100px) { html .topbar::after { bottom: 0; } }
+
+/* ==========================================================================
+   14. LICO - AUDITORIA: encabezados de pagina, KPIs, pestanas, mensajes,
+   estados vacios, modales/panel, guia interactiva (.tour-*), Importar y
+   avisos del framework. Solo decorativo; no toca colores de fila por estado.
+   ========================================================================== */
+
+/* Casilla generica de Lico (<span class="lico-slot" data-lico="...">) */
+.lico-slot { display: inline-flex; flex: 0 0 auto; width: var(--lico-size, 64px); height: var(--lico-size, 64px); }
+html .lico-slot svg { width: 100%; height: 100%; }
+
+/* ---- Encabezado de pagina (kit .page-head): tarjeta azul con linea de carretera ---- */
+html .header-section {
+    position: relative;
+    display: flex; flex-direction: column; justify-content: center; gap: .15rem;
+    min-height: 88px;
+    padding: 1.1rem 9.5rem 1.6rem 1.6rem;
+    background: var(--head-grad);
+    border: 0; border-radius: 22px;
+    box-shadow: var(--shadow-md);
+}
+html .header-section::after {
+    content: ""; position: absolute; left: 1.6rem; right: 1.6rem; bottom: .7rem; height: 4px;
+    border-radius: 4px; background: var(--lico-road); opacity: .9; pointer-events: none;
+}
+html .header-section h1,
+html .page-container .header-section h1,
+html[data-theme="dark"] .page-container .header-section h1 { color: #fff; margin: 0; }
+html .header-section .subtitle { color: #d4daf5; margin: 0; }
+html .header-section .head-art { --lico-size: 92px; position: absolute; right: 1.5rem; bottom: .55rem; }
+@media (max-width: 760px) {
+    html .header-section { padding-right: 1.6rem; }
+    html .header-section .head-art { display: none; }
+}
+
+/* ---- KPIs de Cajas (kit .stat-chip): barra de color arriba, numero grande, hover que se levanta ---- */
+html .cajas-kpi-row .kpi-card {
+    position: relative; overflow: hidden; padding-top: 1.4rem;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+html .cajas-kpi-row .kpi-card::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--lico-accent);
+}
+html .cajas-kpi-row .kpi-card:nth-child(2)::before { background: var(--lico-green); }
+html .cajas-kpi-row .kpi-card:nth-child(3)::before { background: var(--lico-yellow); }
+html .cajas-kpi-row .kpi-card:hover { transform: translateY(-3px) rotate(-1deg); box-shadow: var(--shadow-md); }
+html .cajas-kpi-row .kpi-number { font-weight: 800; font-size: 1.9rem; color: var(--lico-accent); }
+html[data-theme="dark"] .cajas-kpi-row .kpi-number { color: var(--text-primary); }
+
+/* ---- Pestanas de Cajas: pildoras, la activa en degradado azul ---- */
+html .cajas-tab-nav { border-bottom: 0; padding-bottom: 0; gap: .4rem; }
+html .tab-btn { border-radius: 999px; border: 1px solid transparent; }
+html .tab-btn.active {
+    background: var(--btn-grad); color: #fff; border: 1px solid transparent; margin-bottom: 0;
+    box-shadow: 0 4px 12px rgb(38 56 140 / .3);
+}
+html .tab-btn:focus-visible { outline: 3px solid var(--lico-yellow); outline-offset: 2px; box-shadow: 0 0 0 5px var(--lico-accent); }
+html[data-theme="dark"] .tab-btn:focus-visible { box-shadow: none; }
+
+/* ---- Mensajes de exito / error (con Lico) ---- */
+html .alert-banner, html .alert.error, html .content p.error, html .content p.ok-msg,
+html .imp-box { border-radius: 16px; }
+html .alert-banner, html .content p.error, html .content p.ok-msg, html .imp-error {
+    display: flex; align-items: center; gap: .75rem;
+}
+html .alert-banner .btn-close-alert { margin-left: auto; border-radius: 999px; }
+html .alert-banner .btn-close-alert:focus-visible { outline: 3px solid var(--lico-yellow); box-shadow: 0 0 0 5px var(--lico-accent); }
+html .alert-banner.alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+html .alert.error { padding: .7rem .9rem; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-weight: 600; }
+html[data-theme="dark"] .alert-banner.alert-success { background: #0f2e1b; border-color: #166534; color: #bbf7d0; }
+html[data-theme="dark"] .alert.error { background: #3b1414; border-color: #7f1d1d; color: #fecaca; }
+html .lico-msg { --lico-size: 46px; margin: -8px 0 -8px; }
+
+/* ---- Estados vacios / cargando: tarjeta con linea de carretera arriba y Lico ---- */
+html .empty-state, html .loading-state { position: relative; border-radius: 22px; box-shadow: var(--shadow-sm); }
+html .empty-state::before, html .loading-state::before {
+    content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 5px;
+    border-radius: 0 0 6px 6px; background: var(--lico-road); pointer-events: none;
+}
+html .empty-state .lico-empty { --lico-size: 112px; display: flex; margin: 0 auto .5rem; }
+html .empty-state p, html .loading-state p { color: var(--text-secondary); }
+
+/* ---- Modales y panel lateral: linea de carretera como firma ---- */
+html .modal-overlay { background: rgb(18 24 66 / .6); }
+html .modal-card { position: relative; }
+html .modal-card::before, html .case-drawer::before {
+    content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 5px;
+    border-radius: 0 0 6px 6px; background: var(--lico-road); pointer-events: none; z-index: 2;
+}
+html .modal-card h3 { color: var(--lico-accent); }
+html[data-theme="dark"] .modal-card h3 { color: var(--text-primary); }
+html .drawer-close-btn { border-radius: 999px; }
+
+/* ---- Guia interactiva (.tour-*): spotlight amarillo, tarjeta con linea de carretera y Lico ---- */
+html .tour-spotlight {
+    border: 3px solid var(--lico-yellow); border-radius: 16px;
+    box-shadow: 0 0 0 9999px rgb(18 24 66 / .72), 0 0 24px 6px rgb(246 210 60 / .6);
+}
+html .tour-card {
+    width: 480px; padding: 1.4rem 1.4rem 1rem;
+    background: #fff; color: #1b2140;
+    border: 0; border-radius: 24px; text-align: left;
+    box-shadow: 0 24px 60px rgb(8 12 50 / .55);
+}
+html .tour-card::before {
+    content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 6px;
+    border-radius: 0 0 8px 8px; background: var(--lico-road); background-color: var(--lico-accent);
+}
+html .tour-card-header { justify-content: flex-start; }
+html .tour-paso-badge { background: var(--lico-accent); color: #fff; border: 0; padding: .3rem .8rem; }
+html .tour-btn-cerrar { color: #4d5578; border-radius: 999px; }
+html .tour-btn-cerrar:hover { color: #1b2140; background: #e6e9f6; }
+html .tour-card-body { display: flex; gap: .9rem; align-items: flex-start; }
+html .tour-mascota { flex: 0 0 96px; width: 96px; height: 104px; display: flex; align-items: flex-end; justify-content: center; }
+html .tour-mascota svg { width: 100%; height: 100%; }
+html .tour-card-texto { flex: 1; min-width: 0; background: var(--lico-accent-soft); border-radius: 18px 18px 18px 6px; padding: .8rem 1rem; }
+html .tour-card-titulo { justify-content: flex-start; color: var(--lico-accent); text-align: left; font-size: 1.05rem; }
+html .tour-card-desc { text-align: left; hyphens: manual; margin-top: .4rem; color: #3b4266; font-size: 13.5px; }
+html .tour-card-desc b { color: #1b2140; }
+html .tour-card-desc code { background: #fff; color: var(--lico-accent); }
+html .tour-card-footer { border-top: 1px dashed #b6bfdc; }
+html .tour-dot { background: #b6bfdc; }
+html .tour-dot.activo { background: var(--lico-accent); }
+html .tour-flecha { border-color: transparent; }
+html .tour-btn-nav { border-radius: 999px; padding: 6px 16px; border: 1px solid #b6bfdc; background: #fff; color: #26388c; }
+html .tour-btn-nav:hover:not(:disabled) { background: var(--lico-accent-soft); }
+html .tour-btn-primary { background: var(--btn-grad); color: #fff; border-color: transparent; }
+html .tour-btn-primary:hover:not(:disabled) { background: var(--btn-grad-hover); }
+html .tour-btn-primary.tour-btn-final { background: #1f8a50; border-color: transparent; font-weight: 700; }
+html .tour-btn-salir-flotante { border-radius: 999px; border: 2px solid var(--lico-yellow); color: #1b2140; }
+html .tour-card button:focus-visible, html .tour-btn-salir-flotante:focus-visible { outline: 3px solid var(--lico-yellow); outline-offset: 2px; box-shadow: 0 0 0 5px var(--lico-accent); }
+@media (max-width: 640px) { html .tour-mascota { display: none; } }
+
+/* ---- Importar: resultados en clases (antes estilos en linea claros, ilegibles en oscuro) ---- */
+html .imp-box { margin-top: 1.5rem; padding: 1.25rem 1.5rem; border: 1.5px solid; }
+html .imp-loading { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; text-align: center; }
+html .imp-loading h3 { font-size: 1.05rem; font-weight: 700; margin: .75rem 0 0; color: inherit; }
+html .page-container .card .imp-loading p { font-size: .85rem; margin: .25rem 0 0; color: #2f5fc4 !important; }
+html .imp-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; margin-top: 1.5rem; }
+html .imp-ok { background: #f0fdf4; border-color: #86efac; color: #166534; margin-top: 1.75rem; }
+html .imp-ok h3 { display: flex; align-items: center; gap: .6rem; font-size: 1.2rem; font-weight: 700; margin: 0 0 1rem; color: inherit; }
+html .imp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+html .imp-tile { position: relative; overflow: hidden; background: #fff; padding: 1.2rem 1rem 1rem; border-radius: 18px; border: 1px solid #bbf7d0; text-align: center; }
+html .imp-tile::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--lico-green); }
+html .imp-tile:nth-child(2)::before { background: var(--lico-accent); }
+html .imp-tile:nth-child(3)::before { background: var(--lico-cyan); }
+html .imp-tile:nth-child(4)::before { background: var(--lico-yellow); }
+html .imp-tile-label { display: block; font-size: .8rem; color: #15803d; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+html .imp-tile-num { font-size: 1.9rem; font-weight: 800; color: #14532d; }
+html .page-container .imp-ok p.imp-sedes { color: #166534 !important; font-size: .9rem; margin: 0 0 1rem; }
+html .imp-obs { margin-top: 1rem; padding: .75rem 1rem; background: #fffbeb; border-radius: 14px; border: 1px solid #fde68a; }
+html .imp-obs-title { font-size: .85rem; font-weight: 700; color: #92400e; }
+html .imp-obs-list { font-size: .8rem; color: #78350f; margin: .35rem 0 0 1.25rem; }
+html[data-theme="dark"] .imp-loading { background: #14214f; border-color: #2c4496; color: #bfd0ff; }
+html[data-theme="dark"] .page-container .card .imp-loading p { color: #a9bdf5 !important; }
+html[data-theme="dark"] .imp-error { background: #3b1414; border-color: #7f1d1d; color: #fecaca; }
+html[data-theme="dark"] .imp-ok { background: #0f2e1b; border-color: #166534; color: #bbf7d0; }
+html[data-theme="dark"] .page-container .imp-ok p.imp-sedes { color: #bbf7d0 !important; }
+html[data-theme="dark"] .imp-tile { background: var(--surface); border-color: #166534; }
+html[data-theme="dark"] .imp-tile-label { color: #86efac; }
+html[data-theme="dark"] .imp-tile-num { color: var(--text-primary); }
+html[data-theme="dark"] .imp-obs { background: #43310c; border-color: #7a5a14; }
+html[data-theme="dark"] .imp-obs-title { color: #fcd34d; }
+html[data-theme="dark"] .imp-obs-list { color: #fde68a; }
+
+/* ---- Avisos del framework: legibles en ambos temas ---- */
+html #blazor-error-ui { background: #fef3c7; color: #1b2140; border-top: 3px solid var(--lico-yellow); }
+html #blazor-error-ui .reload { color: var(--lico-accent); font-weight: 700; }
+html #blazor-error-ui .dismiss { cursor: pointer; float: right; padding: 0 .5rem; }
+html #components-reconnect-modal { background: var(--surface) !important; color: var(--text-primary) !important; border-radius: 22px !important; }
+html #components-reconnect-modal button { background: var(--btn-grad) !important; border-radius: 999px !important; color: #fff !important; }
+
+/* ---------- Altura de la tabla: ocupa el espacio sobrante ----------------
+   app.css fijaba calc(100vh - Npx) pensado para la barra anterior; con la barra
+   y los encabezados nuevos el paginador quedaba cortado contra el pie. */
+html .page-container > .table-container,
+html .page-container > .table-container.standard-table,
+html .page-container > .table-container.panel-colapsado {
+    flex: 1 1 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+}
+html .page-container > .pager-row, html .page-container > .table-bottom-bar { flex-shrink: 0; margin-top: 0; }
+
+/* ---------- Pendiente búsqueda: columna + parpadeo del nombre ---------- */
+html body .data-table thead th.col-sticky-pend {
+    font-size: 0.7rem !important; line-height: 1.15; white-space: normal; letter-spacing: 0.03em; padding: 0 0.35rem;
+}
+html body .data-table td.td-pend { text-align: center; padding: 0.25rem !important; }
+html .btn-pend-busqueda {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0; cursor: pointer;
+    border-radius: 999px; border: 1px solid var(--border-color);
+    background: var(--surface); color: var(--text-muted);
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+html .btn-pend-busqueda:hover:not(:disabled) { border-color: var(--brand-primary); color: var(--brand-primary); }
+html .btn-pend-busqueda:focus-visible { outline: 3px solid rgb(91 140 255 / 0.4); outline-offset: 1px; }
+html .btn-pend-busqueda:disabled { opacity: .4; cursor: not-allowed; }
+html .btn-pend-busqueda.activo { background: var(--lico-yellow); border-color: var(--lico-yellow); color: #1b2140; }
+
+@keyframes pend-parpadeo {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .25; }
+}
+html .btn-pend-busqueda.parpadeo,
+html .name-cell.nombre-pend-parpadeo { animation: pend-parpadeo 1.4s ease-in-out infinite; }
+html .name-cell.nombre-pend-parpadeo {
+    background: color-mix(in srgb, var(--lico-yellow) 55%, transparent);
+    border-radius: 6px; padding: 1px 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+    html .btn-pend-busqueda.parpadeo,
+    html .name-cell.nombre-pend-parpadeo { animation: none !important; }
+    html .name-cell.nombre-pend-parpadeo { background: var(--lico-yellow); color: #1b2140; }
+}
+
+/* ---------- Barra inferior desplegable ---------- */
+html .page-container > .btn-bottom-toggle { flex-shrink: 0; margin-top: .25rem; }
+html .btn-bottom-toggle::before { transform: rotate(-135deg) translateY(-1px); }
+html .btn-bottom-toggle.open::before { transform: rotate(45deg) translateY(-2px); }
+
+/* ---------- Boton "Como usar el sistema": pildora azul con avatar de Lico ---------- */
+html .main-nav .btn-guia-accion {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .65rem !important;
+    height: 46px !important;
+    padding: 0 1.4rem 0 .35rem !important;
+    border-radius: 999px !important;
+    border: 2px solid rgb(255 255 255 / .9) !important;
+    background: linear-gradient(90deg, #2a3f9d 0%, #1f78b8 100%) !important;
+    color: #fff !important;
+    font-size: .95rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    box-shadow: 0 6px 16px rgb(10 16 60 / .35) !important;
+    margin-left: .5rem !important;
+}
+html .main-nav .btn-guia-accion:hover {
+    background: linear-gradient(90deg, #3550c0 0%, #2790d6 100%) !important;
+    box-shadow: 0 8px 20px rgb(10 16 60 / .45) !important;
+    transform: translateY(-1px) !important;
+}
+html .main-nav .btn-guia-accion .guia-avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff;
+    overflow: hidden;
+}
+html .main-nav .btn-guia-accion .guia-avatar svg { width: 32px; height: 32px; margin: 0; }
+
+
+/* ==========================================================================
+   LICO JUEGOS (lico-juegos.js): travesuras por inactividad + gracias al hacer clic en el Lico de la barra.
+   z-index 1400: sobre el contenido y modales (1000), bajo #blazor-error-ui (2000) y la guia (99990+).
+   ========================================================================== */
+html .lico-travieso {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 380px;
+    z-index: 1400; pointer-events: none; overflow: hidden;
+    visibility: hidden; opacity: 0;
+}
+html .lico-travieso.activo { visibility: visible; opacity: 1; }
+html .lico-travieso.saliendo { opacity: 0; transition: opacity .25s ease; }
+html .lico-travieso .lt-pelota, html .lico-travieso .lt-zzz, html .lico-travieso .lt-ondas { display: none; }
+
+html .lt-lico { position: absolute; bottom: 10px; width: 150px; }
+html .lt-cuerpo svg { width: 150px; height: 150px; display: block; }
+html .lt-globo {
+    position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%);
+    margin-bottom: 4px; padding: .45rem .8rem; white-space: nowrap;
+    background: #fff; color: var(--lico-accent); font-weight: 800; font-size: .85rem;
+    border-radius: 14px; box-shadow: 0 4px 14px rgba(10, 16, 60, .3); opacity: 0;
+}
+html .lt-globo::after {
+    content: ""; position: absolute; left: 50%; top: 100%; margin-left: -7px;
+    border-style: solid; border-width: 8px 7px 0; border-color: #fff transparent transparent;
+}
+
+/* 1) TOC TOC */
+html .modo-toc .lt-lico { left: 50%; margin-left: -75px; transform-origin: 50% 100%; animation: lt-toc 7s ease-in-out forwards; }
+html .modo-toc .lt-globo { animation: lt-globo-toc 7s ease-in-out forwards; }
+html .modo-toc .lt-ondas { display: block; position: absolute; left: 50%; bottom: 140px; width: 0; height: 0; }
+html .modo-toc .lt-onda {
+    position: absolute; left: -30px; top: -30px; width: 60px; height: 60px; border-radius: 50%;
+    border: 5px solid var(--lico-yellow); opacity: 0; animation: lt-onda .7s ease-out forwards;
+}
+html .modo-toc .lt-onda:nth-child(1) { animation-delay: 1.4s; }
+html .modo-toc .lt-onda:nth-child(2) { animation-delay: 2.1s; }
+html .modo-toc .lt-onda:nth-child(3) { animation-delay: 2.8s; }
+@keyframes lt-toc {
+    0%   { transform: translateY(60px) scale(.2); opacity: 0; }
+    15%  { transform: translateY(-20px) scale(1.7); opacity: 1; }
+    20%  { transform: translateY(-20px) scale(1.7) rotate(-7deg); }
+    24%  { transform: translateY(-20px) scale(1.7) rotate(0); }
+    30%  { transform: translateY(-20px) scale(1.7) rotate(-7deg); }
+    34%  { transform: translateY(-20px) scale(1.7) rotate(0); }
+    40%  { transform: translateY(-20px) scale(1.7) rotate(-7deg); }
+    44%  { transform: translateY(-20px) scale(1.7) rotate(0); }
+    86%  { transform: translateY(-20px) scale(1.7); opacity: 1; }
+    100% { transform: translateY(60px) scale(.2); opacity: 0; }
+}
+@keyframes lt-globo-toc { 0%, 17% { opacity: 0; } 22%, 84% { opacity: 1; } 90%, 100% { opacity: 0; } }
+@keyframes lt-onda { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
+
+/* 2) PELOTA */
+html .modo-pelota .lt-lico { left: 0; width: 130px; animation: lt-pelota-lico 9.5s linear forwards; }
+html .modo-pelota .lt-cuerpo svg { width: 130px; height: 130px; }
+html .modo-pelota .lt-globo { animation: lt-globo-gol 9.5s ease-in-out forwards; }
+html .modo-pelota .lt-pelota { display: block; position: absolute; left: 0; bottom: 14px; width: 38px; height: 38px; animation: lt-pelota-x 9.5s linear forwards; }
+html .lt-pelota-i {
+    display: block; width: 38px; height: 38px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0 28%, #e9edf9 29% 55%, #c9d2ea 56%);
+    border: 3px solid var(--lico-accent); box-shadow: inset -4px -4px 0 rgba(38, 56, 140, .18);
+    animation: lt-bote .8s cubic-bezier(.3, .7, .5, 1) infinite alternate;
+}
+@keyframes lt-pelota-lico { 0% { transform: translateX(4vw); opacity: 0; } 4% { opacity: 1; } 88% { transform: translateX(78vw); opacity: 1; } 100% { transform: translateX(80vw); opacity: 0; } }
+@keyframes lt-pelota-x { 0% { transform: translateX(15vw); opacity: 0; } 4% { opacity: 1; } 88% { transform: translateX(90vw); opacity: 1; } 100% { transform: translateX(94vw); opacity: 0; } }
+@keyframes lt-bote { 0% { transform: translateY(0); } 100% { transform: translateY(-110px); } }
+@keyframes lt-globo-gol { 0%, 76% { opacity: 0; } 80%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+
+/* 3) DUERME */
+html .modo-duerme .lt-lico { right: 40px; animation: lt-duerme 16s ease-in-out forwards; }
+html .modo-duerme .lt-cuerpo { transform: rotate(9deg); transform-origin: 50% 100%; }
+html .modo-duerme .lt-globo { animation: lt-globo-zzz 16s ease-in-out forwards; }
+html .modo-duerme .lt-zzz { display: block; position: absolute; left: -4px; top: 34px; font-weight: 800; color: var(--lico-accent); }
+html .modo-duerme .lt-zzz b { position: absolute; left: 0; top: 0; opacity: 0; font-size: 1.1rem; animation: lt-z 3s ease-out infinite; }
+html .modo-duerme .lt-zzz b:nth-child(2) { animation-delay: 1s; font-size: 1.4rem; }
+html .modo-duerme .lt-zzz b:nth-child(3) { animation-delay: 2s; font-size: 1.8rem; }
+@keyframes lt-duerme { 0% { transform: translateY(190px); opacity: 0; } 8% { transform: translateY(0); opacity: 1; } 94% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(190px); opacity: 0; } }
+@keyframes lt-globo-zzz { 0%, 10% { opacity: 0; } 16%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes lt-z { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-22px, -46px); opacity: 0; } }
+
+/* 4) DOMINA */
+html .modo-domina .lt-lico { left: 50%; margin-left: -75px; animation: lt-domina 11s ease-in-out forwards; }
+html .modo-domina .lt-cuerpo { transform-origin: 50% 100%; animation: lt-cabecea 1.6s ease-in-out infinite; }
+html .modo-domina .lt-pelota { display: block; position: absolute; left: 50%; margin-left: -19px; bottom: 160px; width: 38px; height: 38px; animation: lt-domina-bola 11s linear forwards; }
+html .modo-domina .lt-globo { bottom: auto; top: 14px; left: 100%; transform: none; margin-left: 12px; white-space: nowrap; animation: lt-globo-domina 11s ease-in-out forwards; }
+html .modo-domina .lt-globo::after { display: none; }
+@keyframes lt-domina { 0% { transform: translateY(190px); opacity: 0; } 7% { transform: translateY(0); opacity: 1; } 93% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(190px); opacity: 0; } }
+@keyframes lt-domina-bola { 0% { opacity: 0; } 9% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes lt-globo-domina { 0%, 12% { opacity: 0; } 18%, 88% { opacity: 1; } 94%, 100% { opacity: 0; } }
+@keyframes lt-cabecea { 0%, 100% { transform: translateY(3px) scale(1.03, .97); } 50% { transform: translateY(-4px) rotate(-1.5deg); } }
+
+@media (prefers-reduced-motion: reduce) { html .lico-travieso { display: none; } }
+
+/* ---- Gracias del Lico de la barra (56px; desplazamientos de A, pensados para 78px, escalados x0.72) ---- */
+html .topbar .head-lico { -webkit-tap-highlight-color: transparent; }
+html .topbar .head-lico svg { transform-origin: 50% 100%; }
+html .topbar .head-lico.hl-salta svg  { animation: hl-salta 1.3s ease-in-out; }
+html .topbar .head-lico.hl-gira svg   { animation: hl-gira 1.4s ease-in-out; }
+html .topbar .head-lico.hl-baila svg  { animation: hl-baila 2s ease-in-out; }
+html .topbar .head-lico.hl-toc svg    { animation: hl-toc 2s ease-in-out; }
+html .topbar .head-lico.hl-duerme svg { animation: hl-duerme 3s ease-in-out; }
+html .topbar .head-lico.hl-pelota svg { animation: hl-patea 2.5s ease-in-out; }
+html .topbar .head-lico.hl-domina svg { animation: hl-cabecea .5s ease-in-out 6; }
+html .topbar .head-lico.hl-toc::before {
+    content: ''; position: absolute; left: 29px; top: -4px; width: 29px; height: 29px; margin-left: -14px;
+    border-radius: 50%; border: 3px solid var(--lico-yellow); opacity: 0; pointer-events: none;
+    animation: hl-onda .6s ease-out .45s 3 both;
+}
+html .topbar .head-lico.hl-duerme::after {
+    content: 'Z z z'; position: absolute; left: 45px; top: -10px; font-weight: 800; letter-spacing: .15em;
+    color: #fff; font-size: .85rem; pointer-events: none; animation: hl-zzz 3s ease-out;
+}
+/* La burbuja de la barra nace oculta (opacity 0 / visibility hidden): durante la gracia se fuerza visible. */
+html .topbar .head-lico.hl-activa .head-lico-burbuja { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+
+@keyframes hl-salta  { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.1, .88); } 40% { transform: translateY(-24px) scale(.95, 1.08); } 65% { transform: translateY(0) scale(1.1, .88); } 80% { transform: translateY(-10px); } 92% { transform: translateY(0) scale(1.05, .95); } }
+@keyframes hl-gira   { 0% { transform: rotateY(0) scale(1); } 50% { transform: rotateY(180deg) scale(1.15); } 100% { transform: rotateY(360deg) scale(1); } }
+@keyframes hl-baila  { 0%, 100% { transform: rotate(0); } 12% { transform: rotate(-14deg) translateX(-3px); } 25% { transform: rotate(14deg) translateX(3px); } 38% { transform: rotate(-14deg) translateX(-3px); } 50% { transform: rotate(14deg) translateX(3px); } 62% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } 88% { transform: rotate(0); } }
+@keyframes hl-toc    { 0%, 100% { transform: rotate(0) scale(1); } 15% { transform: scale(1.2) rotate(0); } 25%, 45%, 65% { transform: scale(1.2) rotate(-8deg); } 35%, 55%, 75% { transform: scale(1.2) rotate(0); } 90% { transform: scale(1.05); } }
+@keyframes hl-onda   { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes hl-duerme { 0% { transform: rotate(0); } 20%, 80% { transform: rotate(11deg) translateY(3px); } 100% { transform: rotate(0); } }
+@keyframes hl-zzz    { 0% { opacity: 0; transform: translateY(6px); } 25%, 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-12px); } }
+@keyframes hl-patea  { 0%, 100% { transform: rotate(0); } 10% { transform: rotate(-9deg) translateX(-2px); } 18% { transform: rotate(7deg) translateX(2px) scale(1.04); } 30% { transform: rotate(0); } 60% { transform: scale(1.06) rotate(-3deg); } 85% { transform: rotate(0) scale(1); } }
+@keyframes hl-cabecea { 0%, 100% { transform: translateY(2px) scale(1.04, .96); } 50% { transform: translateY(0) rotate(2deg); } }
+
+/* Pelota de la gracia (la crea lico-juegos.js) */
+html .topbar .head-lico .hl-bola {
+    display: none; position: absolute; left: 45px; bottom: -13px; width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0 45%, #dfe3f1 100%); border: 2px solid var(--lico-accent);
+    box-shadow: inset -2px -2px 0 rgba(38, 56, 140, .18); pointer-events: none;
+}
+html .topbar .head-lico .hl-bola::after { content: ''; position: absolute; left: 4px; top: 3px; width: 4px; height: 4px; background: var(--lico-accent); clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); }
+html .topbar .head-lico.hl-pelota .hl-bola { display: block; animation: hl-bola 2.5s ease-out both; }
+html .topbar .head-lico.hl-domina .hl-bola { display: block; left: 17px; bottom: auto; top: 0; animation: hl-domina .5s ease-out 6 both; }
+@keyframes hl-bola {
+    0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; }
+    18% { transform: translate(16px, -10px); } 32% { transform: translate(32px, 0); }
+    46% { transform: translate(49px, -7px); } 60% { transform: translate(66px, 0); }
+    74% { transform: translate(82px, -4px); } 88% { transform: translate(98px, 0); opacity: 1; }
+    100% { transform: translate(108px, 0); opacity: 0; }
+}
+@keyframes hl-domina { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(2px, -11px); } }
+
+/* Lico dormido: ojos cerrados, boquita y gorro (inyectados en el SVG desde lico-juegos.js) */
+html .lico-sueno { display: none; }
+html .topbar .head-lico.hl-duerme .lico-sueno, html .lico-travieso.modo-duerme .lico-sueno { display: inline; }
+html .topbar .head-lico.hl-duerme .lico-ojos, html .lico-travieso.modo-duerme .lico-ojos { display: none; }
+html .topbar .head-lico.hl-duerme .lico-saludo, html .lico-travieso.modo-duerme .lico-saludo { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    html .topbar .head-lico.hl-salta svg, html .topbar .head-lico.hl-gira svg, html .topbar .head-lico.hl-baila svg,
+    html .topbar .head-lico.hl-toc svg, html .topbar .head-lico.hl-duerme svg, html .topbar .head-lico.hl-pelota svg,
+    html .topbar .head-lico.hl-domina svg, html .topbar .head-lico.hl-pelota .hl-bola, html .topbar .head-lico.hl-domina .hl-bola,
+    html .topbar .head-lico.hl-toc::before, html .topbar .head-lico.hl-duerme::after { animation: none; }
+}
+
+/* ---------- Centrado de comuna, estado y decision en la tabla ---------- */
+html body .data-table tbody td.excel-cell-comuna { text-align: center !important; }
+html body .data-table tbody td .comuna-input-inline {
+    text-align: center !important;
+    max-width: 160px !important;
+}
+html body .data-table tbody td select.excel-select,
+html body .data-table tbody tr .excel-select {
+    text-align: center !important;
+    text-align-last: center !important;
+    -moz-text-align-last: center !important;
+}
+html body .data-table tbody td select.excel-select option { text-align: center; }
+
+/* Opciones de los desplegables: el CSS antiguo (.data-table td *) las dejaba
+   transparentes y con el texto de la fila (blanco en filas oscuras). */
+html body .data-table tbody td select.excel-select option,
+html body .data-table tbody tr[class] td select.excel-select option {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+}
+html body .data-table tbody td select.excel-select option:checked,
+html body .data-table tbody td select.excel-select option:hover {
+    background: var(--brand-primary) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+}
+html body .data-table tbody td select.excel-select option:disabled {
+    color: var(--text-muted) !important;
+    -webkit-text-fill-color: var(--text-muted) !important;
+}
+
+/* ---------- Pendiente busqueda ahora va despues del nombre (no congelada) ---------- */
+html body .data-table thead th.th-pend {
+    width: 120px; min-width: 120px; max-width: 120px;
+    padding: 0 .4rem !important;
+    text-align: center !important;
+    white-space: normal !important;
+    line-height: 1.15;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.03em;
+    overflow: visible;
+    text-overflow: clip;
+}
+html body .data-table td.td-pend { width: 120px; min-width: 120px; max-width: 120px; }
+
+/* ---------- Boton Caja: pildora verde con icono de archivador ---------- */
+html body .data-table tbody td .btn-action-caja,
+html[data-rows="classic"] body .data-table tbody td .btn-action-caja,
+html[data-rows="soft"] body .data-table tbody td .btn-action-caja {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .4rem !important;
+    height: 34px !important;
+    padding: 0 1rem 0 .8rem !important;
+    border-radius: 999px !important;
+    border: 0 !important;
+    background: #1f9d55 !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    font-size: .8rem !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 6px rgb(31 157 85 / .4) !important;
+    cursor: pointer;
+}
+html body .data-table tbody td .btn-action-caja:hover {
+    background: #178a49 !important;
+    box-shadow: 0 4px 10px rgb(31 157 85 / .5) !important;
+}
+html body .data-table tbody td .btn-action-caja .ico-caja { flex-shrink: 0; }
+
+/* ---------- Nombre completo siempre visible (sin puntos suspensivos) ---------- */
+html body .data-table .name-cell,
+html body .data-table td.col-sticky-nombre .name-cell {
+    max-width: none !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+}
+html body .data-table td.col-sticky-nombre { width: max-content !important; min-width: 280px !important; }
+html body .data-table th.col-sticky-nombre { width: max-content !important; min-width: 280px !important; }
+html body .data-table .nombre-wrapper-cell { gap: .75rem; }
+@media (max-width: 850px) {
+    html body .data-table .col-sticky-nombre .name-cell { max-width: none !important; }
+}

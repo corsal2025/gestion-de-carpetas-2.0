@@ -20,11 +20,11 @@ else
 
     @if (error is not null)
     {
-        <p class="error" role="alert">@error</p>
+        <p class="error" role="alert"><span class="lico-slot lico-msg" data-lico="alerta" aria-hidden="true"></span><span>@error</span></p>
     }
     @if (mensaje is not null)
     {
-        <p class="ok-msg" role="status">@mensaje</p>
+        <p class="ok-msg" role="status"><span class="lico-slot lico-msg" data-lico="celebra" aria-hidden="true"></span><span>@mensaje</span></p>
     }
 
     <div class="grid">

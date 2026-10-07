@@ -129,15 +129,17 @@
     {
         <!-- VISTA PRINCIPAL: RESUMEN, CAJAS CERRADAS Y COLA POR GUARDAR -->
         <div class="header-section">
+            <span class="lico-slot head-art" data-lico="explica" aria-hidden="true"></span>
             <h1>📦 Gestión y Almacenamiento de Cajas Físicas</h1>
             <p class="subtitle">Ordenamiento de carpetas encontradas, rotulación de cajas y emisión de actas de entrega para archivo.</p>
         </div>
 
         @if (!string.IsNullOrEmpty(mensajeExito))
         {
-            <div class="alert-banner alert-success">
+            <div class="alert-banner alert-success" role="status">
+                <span class="lico-slot lico-msg" data-lico="celebra" aria-hidden="true"></span>
                 <span>✅ @mensajeExito</span>
-                <button class="btn-close-alert" @onclick="() => mensajeExito = null">✕</button>
+                <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensajeExito = null">✕</button>
             </div>
         }
 
@@ -197,6 +199,7 @@
             else if (CajasFiltradas.Count == 0)
             {
                 <div class="empty-state">
+                    <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
                     <p>No se encontraron cajas con el filtro "@filtroCajaTexto".</p>
                 </div>
             }
@@ -272,6 +275,7 @@
                 else if (carpetasCola.Count == 0)
                 {
                     <div class="empty-state">
+                        <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
                         <p>No hay carpetas pendientes de archivar en caja en este lote.</p>
                     </div>
                 }

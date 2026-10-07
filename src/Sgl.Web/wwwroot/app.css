@@ -581,9 +581,19 @@ body {
     box-sizing: border-box;
 }
 
-.col-sticky-rut {
+.col-sticky-pend {
     position: sticky !important;
     left: 36px !important;
+    width: 112px !important;
+    min-width: 112px !important;
+    max-width: 112px !important;
+    text-align: center !important;
+    box-sizing: border-box;
+}
+
+.col-sticky-rut {
+    position: sticky !important;
+    left: 36px !important; /* solo checkbox */
     width: 115px !important;
     min-width: 115px !important;
     text-align: center !important;
@@ -603,6 +613,7 @@ body {
 
 /* thead sticky headers con z-index prioritario */
 .data-table th.col-sticky-check,
+.data-table th.col-sticky-pend,
 .data-table th.col-sticky-rut,
 .data-table th.col-sticky-nombre {
     position: sticky !important;
@@ -615,6 +626,7 @@ body {
 
 /* tbody celdas congeladas */
 .data-table td.col-sticky-check,
+.data-table td.col-sticky-pend,
 .data-table td.col-sticky-rut,
 .data-table td.col-sticky-nombre {
     z-index: 20 !important;
@@ -680,64 +692,71 @@ body {
     text-align: left !important;
 }
 
-/* Columna 4: Sede */
+/* Columna 4: Pendiente búsqueda */
 .data-table th:nth-child(4), .data-table td:nth-child(4) {
+    width: 120px !important;
+    min-width: 120px !important;
+    text-align: center !important;
+}
+
+/* Columna 5: Sede */
+.data-table th:nth-child(5), .data-table td:nth-child(5) {
     width: auto !important;
     min-width: 115px !important;
     text-align: center !important;
 }
 
-/* Columna 5: Fecha Citación */
-.data-table th:nth-child(5), .data-table td:nth-child(5) {
+/* Columna 6: Fecha Citación */
+.data-table th:nth-child(6), .data-table td:nth-child(6) {
     width: auto !important;
     min-width: 105px !important;
     text-align: center !important;
 }
 
-/* Columna 6: Fecha Subida */
-.data-table th:nth-child(6), .data-table td:nth-child(6) {
+/* Columna 7: Fecha Subida */
+.data-table th:nth-child(7), .data-table td:nth-child(7) {
     width: auto !important;
     min-width: 100px !important;
     text-align: center !important;
 }
 
-/* Columna 7: Última Carpeta */
-.data-table th:nth-child(7), .data-table td:nth-child(7) {
+/* Columna 8: Última Carpeta */
+.data-table th:nth-child(8), .data-table td:nth-child(8) {
     width: auto !important;
     min-width: 125px !important;
     text-align: center !important;
 }
 
-/* Columna 8: Sector */
-.data-table th:nth-child(8), .data-table td:nth-child(8) {
+/* Columna 9: Sector */
+.data-table th:nth-child(9), .data-table td:nth-child(9) {
     width: auto !important;
     min-width: 95px !important;
     text-align: center !important;
 }
 
-/* Columna 9: Comunas (CENTRALIZADA) */
-.data-table th:nth-child(9), .data-table td:nth-child(9) {
+/* Columna 10: Comunas (CENTRALIZADA) */
+.data-table th:nth-child(10), .data-table td:nth-child(10) {
     width: auto !important;
     min-width: 130px !important;
     text-align: center !important;
 }
 
-/* Columna 10: Estado de la Carpeta */
-.data-table th:nth-child(10), .data-table td:nth-child(10) {
+/* Columna 11: Estado de la Carpeta */
+.data-table th:nth-child(11), .data-table td:nth-child(11) {
     width: max-content !important;
     min-width: 230px !important;
     text-align: center !important;
 }
 
-/* Columna 11: Decisión */
-.data-table th:nth-child(11), .data-table td:nth-child(11) {
+/* Columna 12: Decisión */
+.data-table th:nth-child(12), .data-table td:nth-child(12) {
     width: auto !important;
     min-width: 130px !important;
     text-align: center !important;
 }
 
-/* Columna 12: Acción */
-.data-table th:nth-child(12), .data-table td:nth-child(12) {
+/* Columna 13: Acción */
+.data-table th:nth-child(13), .data-table td:nth-child(13) {
     width: auto !important;
     min-width: 85px !important;
     text-align: center !important;
@@ -848,7 +867,7 @@ body {
 
 @media (max-width: 850px) {
     .col-sticky-nombre {
-        left: 189px !important;
+        left: 151px !important;
         width: 200px !important;
         min-width: 180px !important;
         max-width: 220px !important;
