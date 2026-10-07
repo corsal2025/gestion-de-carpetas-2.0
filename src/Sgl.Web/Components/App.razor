@@ -14,9 +14,9 @@
         (function () {
             var d = document.documentElement, t = null, r = null;
             try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); } catch (e) { }
-            if (t !== 'light' && t !== 'dark') t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            if (t !== 'light' && t !== 'dark') t = 'light';
             d.setAttribute('data-theme', t);
-            d.setAttribute('data-rows', r === 'classic' ? 'classic' : 'soft');
+            d.setAttribute('data-rows', r === 'soft' ? 'soft' : 'classic');
         })();
     </script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
@@ -32,6 +32,8 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["app.js"]"></script>
+    <script src="@Assets["lico.js"]"></script>
+    <script src="@Assets["lico-juegos.js"]"></script>
 </body>
 
 </html>
