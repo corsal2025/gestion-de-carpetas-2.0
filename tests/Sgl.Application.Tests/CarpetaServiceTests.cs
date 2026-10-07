@@ -233,4 +233,55 @@ public sealed class CarpetaServiceTests : IDisposable
         Assert.Equal("11.111.111-1", c.Rut);
         Assert.Equal(Sede.Placilla, c.Sede);
     }
+
+    [Fact]
+    public async Task MarcarPendienteBusqueda_persists_and_appears_in_listado()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnArchivos, "ana");
+
+        await _db.NewService().MarcarPendienteBusquedaAsync(id, true, "ana");
+
+        var page = await _db.NewService().ListarAsync(new ListarCarpetasQuery());
+        Assert.True(Assert.Single(page.Items).PendienteBusqueda);
+
+        await _db.NewService().MarcarPendienteBusquedaAsync(id, false, "ana");
+        page = await _db.NewService().ListarAsync(new ListarCarpetasQuery());
+        Assert.False(Assert.Single(page.Items).PendienteBusqueda);
+    }
+
+    [Fact]
+    public async Task MarcarPendienteBusqueda_in_non_archive_state_throws_and_persists_nothing()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().MarcarPendienteBusquedaAsync(id, true, "ana"));
+
+        var page = await _db.NewService().ListarAsync(new ListarCarpetasQuery());
+        Assert.False(Assert.Single(page.Items).PendienteBusqueda);
+    }
+
+    [Fact]
+    public async Task MarcarPendienteBusqueda_unknown_carpeta_throws_NotFound()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _db.NewService().MarcarPendienteBusquedaAsync(Guid.NewGuid(), true, "ana"));
+    }
+
+    [Fact]
+    public async Task ForzarEstado_to_other_state_clears_persisted_mark_and_it_does_not_return()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnOf43, "ana");
+        await _db.NewService().MarcarPendienteBusquedaAsync(id, true, "ana");
+
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnArchivos, "ana");
+        Assert.True((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().PendienteBusqueda);
+
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SubidaConaset, "ana");
+        Assert.False((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().PendienteBusqueda);
+
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnArchivos, "ana");
+        Assert.False((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().PendienteBusqueda);
+    }
 }

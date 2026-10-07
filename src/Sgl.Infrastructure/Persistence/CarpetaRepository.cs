@@ -107,6 +107,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.CajaArchivo,
                 c.Estado,
                 c.Decision,
+                c.PendienteBusqueda,
             })
             .ToListAsync(ct);
 
@@ -124,7 +125,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.TipoTramite,
                 r.CajaArchivo,
                 r.Estado,
-                r.Decision))
+                r.Decision,
+                r.PendienteBusqueda))
             .ToList();
         return (items, total);
     }
@@ -227,6 +229,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.CajaArchivo,
                 c.Estado,
                 c.Decision,
+                c.PendienteBusqueda,
             })
             .ToListAsync(ct);
 
@@ -243,7 +246,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             c.TipoTramite,
             c.CajaArchivo,
             c.Estado,
-            c.Decision)).ToList();
+            c.Decision,
+            c.PendienteBusqueda)).ToList();
     }
 
     public async Task<IReadOnlyList<string>> GetTiposTramiteAsync(CancellationToken ct = default)

@@ -65,7 +65,8 @@ public sealed record CarpetaResumenDto(
     string? TipoTramite,
     string? CajaArchivo,
     EstadoCarpeta Estado,
-    Decision Decision);
+    Decision Decision,
+    bool PendienteBusqueda = false);
 
 public sealed record HistorialDto(DateTime Fecha, string Usuario, string Campo, string? Anterior, string? Nuevo);
 
