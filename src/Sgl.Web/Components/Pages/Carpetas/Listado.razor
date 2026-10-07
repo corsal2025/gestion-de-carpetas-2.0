@@ -1166,6 +1166,7 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error al marcar pendiente de búsqueda: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"No se pudo marcar la búsqueda pendiente: {ex.Message}");
         }
         await CargarAsync();
     }
