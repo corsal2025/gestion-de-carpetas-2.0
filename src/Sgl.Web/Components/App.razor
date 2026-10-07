@@ -7,8 +7,20 @@
     <base href="/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+        // Aplica tema y estilo de filas antes del primer pintado (evita el parpadeo claro/oscuro).
+        (function () {
+            var d = document.documentElement, t = null, r = null;
+            try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); } catch (e) { }
+            if (t !== 'light' && t !== 'dark') t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            d.setAttribute('data-theme', t);
+            d.setAttribute('data-rows', r === 'classic' ? 'classic' : 'soft');
+        })();
+    </script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["theme.css"]" />
     <link rel="stylesheet" href="@Assets["Sgl.Web.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />

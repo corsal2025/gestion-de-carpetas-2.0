@@ -1,0 +1,693 @@
+/* ==========================================================================
+   SGL · CAPA DE TEMA (v2)
+   Se carga DESPUÉS de app.css. No cambia lógica ni estructura: solo tokens,
+   tipografía y componentes. Dos ejes independientes, guardados por usuario:
+     html[data-theme="light|dark"]   tema de color
+     html[data-rows="soft|classic"]  filas: suaves (nuevo) o colores del Excel
+   ========================================================================== */
+
+/* ---------- 1. Tokens ---------------------------------------------------- */
+html {
+    --bg-page: #f3f5f9;
+    --surface: #ffffff;
+    --surface-alt: #f6f8fc;
+    --surface-raised: #ffffff;
+    --text-primary: #0e1a2b;
+    --text-secondary: #3f4b5e;
+    --text-muted: #5b6678;
+    --border-color: #e3e7ef;
+    --border-hover: #c5cddb;
+    --ring: #7fa6ff;
+
+    --brand-primary: #2457e6;
+    --brand-primary-hover: #1b46c4;
+    --brand-light: #e8eefc;
+
+    --topbar-bg: #0b1424;
+    --topbar-border: #1b2a44;
+    --topbar-text: #c9d4e5;
+    --topbar-muted: #8fa3c2;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgb(14 26 43 / 0.06);
+    --shadow-md: 0 4px 12px -2px rgb(14 26 43 / 0.08), 0 2px 4px -2px rgb(14 26 43 / 0.05);
+    --shadow-lg: 0 16px 40px -12px rgb(14 26 43 / 0.22);
+
+    --font-ui: 'Public Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    color-scheme: light;
+    font-family: var(--font-ui);
+}
+
+html[data-theme="dark"] {
+    --bg-page: #0a101c;
+    --surface: #111a2c;
+    --surface-alt: #162238;
+    --surface-raised: #17233a;
+    --text-primary: #e6ebf5;
+    --text-secondary: #b8c3d9;
+    --text-muted: #8f9cb6;
+    --border-color: #243249;
+    --border-hover: #35496b;
+    --ring: #5b8cff;
+
+    --brand-primary: #5b8cff;
+    --brand-primary-hover: #7ba2ff;
+    --brand-light: #152349;
+
+    --topbar-bg: #070c16;
+    --topbar-border: #17233a;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 20px 48px -12px rgb(0 0 0 / 0.7);
+
+    color-scheme: dark;
+}
+
+html, body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-ui); }
+body { transition: background-color .2s ease, color .2s ease; }
+
+/* Foco visible consistente (teclado) */
+html :focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+
+/* Scrollbars finos */
+html * { scrollbar-width: thin; scrollbar-color: var(--border-hover) transparent; }
+
+/* ---------- 2. Barra superior ------------------------------------------- */
+html .topbar {
+    height: 64px;
+    padding: 0 1.5rem;
+    gap: 1.25rem;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    box-shadow: none;
+}
+
+html .brand-group .brand { gap: 0.75rem; }
+html .brand-mark {
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(145deg, #3b6bff 0%, #2457e6 55%, #1b46c4 100%);
+    box-shadow: 0 6px 14px -4px rgb(36 87 230 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+html .brand-text { display: flex; flex-direction: column; line-height: 1.15; font-size: 0.78rem; color: var(--topbar-muted); }
+html .brand-text strong { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; color: #fff; }
+
+/* Navegación: un solo lenguaje visual, el módulo activo se marca con relleno + indicador */
+html .main-nav { gap: 0.25rem; }
+html .main-nav .nav-item,
+html .main-nav .nav-item.nav-carpetas,
+html .main-nav .nav-item.nav-cajas,
+html .main-nav .nav-item.nav-importar {
+    height: 40px;
+    padding: 0 0.95rem;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
+    color: var(--topbar-text);
+    font-size: 0.84rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    gap: 0.5rem;
+    transform: none;
+}
+html .main-nav .nav-item:hover {
+    background: rgb(255 255 255 / 0.07);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+html .main-nav .nav-item.active,
+html .main-nav .nav-item.nav-carpetas.active,
+html .main-nav .nav-item.nav-cajas.active,
+html .main-nav .nav-item.nav-importar.active {
+    background: rgb(91 140 255 / 0.16) !important;
+    color: #fff !important;
+    border-color: rgb(91 140 255 / 0.35) !important;
+    box-shadow: inset 0 -2px 0 0 #5b8cff !important;
+}
+html .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+/* Botón de guía y controles de tema */
+html .btn-guia-accion {
+    height: 40px;
+    padding: 0 0.95rem;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid #2b3b58;
+    color: #e4ebf7;
+    font-size: 0.84rem;
+    font-weight: 600;
+    box-shadow: none;
+    gap: 0.5rem;
+}
+html .btn-guia-accion:hover { background: rgb(255 255 255 / 0.07); border-color: #3d5278; box-shadow: none; transform: none; }
+
+html .topbar-tools { display: flex; align-items: center; gap: 0.5rem; }
+html .tool-btn {
+    width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid #2b3b58; color: #cbd6ea;
+    transition: background .15s, border-color .15s, color .15s;
+}
+html .tool-btn:hover { background: rgb(255 255 255 / 0.07); border-color: #3d5278; color: #fff; }
+html .tool-btn svg { width: 18px; height: 18px; }
+html .tool-btn .ico-moon { display: none; }
+html[data-theme="dark"] .tool-btn .ico-sun { display: none; }
+html[data-theme="dark"] .tool-btn .ico-moon { display: block; }
+html .tool-btn[aria-pressed="true"] { background: rgb(91 140 255 / 0.18); border-color: rgb(91 140 255 / 0.5); color: #fff; }
+
+html .user-block .autor {
+    display: flex; align-items: center; gap: 0.6rem;
+    color: var(--topbar-muted); font-size: 0.78rem; font-weight: 600;
+}
+html .user-block .autor input {
+    height: 40px; width: 180px; padding: 0 0.85rem; border-radius: 10px;
+    border: 1px solid #2b3b58; background: #121f36; color: #fff; font: 500 0.86rem var(--font-ui);
+}
+html .user-block .autor input::placeholder { color: #7f92b3; }
+html .user-block .autor input:focus { border-color: #5b8cff; outline-offset: 1px; }
+
+/* ---------- 3. Panel de sedes, filtros y acciones ------------------------ */
+html .page-container { background: transparent; }
+html .sticky-controls-panel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    gap: 0.75rem;
+}
+
+html .btn-panel-toggle {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--text-muted);
+    font: 700 0.7rem var(--font-ui);
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.1rem;
+    width: auto;
+    justify-content: flex-start;
+    gap: 0.75rem;
+}
+html .btn-panel-toggle:hover { background: transparent; color: var(--brand-primary); }
+
+html .sede-tabs-container {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 0.85rem 1rem;
+}
+
+/* Sedes como control segmentado */
+html .sede-pills {
+    display: inline-flex; gap: 4px; padding: 4px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+}
+html .pill {
+    height: 38px; padding: 0 0.9rem; border-radius: 10px;
+    background: transparent; border: 1px solid transparent; box-shadow: none;
+    color: var(--text-secondary); font: 600 0.86rem var(--font-ui);
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    transition: background .15s, color .15s;
+}
+html .pill:hover { background: var(--surface); color: var(--text-primary); }
+html .pill.active {
+    background: var(--surface-raised); color: var(--text-primary);
+    border-color: var(--border-color);
+    box-shadow: 0 1px 2px rgb(14 26 43 / 0.12), 0 0 0 1px rgb(14 26 43 / 0.03);
+}
+html[data-theme="dark"] .pill.active { background: #1d2b46; box-shadow: 0 1px 2px rgb(0 0 0 / .5); }
+html .badge-count {
+    min-width: 24px; padding: 1px 7px; border-radius: 999px; text-align: center;
+    background: var(--border-color); color: var(--text-secondary);
+    font: 700 0.72rem var(--font-ui); font-variant-numeric: tabular-nums;
+}
+html .pill.active .badge-count { background: var(--brand-light); color: var(--brand-primary); }
+
+/* Botones */
+html .btn-primary,
+html a.btn-primary {
+    height: 40px; padding: 0 1.1rem; border-radius: 10px;
+    background: var(--brand-primary); color: #fff; border: 1px solid transparent;
+    font: 700 0.86rem var(--font-ui); letter-spacing: 0;
+    box-shadow: 0 1px 2px rgb(14 26 43 / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.18);
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    text-decoration: none;
+}
+html .btn-primary:hover { background: var(--brand-primary-hover); }
+html[data-theme="dark"] .btn-primary { color: #06101f; }
+
+html .btn-secondary,
+html a.btn-secondary,
+html .btn-toggle-filters {
+    height: 40px; padding: 0 1rem; border-radius: 10px;
+    background: var(--surface); color: var(--text-primary);
+    border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
+    font: 600 0.86rem var(--font-ui);
+    text-transform: none !important; text-decoration: none !important;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+html .btn-secondary:hover,
+html .btn-toggle-filters:hover { border-color: var(--border-hover); background: var(--surface-alt); }
+html .btn-toggle-filters.active { background: var(--brand-light); border-color: var(--brand-primary); color: var(--brand-primary); }
+
+/* Botones PDF: sobrios, el color solo aparece al activarse */
+html .btn-pdf-pill {
+    height: 40px; padding: 0 1rem; border-radius: 10px; font: 700 0.84rem var(--font-ui);
+    background: var(--surface); border: 1px solid var(--border-color); color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+}
+html .btn-pdf-pill.disabled, html .btn-pdf-pill:disabled { opacity: 0.55; box-shadow: none; }
+html .btn-pdf-pill.active.btn-pdf-archivo { background: #ede9fe; border-color: #8b5cf6; color: #4c1d95; }
+html .btn-pdf-pill.active.btn-pdf-oficina43 { background: #fef3c7; border-color: #f59e0b; color: #78350f; }
+html[data-theme="dark"] .btn-pdf-pill.active.btn-pdf-archivo { background: #2a1f58; color: #d9ccff; }
+html[data-theme="dark"] .btn-pdf-pill.active.btn-pdf-oficina43 { background: #4a3410; color: #ffe2a3; }
+
+/* Chips de filtros, buscador, selectores */
+html .filter-chip {
+    height: 34px; padding: 0 0.8rem; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border-color); color: var(--text-secondary);
+    font: 600 0.8rem var(--font-ui); text-transform: none;
+}
+html .filter-chip:hover { border-color: var(--border-hover); color: var(--text-primary); }
+html .filter-chip.active { background: var(--brand-light); border-color: var(--brand-primary); color: var(--brand-primary); }
+html .filter-label { color: var(--text-muted); font: 700 0.72rem var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
+
+html .search-input-wrapper input,
+html .state-select-wrapper select,
+html .select-caja,
+html .page-size-selector select,
+html .quick-add-field input,
+html .quick-add-field select {
+    height: 42px; border-radius: 10px;
+    background: var(--surface); color: var(--text-primary);
+    border: 1px solid var(--border-color); font: 500 0.9rem var(--font-ui);
+    text-transform: none !important;
+}
+html .search-input-wrapper input:focus,
+html .state-select-wrapper select:focus,
+html .select-caja:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(91 140 255 / 0.25); outline: none; }
+
+html .quick-add-accordion, html .active-filters-summary {
+    background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: none;
+}
+html .quick-add-summary, html .quick-add-body { background: transparent; color: var(--text-primary); }
+html .quick-add-summary:hover { background: var(--surface-alt); }
+html .active-filter-chip { background: var(--brand-light); color: var(--brand-primary); border: 1px solid transparent; border-radius: 999px; }
+
+/* ---------- 4. Tabla ------------------------------------------------------ */
+html .table-container {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+html .table-container::-webkit-scrollbar-track { background: var(--surface-alt); }
+html .table-container::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 8px; }
+
+html body .data-table,
+html body .data-table th,
+html body .data-table td,
+html body .data-table td *,
+html body .data-table input,
+html body .data-table select,
+html body .data-table option,
+html body .data-table span,
+html body .data-table button,
+html body .data-table a {
+    font-family: var(--font-ui) !important;
+    text-transform: none !important;
+}
+
+html body .data-table thead th {
+    background: var(--surface-alt) !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.07em;
+    text-transform: uppercase !important;
+    height: 44px;
+}
+html body .data-table thead th.col-sticky-check,
+html body .data-table thead th.col-sticky-rut,
+html body .data-table thead th.col-sticky-nombre {
+    background: var(--surface-alt) !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+html body .data-table td {
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color .12s ease;
+}
+
+/* RUT en monoespaciada: se lee en columna */
+html body .data-table td.col-sticky-rut,
+html body .data-table td.col-sticky-rut * {
+    font-family: var(--font-mono) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0;
+}
+html body .data-table .name-cell { font-size: 0.86rem !important; font-weight: 650 !important; max-width: 260px; }
+html body .data-table .sede-tag,
+html body .data-table .date-cell { font-size: 0.8rem !important; font-weight: 500 !important; }
+
+html body .data-table td.col-sticky-nombre {
+    border-right: 1px solid var(--border-color) !important;
+    box-shadow: 6px 0 10px -6px rgb(14 26 43 / 0.18) !important;
+}
+
+/* Controles dentro de celdas */
+html body .data-table tbody td select.excel-select,
+html body .data-table tbody tr .excel-select {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px;
+    height: 32px;
+    padding: 0 0.5rem;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+}
+html body .data-table tbody td select.excel-select:hover { border-color: var(--border-hover) !important; }
+html body .data-table tbody td select.excel-select:focus { border-color: var(--brand-primary) !important; outline: 3px solid rgb(91 140 255 / 0.3) !important; outline-offset: 0 !important; }
+html body .data-table input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--brand-primary); }
+html body .data-table .btn-action-caja,
+html body .data-table .btn-detail {
+    background: var(--surface) !important; color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important; border-radius: 8px; font-weight: 600 !important;
+}
+
+/* Barras inferiores / paginación */
+html .table-bottom-bar, html .table-top-bar, html .pager-row {
+    background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-muted);
+}
+html .pager-btn { background: var(--surface); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; }
+html .footer { background: var(--surface); border-top: 1px solid var(--border-color); color: var(--text-muted); }
+
+/* ---------- 5. Filas SUAVES (por defecto) --------------------------------
+   El estado se comunica con una barra de color + tinte leve, sin perder el
+   código de colores del departamento. "Colores Excel" lo restituye tal cual. */
+html[data-rows="soft"] .data-table tbody tr { --acc: #94a3b8; }
+html[data-rows="soft"] .data-table tbody tr.estado-citada { --acc: #94a3b8; }
+html[data-rows="soft"] .data-table tbody tr.estado-revision { --acc: #ca8a04; }
+html[data-rows="soft"] .data-table tbody tr.estado-alertada { --acc: #dc2626; }
+html[data-rows="soft"] .data-table tbody tr.estado-primeralicencia { --acc: #c026d3; }
+html[data-rows="soft"] .data-table tbody tr.estado-subidaaconaset,
+html[data-rows="soft"] .data-table tbody tr.estado-subidaconaset { --acc: #2563eb; }
+html[data-rows="soft"] .data-table tbody tr.estado-subidaconf8 { --acc: #a16207; }
+html[data-rows="soft"] .data-table tbody tr.estado-subidaconoficio { --acc: #d97706; }
+html[data-rows="soft"] .data-table tbody tr.estado-cambiodomiciliosubidoaconaset { --acc: #0891b2; }
+html[data-rows="soft"] .data-table tbody tr.estado-cambiodomiciliosubidoconcorreo { --acc: #64748b; }
+html[data-rows="soft"] .data-table tbody tr.estado-cambiodomiciliosolicitado { --acc: #3b82f6; }
+html[data-rows="soft"] .data-table tbody tr.estado-cambiodomicilio { --acc: #1d4ed8; }
+html[data-rows="soft"] .data-table tbody tr.estado-canjelicenciaextranjera { --acc: #64748b; }
+html[data-rows="soft"] .data-table tbody tr.estado-seencuentraenarchivos { --acc: #4d7c0f; }
+html[data-rows="soft"] .data-table tbody tr.estado-seencuentraenoficina43 { --acc: #7c3aed; }
+html[data-rows="soft"] .data-table tbody tr.estado-noexistecarpeta { --acc: #dc2626; }
+html[data-rows="soft"] .data-table tbody tr.estado-crearoficio,
+html[data-rows="soft"] .data-table tbody tr.estado-crearcertificado { --acc: #be185d; }
+html[data-rows="soft"] .data-table tbody tr.estado-pendientef8,
+html[data-rows="soft"] .data-table tbody tr.estado-pendientecertificado { --acc: #ea580c; }
+html[data-rows="soft"] .data-table tbody tr.estado-esperaexamen { --acc: #0ea5e9; }
+html[data-rows="soft"] .data-table tbody tr.estado-clasependiente { --acc: #f59e0b; }
+html[data-rows="soft"] .data-table tbody tr.estado-otorgado { --acc: #16a34a; }
+html[data-rows="soft"] .data-table tbody tr.estado-paradenegar { --acc: #ea580c; }
+html[data-rows="soft"] .data-table tbody tr.estado-denegado { --acc: #b91c1c; }
+
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td {
+    background: color-mix(in srgb, var(--acc) 9%, var(--surface)) !important;
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td:first-child {
+    box-shadow: inset 4px 0 0 0 var(--acc) !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td.col-sticky-nombre {
+    box-shadow: 6px 0 10px -6px rgb(14 26 43 / 0.18) !important;
+}
+html[data-rows="soft"] .data-table tbody tr:hover td { filter: none; }
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"]:hover td {
+    background: color-mix(in srgb, var(--acc) 17%, var(--surface)) !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"].row-selected td {
+    background: color-mix(in srgb, var(--brand-primary) 20%, var(--surface)) !important;
+    color: var(--text-primary) !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td * { color: inherit; }
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td .muted-cell,
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td .muted-dash { color: var(--text-muted) !important; }
+
+/* Modo "Colores Excel": restituye el código de colores original; solo se
+   corrige el texto ilegible dentro de los desplegables en filas oscuras. */
+html[data-rows="classic"] body .data-table tbody td select.excel-select,
+html[data-rows="classic"] body .data-table tbody tr .excel-select {
+    background: #ffffff !important; color: #0f172a !important; border-color: rgb(0 0 0 / .25) !important;
+}
+html[data-rows="classic"] .data-table tbody tr.estado-citada td { background: var(--surface); color: var(--text-primary); }
+
+/* ---------- 6. Tarjetas, modales y panel lateral -------------------------- */
+html .card, html .modal-card, html .modal-obs-card, html .case-drawer, html .tramites-breakdown,
+html .cajas-table-wrapper, html .box-close-form {
+    background: var(--surface); color: var(--text-primary);
+    border-color: var(--border-color); border-radius: var(--radius-lg);
+}
+html .modal-card, html .modal-obs-card, html .case-drawer { box-shadow: var(--shadow-lg); }
+html .drawer-header, html .drawer-section, html .drawer-audit-item {
+    background: var(--surface); color: var(--text-primary); border-color: var(--border-color);
+}
+html .drawer-section { background: var(--surface-alt); border-radius: var(--radius-md); }
+html .drawer-field input, html .drawer-field select, html .drawer-field textarea,
+html input[type="text"], html input[type="date"], html input[type="search"], html select, html textarea {
+    background: var(--surface); color: var(--text-primary); border-color: var(--border-color);
+}
+html .drawer-field input, html .drawer-field select, html .drawer-field textarea { border-radius: 10px; }
+html .btn-obs-trigger, html .btn-copy-rut { background: var(--surface); color: var(--text-primary); border-color: var(--border-color); }
+html .btn-warning-outline, html .btn-outline-link, html .btn-print-caja { background: var(--surface); }
+html .tab-btn.active { background: var(--surface); color: var(--brand-primary); }
+html .progress-bar-bg { background: var(--border-color); }
+html .badge.muted-badge { background: var(--surface-alt); color: var(--text-muted); }
+
+/* Pantallas "sueltas" (Nueva carpeta, Detalle, Importar, Cajas) */
+html .page-header h1, html h1, html h2, html h3 { color: var(--text-primary); }
+html .alert { border-radius: var(--radius-md); }
+html .empty-state, html .loading-state { color: var(--text-muted); }
+html label { color: var(--text-secondary); }
+
+/* Documento imprimible: SIEMPRE claro, sea cual sea el tema */
+html .acta, html .doc-sheet, html .doc-meta, html .doc-subheader, html .pdf-modal-scroll,
+html table.acta-table tbody tr:nth-child(even) td, html table.cases.doc-table th {
+    color-scheme: light;
+}
+@media print {
+    html { --bg-page: #fff; --surface: #fff; --text-primary: #000; }
+}
+
+/* ---------- 7. Responsive ------------------------------------------------- */
+@media (max-width: 1100px) {
+    html .topbar { height: auto; padding: 0.6rem 1rem; flex-wrap: wrap; }
+    html .main-nav { flex-wrap: wrap; }
+    html .user-block .autor input { width: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html * { transition: none !important; animation-duration: .01ms !important; }
+}
+
+/* ---------- 8. Correcciones de contraste y detalles ----------------------- */
+/* Íconos vectoriales en botones y celdas */
+html .ico { width: 1.1em; height: 1.1em; flex-shrink: 0; vertical-align: -0.18em; }
+html .search-icon { color: var(--text-muted); display: inline-flex; align-items: center; }
+html .search-input-wrapper input { padding-left: 2.6rem; }
+html .btn-obs-trigger { display: inline-flex; align-items: center; justify-content: center; gap: .25rem; width: 30px; height: 30px; padding: 0; border-radius: 8px; color: var(--text-secondary); }
+html .btn-obs-trigger.has-obs { color: var(--brand-primary); border-color: var(--brand-primary); }
+
+/* Los hijos de cada celda heredan el color de la fila (reglas antiguas forzaban blanco/negro) */
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td *:not(.sector-cell) { color: inherit !important; }
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td .muted-cell,
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td .muted-dash { color: var(--text-muted) !important; }
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td input[type="date"]::-webkit-calendar-picker-indicator { filter: none; opacity: .6; }
+html[data-theme="dark"][data-rows="soft"] .data-table tbody tr[class*="estado-"] td input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td input:not([type="checkbox"]) {
+    background: transparent !important; border-color: transparent !important; color: inherit !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td input:not([type="checkbox"]):hover,
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td input:not([type="checkbox"]):focus {
+    background: var(--surface) !important; border-color: var(--border-hover) !important;
+}
+
+/* Barra "ocultar sedes": discreta, sin la caja azul */
+html .btn-panel-toggle,
+html .btn-panel-toggle.open,
+html .btn-panel-toggle:hover {
+    background: transparent !important; border: 0 !important; box-shadow: none !important;
+    color: var(--text-muted) !important; text-transform: uppercase;
+}
+html .btn-panel-toggle:hover { color: var(--brand-primary) !important; }
+html .btn-panel-toggle::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); margin-right: .15rem; }
+html .btn-panel-toggle.open::before { transform: rotate(-135deg) translateY(-1px); }
+html .panel-toggle-resumen { background: var(--surface-alt); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 999px; padding: 2px 10px; }
+
+/* El CSS antiguo fija -webkit-text-fill-color (gana sobre `color` al pintar):
+   en modo suave se vuelve a derivar del color calculado. */
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td,
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td *:not(.sector-cell),
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td select.excel-select {
+    -webkit-text-fill-color: currentColor !important;
+}
+html[data-rows="soft"] .data-table tbody tr[class*="estado-"] td input::placeholder { color: var(--text-muted); -webkit-text-fill-color: var(--text-muted); }
+
+/* ---------- 9. Tablas sin estado (Cajas, Importar) y botones de acción ----- */
+html body .data-table tbody tr:not([class*="estado-"]) td {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: currentColor;
+}
+html body .data-table tbody tr:not([class*="estado-"]):hover td { background: var(--surface-alt) !important; filter: none; }
+html .caja-title-cell, html .caja-title-cell * { color: var(--text-primary); }
+html .btn-outline-link, html .btn-print-caja, html .btn-warning-outline, html a.btn-outline-link {
+    background: var(--surface) !important; color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important; border-radius: 10px; box-shadow: var(--shadow-sm);
+    -webkit-text-fill-color: currentColor !important;
+}
+html .btn-outline-link:hover, html .btn-print-caja:hover, html .btn-warning-outline:hover { border-color: var(--brand-primary) !important; color: var(--brand-primary) !important; }
+html .cajas-kpi-row .kpi-card, html .kpi-card { background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+html .kpi-number { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+html .kpi-label { color: var(--text-muted); }
+html .cajas-tab-nav { border-bottom-color: var(--border-color); }
+html .tab-btn { color: var(--text-muted); }
+html .tab-btn.active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); }
+html .caja-queue-card, html .cajas-sugeridas { background: var(--surface); border-color: var(--border-color); color: var(--text-primary); }
+html .header-section { border-bottom-color: var(--border-color); }
+html .header-section h1, html .header-section h2 { color: var(--text-primary); }
+html .subtitle { color: var(--text-muted); }
+html .input-rotulo { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; }
+
+/* Modo "Colores Excel": texto de desplegables y botones legible en filas oscuras */
+html[data-rows="classic"] body .data-table tbody td select.excel-select,
+html[data-rows="classic"] body .data-table tbody td .btn-obs-trigger,
+html[data-rows="classic"] body .data-table tbody td .btn-action-caja,
+html[data-rows="classic"] body .data-table tbody td .btn-detail {
+    color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; background: #ffffff !important;
+}
+
+/* ---------- 10. Pantallas simples: Nueva carpeta y Detalle ----------------- */
+/* Blazor enfoca el <h1> al navegar: sin recuadro */
+html h1:focus, html h1:focus-visible, html [tabindex="-1"]:focus, html [tabindex="-1"]:focus-visible { outline: none !important; }
+
+/* Estas páginas no usan .page-container: permitir scroll y centrar el contenido */
+html .content:not(:has(.page-container)) { overflow-y: auto; padding: 1.75rem 1.5rem 2.5rem; gap: 1.25rem; }
+html .content:not(:has(.page-container)) > * { width: 100%; max-width: 1080px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+html .content:not(:has(.page-container)) > h1 { margin-top: 0; margin-bottom: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; }
+html .content h1 small.muted { font: 500 0.95rem var(--font-mono); letter-spacing: 0; margin-left: .6rem; padding: 3px 10px; border-radius: 999px; background: var(--surface-alt); border: 1px solid var(--border-color); vertical-align: middle; }
+html .content > p a, html .content > p > a { color: var(--brand-primary); font-weight: 600; text-decoration: none; }
+html .content > p a:hover { text-decoration: underline; }
+
+html .content .card {
+    background: var(--surface); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.5rem;
+}
+html .content .card h2 { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 750; letter-spacing: -0.01em; color: var(--text-primary); }
+html .content .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.25rem; align-items: start; }
+
+/* Formularios */
+html .content .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem 1.25rem; }
+html .content form.card.form { max-width: 1080px; }
+html .content .form label { display: flex; flex-direction: column; gap: .4rem; font: 700 0.74rem var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+html .content .form input:not([type="checkbox"]), html .content .form select, html .content .inline select {
+    height: 44px; padding: 0 .85rem; border-radius: 10px; width: 100%; box-sizing: border-box;
+    background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-color);
+    font: 500 0.95rem var(--font-ui); letter-spacing: 0; text-transform: none;
+}
+html .content .form input:focus, html .content .form select:focus, html .content .inline select:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(91 140 255 / .25); outline: none; }
+html .content .form input::placeholder { color: var(--text-muted); opacity: .75; }
+html .content .info-block, html .content .form .actions { grid-column: 1 / -1; }
+html .content .info-block { padding: .9rem 1rem; border-radius: 12px; background: var(--surface-alt); border: 1px solid var(--border-color); font-size: .88rem; color: var(--text-secondary); }
+html .content .info-block p { margin: .15rem 0; }
+html .content .actions { display: flex; align-items: center; gap: .75rem; margin-top: .25rem; }
+
+/* Botones sin clase (Registrar, Guardar, Cambiar estado) y enlaces-botón */
+html .content .actions button, html .content .inline button, html .content form .actions button[type="submit"] {
+    height: 42px; padding: 0 1.3rem; border-radius: 10px; border: 1px solid transparent; cursor: pointer;
+    background: var(--brand-primary); color: #fff; font: 700 0.88rem var(--font-ui);
+    box-shadow: 0 1px 2px rgb(14 26 43 / .2), inset 0 1px 0 rgb(255 255 255 / .18);
+}
+html[data-theme="dark"] .content .actions button, html[data-theme="dark"] .content .inline button { color: #06101f; }
+html .content .actions button:hover, html .content .inline button:hover { background: var(--brand-primary-hover); }
+html .content .inline button:disabled { background: var(--border-color); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
+html .content a.button.secondary {
+    display: inline-flex; align-items: center; height: 42px; padding: 0 1.2rem; border-radius: 10px;
+    background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-color);
+    font: 600 0.88rem var(--font-ui); text-decoration: none;
+}
+html .content a.button.secondary:hover { border-color: var(--border-hover); background: var(--surface-alt); }
+html .content .inline { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+html .content .inline select { flex: 1 1 260px; width: auto; }
+
+/* Mensajes */
+html .content p.error { padding: .8rem 1rem; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-weight: 600; margin: 0; }
+html .content p.ok-msg { padding: .8rem 1rem; border-radius: 12px; background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-weight: 600; margin: 0; }
+html[data-theme="dark"] .content p.error { background: #3b1414; border-color: #7f1d1d; color: #fecaca; }
+html[data-theme="dark"] .content p.ok-msg { background: #0f2e1b; border-color: #166534; color: #bbf7d0; }
+html .validation-message { color: #dc2626; font: 600 .78rem var(--font-ui); text-transform: none; letter-spacing: 0; }
+html[data-theme="dark"] .validation-message { color: #fca5a5; }
+html .muted { color: var(--text-muted); }
+
+/* Insignias */
+html .badge { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 999px; font: 700 .78rem var(--font-ui); background: var(--brand-light); color: var(--brand-primary); }
+html .badge.ok { background: #dcfce7; color: #166534; }
+html .badge.bad { background: #fee2e2; color: #991b1b; }
+html .badge.warn { background: #fef3c7; color: #92400e; }
+html[data-theme="dark"] .badge.ok { background: #12351f; color: #86efac; }
+html[data-theme="dark"] .badge.bad { background: #431818; color: #fca5a5; }
+html[data-theme="dark"] .badge.warn { background: #43310c; color: #fcd34d; }
+
+/* Tablas simples (historial) */
+html .content .card table:not(.data-table) { width: 100%; border-collapse: collapse; font-size: .88rem; }
+html .content .card table:not(.data-table) th { text-align: left; padding: .65rem .75rem; font: 800 .68rem var(--font-ui); letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+html .content .card table:not(.data-table) td { padding: .7rem .75rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+html .content .card table:not(.data-table) tbody tr:hover td { background: var(--surface-alt); }
+html .btn-copy-rut { height: 44px; padding: 0 .9rem; border-radius: 10px; white-space: nowrap; font: 600 .8rem var(--font-ui); cursor: pointer; }
+
+/* ---------- 11. Importar: estilos en línea claros → tema oscuro ------------- */
+html[data-theme="dark"] .page-container .card[style] { background: var(--surface) !important; border: 1px solid var(--border-color); }
+html[data-theme="dark"] .page-container .card[style] h2 { color: var(--text-primary) !important; }
+html[data-theme="dark"] .page-container .card[style] p { color: var(--text-muted) !important; }
+html[data-theme="dark"] .drop-zone { background: var(--surface-alt) !important; border-color: var(--brand-primary) !important; }
+html[data-theme="dark"] .page-container .card [style*="#f8fafc"],
+html[data-theme="dark"] .page-container .card [style*="#f1f5f9"] { background: var(--surface-alt) !important; color: var(--text-secondary) !important; border-color: var(--border-color) !important; }
+html[data-theme="dark"] .page-container .card [style*="#f8fafc"] *,
+html[data-theme="dark"] .page-container .card [style*="#f1f5f9"] * { color: var(--text-secondary) !important; }
+html .page-container .header-section h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.025em; }
+
+/* ---------- 12. Panel lateral de detalle ---------------------------------- */
+html .case-drawer, html .case-drawer .drawer-body, html .case-drawer .drawer-header { background: var(--surface); border-color: var(--border-color); }
+html .drawer-title-name { color: var(--text-primary); font-weight: 800; letter-spacing: -.015em; }
+html .drawer-title-meta, html .drawer-title-meta * { color: var(--text-muted); }
+html .drawer-section-title { color: var(--text-primary); font-weight: 750; letter-spacing: -.01em; }
+html .drawer-section { background: var(--surface-alt); border: 1px solid var(--border-color); }
+html .drawer-field label { color: var(--text-muted); }
+html .drawer-audit-item { background: var(--surface); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); }
+html .drawer-audit-item .audit-field { color: var(--text-primary); }
+html .drawer-audit-item .audit-meta { color: var(--text-muted); }
+html .drawer-audit-item .audit-old { color: var(--text-muted); }
+html[data-theme="dark"] .drawer-audit-item .audit-new { color: #86efac; }
+html .drawer-close-btn { color: var(--text-secondary); }
+html .drawer-close-btn:hover { background: var(--surface-alt); color: var(--text-primary); }
+html .drawer-loading, html .case-drawer .text-muted { color: var(--text-muted); }
+html .case-drawer .excel-select { background: var(--surface) !important; color: var(--text-primary) !important; border: 1px solid var(--border-color) !important; border-radius: 10px; height: 40px; -webkit-text-fill-color: currentColor; }
+html .case-drawer .btn-secondary { width: 100%; }
