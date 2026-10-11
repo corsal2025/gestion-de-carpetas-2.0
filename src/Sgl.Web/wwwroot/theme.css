@@ -1474,3 +1474,10 @@ html body .data-table th.col-sticky-nombre, html body .data-table td.col-sticky-
 html body .dup-tabla th, html body .dup-tabla td { width: 1%; white-space: nowrap; }
 html body .dup-tabla th:nth-child(2), html body .dup-tabla td:nth-child(2) { width: auto; white-space: normal; min-width: 200px; }
 @media (max-width: 640px) { html body .dup-tabla th, html body .dup-tabla td { width: 100%; white-space: normal; } }
+
+/* Listado "Todas": cabecera Pendiente búsqueda en 2 líneas centradas, sin cortes de palabra */
+html body .data-table thead th.th-pend { word-break: keep-all; hyphens: none; }
+
+/* Detalle de carpeta (historial): columnas ajustadas, "Nuevo" absorbe el sobrante */
+html body .content > .card > table:not([class]) th, html body .content > .card > table:not([class]) td { width: 1%; white-space: nowrap; }
+html body .content > .card > table:not([class]) th:last-child, html body .content > .card > table:not([class]) td:last-child { width: auto; white-space: normal; }
