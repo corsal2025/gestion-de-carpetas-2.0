@@ -284,4 +284,25 @@ public sealed class CarpetaServiceTests : IDisposable
         await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnArchivos, "ana");
         Assert.False((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().PendienteBusqueda);
     }
+
+    [Fact]
+    public async Task GuardarComuna_outside_cambio_domicilio_throws_and_persists_nothing()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().GuardarComunaAsync(id, "Maipu", "ana"));
+
+        Assert.Null((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
+    }
+
+    [Fact]
+    public async Task GuardarComuna_in_cambio_domicilio_persists()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.CambioDomicilio, "ana");
+
+        await _db.NewService().GuardarComunaAsync(id, "Maipu", "ana");
+
+        Assert.Equal("Maipu", (await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
+    }
 }

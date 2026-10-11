@@ -692,59 +692,59 @@ body {
     text-align: left !important;
 }
 
-/* Columna 4: Pendiente búsqueda */
+/* Columna 4: Sede */
 .data-table th:nth-child(4), .data-table td:nth-child(4) {
-    width: 120px !important;
-    min-width: 120px !important;
-    text-align: center !important;
-}
-
-/* Columna 5: Sede */
-.data-table th:nth-child(5), .data-table td:nth-child(5) {
     width: auto !important;
     min-width: 115px !important;
     text-align: center !important;
 }
 
-/* Columna 6: Fecha Citación */
-.data-table th:nth-child(6), .data-table td:nth-child(6) {
+/* Columna 5: Fecha Citación */
+.data-table th:nth-child(5), .data-table td:nth-child(5) {
     width: auto !important;
     min-width: 105px !important;
     text-align: center !important;
 }
 
-/* Columna 7: Fecha Subida */
-.data-table th:nth-child(7), .data-table td:nth-child(7) {
+/* Columna 6: Fecha Subida */
+.data-table th:nth-child(6), .data-table td:nth-child(6) {
     width: auto !important;
     min-width: 100px !important;
     text-align: center !important;
 }
 
-/* Columna 8: Última Carpeta */
-.data-table th:nth-child(8), .data-table td:nth-child(8) {
+/* Columna 7: Última Carpeta */
+.data-table th:nth-child(7), .data-table td:nth-child(7) {
     width: auto !important;
     min-width: 125px !important;
     text-align: center !important;
 }
 
-/* Columna 9: Sector */
-.data-table th:nth-child(9), .data-table td:nth-child(9) {
+/* Columna 8: Sector */
+.data-table th:nth-child(8), .data-table td:nth-child(8) {
     width: auto !important;
     min-width: 95px !important;
     text-align: center !important;
 }
 
-/* Columna 10: Comunas (CENTRALIZADA) */
-.data-table th:nth-child(10), .data-table td:nth-child(10) {
-    width: auto !important;
-    min-width: 130px !important;
+/* Columna 9: Pendiente búsqueda */
+.data-table th:nth-child(9), .data-table td:nth-child(9) {
+    width: 120px !important;
+    min-width: 120px !important;
     text-align: center !important;
 }
 
-/* Columna 11: Estado de la Carpeta */
-.data-table th:nth-child(11), .data-table td:nth-child(11) {
+/* Columna 10: Estado de la Carpeta */
+.data-table th:nth-child(10), .data-table td:nth-child(10) {
     width: max-content !important;
     min-width: 230px !important;
+    text-align: center !important;
+}
+
+/* Columna 11: Comunas */
+.data-table th:nth-child(11), .data-table td:nth-child(11) {
+    width: auto !important;
+    min-width: 130px !important;
     text-align: center !important;
 }
 
@@ -4093,4 +4093,10 @@ table.cases.doc-table td:first-child {
 @media (max-width: 640px) {
     .dup-tabla, .dup-tabla tbody, .dup-tabla tr, .dup-tabla td { display: block; width: 100%; }
     .dup-tabla thead { display: none; }
+}
+
+.comuna-input-inline.comuna-input-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: transparent;
 }

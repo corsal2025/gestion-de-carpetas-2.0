@@ -272,14 +272,14 @@
                         </th>
                         <th class="col-sticky-rut">RUT</th>
                         <th class="col-sticky-nombre">NOMBRE COMPLETO DEL CIUDADANO</th>
-                        <th class="th-pend">PENDIENTE BÚSQUEDA</th>
                         <th>SEDE</th>
                         <th>FECHA CITACIÓN</th>
                         <th>FECHA SUBIDA</th>
                         <th>ÚLTIMA CARPETA</th>
                         <th class="sector-header">SECTOR</th>
-                        <th>COMUNAS</th>
+                        <th class="th-pend">PENDIENTE BÚSQUEDA</th>
                         <th>ESTADO DE LA CARPETA</th>
+                        <th>COMUNAS</th>
                         <th>DECISIÓN</th>
                         <th>ACCIÓN</th>
                     </tr>
@@ -327,17 +327,6 @@
                                     </button>
                                 </div>
                             </td>
-                            <td class="td-pend" @ondblclick:stopPropagation>
-                                <button type="button"
-                                        class="btn-pend-busqueda @(c.PendienteBusqueda ? "activo" : "") @(parpadea ? "parpadeo" : "")"
-                                        aria-pressed="@(c.PendienteBusqueda ? "true" : "false")"
-                                        aria-label="Pendiente búsqueda"
-                                        title="@tituloPend"
-                                        disabled="@(!puedeMarcar)"
-                                        @onclick="() => TogglePendienteBusquedaAsync(c)">
-                                    <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                                </button>
-                            </td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                             <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
@@ -356,15 +345,16 @@
                                     @sector
                                 </span>
                             </td>
-                            <td class="excel-cell-comuna" @ondblclick:stopPropagation>
-                                <input type="text"
-                                       class="comuna-input-inline"
-                                       list="lista-comunas-chile"
-                                       autocomplete="off"
-                                       value="@c.Comuna"
-                                       @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)"
-                                       placeholder="—"
-                                       title="Comuna de origen: escribe o elige de la lista" />
+                            <td class="td-pend" @ondblclick:stopPropagation>
+                                <button type="button"
+                                        class="btn-pend-busqueda @(c.PendienteBusqueda ? "activo" : "") @(parpadea ? "parpadeo" : "")"
+                                        aria-pressed="@(c.PendienteBusqueda ? "true" : "false")"
+                                        aria-label="Pendiente búsqueda"
+                                        title="@tituloPend"
+                                        disabled="@(!puedeMarcar)"
+                                        @onclick="() => TogglePendienteBusquedaAsync(c)">
+                                    <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                                </button>
                             </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"
@@ -380,6 +370,27 @@
                                         <option value="@e">@Labels.Of(e)</option>
                                     }
                                 </select>
+                            </td>
+                            <td class="excel-cell-comuna" @ondblclick:stopPropagation>
+                                @if (Carpeta.EsCambioDomicilio(c.Estado))
+                                {
+                                    <input type="text"
+                                           class="comuna-input-inline"
+                                           list="lista-comunas-chile"
+                                           autocomplete="off"
+                                           value="@c.Comuna"
+                                           @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)"
+                                           placeholder="—"
+                                           title="Comuna de origen: escribe o elige de la lista" />
+                                }
+                                else
+                                {
+                                    <input type="text"
+                                           class="comuna-input-inline comuna-input-disabled"
+                                           value="@(string.IsNullOrEmpty(c.Comuna) ? "—" : c.Comuna)"
+                                           disabled
+                                           title="Solo editable cuando la carpeta está en cambio de domicilio" />
+                                }
                             </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"

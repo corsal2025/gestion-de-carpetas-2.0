@@ -146,6 +146,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     public async Task GuardarComunaAsync(Guid id, string? comuna, string autor, CancellationToken ct = default)
     {
         var carpeta = await LoadAsync(id, ct);
+        if (!Carpeta.EsCambioDomicilio(carpeta.Estado))
+        {
+            throw new DomainException("Solo se puede editar la comuna de una carpeta en cambio de domicilio.");
+        }
         carpeta.AsignarComuna(comuna, autor, Now);
         await repository.SaveChangesAsync(ct);
     }

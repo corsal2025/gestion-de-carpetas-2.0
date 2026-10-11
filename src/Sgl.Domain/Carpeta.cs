@@ -230,6 +230,12 @@ public sealed class Carpeta
         }
     }
 
+    public static bool EsCambioDomicilio(EstadoCarpeta estado) =>
+        estado is EstadoCarpeta.CambioDomicilio
+            or EstadoCarpeta.CambioDomicilioSolicitado
+            or EstadoCarpeta.CambioDomSubidoConaset
+            or EstadoCarpeta.CambioDomSubidoCorreo;
+
     public static bool PermiteBusquedaPendiente(EstadoCarpeta estado) =>
         estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43;
 
