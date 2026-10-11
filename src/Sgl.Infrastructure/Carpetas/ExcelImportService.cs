@@ -32,6 +32,10 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
             using var workbook = new XLWorkbook(sanitized);
             await using var tx = await db.Database.BeginTransactionAsync(ct);
             var result = await ImportarWorkbookAsync(workbook, autor, ct);
+            db.ImportacionLogs.Add(new ImportacionLog(
+                clock.GetUtcNow().UtcDateTime, autor, result.FilasLeidas, result.CarpetasCreadas,
+                result.CarpetasActualizadas, Math.Max(result.TotalErrores, result.Errores.Count)));
+            await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return result;
         }

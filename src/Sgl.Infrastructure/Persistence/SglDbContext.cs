@@ -13,6 +13,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<RevisionDuplicado> RevisionesDuplicado => Set<RevisionDuplicado>();
 
+    public DbSet<ImportacionLog> ImportacionLogs => Set<ImportacionLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -69,6 +71,14 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(h => h.Campo).HasMaxLength(50).IsRequired();
             b.Property(h => h.Anterior).HasMaxLength(250);
             b.Property(h => h.Nuevo).HasMaxLength(250);
+        });
+
+        modelBuilder.Entity<ImportacionLog>(b =>
+        {
+            b.ToTable("ImportacionLogs");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Usuario).HasMaxLength(ImportacionLog.MaxUsuarioLength).IsRequired();
+            b.HasIndex(i => i.Fecha);
         });
 
         modelBuilder.Entity<RevisionDuplicado>(b =>

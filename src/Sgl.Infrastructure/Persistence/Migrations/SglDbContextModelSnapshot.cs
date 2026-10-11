@@ -165,6 +165,39 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.ToTable("HistorialCambios", (string)null);
                 });
 
+            modelBuilder.Entity("Sgl.Domain.ImportacionLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CarpetasActualizadas")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CarpetasCreadas")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Errores")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FilasLeidas")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Usuario")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.ToTable("ImportacionLogs", (string)null);
+                });
+
             modelBuilder.Entity("Sgl.Domain.RevisionDuplicado", b =>
                 {
                     b.Property<Guid>("CiudadanoId")
