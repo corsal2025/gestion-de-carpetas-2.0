@@ -7,7 +7,8 @@ public sealed record MovimientoDto(Guid CarpetaId, DateTime Fecha, string Usuari
 
 /// <summary>Automatic per-carpeta values computed from the audit trail; never typed by users.</summary>
 public sealed record IndicadoresCarpeta(
-    int DiasEnEtapa,
+    int DiasTramite,
+    int DiasSinCarpeta,
     int? DiasBuscando,
     string? MarcadaPor,
     DateTime? UltimoMovimiento,
@@ -29,10 +30,8 @@ public static class IndicadoresCalculator
         ArgumentNullException.ThrowIfNull(c);
         var movs = movimientos.OrderBy(m => m.Fecha).ToList();
 
-        var ultimoEstado = movs.LastOrDefault(m => m.Campo == CampoEstado);
-        var inicioEtapa = ultimoEstado is not null
-            ? DateOnly.FromDateTime(ultimoEstado.Fecha)
-            : Min(c.FechaCitacion, c.FechaRegistro is { } r ? DateOnly.FromDateTime(r) : c.FechaCitacion);
+        var noEncontrada = movs.LastOrDefault(m => m.Campo == CampoEstado && m.Nuevo == nameof(EstadoCarpeta.NoExisteCarpeta));
+        var inicioSinCarpeta = noEncontrada is not null ? DateOnly.FromDateTime(noEncontrada.Fecha) : c.FechaCitacion;
 
         var marca = c.PendienteBusqueda ? movs.LastOrDefault(m => m.Campo == CampoPendiente && m.Nuevo == "Si") : null;
         var ultimo = movs.LastOrDefault();
@@ -45,7 +44,8 @@ public static class IndicadoresCalculator
         var archivo = movs.LastOrDefault(m => m.Campo == CampoCaja && !string.IsNullOrWhiteSpace(m.Nuevo) && m.Nuevo != Carpeta.ColaDeCaja);
 
         return new IndicadoresCarpeta(
-            DiasEnEtapa: Dias(inicioEtapa, hoy),
+            DiasTramite: Dias(c.FechaCitacion, hoy),
+            DiasSinCarpeta: Dias(inicioSinCarpeta, hoy),
             DiasBuscando: marca is null ? null : Dias(DateOnly.FromDateTime(marca.Fecha), hoy),
             MarcadaPor: marca?.Usuario,
             UltimoMovimiento: ultimo?.Fecha,
@@ -55,8 +55,6 @@ public static class IndicadoresCalculator
             DiasCitacionSubida: c.FechaSubida is { } s ? s.DayNumber - c.FechaCitacion.DayNumber : null,
             DiasTotales: Dias(c.FechaCitacion, fechaCierre ?? hoy));
     }
-
-    private static DateOnly Min(DateOnly a, DateOnly b) => a < b ? a : b;
 
     private static int Dias(DateOnly desde, DateOnly hasta) => Math.Max(0, hasta.DayNumber - desde.DayNumber);
 }

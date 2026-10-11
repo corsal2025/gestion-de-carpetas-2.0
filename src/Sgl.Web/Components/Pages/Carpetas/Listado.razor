@@ -498,7 +498,7 @@
                             </td>
                             <td @ondblclick:stopPropagation>
                                 <div class="nombre-wrapper-cell">
-                                    <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@c.NombreCompleto">@c.NombreCompleto</span>
+                                    <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(ind?.DiasBuscando is { } db ? $" ({db} d, marcada por {ind.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
                                     <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
                                             title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
                                             @onclick="() => AbrirModalObs(c)" type="button">
@@ -517,7 +517,7 @@
                                 case Bandeja.PorPreparar:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(ind?.DiasEnEtapa)</td>
+                                    <td>@Dias(ind?.DiasTramite)</td>
                                     <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
                                     break;
                                 case Bandeja.CambioDomicilio:
@@ -527,14 +527,13 @@
                                                title="Comuna de origen: escribe o elige de la lista" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(ind?.DiasEnEtapa)</td>
+                                    <td>@Dias(ind?.DiasTramite)</td>
                                     <td class="date-cell">@(ind?.UltimoMovimiento is { } um ? $"{um:dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
                                     break;
-                                case Bandeja.EnBusqueda:
-                                    var sectorB = CalcularSector(c.FechaUltimaCarpeta);
-                                    <td><span class="sector-cell @(sectorB == "ARCHIVO" ? "sector-archivo" : sectorB == "OFICINA 43" ? "sector-oficina43" : "sector-vacio")">@sectorB</span></td>
-                                    <td>@Dias(ind?.DiasBuscando ?? ind?.DiasEnEtapa)</td>
-                                    <td>@(ind?.MarcadaPor ?? "—")</td>
+                                case Bandeja.SinCarpetaF8:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td>@Dias(ind?.DiasSinCarpeta)</td>
+                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } umF ? $"{umF:dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.Subidas:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
@@ -554,9 +553,9 @@
                                     break;
                             }
                             <td class="action-cell" @ondblclick:stopPropagation>
-                                @if (bandejaActiva == Bandeja.EnBusqueda)
+                                @if (c.PendienteBusqueda)
                                 {
-                                    <button class="btn-action-caja" title="Carpeta encontrada: vuelve a Por preparar" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                    <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
                                 }
                                 else if (bandejaActiva != Bandeja.Archivadas && string.IsNullOrEmpty(c.CajaArchivo))
                                 {
@@ -1008,8 +1007,8 @@
     [
         (Bandeja.PorPreparar, "Por preparar"),
         (Bandeja.CambioDomicilio, "Cambio de domicilio"),
-        (Bandeja.EnBusqueda, "En búsqueda"),
         (Bandeja.Subidas, "Subidas"),
+        (Bandeja.SinCarpetaF8, "Sin carpeta (F8)"),
         (Bandeja.Cerradas, "Cerradas"),
         (Bandeja.Archivadas, "Archivadas"),
         (null, "Todas"),
@@ -1017,9 +1016,9 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorPreparar] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS EN ETAPA", "OTRAS ABIERTAS"],
-        [Bandeja.CambioDomicilio] = ["PERSONA", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS EN ETAPA", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.EnBusqueda] = ["PERSONA", "RUT", "SEDE", "SECTOR", "DÍAS BUSCANDO", "MARCADA POR"],
+        [Bandeja.PorPreparar] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
+        [Bandeja.CambioDomicilio] = ["PERSONA", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.SinCarpetaF8] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
         [Bandeja.Subidas] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
         [Bandeja.Cerradas] = ["PERSONA", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
         [Bandeja.Archivadas] = ["PERSONA", "RUT", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
@@ -1088,18 +1087,14 @@
         _ => "—",
     };
 
-    /// <summary>La carpeta buscada apareció: sale de "En búsqueda" y vuelve a "Por preparar".</summary>
+    /// <summary>La carpeta buscada apareció: solo se quita la marca (recordatorio del día); el estado no cambia.</summary>
     private async Task MarcarEncontradaAsync(CarpetaResumenDto c)
     {
         var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
         guardandoId = c.Id;
         try
         {
-            if (c.Estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta)
-            {
-                await Carpetas.ForzarEstadoAsync(c.Id, EstadoCarpeta.Citada, autor);
-            }
-            else if (c.PendienteBusqueda)
+            if (c.PendienteBusqueda)
             {
                 await Carpetas.MarcarPendienteBusquedaAsync(c.Id, false, autor);
             }

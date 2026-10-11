@@ -5,7 +5,8 @@ public enum Bandeja
 {
     PorPreparar = 1,
     CambioDomicilio = 2,
-    EnBusqueda = 3,
+    /// <summary>Folder not found (NoExisteCarpeta); handled by the external F8 module.</summary>
+    SinCarpetaF8 = 3,
     Subidas = 4,
     Cerradas = 5,
     Archivadas = 6,

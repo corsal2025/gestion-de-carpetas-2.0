@@ -80,7 +80,7 @@ public sealed record CarpetaResumenDto(
     /// <summary>Values derived from the audit trail (only filled by ranged listings).</summary>
     public IndicadoresCarpeta? Indicadores { get; init; }
 
-    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo, PendienteBusqueda);
+    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo);
 }
 
 public sealed record HistorialDto(DateTime Fecha, string Usuario, string Campo, string? Anterior, string? Nuevo);

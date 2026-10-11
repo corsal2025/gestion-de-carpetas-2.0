@@ -22,25 +22,32 @@ public sealed class BandejasTests : IDisposable
         new(Guid.Empty, fecha, usuario, campo, nuevo);
 
     [Fact]
-    public void DiasEnEtapa_counts_from_last_estado_change()
+    public void DiasTramite_counts_from_citacion_regardless_of_estado_changes()
     {
-        var ind = IndicadoresCalculator.Calcular(Resumen(), [
+        var ind = IndicadoresCalculator.Calcular(Resumen(citacion: new DateOnly(2026, 4, 1)), [
             Mov(new DateTime(2026, 4, 10), "Estado", "Revision"),
             Mov(new DateTime(2026, 4, 24), "Estado", "Citada"),
             Mov(new DateTime(2026, 5, 1), "Observación", "x", "luis"),
         ], Hoy);
 
-        Assert.Equal(10, ind.DiasEnEtapa);
+        Assert.Equal(33, ind.DiasTramite);
         Assert.Equal(new DateTime(2026, 5, 1), ind.UltimoMovimiento);
         Assert.Equal("luis", ind.UltimoUsuario);
     }
 
     [Fact]
-    public void DiasEnEtapa_falls_back_to_earliest_of_registro_and_citacion()
+    public void DiasSinCarpeta_counts_from_last_change_to_no_existe_else_citacion()
     {
-        var ind = IndicadoresCalculator.Calcular(Resumen(citacion: new DateOnly(2026, 4, 1)), [], Hoy);
-        Assert.Equal(33, ind.DiasEnEtapa);
-        Assert.Null(ind.UltimoMovimiento);
+        var conHist = IndicadoresCalculator.Calcular(Resumen(), [
+            Mov(new DateTime(2026, 4, 10), "Estado", "NoExisteCarpeta"),
+            Mov(new DateTime(2026, 4, 12), "Estado", "Citada"),
+            Mov(new DateTime(2026, 4, 24), "Estado", "NoExisteCarpeta"),
+        ], Hoy);
+        Assert.Equal(10, conHist.DiasSinCarpeta);
+
+        var sinHist = IndicadoresCalculator.Calcular(Resumen(citacion: new DateOnly(2026, 4, 1)), [], Hoy);
+        Assert.Equal(33, sinHist.DiasSinCarpeta);
+        Assert.Null(sinHist.UltimoMovimiento);
     }
 
     [Fact]
@@ -103,8 +110,8 @@ public sealed class BandejasTests : IDisposable
     public void Semaforo_uses_configured_threshold_per_bandeja()
     {
         var opts = new BandejasOptions();
-        opts.Umbrales[Bandeja.EnBusqueda] = new UmbralDias { Amarillo = 3, Rojo = 7 };
-        Assert.Equal(Semaforo.Rojo, opts.Evaluar(Bandeja.EnBusqueda, 7));
+        opts.Umbrales[Bandeja.SinCarpetaF8] = new UmbralDias { Amarillo = 3, Rojo = 7 };
+        Assert.Equal(Semaforo.Rojo, opts.Evaluar(Bandeja.SinCarpetaF8, 7));
         Assert.Equal(Semaforo.Verde, opts.Evaluar(Bandeja.Subidas, 7));
     }
 
@@ -148,7 +155,7 @@ public sealed class BandejasTests : IDisposable
 
         Assert.Equal(1, fila.OtrasAbiertas);
         Assert.NotNull(fila.Indicadores);
-        Assert.Equal(2, fila.Indicadores!.DiasEnEtapa);
+        Assert.Equal(5, fila.Indicadores!.DiasTramite);
         Assert.Equal("luis", fila.Indicadores.UltimoUsuario);
     }
 

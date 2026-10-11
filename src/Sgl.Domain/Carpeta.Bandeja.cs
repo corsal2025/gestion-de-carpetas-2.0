@@ -8,24 +8,22 @@ public sealed partial class Carpeta
     public const string ColaDeCaja = "Cola de Caja";
 
     /// <summary>The tray this carpeta currently belongs to. Moves automatically with its state.</summary>
-    public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo, PendienteBusqueda);
+    public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo);
 
     /// <summary>
-    /// Precedence: Archivadas (real caja) &gt; Cerradas (final decision) &gt; En búsqueda &gt; Subidas
-    /// &gt; Cambio de domicilio &gt; Por preparar.
+    /// Precedence: Archivadas (real caja) &gt; Cerradas (final decision) &gt; Sin carpeta (F8) &gt; Subidas
+    /// &gt; Cambio de domicilio &gt; Por preparar. "Pendiente de búsqueda" is only a same-day flag, not a tray;
+    /// location states (SeEncuentraEnArchivos/Of43) stay in Por preparar.
     /// </summary>
-    public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja, bool pendienteBusqueda)
+    public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja)
     {
         if (!string.IsNullOrWhiteSpace(caja) && caja != ColaDeCaja) return Bandeja.Archivadas;
         if (decision is Decision.Otorgado or Decision.Denegado) return Bandeja.Cerradas;
-        if (pendienteBusqueda || EsEstadoBusqueda(estado)) return Bandeja.EnBusqueda;
+        if (estado == EstadoCarpeta.NoExisteCarpeta) return Bandeja.SinCarpetaF8;
         if (EsEstadoSubidaBandeja(estado)) return Bandeja.Subidas;
         if (estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado) return Bandeja.CambioDomicilio;
         return Bandeja.PorPreparar;
     }
-
-    private static bool EsEstadoBusqueda(EstadoCarpeta e) =>
-        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta;
 
     private static bool EsEstadoSubidaBandeja(EstadoCarpeta e) =>
         e is EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.SubidaConOficio
@@ -35,10 +33,7 @@ public sealed partial class Carpeta
     public static readonly Expression<Func<Carpeta, Bandeja>> BandejaExpresion = c =>
         c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != ColaDeCaja ? Bandeja.Archivadas
         : c.Decision == Decision.Otorgado || c.Decision == Decision.Denegado ? Bandeja.Cerradas
-        : c.PendienteBusqueda
-            || c.Estado == EstadoCarpeta.SeEncuentraEnArchivos
-            || c.Estado == EstadoCarpeta.SeEncuentraEnOf43
-            || c.Estado == EstadoCarpeta.NoExisteCarpeta ? Bandeja.EnBusqueda
+        : c.Estado == EstadoCarpeta.NoExisteCarpeta ? Bandeja.SinCarpetaF8
         : c.Estado == EstadoCarpeta.SubidaConaset
             || c.Estado == EstadoCarpeta.SubidaConF8
             || c.Estado == EstadoCarpeta.SubidaConOficio

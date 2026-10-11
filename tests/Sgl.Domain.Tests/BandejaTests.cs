@@ -17,38 +17,48 @@ public class BandejaTests
     [InlineData(EstadoCarpeta.SubidaConOficio, Bandeja.Subidas)]
     [InlineData(EstadoCarpeta.CambioDomSubidoConaset, Bandeja.Subidas)]
     [InlineData(EstadoCarpeta.CambioDomSubidoCorreo, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.SeEncuentraEnArchivos, Bandeja.EnBusqueda)]
-    [InlineData(EstadoCarpeta.SeEncuentraEnOf43, Bandeja.EnBusqueda)]
-    [InlineData(EstadoCarpeta.NoExisteCarpeta, Bandeja.EnBusqueda)]
+    [InlineData(EstadoCarpeta.SeEncuentraEnArchivos, Bandeja.PorPreparar)]
+    [InlineData(EstadoCarpeta.SeEncuentraEnOf43, Bandeja.PorPreparar)]
+    [InlineData(EstadoCarpeta.NoExisteCarpeta, Bandeja.SinCarpetaF8)]
     public void Open_folder_without_caja_is_classified_by_estado(EstadoCarpeta estado, Bandeja esperada)
     {
-        Assert.Equal(esperada, Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null, false));
+        Assert.Equal(esperada, Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null));
     }
 
     [Fact]
-    public void PendienteBusqueda_wins_over_estado()
+    public void PendienteBusqueda_is_only_a_flag_and_keeps_the_folder_in_its_bandeja()
     {
-        Assert.Equal(Bandeja.EnBusqueda, Carpeta.ClasificarBandeja(EstadoCarpeta.Citada, Decision.Pendiente, null, true));
+        var c = CarpetaFactory.New();
+        c.ForzarEstado(EstadoCarpeta.SeEncuentraEnArchivos, "x", CarpetaFactory.Now);
+        c.MarcarPendienteBusqueda(true, "x", CarpetaFactory.Now);
+        Assert.Equal(Bandeja.PorPreparar, c.Bandeja);
+    }
+
+    [Fact]
+    public void Sin_carpeta_f8_wins_over_subidas_but_not_over_cerradas()
+    {
+        Assert.Equal(Bandeja.SinCarpetaF8, Carpeta.ClasificarBandeja(EstadoCarpeta.NoExisteCarpeta, Decision.Pendiente, Carpeta.ColaDeCaja));
+        Assert.Equal(Bandeja.Cerradas, Carpeta.ClasificarBandeja(EstadoCarpeta.NoExisteCarpeta, Decision.Denegado, null));
     }
 
     [Theory]
     [InlineData(Decision.Otorgado)]
     [InlineData(Decision.Denegado)]
-    public void Final_decision_closes_even_if_en_busqueda(Decision decision)
+    public void Final_decision_closes_even_if_sin_carpeta(Decision decision)
     {
-        Assert.Equal(Bandeja.Cerradas, Carpeta.ClasificarBandeja(EstadoCarpeta.SeEncuentraEnArchivos, decision, " ", true));
+        Assert.Equal(Bandeja.Cerradas, Carpeta.ClasificarBandeja(EstadoCarpeta.NoExisteCarpeta, decision, " "));
     }
 
     [Fact]
     public void Caja_archives_over_everything()
     {
-        Assert.Equal(Bandeja.Archivadas, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Otorgado, "CAJA 12", true));
+        Assert.Equal(Bandeja.Archivadas, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Otorgado, "CAJA 12"));
     }
 
     [Fact]
     public void Cola_de_caja_is_not_archived_yet()
     {
-        Assert.Equal(Bandeja.Subidas, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Pendiente, Carpeta.ColaDeCaja, false));
+        Assert.Equal(Bandeja.Subidas, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Pendiente, Carpeta.ColaDeCaja));
     }
 
     [Fact]
@@ -67,7 +77,7 @@ public class BandejaTests
             {
                 c.MarcarPendienteBusqueda(true, "x", CarpetaFactory.Now);
             }
-            var esperado = Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo, c.PendienteBusqueda);
+            var esperado = Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo);
             Assert.Equal(esperado, compiled(c));
         }
     }
