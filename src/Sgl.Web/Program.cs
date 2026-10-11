@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
+using Sgl.Application.Estadisticas;
+using Sgl.Domain;
+using Sgl.Infrastructure.Estadisticas;
 using Sgl.Infrastructure;
 using Sgl.Infrastructure.Persistence;
 using Sgl.Web.Components;
@@ -38,6 +41,20 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
+{
+    var filtro = new FiltroEstadisticas(
+        Enum.TryParse<Sede>(sede, ignoreCase: true, out var s) && Enum.IsDefined(s) ? s : null,
+        desde,
+        hasta,
+        dias ?? 30);
+    var datos = await estadisticas.ObtenerAsync(filtro, ct);
+    return Results.File(
+        EstadisticasExcel.Generar(datos),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        $"estadisticas-{DateTime.Now:yyyyMMdd-HHmm}.xlsx");
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -1118,8 +1118,31 @@
     [SupplyParameterFromQuery(Name = "abrir")]
     public Guid? AbrirCarpetaId { get; set; }
 
+    // Filtros preseleccionados por query string (p. ej. desde Estadísticas): bandeja, sede, estado, desde, hasta, caja.
+    [SupplyParameterFromQuery(Name = "bandeja")] public string? QueryBandeja { get; set; }
+    [SupplyParameterFromQuery(Name = "sede")] public string? QuerySede { get; set; }
+    [SupplyParameterFromQuery(Name = "estado")] public string? QueryEstado { get; set; }
+    [SupplyParameterFromQuery(Name = "desde")] public string? QueryDesde { get; set; }
+    [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
+    [SupplyParameterFromQuery(Name = "caja")] public string? QueryCaja { get; set; }
+
+    private void AplicarFiltrosDeQuery()
+    {
+        if (QueryBandeja is { } b)
+        {
+            bandejaActiva = b.Equals("todas", StringComparison.OrdinalIgnoreCase) ? null
+                : Enum.TryParse<Bandeja>(b, true, out var bandeja) && Enum.IsDefined(bandeja) ? bandeja : bandejaActiva;
+        }
+        if (Enum.TryParse<Sede>(QuerySede, true, out var sede) && Enum.IsDefined(sede)) filtroSede = sede;
+        if (Enum.TryParse<EstadoCarpeta>(QueryEstado, true, out var estado) && Enum.IsDefined(estado)) filtroEstado = estado;
+        if (DateOnly.TryParseExact(QueryDesde, "yyyy-MM-dd", out var desde)) filtroDesde = desde;
+        if (DateOnly.TryParseExact(QueryHasta, "yyyy-MM-dd", out var hasta)) filtroHasta = hasta;
+        if (!string.IsNullOrWhiteSpace(QueryCaja)) filtroCaja = QueryCaja.Trim();
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        AplicarFiltrosDeQuery();
         await CargarMetricasAsync();
         var abrir = false;
         if (AbrirCarpetaId is { } id)

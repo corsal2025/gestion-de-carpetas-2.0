@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Sgl.Web;
+namespace Sgl.Domain;
 
 /// <summary>
 /// Physical location of a carpeta derived from its "última carpeta" date:
