@@ -7,14 +7,14 @@ public sealed class DuplicadosService(IDuplicadoRepository repository, TimeProvi
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    public async Task<PagedResult<DuplicadoGrupoDto>> ListarAsync(ListarDuplicadosQuery query, CancellationToken ct = default)
+    public async Task<ListResult<DuplicadoGrupoDto>> ListarAsync(ListarDuplicadosQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         var q = query.Normalized();
         var (rutFragment, nameFragment) = TextoBusqueda.Parse(q.Texto);
-        var search = new DuplicadoSearch(rutFragment, nameFragment, q.Sede, (q.Page - 1) * q.PageSize, q.PageSize);
+        var search = new DuplicadoSearch(rutFragment, nameFragment, q.Sede, q.Skip, q.Take);
         var (items, total) = await repository.SearchAsync(search, ct);
-        return new PagedResult<DuplicadoGrupoDto>(items, total, q.Page, q.PageSize);
+        return new ListResult<DuplicadoGrupoDto>(items, total);
     }
 
     public async Task<int> ContarPendientesAsync(CancellationToken ct = default)
@@ -25,6 +25,9 @@ public sealed class DuplicadosService(IDuplicadoRepository repository, TimeProvi
 
     public Task<IReadOnlyList<CarpetaAbiertaDto>> ObtenerCarpetasAsync(Guid ciudadanoId, CancellationToken ct = default) =>
         repository.GetCarpetasAbiertasAsync(ciudadanoId, ct);
+
+    public Task<IReadOnlyList<CarpetaDuplicadoDetalleDto>> ObtenerDetalleCarpetasAsync(Guid ciudadanoId, CancellationToken ct = default) =>
+        repository.GetDetalleCarpetasAbiertasAsync(ciudadanoId, ct);
 
     public async Task MarcarRevisadoAsync(Guid ciudadanoId, string autor, CancellationToken ct = default)
     {

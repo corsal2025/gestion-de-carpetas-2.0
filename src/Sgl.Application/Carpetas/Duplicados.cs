@@ -59,21 +59,40 @@ public sealed class CarpetaDuplicadaException(VerificacionDuplicadoDto verificac
 public sealed record ListarDuplicadosQuery(
     string? Texto = null,
     Sede? Sede = null,
-    int Page = 1,
-    int PageSize = ListarCarpetasQuery.DefaultPageSize)
+    int Skip = 0,
+    int? Take = null)
 {
     public ListarDuplicadosQuery Normalized() => this with
     {
         Texto = string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim(),
-        Page = Math.Max(1, Page),
-        PageSize = Math.Clamp(PageSize, 1, ListarCarpetasQuery.MaxPageSize),
+        Skip = Math.Max(0, Skip),
+        Take = Take is { } t ? Math.Max(0, t) : null,
     };
 }
 
 /// <summary>One citizen with more than one open carpeta, pending review.</summary>
 public sealed record DuplicadoGrupoDto(Guid CiudadanoId, string Rut, string NombreCompleto, int CarpetasAbiertas);
 
-public sealed record DuplicadoSearch(string? RutFragment, string? NameFragment, Sede? Sede, int Skip, int Take);
+/// <summary>Full picture of one open carpeta, used to compare a citizen's duplicates side by side.</summary>
+public sealed record CarpetaDuplicadoDetalleDto(
+    Guid Id,
+    Sede Sede,
+    DateOnly FechaCitacion,
+    DateOnly? FechaSubida,
+    EstadoCarpeta Estado,
+    Decision Decision,
+    ClaseLicencia Clases,
+    string? TipoTramite,
+    string? FechaUltimaCarpeta,
+    string? CajaArchivo,
+    bool PendienteBusqueda,
+    DateTime? PendienteBusquedaDesde,
+    string? IdoneidadMoral,
+    string? Comuna,
+    DateTime? UltimoMovimientoFecha,
+    string? UltimoMovimientoPor);
+
+public sealed record DuplicadoSearch(string? RutFragment, string? NameFragment, Sede? Sede, int Skip, int? Take);
 
 /// <summary>Persistence port for the duplicate review queue.</summary>
 public interface IDuplicadoRepository
@@ -81,6 +100,8 @@ public interface IDuplicadoRepository
     Task<(IReadOnlyList<DuplicadoGrupoDto> Items, int Total)> SearchAsync(DuplicadoSearch search, CancellationToken ct = default);
 
     Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CarpetaDuplicadoDetalleDto>> GetDetalleCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default);
 
     Task<RevisionDuplicado?> GetRevisionAsync(Guid ciudadanoId, CancellationToken ct = default);
 

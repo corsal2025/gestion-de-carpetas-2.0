@@ -37,11 +37,9 @@ public sealed record ListarCarpetasQuery(
     string? CajaArchivo = null,
     bool? SinCaja = null,
     string? Comuna = null,
-    int Page = 1,
-    int PageSize = ListarCarpetasQuery.DefaultPageSize)
+    int Skip = 0,
+    int? Take = null)
 {
-    public const int DefaultPageSize = 25;
-    public const int MaxPageSize = 100;
 
     public ListarCarpetasQuery Normalized() => this with
     {
@@ -49,8 +47,8 @@ public sealed record ListarCarpetasQuery(
         TipoTramite = string.IsNullOrWhiteSpace(TipoTramite) ? null : TipoTramite.Trim(),
         CajaArchivo = string.IsNullOrWhiteSpace(CajaArchivo) ? null : CajaArchivo.Trim(),
         Comuna = string.IsNullOrWhiteSpace(Comuna) ? null : Comuna.Trim(),
-        Page = Math.Max(1, Page),
-        PageSize = Math.Clamp(PageSize, 1, MaxPageSize),
+        Skip = Math.Max(0, Skip),
+        Take = Take is { } t ? Math.Max(0, t) : null,
     };
 }
 
@@ -91,10 +89,8 @@ public sealed record CarpetaDetalleDto(
     IReadOnlyList<HistorialDto> Historial,
     ClaseLicencia Clases = ClaseLicencia.Ninguna);
 
-public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize)
-{
-    public int TotalPages => Total == 0 ? 1 : (int)Math.Ceiling(Total / (double)PageSize);
-}
+/// <summary>A contiguous range of a filtered list plus the total count of the whole filtered set.</summary>
+public sealed record ListResult<T>(IReadOnlyList<T> Items, int Total);
 
 public sealed record SedeMetricDto(
     Sede Sede,
@@ -127,4 +123,4 @@ public sealed record CarpetaSearch(
     bool? SinCaja,
     string? Comuna,
     int Skip,
-    int Take);
+    int? Take);

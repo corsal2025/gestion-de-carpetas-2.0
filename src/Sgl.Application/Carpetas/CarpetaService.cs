@@ -201,7 +201,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             c.Clases);
     }
 
-    public async Task<PagedResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
+    public async Task<ListResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         var q = query.Normalized();
@@ -217,10 +217,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             q.CajaArchivo,
             q.SinCaja,
             q.Comuna,
-            (q.Page - 1) * q.PageSize,
-            q.PageSize);
+            q.Skip,
+            q.Take);
         var (items, total) = await repository.SearchAsync(search, ct);
-        return new PagedResult<CarpetaResumenDto>(items, total, q.Page, q.PageSize);
+        return new ListResult<CarpetaResumenDto>(items, total);
     }
 
     public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>

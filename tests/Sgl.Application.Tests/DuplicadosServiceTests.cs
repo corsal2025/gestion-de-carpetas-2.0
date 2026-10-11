@@ -61,18 +61,18 @@ public sealed class DuplicadosServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Listar_is_paginated_server_side()
+    public async Task Listar_returns_requested_range_server_side()
     {
         await Registrar(RutA);
         await Registrar(RutA);
         await Registrar(RutB);
         await Registrar(RutB);
 
-        var page = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery(Page: 2, PageSize: 1));
+        var page = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery(Skip: 1, Take: 1));
 
         Assert.Equal(2, page.Total);
         Assert.Single(page.Items);
-        Assert.Equal(2, page.TotalPages);
+        Assert.Equal(2, (await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery())).Items.Count);
     }
 
     [Fact]
@@ -139,5 +139,26 @@ public sealed class DuplicadosServiceTests : IDisposable
 
         Assert.Contains(entity.GetIndexes(), i =>
             i.Properties.Select(p => p.Name).SequenceEqual([nameof(Carpeta.CiudadanoId), nameof(Carpeta.Decision)]));
+    }
+
+    [Fact]
+    public async Task ObtenerDetalle_returns_rich_info_per_open_carpeta_including_last_movement()
+    {
+        var conCaja = await Registrar(RutA);
+        await Registrar(RutA, Sede.Placilla);
+        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(conCaja, "CAJA 7", "beto"));
+        var row = Assert.Single((await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery())).Items);
+
+        var detalle = await _db.NewDuplicadosService().ObtenerDetalleCarpetasAsync(row.CiudadanoId);
+
+        Assert.Equal(2, detalle.Count);
+        var d = Assert.Single(detalle, x => x.Id == conCaja);
+        Assert.Equal("CAJA 7", d.CajaArchivo);
+        Assert.Equal(Decision.Pendiente, d.Decision);
+        Assert.Equal("beto", d.UltimoMovimientoPor);
+        Assert.NotNull(d.UltimoMovimientoFecha);
+        Assert.False(d.PendienteBusqueda);
+        Assert.Null(d.PendienteBusquedaDesde);
+        Assert.Contains(detalle, x => x.Sede == Sede.Placilla && x.CajaArchivo is null);
     }
 }

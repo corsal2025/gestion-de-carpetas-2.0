@@ -246,14 +246,14 @@
     </div>
 
     <!-- Grilla de resultados con máxima legibilidad -->
-    @if (resultado is null)
+    @if (total is null)
     {
         <div class="loading-state">
             <div class="spinner"></div>
             <p>Cargando carpetas operativas…</p>
         </div>
     }
-    else if (resultado.Total == 0)
+    else if (total == 0)
     {
         <div class="empty-state">
             <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
@@ -268,7 +268,7 @@
                 <thead>
                     <tr>
                         <th class="th-check col-sticky-check">
-                            <input type="checkbox" checked="@TodosSeleccionados" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta página" />
+                            <input type="checkbox" checked="@TodosSeleccionados" disabled="@seleccionandoTodas" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas que coinciden con los filtros" />
                         </th>
                         <th class="col-sticky-rut">RUT</th>
                         <th class="col-sticky-nombre">NOMBRE COMPLETO DEL CIUDADANO</th>
@@ -285,8 +285,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var c in resultado.Items)
-                    {
+                    <Virtualize @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
+                                ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
+                        <ItemContent>
+                        @{
                         var isSelected = seleccionadas.Contains(c.Id);
                         var estadoClass = Labels.EstadoRowCss(c.Estado);
                         var isSaving = guardandoId == c.Id;
@@ -294,7 +296,7 @@
                         <tr class="@estadoClass @(isSelected ? "row-selected" : "") @(isSaving ? "fila-guardando" : "") @(isSaved ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
                             @ondblclick="() => AbrirDrawerAsync(c.Id)">
                             <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
-                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c.Id)" />
+                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" />
                             </td>
                             <td class="col-sticky-rut" @ondblclick:stopPropagation>
                                 <div class="rut-wrapper-cell">
@@ -434,36 +436,22 @@
                                 </button>
                             </td>
                         </tr>
-                    }
+                        }
+                        </ItemContent>
+                        <Placeholder>
+                            <tr class="fila-placeholder"><td colspan="13">&nbsp;</td></tr>
+                        </Placeholder>
+                    </Virtualize>
                 </tbody>
             </table>
         </div>
 
-        <!-- Barra de paginación e información al final de la hoja -->
-        <button type="button" class="btn-panel-toggle btn-bottom-toggle @(mostrarBarraInferior ? "open" : "")" @onclick="() => mostrarBarraInferior = !mostrarBarraInferior" aria-expanded="@(mostrarBarraInferior ? "true" : "false")" title="Mostrar u ocultar paginación e información">
-            <span>@(mostrarBarraInferior ? "Ocultar paginación" : "Mostrar paginación")</span>
-            @if (!mostrarBarraInferior)
-            {
-                <span class="panel-toggle-resumen">@(((page - 1) * pageSize) + 1)-@(Math.Min(page * pageSize, resultado.Total)) DE @resultado.Total.ToString("N0")</span>
-            }
-        </button>
-        @if (mostrarBarraInferior)
-        {
+        <!-- Total de registros (lista continua, sin paginación) -->
         <div class="table-bottom-bar">
             <div class="table-bottom-info">
-                Mostrando <strong>@(((page - 1) * pageSize) + 1)</strong> - <strong>@(Math.Min(page * pageSize, resultado.Total))</strong> de <strong>@resultado.Total.ToString("N0")</strong> carpetas
-            </div>
-            <div class="page-size-selector">
-                <label>Carpetas por página:
-                    <select @bind="pageSize" @bind:after="CambiarTamanoPagina">
-                        <option value="25">25 carpetas</option>
-                        <option value="50">50 carpetas</option>
-                        <option value="100">100 carpetas</option>
-                    </select>
-                </label>
+                <strong>@total.Value.ToString("N0", CulturaCl)</strong> carpetas
             </div>
         </div>
-        }
 
 
 
@@ -835,7 +823,12 @@
     private const string TramiteDomicilio = "CAMBIO DOM. SUBIDO A CONASET";
     private const string TramiteF8 = "SUBIDA CON F8";
 
-    private PagedResult<CarpetaResumenDto>? resultado;
+    private static readonly System.Globalization.CultureInfo CulturaCl = new("es-CL");
+    private const float FilaAlturaEstimada = 44f;
+
+    private int? total;
+    private Virtualize<CarpetaResumenDto>? virtualizador;
+    private bool seleccionandoTodas;
     private EstadisticasGlobalesDto? stats;
     private IReadOnlyList<CajaResumenDto> cajasDisponibles = [];
     private Sede? filtroSede;
@@ -844,16 +837,13 @@
     private bool? filtroSinCaja;
     private EstadoCarpeta? filtroEstado;
     private string? texto;
-    private int page = 1;
-    private int pageSize = 25;
-    private int saltoPagina = 1;
 
     // Selección múltiple para almacenamiento y PDF por Sector
     private readonly HashSet<Guid> seleccionadas = [];
     private readonly Dictionary<Guid, CarpetaResumenDto> itemsSeleccionadosMap = new();
 
     private bool TodosSeleccionados =>
-        resultado is not null && resultado.Items.Count > 0 && resultado.Items.All(i => seleccionadas.Contains(i.Id));
+        total is > 0 && seleccionadas.Count >= total.Value;
 
     private int conteoArchivoSeleccionadas =>
         itemsSeleccionadosMap.Values.Count(c => CalcularSector(c.FechaUltimaCarpeta) == "ARCHIVO");
@@ -870,7 +860,6 @@
     // Panel de filtros replegable
     private bool mostrarFiltros = false;
     private bool mostrarPanelSuperior = true;
-    private bool mostrarBarraInferior = true;
     private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
 
     private int FiltrosActivosCount
@@ -886,10 +875,32 @@
         }
     }
 
+    /// <summary>Permite enlazar desde otros módulos (p. ej. Posibles Duplicados) a una carpeta concreta.</summary>
+    [SupplyParameterFromQuery(Name = "abrir")]
+    public Guid? AbrirCarpetaId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await CargarMetricasAsync();
+        var abrir = false;
+        if (AbrirCarpetaId is { } id)
+        {
+            try
+            {
+                texto = (await Carpetas.ObtenerAsync(id)).Rut;
+                abrir = true;
+            }
+            catch (NotFoundException)
+            {
+                texto = null;
+            }
+        }
+
         await CargarAsync();
+        if (abrir)
+        {
+            await AbrirDrawerAsync(AbrirCarpetaId!.Value);
+        }
     }
 
     private async Task CargarMetricasAsync()
@@ -904,7 +915,6 @@
     private async Task SeleccionarSede(Sede? s)
     {
         filtroSede = s;
-        page = 1;
         CancelarSeleccion();
         await CargarAsync();
     }
@@ -912,7 +922,6 @@
     private async Task SeleccionarTramite(string? tramite)
     {
         filtroTramite = tramite;
-        page = 1;
         CancelarSeleccion();
         await CargarAsync();
     }
@@ -921,7 +930,6 @@
     {
         filtroSinCaja = sinCaja;
         filtroCaja = null;
-        page = 1;
         CancelarSeleccion();
         await CargarAsync();
     }
@@ -948,108 +956,95 @@
         filtroSinCaja = null;
         filtroEstado = null;
         texto = null;
-        page = 1;
         CancelarSeleccion();
         await CargarAsync();
     }
 
     private Task BuscarAsync()
     {
-        page = 1;
         CancelarSeleccion();
         return CargarAsync();
     }
 
-    private Task IrAsync(int nuevaPagina)
-    {
-        page = nuevaPagina;
-        CancelarSeleccion();
-        return CargarAsync();
-    }
+    private ListarCarpetasQuery ConsultaActual(int skip = 0, int? take = null) => new(
+        Texto: texto,
+        Sede: filtroSede,
+        Estado: filtroEstado,
+        TipoTramite: filtroTramite,
+        CajaArchivo: filtroCaja,
+        SinCaja: filtroSinCaja,
+        Skip: skip,
+        Take: take);
 
+    /// <summary>Recalcula el total con los filtros actuales y refresca las filas visibles del virtualizador.</summary>
     private async Task CargarAsync()
     {
-        saltoPagina = page;
-        var query = new ListarCarpetasQuery(
-            Texto: texto,
-            Sede: filtroSede,
-            Estado: filtroEstado,
-            TipoTramite: filtroTramite,
-            CajaArchivo: filtroCaja,
-            SinCaja: filtroSinCaja,
-            Page: page,
-            PageSize: pageSize);
-
-        resultado = await Carpetas.ListarAsync(query);
-        if (resultado is not null)
+        var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
+        var antes = total;
+        total = conteo.Total;
+        if (virtualizador is not null && antes is > 0 && total > 0)
         {
-            foreach (var item in resultado.Items)
+            await virtualizador.RefreshDataAsync();
+        }
+        StateHasChanged();
+    }
+
+    private async ValueTask<ItemsProviderResult<CarpetaResumenDto>> CargarFilasAsync(ItemsProviderRequest request)
+    {
+        var rango = await Carpetas.ListarAsync(ConsultaActual(request.StartIndex, request.Count), request.CancellationToken);
+        foreach (var item in rango.Items)
+        {
+            if (seleccionadas.Contains(item.Id))
             {
-                if (seleccionadas.Contains(item.Id))
-                {
-                    itemsSeleccionadosMap[item.Id] = item;
-                }
+                itemsSeleccionadosMap[item.Id] = item;
             }
         }
-    }
 
-    private async Task CambiarTamanoPagina()
-    {
-        page = 1;
-        await CargarAsync();
-    }
-
-    private async Task OnSaltoKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key is "Enter")
+        if (total != rango.Total)
         {
-            await SaltarAPagina();
+            total = rango.Total;
+            _ = InvokeAsync(StateHasChanged);
         }
+
+        return new ItemsProviderResult<CarpetaResumenDto>(rango.Items, rango.Total);
     }
 
-    private async Task SaltarAPagina()
+    private void ToggleSelect(CarpetaResumenDto item)
     {
-        if (resultado is null) return;
-        var destino = Math.Clamp(saltoPagina, 1, resultado.TotalPages);
-        await IrAsync(destino);
-    }
-
-    private void ToggleSelect(Guid id)
-    {
-        if (!seleccionadas.Add(id))
+        if (!seleccionadas.Add(item.Id))
         {
-            seleccionadas.Remove(id);
-            itemsSeleccionadosMap.Remove(id);
+            seleccionadas.Remove(item.Id);
+            itemsSeleccionadosMap.Remove(item.Id);
         }
         else
         {
-            var item = resultado?.Items.FirstOrDefault(i => i.Id == id);
-            if (item is not null)
-            {
-                itemsSeleccionadosMap[id] = item;
-            }
+            itemsSeleccionadosMap[item.Id] = item;
         }
     }
 
-    private void ToggleSelectAll(ChangeEventArgs e)
+    /// <summary>Marca todas las carpetas que cumplen los filtros (no solo las filas renderizadas).</summary>
+    private async Task ToggleSelectAll(ChangeEventArgs e)
     {
-        if (resultado is null) return;
         var check = (bool)(e.Value ?? false);
-        if (check)
+        if (!check)
         {
-            foreach (var item in resultado.Items)
+            CancelarSeleccion();
+            return;
+        }
+
+        seleccionandoTodas = true;
+        try
+        {
+            var todas = await Carpetas.ListarAsync(ConsultaActual());
+            foreach (var item in todas.Items)
             {
                 seleccionadas.Add(item.Id);
                 itemsSeleccionadosMap[item.Id] = item;
             }
         }
-        else
+        finally
         {
-            foreach (var item in resultado.Items)
-            {
-                seleccionadas.Remove(item.Id);
-                itemsSeleccionadosMap.Remove(item.Id);
-            }
+            seleccionandoTodas = false;
         }
     }
 
@@ -1573,20 +1568,7 @@
         "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
     ];
 
-    private static string CalcularSector(string? fechaStr)
-    {
-        if (string.IsNullOrWhiteSpace(fechaStr)) return "—";
-
-        if (DateOnly.TryParse(fechaStr, CultureInfo.InvariantCulture, out var d)
-            || DateOnly.TryParse(fechaStr, CultureInfo.GetCultureInfo("es-CL"), out d)
-            || DateOnly.TryParse(fechaStr, out d)
-            || SpanishDateTryParse(fechaStr, out d))
-        {
-            return d < CutoffSectorJulio2023 ? "ARCHIVO" : "OFICINA 43";
-        }
-
-        return "—";
-    }
+    private static string CalcularSector(string? fechaStr) => SectorFisico.Calcular(fechaStr);
 
     private static string FormatearFechaFormal(string? fechaStr)
     {

@@ -45,16 +45,18 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
         }
 
         var total = await query.CountAsync(ct);
-        if (search.Take <= 0)
+        if (search.Take is 0)
         {
             return ([], total);
         }
 
-        var rows = await query
+        var ordered = query
             .OrderBy(x => x.Apellido)
             .ThenBy(x => x.Nombre)
-            .Skip(search.Skip)
-            .Take(search.Take)
+            .ThenBy(x => x.CiudadanoId)
+            .Skip(search.Skip);
+        var limited = search.Take is { } take ? ordered.Take(take) : ordered;
+        var rows = await limited
             .Select(x => new { Id = x.CiudadanoId, x.Rut, x.Nombre, x.Apellido, Abiertas = x.Cantidad })
             .ToListAsync(ct);
 
@@ -70,6 +72,35 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
 
     public Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default) =>
         CarpetasAbiertasQuery.ForCiudadanoAsync(db, ciudadanoId, ct);
+
+    /// <summary>One round-trip: open carpetas plus their latest movement and pending-search start from the audit trail.</summary>
+    public async Task<IReadOnlyList<CarpetaDuplicadoDetalleDto>> GetDetalleCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default) =>
+        await db.Carpetas
+            .AsNoTracking()
+            .Where(c => c.CiudadanoId == ciudadanoId && c.Decision == Decision.Pendiente)
+            .OrderByDescending(c => c.FechaCitacion)
+            .Select(c => new CarpetaDuplicadoDetalleDto(
+                c.Id,
+                c.Sede,
+                c.FechaCitacion,
+                c.FechaSubida,
+                c.Estado,
+                c.Decision,
+                c.Clases,
+                c.TipoTramite,
+                c.FechaUltimaCarpeta,
+                c.CajaArchivo,
+                c.PendienteBusqueda,
+                db.Historial
+                    .Where(h => h.CarpetaId == c.Id && h.Campo == nameof(Carpeta.PendienteBusqueda) && h.Nuevo == "Si")
+                    .Max(h => (DateTime?)h.Fecha),
+                c.IdoneidadMoral,
+                c.Comuna,
+                db.Historial.Where(h => h.CarpetaId == c.Id).Max(h => (DateTime?)h.Fecha),
+                db.Historial.Where(h => h.CarpetaId == c.Id)
+                    .OrderByDescending(h => h.Fecha).ThenByDescending(h => h.Id)
+                    .Select(h => h.Usuario).FirstOrDefault()))
+            .ToListAsync(ct);
 
     public Task<RevisionDuplicado?> GetRevisionAsync(Guid ciudadanoId, CancellationToken ct = default) =>
         db.RevisionesDuplicado.SingleOrDefaultAsync(r => r.CiudadanoId == ciudadanoId, ct);

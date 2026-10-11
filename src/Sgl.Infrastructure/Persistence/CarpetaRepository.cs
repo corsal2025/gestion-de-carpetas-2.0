@@ -89,11 +89,19 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         }
 
         var total = await query.CountAsync(ct);
-        var rows = await query
+        if (search.Take is 0)
+        {
+            return ([], total);
+        }
+
+        // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
+        var ordered = query
             .OrderByDescending(c => c.FechaCitacion)
             .ThenBy(c => c.Ciudadano.Apellido)
-            .Skip(search.Skip)
-            .Take(search.Take)
+            .ThenBy(c => c.Id)
+            .Skip(search.Skip);
+        var limited = search.Take is { } take ? ordered.Take(take) : ordered;
+        var rows = await limited
             .Select(c => new
             {
                 c.Id,

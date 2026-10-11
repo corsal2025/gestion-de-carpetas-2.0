@@ -298,10 +298,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @{ var nro = 0; }
-                                @foreach (var c in carpetasCola)
-                                {
-                                    nro++;
+                                <Virtualize TItem="FilaCola" Context="fila" Items="filasCola" ItemSize="44" OverscanCount="15" SpacerElement="tr">
+                                @{
+                                    var c = fila.Carpeta;
+                                    var nro = fila.Numero;
                                     var sel = colaSeleccionadas.Contains(c.Id);
                                     <tr class="@(sel ? "row-selected" : "")">
                                         <td class="td-check">
@@ -320,6 +320,7 @@
                                         </td>
                                     </tr>
                                 }
+                                </Virtualize>
                             </tbody>
                         </table>
                     </div>
@@ -343,6 +344,10 @@
     private IReadOnlyList<CajaResumenDto>? cajas;
     private IReadOnlyList<CarpetaResumenDto>? carpetasDeCaja;
     private IReadOnlyList<CarpetaResumenDto>? carpetasCola;
+    private List<FilaCola> filasCola = [];
+
+    /// <summary>Fila de la cola con su correlativo, para la lista continua virtualizada.</summary>
+    private sealed record FilaCola(int Numero, CarpetaResumenDto Carpeta);
     private int totalSinCaja;
     private readonly HashSet<Guid> colaSeleccionadas = [];
 
@@ -352,7 +357,7 @@
             : (cajas ?? []).Where(c => c.Caja.Contains(filtroCajaTexto, StringComparison.OrdinalIgnoreCase)).ToList();
 
     private bool TodosColaSeleccionados =>
-        carpetasCola is not null && carpetasCola.Count > 0 && carpetasCola.All(c => colaSeleccionadas.Contains(c.Id));
+        carpetasCola is not null && carpetasCola.Count > 0 && colaSeleccionadas.Count >= carpetasCola.Count;
 
     protected override async Task OnInitializedAsync()
     {
@@ -368,18 +373,20 @@
         cajas = await Carpetas.ObtenerCajasAsync();
 
         // Primero las enviadas explícitamente a cola de caja, luego las que no tienen caja
-        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja", PageSize: 100));
-        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true, PageSize: 100));
+        // Sin paginación: se cargan todas y la tabla las virtualiza.
+        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja"));
+        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true));
 
-        var listaCombinada = new List<CarpetaResumenDto>();
-        listaCombinada.AddRange(resEnCola.Items);
-        foreach (var item in resSinCaja.Items)
+        var vistos = new HashSet<Guid>();
+        var listaCombinada = new List<CarpetaResumenDto>(resEnCola.Items.Count + resSinCaja.Items.Count);
+        foreach (var item in resEnCola.Items.Concat(resSinCaja.Items))
         {
-            if (!listaCombinada.Any(x => x.Id == item.Id))
+            if (vistos.Add(item.Id))
                 listaCombinada.Add(item);
         }
 
         carpetasCola = listaCombinada;
+        filasCola = listaCombinada.Select((c, i) => new FilaCola(i + 1, c)).ToList();
         totalSinCaja = resEnCola.Total + resSinCaja.Total;
 
         if (string.IsNullOrWhiteSpace(nuevoRotuloCaja))
