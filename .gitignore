@@ -29,3 +29,4 @@ appsettings.Local.json
 .atl/
 scripts/migrate_estados.py
 scripts/update_listado.py
+.playwright-mcp/

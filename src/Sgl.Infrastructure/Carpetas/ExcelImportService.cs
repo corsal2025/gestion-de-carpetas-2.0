@@ -1,6 +1,9 @@
 using System.Globalization;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Sgl.Domain;
 using Sgl.Infrastructure.Persistence;
 
@@ -15,11 +18,51 @@ public sealed record ExcelImportResult(
     IReadOnlyList<string> Errores
 );
 
-public sealed class ExcelImportService(SglDbContext db, TimeProvider clock)
+public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger)
 {
     public async Task<ExcelImportResult> ImportarExcelAsync(Stream stream, string autor, CancellationToken ct = default)
     {
-        using var workbook = new XLWorkbook(stream);
+        try
+        {
+            using var sanitized = await QuitarValidacionesDeDatosAsync(stream, ct);
+            using var workbook = new XLWorkbook(sanitized);
+            return await ImportarWorkbookAsync(workbook, autor, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Excel import failed for author {Autor}", autor);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// ClosedXML rejects data validations whose formula exceeds 255 chars (Excel itself allows them in lists
+    /// referencing long inline values). The importer never uses validations, so they are stripped via the
+    /// OpenXML SDK before ClosedXML loads the workbook.
+    /// </summary>
+    private static async Task<MemoryStream> QuitarValidacionesDeDatosAsync(Stream source, CancellationToken ct)
+    {
+        var copy = new MemoryStream();
+        await source.CopyToAsync(copy, ct);
+        copy.Position = 0;
+
+        using (var doc = SpreadsheetDocument.Open(copy, true))
+        {
+            foreach (var wsPart in doc.WorkbookPart?.WorksheetParts ?? [])
+            {
+                var validations = wsPart.Worksheet.Elements<DataValidations>().ToList();
+                if (validations.Count == 0) continue;
+                validations.ForEach(v => v.Remove());
+                wsPart.Worksheet.Save();
+            }
+        }
+
+        copy.Position = 0;
+        return copy;
+    }
+
+    private async Task<ExcelImportResult> ImportarWorkbookAsync(XLWorkbook workbook, string autor, CancellationToken ct)
+    {
         var now = clock.GetUtcNow().UtcDateTime;
         var usuario = string.IsNullOrWhiteSpace(autor) ? "IMPORTACION_EXCEL" : autor.Trim().ToUpperInvariant();
 
@@ -146,9 +189,11 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock)
 
                     if (carpetaExistente is null)
                     {
+                        var ciudadano = await db.Ciudadanos.FindAsync([ciudadanoId], ct)
+                            ?? throw new InvalidOperationException("Ciudadano no encontrado para la carpeta importada.");
                         var nuevaCarpeta = Carpeta.CrearImportada(
                             Guid.NewGuid(),
-                            null!,
+                            ciudadano,
                             sede,
                             fechaCitacion,
                             fechaSubida,
@@ -161,8 +206,6 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock)
                             comuna,
                             now
                         );
-                        // Asignar CiudadanoId directamente para evitar tracking issues
-                        typeof(Carpeta).GetProperty(nameof(Carpeta.CiudadanoId))!.SetValue(nuevaCarpeta, ciudadanoId);
                         db.Carpetas.Add(nuevaCarpeta);
                         carpetasCreadas++;
                     }
