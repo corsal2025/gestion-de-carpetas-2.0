@@ -1,7 +1,7 @@
-@* Pending duplicate cases counter for the main navigation. Uses its own DI scope so it never
-   shares the page's DbContext (Blazor Server keeps one scope per circuit). *@
+@* Pending duplicate cases counter for the main navigation. Loaded after the first render
+   (never blocks page rendering) from a short-lived app-wide cache. *@
 @implements IDisposable
-@inject IServiceScopeFactory ScopeFactory
+@inject DuplicadosBadgeCache Cache
 @inject DuplicadosNotifier Notifier
 @inject NavigationManager Nav
 @inject ILogger<DuplicadosBadge> Logger
@@ -13,32 +13,44 @@
 
 @code {
     private int pendientes;
+    private readonly CancellationTokenSource cts = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Notifier.Changed += OnChanged;
         Nav.LocationChanged += OnLocationChanged;
-        await RefrescarAsync();
     }
 
-    private void OnChanged() => _ = InvokeAsync(RefrescarYRenderizarAsync);
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ = RefrescarAsync();
+        }
+    }
+
+    private void OnChanged()
+    {
+        Cache.Invalidar();
+        _ = RefrescarAsync();
+    }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
-        _ = InvokeAsync(RefrescarYRenderizarAsync);
-
-    private async Task RefrescarYRenderizarAsync()
-    {
-        await RefrescarAsync();
-        StateHasChanged();
-    }
+        _ = RefrescarAsync();
 
     private async Task RefrescarAsync()
     {
         try
         {
-            await using var scope = ScopeFactory.CreateAsyncScope();
-            var service = scope.ServiceProvider.GetRequiredService<DuplicadosService>();
-            pendientes = await service.ContarPendientesAsync();
+            var valor = await Cache.ObtenerAsync(cts.Token);
+            if (valor != pendientes)
+            {
+                pendientes = valor;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch (Exception ex)
         {
@@ -50,5 +62,7 @@
     {
         Notifier.Changed -= OnChanged;
         Nav.LocationChanged -= OnLocationChanged;
+        cts.Cancel();
+        cts.Dispose();
     }
 }

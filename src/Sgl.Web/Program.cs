@@ -15,6 +15,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSglInfrastructure(builder.Configuration);
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
+builder.Services.AddSingleton<DuplicadosBadgeCache>();
 
 var app = builder.Build();
 
