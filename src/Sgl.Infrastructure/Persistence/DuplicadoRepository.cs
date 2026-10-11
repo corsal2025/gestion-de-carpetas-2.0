@@ -14,28 +14,34 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
         DuplicadoSearch search, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(search);
-        var abiertas = db.Carpetas.Where(c => c.Decision == Decision.Pendiente);
+        var abiertas = db.Carpetas.AsNoTracking().Where(c => c.Decision == Decision.Pendiente);
 
-        var query = db.Ciudadanos
-            .AsNoTracking()
-            .Where(ci => abiertas.Count(c => c.CiudadanoId == ci.Id) > 1)
-            .Where(ci => !db.RevisionesDuplicado.Any(r =>
-                r.CiudadanoId == ci.Id
-                && !abiertas.Any(c => c.CiudadanoId == ci.Id && c.FechaRegistro > r.RevisadoEn)));
+        // Single GROUP BY CiudadanoId HAVING COUNT(*) > 1 over open carpetas; per-citizen lookups
+        // afterwards use IX_Carpetas_CiudadanoId_Decision.
+        var grupos = abiertas
+            .GroupBy(c => c.CiudadanoId)
+            .Where(g => g.Count() > 1)
+            .Select(g => new { CiudadanoId = g.Key, Cantidad = g.Count(), UltimoRegistro = g.Max(c => c.FechaRegistro) });
+
+        var query =
+            from g in grupos
+            join ci in db.Ciudadanos.AsNoTracking() on g.CiudadanoId equals ci.Id
+            where !db.RevisionesDuplicado.Any(r => r.CiudadanoId == g.CiudadanoId && r.RevisadoEn >= g.UltimoRegistro)
+            select new { g.CiudadanoId, g.Cantidad, Rut = ci.Rut.Value, ci.Nombre, ci.Apellido, ci.NombreBusqueda };
 
         if (search.Sede is { } sede)
         {
-            query = query.Where(ci => abiertas.Any(c => c.CiudadanoId == ci.Id && c.Sede == sede));
+            query = query.Where(x => abiertas.Any(c => c.CiudadanoId == x.CiudadanoId && c.Sede == sede));
         }
 
         if (search.RutFragment is { } rut)
         {
-            query = query.Where(ci => ci.Rut.Value.Contains(rut));
+            query = query.Where(x => x.Rut.Contains(rut));
         }
 
         if (search.NameFragment is { } name)
         {
-            query = query.Where(ci => ci.NombreBusqueda.Contains(name));
+            query = query.Where(x => x.NombreBusqueda.Contains(name));
         }
 
         var total = await query.CountAsync(ct);
@@ -45,18 +51,11 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
         }
 
         var rows = await query
-            .OrderBy(ci => ci.Apellido)
-            .ThenBy(ci => ci.Nombre)
+            .OrderBy(x => x.Apellido)
+            .ThenBy(x => x.Nombre)
             .Skip(search.Skip)
             .Take(search.Take)
-            .Select(ci => new
-            {
-                ci.Id,
-                Rut = ci.Rut.Value,
-                ci.Nombre,
-                ci.Apellido,
-                Abiertas = abiertas.Count(c => c.CiudadanoId == ci.Id),
-            })
+            .Select(x => new { Id = x.CiudadanoId, x.Rut, x.Nombre, x.Apellido, Abiertas = x.Cantidad })
             .ToListAsync(ct);
 
         var items = rows

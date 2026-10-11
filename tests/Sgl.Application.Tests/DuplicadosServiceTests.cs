@@ -130,4 +130,14 @@ public sealed class DuplicadosServiceTests : IDisposable
         await Assert.ThrowsAsync<DomainException>(() =>
             _db.NewDuplicadosService().MarcarRevisadoAsync(Guid.NewGuid(), " "));
     }
+
+    [Fact]
+    public void Carpetas_have_composite_index_for_open_carpetas_by_citizen()
+    {
+        using var ctx = _db.NewContext();
+        var entity = ctx.Model.FindEntityType(typeof(Carpeta))!;
+
+        Assert.Contains(entity.GetIndexes(), i =>
+            i.Properties.Select(p => p.Name).SequenceEqual([nameof(Carpeta.CiudadanoId), nameof(Carpeta.Decision)]));
+    }
 }

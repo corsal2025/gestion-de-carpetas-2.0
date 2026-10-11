@@ -50,7 +50,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.PendienteBusqueda).HasDefaultValue(false);
             b.Property(c => c.Clases).HasColumnName("ClasesLicencia").HasDefaultValue(ClaseLicencia.Ninguna);
             b.Property(c => c.FechaRegistro);
-            b.HasIndex(c => c.Decision);
+            b.HasIndex(c => new { c.CiudadanoId, c.Decision });
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.HasIndex(c => c.Sede);

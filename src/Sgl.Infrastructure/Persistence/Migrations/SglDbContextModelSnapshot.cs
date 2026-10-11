@@ -86,17 +86,15 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CajaArchivo");
 
-                    b.HasIndex("CiudadanoId");
-
                     b.HasIndex("Comuna");
-
-                    b.HasIndex("Decision");
 
                     b.HasIndex("Estado");
 
                     b.HasIndex("Sede");
 
                     b.HasIndex("TipoTramite");
+
+                    b.HasIndex("CiudadanoId", "Decision");
 
                     b.ToTable("Carpetas", (string)null);
                 });
