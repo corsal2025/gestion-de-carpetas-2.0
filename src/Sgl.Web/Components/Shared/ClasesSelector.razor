@@ -1,0 +1,32 @@
+@* Multi-select of Chilean license classes as toggle chips. *@
+<div class="clases-selector" role="group" aria-label="@AriaLabel">
+    @foreach (var c in ClasesLicencia.Todas)
+    {
+        var activa = Value.HasFlag(c);
+        <label class="clase-chip @(activa ? "on" : null)">
+            <input type="checkbox" checked="@activa" disabled="@Disabled"
+                   @onchange="e => ToggleAsync(c, e.Value is true)" />
+            @c
+        </label>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ClaseLicencia Value { get; set; }
+
+    [Parameter]
+    public EventCallback<ClaseLicencia> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string AriaLabel { get; set; } = "Clase de licencia";
+
+    private Task ToggleAsync(ClaseLicencia clase, bool activa)
+    {
+        var nuevo = activa ? Value | clase : Value & ~clase;
+        return ValueChanged.InvokeAsync(nuevo);
+    }
+}

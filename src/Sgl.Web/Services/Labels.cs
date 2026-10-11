@@ -90,8 +90,12 @@ public static class Labels
         "FechaCitacion" => "FECHA DE CITACIÓN",
         "FechaSubida" => "FECHA DE SUBIDA",
         "IdoneidadMoral" => "IDONEIDAD MORAL",
+        "ClaseLicencia" => "CLASE DE LICENCIA",
         _ => campo.ToUpperInvariant(),
     };
+
+    public static string Of(ClaseLicencia clases) =>
+        clases == ClaseLicencia.Ninguna ? "SIN CLASE" : ClasesLicencia.Format(clases);
 
     public static string Css(EstadoCarpeta estado) => estado switch
     {

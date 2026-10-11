@@ -72,6 +72,10 @@ else
                 </label>
                 <label>Fecha de citación <input type="date" @bind="edit.FechaCitacion" /></label>
                 <label>Fecha de subida <input type="date" @bind="edit.FechaSubida" /></label>
+                <div class="field">
+                    <span>Clase de licencia</span>
+                    <ClasesSelector @bind-Value="editClases" />
+                </div>
                 <label>Caja / Archivo físico <input @bind="editCaja" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
                 <div class="info-block">
                     <p>Trámite / Tipo: <strong>@(string.IsNullOrEmpty(carpeta.TipoTramite) ? "—" : carpeta.TipoTramite)</strong></p>
@@ -113,6 +117,7 @@ else
     private EditModel edit = new();
     private string editRut = "";
     private string editCaja = "";
+    private ClaseLicencia editClases;
     private bool notFound;
     private string? error;
     private string? mensaje;
@@ -127,6 +132,7 @@ else
             nuevoEstado = null;
             editRut = carpeta.Rut;
             editCaja = carpeta.CajaArchivo ?? "";
+            editClases = carpeta.Clases;
             edit = new EditModel
             {
                 Sede = carpeta.Sede,
@@ -154,6 +160,10 @@ else
             if (editCaja != (carpeta?.CajaArchivo ?? ""))
             {
                 await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(Id, editCaja, Autor.Nombre));
+            }
+            if (editClases != carpeta?.Clases)
+            {
+                await Carpetas.AsignarClasesAsync(Id, editClases, Autor.Nombre);
             }
         }, "Cambios guardados.");
 

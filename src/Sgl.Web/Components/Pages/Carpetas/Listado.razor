@@ -3,6 +3,7 @@
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject IJSRuntime JS
+@inject DuplicadosNotifier DuplicadosNotifier
 
 <PageTitle>Gestión de Carpetas 2.0 · SGL</PageTitle>
 
@@ -190,8 +191,12 @@
                                     <label>Fecha Citación</label>
                                     <input type="date" @bind="nuevaFechaCitacion" />
                                 </div>
+                                <div class="quick-add-field quick-add-clases">
+                                    <label>Clase de licencia</label>
+                                    <ClasesSelector @bind-Value="nuevasClases" Disabled="guardandoNuevo" />
+                                </div>
                                 <div class="quick-add-field" style="justify-content: flex-end;">
-                                    <button class="btn-primary" @onclick="RegistrarCarpetaRapidaAsync" disabled="@(string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido) || guardandoNuevo)">
+                                    <button class="btn-primary" @onclick="() => RegistrarCarpetaRapidaAsync()" disabled="@(string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido) || guardandoNuevo)">
                                         @(guardandoNuevo ? "Guardando..." : "💾 Registrar Carpeta")
                                     </button>
                                 </div>
@@ -200,6 +205,7 @@
                             {
                                 <div class="alert error" role="alert" style="margin-top: 0.5rem; font-size: 0.85rem;">@errorNuevo</div>
                             }
+                            <AvisoDuplicado Verificacion="duplicadoNuevo" Ocupado="guardandoNuevo" OnConfirmar="() => RegistrarCarpetaRapidaAsync(confirmarDuplicado: true)" OnCancelar="() => duplicadoNuevo = null" />
                         </div>
                     }
                 </div>
@@ -1320,10 +1326,12 @@
     private string nuevoApellido = "";
     private Sede nuevaSede = Sede.AvArgentina;
     private DateOnly nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
+    private ClaseLicencia nuevasClases;
     private bool guardandoNuevo;
     private string? errorNuevo;
+    private VerificacionDuplicadoDto? duplicadoNuevo;
 
-    private async Task RegistrarCarpetaRapidaAsync()
+    private async Task RegistrarCarpetaRapidaAsync(bool confirmarDuplicado = false)
     {
         if (string.IsNullOrWhiteSpace(nuevoRut) || string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoApellido))
         {
@@ -1333,6 +1341,7 @@
 
         guardandoNuevo = true;
         errorNuevo = null;
+        duplicadoNuevo = null;
 
         try
         {
@@ -1343,9 +1352,13 @@
                 nuevoApellido.Trim(),
                 nuevaSede,
                 nuevaFechaCitacion,
-                autor));
+                autor,
+                nuevasClases,
+                confirmarDuplicado));
+            DuplicadosNotifier.Notify();
 
             nuevoRut = "";
+            nuevasClases = ClaseLicencia.Ninguna;
             nuevoNombre = "";
             nuevoApellido = "";
             nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
@@ -1365,6 +1378,10 @@
                     await InvokeAsync(StateHasChanged);
                 }
             });
+        }
+        catch (CarpetaDuplicadaException ex)
+        {
+            duplicadoNuevo = ex.Verificacion;
         }
         catch (Exception ex)
         {

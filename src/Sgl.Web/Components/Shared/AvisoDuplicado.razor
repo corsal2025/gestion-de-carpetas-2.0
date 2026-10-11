@@ -1,0 +1,52 @@
+@* Shows open carpetas that collide with a new registration. Blocking cases cannot be confirmed. *@
+@if (Verificacion is { } v && (v.Bloquea || v.RequiereConfirmacion))
+{
+    <div class="aviso-duplicado @(v.Bloquea ? "bloqueo" : "advertencia")" role="alert">
+        <p class="aviso-titulo">
+            @if (v.Bloquea)
+            {
+                <strong>No se puede registrar:</strong> <span>el ciudadano ya tiene una carpeta abierta con la misma clase de licencia.</span>
+            }
+            else
+            {
+                <strong>Atención:</strong> <span>el ciudadano ya tiene carpetas abiertas (sin clase o con otra clase). Revise antes de continuar.</span>
+            }
+        </p>
+        <table class="aviso-tabla">
+            <thead><tr><th>Sede</th><th>Fecha de citación</th><th>Estado</th><th>Clase</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var c in v.Bloqueantes.Concat(v.Advertencias))
+                {
+                    <tr class="@(v.Bloqueantes.Contains(c) ? "fila-bloqueo" : null)">
+                        <td>@Labels.Of(c.Sede)</td>
+                        <td>@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                        <td>@Labels.Of(c.Estado)</td>
+                        <td>@Labels.Of(c.Clases)</td>
+                        <td><a href="carpetas/@c.Id" target="_blank" rel="noopener">Ver carpeta</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="actions">
+            @if (!v.Bloquea)
+            {
+                <button type="button" @onclick="OnConfirmar" disabled="@Ocupado">Registrar de todos modos</button>
+            }
+            <button type="button" class="secondary" @onclick="OnCancelar">Cancelar</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public VerificacionDuplicadoDto? Verificacion { get; set; }
+
+    [Parameter]
+    public EventCallback OnConfirmar { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelar { get; set; }
+
+    [Parameter]
+    public bool Ocupado { get; set; }
+}
