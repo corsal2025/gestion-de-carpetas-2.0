@@ -1465,3 +1465,12 @@ html body .data-table .nombre-wrapper-cell { gap: .75rem; }
 /* Bandejas: columnas compactas; la columna Persona absorbe el espacio sobrante */
 html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { width: 1% !important; min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .9rem; padding-right: .9rem; }
 html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: auto !important; min-width: 260px !important; }
+
+/* Listado "Todas": RUT con ancho fijo real (contenido + botón) y Nombre anclado justo después (36 + 136) */
+html body .data-table th.col-sticky-rut, html body .data-table td.col-sticky-rut { width: 136px !important; min-width: 136px !important; max-width: 136px !important; }
+html body .data-table th.col-sticky-nombre, html body .data-table td.col-sticky-nombre { left: 172px !important; }
+
+/* Duplicados: columnas ajustadas al contenido; Nombre absorbe el sobrante */
+html body .dup-tabla th, html body .dup-tabla td { width: 1%; white-space: nowrap; }
+html body .dup-tabla th:nth-child(2), html body .dup-tabla td:nth-child(2) { width: auto; white-space: normal; min-width: 200px; }
+@media (max-width: 640px) { html body .dup-tabla th, html body .dup-tabla td { width: 100%; white-space: normal; } }
