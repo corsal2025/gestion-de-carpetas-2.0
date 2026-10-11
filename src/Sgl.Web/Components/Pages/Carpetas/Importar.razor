@@ -2,6 +2,7 @@
 @using Sgl.Application.Carpetas
 @using Sgl.Infrastructure.Carpetas
 @inject ExcelImportService ExcelImport
+@inject AgendaImportService AgendaImport
 @inject AutorState Autor
 @inject NavigationManager Nav
 
@@ -19,7 +20,8 @@
             1. Seleccionar o Arrastrar Archivo Excel (.xlsx)
         </h2>
         <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.25rem;">
-            El sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.
+            Se detecta automáticamente el formato: <strong>agenda diaria</strong> (Fecha Cita, Hora Inicio, RUT, Trámite, Ubicación… → carpetas <em>Por clasificar</em>) o <strong>planilla DETALLE</strong>.
+            En la planilla DETALLE el sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.
         </p>
 
         <div class="drop-zone" style="border: 2px dashed #93c5fd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; background: #f8fafc; transition: all 0.2s ease;">
@@ -49,6 +51,42 @@
             <div class="alert error imp-box imp-error" role="alert">
                 <span class="lico-slot lico-msg" data-lico="alerta" aria-hidden="true"></span>
                 <span>⚠️ <strong>Error al cargar archivo:</strong> @error</span>
+            </div>
+        }
+
+        @if (resultadoAgenda is not null)
+        {
+            <div class="imp-box imp-ok" role="status">
+                <h3>✅ Agenda del día importada</h3>
+                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Por clasificar</strong>. Email y teléfono no se guardan.</p>
+                <div class="imp-tiles">
+                    <div class="imp-tile"><span class="imp-tile-label">Filas leídas</span><strong class="imp-tile-num">@resultadoAgenda.FilasLeidas.ToString("N0")</strong></div>
+                    <div class="imp-tile"><span class="imp-tile-label">Carpetas creadas</span><strong class="imp-tile-num">+@resultadoAgenda.Creadas.ToString("N0")</strong></div>
+                    <div class="imp-tile"><span class="imp-tile-label">Ya existían</span><strong class="imp-tile-num">@resultadoAgenda.YaExistian.ToString("N0")</strong></div>
+                    <div class="imp-tile"><span class="imp-tile-label">Canceladas omitidas</span><strong class="imp-tile-num">@resultadoAgenda.CanceladasOmitidas.ToString("N0")</strong></div>
+                    <div class="imp-tile"><span class="imp-tile-label">RUT inválidos</span><strong class="imp-tile-num">@resultadoAgenda.FilasRutInvalido.Count.ToString("N0")</strong></div>
+                </div>
+                @if (resultadoAgenda.FilasRutInvalido.Count > 0)
+                {
+                    <p class="imp-sedes">⚠️ RUT inválido (no se creó carpeta) en filas: @string.Join(", ", resultadoAgenda.FilasRutInvalido)</p>
+                }
+                @if (resultadoAgenda.Errores.Count > 0)
+                {
+                    <div class="imp-obs">
+                        <span class="imp-obs-title">Filas no importadas:</span>
+                        <ul class="imp-obs-list">
+                            @foreach (var err in resultadoAgenda.Errores)
+                            {
+                                <li>@err</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <a href="carpetas?bandeja=PorClasificar" class="btn-primary" style="padding: 0.65rem 1.4rem; text-decoration: none; font-weight: 700;">
+                        🗂️ Ir a Por clasificar →
+                    </a>
+                </div>
             </div>
         }
 
@@ -158,12 +196,14 @@
     private bool cargando;
     private string? error;
     private ExcelImportResult? resultado;
+    private AgendaImportResult? resultadoAgenda;
 
     private async Task OnArchivoSeleccionado(InputFileChangeEventArgs e)
     {
         archivoSeleccionado = e.File;
         error = null;
         resultado = null;
+        resultadoAgenda = null;
 
         if (archivoSeleccionado is null) return;
 
@@ -179,7 +219,14 @@
             memoryStream.Position = 0;
 
             var autor = Autor.HasNombre ? Autor.Nombre! : "FUNCIONARIO";
-            resultado = await ExcelImport.ImportarExcelAsync(memoryStream, autor);
+            if (AgendaImportService.EsFormatoAgenda(memoryStream))
+            {
+                resultadoAgenda = await AgendaImport.ImportarAsync(memoryStream, autor);
+            }
+            else
+            {
+                resultado = await ExcelImport.ImportarExcelAsync(memoryStream, autor);
+            }
         }
         catch (Exception ex)
         {

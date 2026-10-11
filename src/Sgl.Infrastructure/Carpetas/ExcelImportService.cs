@@ -51,7 +51,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
     /// referencing long inline values). The importer never uses validations, so they are stripped via the
     /// OpenXML SDK before ClosedXML loads the workbook.
     /// </summary>
-    private static async Task<MemoryStream> QuitarValidacionesDeDatosAsync(Stream source, CancellationToken ct)
+    internal static async Task<MemoryStream> QuitarValidacionesDeDatosAsync(Stream source, CancellationToken ct)
     {
         var copy = new MemoryStream();
         await source.CopyToAsync(copy, ct);

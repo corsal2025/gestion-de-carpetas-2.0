@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<EstadisticasService>();
         services.AddSingleton(BindLicenciasOptions(configuration));
         services.AddScoped<ExcelImportService>();
+        services.AddScoped<AgendaImportService>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }

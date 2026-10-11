@@ -4244,3 +4244,8 @@ html[data-theme="dark"] .est-exportar, html[data-theme="dark"] .est-filtros .btn
     .est-grid { grid-template-columns: 1fr; }
     .est-barra-etq { width: 40%; }
 }
+
+/* Por clasificar: barra de clasificación en lote y celda de acción */
+.clasif-lote-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; font-size: 0.85rem; }
+.clasif-error { color: #dc2626; font-weight: 600; }
+.clasif-cell { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }

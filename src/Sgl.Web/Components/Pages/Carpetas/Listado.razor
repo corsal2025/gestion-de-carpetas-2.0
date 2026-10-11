@@ -470,6 +470,25 @@
         }
         else
         {
+        @if (bandejaActiva == Bandeja.PorClasificar)
+        {
+            <div class="clasif-lote-bar" role="region" aria-label="Clasificación en lote">
+                <span>@seleccionadas.Count seleccionadas</span>
+                <select class="excel-select" @bind="destinoLote" title="Estado a aplicar a las carpetas seleccionadas">
+                    <option value="">— Clasificar como… —</option>
+                    @foreach (var e in Labels.OpcionesClasificacion)
+                    {
+                        <option value="@e">@Labels.Of(e)</option>
+                    }
+                </select>
+                <button type="button" class="btn-primary" disabled="@(seleccionadas.Count == 0 || destinoLote is null || clasificando)"
+                        @onclick="ClasificarLoteAsync">Aplicar a @seleccionadas.Count</button>
+                @if (!string.IsNullOrEmpty(errorClasif))
+                {
+                    <span class="clasif-error" role="alert">@errorClasif</span>
+                }
+            </div>
+        }
         <div class="table-container @(!mostrarPanelSuperior ? "panel-colapsado" : (mostrarFiltros ? "standard-table" : "expanded-table"))">
             <table class="data-table bandeja-table">
                 <thead>
@@ -514,6 +533,53 @@
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                             @switch (bandejaActiva)
                             {
+                                case Bandeja.PorClasificar:
+                                    <td class="date-cell">@(c.HoraCita?.ToString("HH:mm") ?? "—") · @c.FechaCitacion.ToString("dd-MM")</td>
+                                    <td>
+                                        @if (c.TramiteAgenda is { } ta)
+                                        {
+                                            <span class="badge @(ta == TramiteAgenda.Renovacion ? "conaset" : "primera")">@Labels.Of(ta)</span>
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (c.TramitePrevio is { } tp)
+                                        {
+                                            <span class="badge info" title="Pista, no definitiva: puede haber trámites anteriores no registrados en el sistema.">@tp.Cantidad previo(s) · @Labels.Of(tp.UltimaSede) @tp.UltimaFecha.ToString("dd-MM-yyyy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span title="Pista, no definitiva: sin otras carpetas de este RUT en el sistema.">—</span>
+                                        }
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <input type="text" class="comuna-input-inline" placeholder="dd-mm-aaaa" value="@FechaClasif(c.Id)"
+                                               @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
+                                               title="@($"Fecha de última carpeta (opcional). Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <div class="clasif-cell">
+                                            <select class="excel-select" value="@(destinoClasif.GetValueOrDefault(c.Id)?.ToString() ?? "")"
+                                                    @onchange="(e) => SeleccionarDestino(c.Id, e)">
+                                                <option value="">— Clasificar —</option>
+                                                @foreach (var e in Labels.OpcionesClasificacion)
+                                                {
+                                                    <option value="@e">@Labels.Of(e)</option>
+                                                }
+                                            </select>
+                                            @if (destinoClasif.GetValueOrDefault(c.Id) is { } dSel && Carpeta.EsCambioDomicilio(dSel))
+                                            {
+                                                <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
+                                                       value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
+                                            }
+                                            <button type="button" class="btn-action-caja" disabled="@(destinoClasif.GetValueOrDefault(c.Id) is null || clasificando)"
+                                                    @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
+                                        </div>
+                                    </td>
+                                    break;
                                 case Bandeja.PorPreparar:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
@@ -557,7 +623,7 @@
                                 {
                                     <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
                                 }
-                                else if (bandejaActiva != Bandeja.Archivadas && string.IsNullOrEmpty(c.CajaArchivo))
+                                else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
                                 {
                                     <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
                                 }
@@ -992,13 +1058,14 @@
     // ---- Bandejas por etapa ----
     [Inject] private BandejasOptions OpcionesBandejas { get; set; } = default!;
 
-    private Bandeja? bandejaActiva = Bandeja.PorPreparar;
+    private Bandeja? bandejaActiva = Bandeja.PorClasificar;
     private IReadOnlyDictionary<Bandeja, int>? conteosBandeja;
     private DateOnly? filtroDesde;
     private DateOnly? filtroHasta;
 
     private static readonly (Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
     [
+        (Bandeja.PorClasificar, "Por clasificar"),
         (Bandeja.PorPreparar, "Por preparar"),
         (Bandeja.CambioDomicilio, "Cambio de domicilio"),
         (Bandeja.Subidas, "Subidas"),
@@ -1010,6 +1077,7 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
+        [Bandeja.PorClasificar] = ["PERSONA", "RUT", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
         [Bandeja.CambioDomicilio] = ["PERSONA", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
         [Bandeja.SinCarpetaF8] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
@@ -1035,6 +1103,62 @@
         virtualizador = null;
         bandejaActiva = b;
         total = conteo.Total;
+    }
+
+    // ---- Clasificación manual (bandeja Por clasificar) ----
+    private readonly Dictionary<Guid, EstadoCarpeta?> destinoClasif = new();
+    private readonly Dictionary<Guid, string?> fechaClasif = new();
+    private readonly Dictionary<Guid, string?> comunaClasif = new();
+    private EstadoCarpeta? destinoLote;
+    private bool clasificando;
+    private string? errorClasif;
+
+    private string? FechaClasif(Guid id) => fechaClasif.GetValueOrDefault(id);
+
+    private void SeleccionarDestino(Guid id, ChangeEventArgs e) =>
+        destinoClasif[id] = Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var d) ? d : null;
+
+    private Task ClasificarUnaAsync(Guid id) =>
+        destinoClasif.GetValueOrDefault(id) is { } destino
+            ? EjecutarClasificacionAsync([id], destino, fechaClasif.GetValueOrDefault(id),
+                Carpeta.EsCambioDomicilio(destino) ? comunaClasif.GetValueOrDefault(id) : null)
+            : Task.CompletedTask;
+
+    private async Task ClasificarLoteAsync()
+    {
+        if (destinoLote is not { } destino || seleccionadas.Count == 0) return;
+        var mensaje = $"¿Clasificar {seleccionadas.Count} carpetas como «{Labels.Of(destino)}»?";
+        if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
+        await EjecutarClasificacionAsync(seleccionadas.ToList(), destino, null, null);
+    }
+
+    private async Task EjecutarClasificacionAsync(IReadOnlyList<Guid> ids, EstadoCarpeta destino, string? fecha, string? comuna)
+    {
+        clasificando = true;
+        errorClasif = null;
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            await Carpetas.ClasificarAsync(new ClasificarCommand(ids, destino, fecha, comuna, autor));
+            foreach (var id in ids)
+            {
+                destinoClasif.Remove(id);
+                fechaClasif.Remove(id);
+                comunaClasif.Remove(id);
+            }
+            CancelarSeleccion();
+            destinoLote = null;
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            errorClasif = ex.Message;
+        }
+        finally
+        {
+            clasificando = false;
+        }
     }
 
     private RenderFragment Dias(int? dias) => __builder =>
