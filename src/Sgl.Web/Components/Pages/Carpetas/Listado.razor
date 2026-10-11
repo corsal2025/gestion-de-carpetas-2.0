@@ -155,6 +155,11 @@
                             }
                         </select>
                     </div>
+
+                    <div class="fecha-filter-wrapper" title="Rango de fecha de citación">
+                        <label>Citación desde <input type="date" @bind="filtroDesde" @bind:after="BuscarAsync" /></label>
+                        <label>hasta <input type="date" @bind="filtroHasta" @bind:after="BuscarAsync" /></label>
+                    </div>
                 </div>
 
                 <!-- Acordeón para Agregar Caso Rápido a la agenda -->
@@ -240,9 +245,24 @@
                 {
                     <span class="active-filter-chip">Caja: @filtroCaja <button type="button" @onclick="() => { filtroCaja = null; BuscarAsync(); }">✕</button></span>
                 }
+                @if (filtroDesde is not null || filtroHasta is not null)
+                {
+                    <span class="active-filter-chip">Citación: @(filtroDesde?.ToString("dd-MM-yyyy") ?? "…") → @(filtroHasta?.ToString("dd-MM-yyyy") ?? "…") <button type="button" @onclick="() => { filtroDesde = null; filtroHasta = null; BuscarAsync(); }">✕</button></span>
+                }
                 <button type="button" class="btn-clear-all-compact" @onclick="ResetFiltros">Limpiar todos</button>
             </div>
         }
+
+        <!-- Bandejas por etapa: cada carpeta cae automáticamente en una según su estado -->
+        <div class="bandeja-tabs" role="tablist">
+            @foreach (var (b, etiqueta) in BandejasTabs)
+            {
+                <button type="button" role="tab" aria-selected="@(bandejaActiva == b ? "true" : "false")"
+                        class="bandeja-tab @(bandejaActiva == b ? "active" : "")" @onclick="() => SeleccionarBandeja(b)">
+                    @etiqueta <span class="badge-count">@ConteoBandeja(b).ToString("N0", CulturaCl)</span>
+                </button>
+            }
+        </div>
     </div>
 
     <!-- Grilla de resultados con máxima legibilidad -->
@@ -263,6 +283,8 @@
     }
     else
     {
+        @if (bandejaActiva is null)
+        {
         <div class="table-container @(!mostrarPanelSuperior ? "panel-colapsado" : (mostrarFiltros ? "standard-table" : "expanded-table"))">
             <table class="data-table">
                 <thead>
@@ -445,6 +467,118 @@
                 </tbody>
             </table>
         </div>
+        }
+        else
+        {
+        <div class="table-container @(!mostrarPanelSuperior ? "panel-colapsado" : (mostrarFiltros ? "standard-table" : "expanded-table"))">
+            <table class="data-table bandeja-table">
+                <thead>
+                    <tr>
+                        <th class="th-check col-sticky-check">
+                            <input type="checkbox" checked="@TodosSeleccionados" disabled="@seleccionandoTodas" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta bandeja" />
+                        </th>
+                        @foreach (var col in ColumnasBandeja)
+                        {
+                            <th>@col</th>
+                        }
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <Virtualize @key="bandejaActiva" @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
+                                ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
+                        <ItemContent>
+                        @{
+                        var isSelected = seleccionadas.Contains(c.Id);
+                        var ind = c.Indicadores;
+                        <tr class="@Labels.EstadoRowCss(c.Estado) @(isSelected ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
+                            @ondblclick="() => AbrirDrawerAsync(c.Id)">
+                            <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
+                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" />
+                            </td>
+                            <td @ondblclick:stopPropagation>
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@c.NombreCompleto">@c.NombreCompleto</span>
+                                    <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
+                                            title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
+                                            @onclick="() => AbrirModalObs(c)" type="button">
+                                        <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                        @if (!string.IsNullOrEmpty(c.IdoneidadMoral))
+                                        {
+                                            <span class="obs-badge-indicator"></span>
+                                        }
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="date-cell">@c.Rut</td>
+                            <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
+                            @switch (bandejaActiva)
+                            {
+                                case Bandeja.PorPreparar:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(ind?.DiasEnEtapa)</td>
+                                    <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
+                                    break;
+                                case Bandeja.CambioDomicilio:
+                                    <td class="excel-cell-comuna" @ondblclick:stopPropagation>
+                                        <input type="text" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
+                                               value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
+                                               title="Comuna de origen: escribe o elige de la lista" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(ind?.DiasEnEtapa)</td>
+                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } um ? $"{um:dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
+                                    break;
+                                case Bandeja.EnBusqueda:
+                                    var sectorB = CalcularSector(c.FechaUltimaCarpeta);
+                                    <td><span class="sector-cell @(sectorB == "ARCHIVO" ? "sector-archivo" : sectorB == "OFICINA 43" ? "sector-oficina43" : "sector-vacio")">@sectorB</span></td>
+                                    <td>@Dias(ind?.DiasBuscando ?? ind?.DiasEnEtapa)</td>
+                                    <td>@(ind?.MarcadaPor ?? "—")</td>
+                                    break;
+                                case Bandeja.Subidas:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Dias(ind?.DiasCitacionSubida)</td>
+                                    <td>@ViaSubida(c.Estado)</td>
+                                    break;
+                                case Bandeja.Cerradas:
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
+                                    <td class="date-cell">@(ind?.FechaCierre?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Dias(ind?.DiasTotales)</td>
+                                    break;
+                                case Bandeja.Archivadas:
+                                    <td><a class="btn-action-caja-ok" href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo ?? "")">@c.CajaArchivo</a></td>
+                                    <td class="date-cell">@(ind?.FechaArchivo?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Labels.Of(c.Decision)</td>
+                                    break;
+                            }
+                            <td class="action-cell" @ondblclick:stopPropagation>
+                                @if (bandejaActiva == Bandeja.EnBusqueda)
+                                {
+                                    <button class="btn-action-caja" title="Carpeta encontrada: vuelve a Por preparar" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                }
+                                else if (bandejaActiva != Bandeja.Archivadas && string.IsNullOrEmpty(c.CajaArchivo))
+                                {
+                                    <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                }
+                                else if (c.CajaArchivo == Carpeta.ColaDeCaja)
+                                {
+                                    <span class="badge warn" title="En cola para la próxima caja">En cola</span>
+                                }
+                                <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
+                            </td>
+                        </tr>
+                        }
+                        </ItemContent>
+                        <Placeholder>
+                            <tr class="fila-placeholder"><td colspan="@(ColumnasBandeja.Count + 2)">&nbsp;</td></tr>
+                        </Placeholder>
+                    </Virtualize>
+                </tbody>
+            </table>
+        </div>
+        }
 
         <!-- Total de registros (lista continua, sin paginación) -->
         <div class="table-bottom-bar">
@@ -862,6 +996,121 @@
     private bool mostrarPanelSuperior = true;
     private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
 
+    // ---- Bandejas por etapa ----
+    [Inject] private BandejasOptions OpcionesBandejas { get; set; } = default!;
+
+    private Bandeja? bandejaActiva = Bandeja.PorPreparar;
+    private IReadOnlyDictionary<Bandeja, int>? conteosBandeja;
+    private DateOnly? filtroDesde;
+    private DateOnly? filtroHasta;
+
+    private static readonly (Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
+    [
+        (Bandeja.PorPreparar, "Por preparar"),
+        (Bandeja.CambioDomicilio, "Cambio de domicilio"),
+        (Bandeja.EnBusqueda, "En búsqueda"),
+        (Bandeja.Subidas, "Subidas"),
+        (Bandeja.Cerradas, "Cerradas"),
+        (Bandeja.Archivadas, "Archivadas"),
+        (null, "Todas"),
+    ];
+
+    private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
+    {
+        [Bandeja.PorPreparar] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS EN ETAPA", "OTRAS ABIERTAS"],
+        [Bandeja.CambioDomicilio] = ["PERSONA", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS EN ETAPA", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.EnBusqueda] = ["PERSONA", "RUT", "SEDE", "SECTOR", "DÍAS BUSCANDO", "MARCADA POR"],
+        [Bandeja.Subidas] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
+        [Bandeja.Cerradas] = ["PERSONA", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
+        [Bandeja.Archivadas] = ["PERSONA", "RUT", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
+    };
+
+    private IReadOnlyList<string> ColumnasBandeja =>
+        bandejaActiva is { } b ? ColumnasPorBandeja[b] : [];
+
+    private int ConteoBandeja(Bandeja? b) =>
+        conteosBandeja is null ? 0 : b is { } x ? conteosBandeja.GetValueOrDefault(x) : conteosBandeja.Values.Sum();
+
+    private async Task SeleccionarBandeja(Bandeja? b)
+    {
+        if (b == bandejaActiva) return;
+        // Los conteos por bandeja no dependen de la bandeja activa: solo se recalcula el total.
+        // Se consulta ANTES de cambiar de pestaña para que la tabla nueva (que se vuelve a montar
+        // con @key y pide su propio rango) no comparta el DbContext con otra consulta en curso.
+        var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0) with { Bandeja = b });
+        CancelarSeleccion();
+        virtualizador = null;
+        bandejaActiva = b;
+        total = conteo.Total;
+    }
+
+    private RenderFragment Dias(int? dias) => __builder =>
+    {
+        if (dias is not { } d)
+        {
+            <span>—</span>
+            return;
+        }
+        var color = bandejaActiva is { } b ? OpcionesBandejas.Evaluar(b, d) : Semaforo.Verde;
+        <span class="dias-cell"><span class="semaforo semaforo-@color.ToString().ToLowerInvariant()" title="@color"></span>@d</span>
+    };
+
+    private RenderFragment SelectEstado(CarpetaResumenDto c) => __builder =>
+    {
+        <select class="excel-select" value="@c.Estado" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Cambiar estado de carpeta">
+            @if (!Labels.OpcionesDesplegable.Contains(c.Estado))
+            {
+                <option value="@c.Estado" disabled>@Labels.Of(c.Estado)</option>
+            }
+            @foreach (var e in Labels.OpcionesDesplegable)
+            {
+                <option value="@e">@Labels.Of(e)</option>
+            }
+        </select>
+    };
+
+    private RenderFragment SelectDecision(CarpetaResumenDto c) => __builder =>
+    {
+        <select class="excel-select" value="@c.Decision" @onchange="(e) => CambiarDecisionRapidaAsync(c.Id, e)" title="Cambiar decisión">
+            @foreach (var d in Enum.GetValues<Decision>())
+            {
+                <option value="@d">@Labels.Of(d)</option>
+            }
+        </select>
+    };
+
+    private static string ViaSubida(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.SubidaConaset or EstadoCarpeta.CambioDomSubidoConaset => "CONASET",
+        EstadoCarpeta.SubidaConF8 => "F8",
+        EstadoCarpeta.SubidaConOficio => "OFICIO",
+        EstadoCarpeta.CambioDomSubidoCorreo => "CORREO",
+        _ => "—",
+    };
+
+    /// <summary>La carpeta buscada apareció: sale de "En búsqueda" y vuelve a "Por preparar".</summary>
+    private async Task MarcarEncontradaAsync(CarpetaResumenDto c)
+    {
+        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        guardandoId = c.Id;
+        try
+        {
+            if (c.Estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta)
+            {
+                await Carpetas.ForzarEstadoAsync(c.Id, EstadoCarpeta.Citada, autor);
+            }
+            else if (c.PendienteBusqueda)
+            {
+                await Carpetas.MarcarPendienteBusquedaAsync(c.Id, false, autor);
+            }
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
+
     private int FiltrosActivosCount
     {
         get
@@ -871,6 +1120,7 @@
             if (filtroEstado is not null) count++;
             if (filtroSinCaja is not null || !string.IsNullOrWhiteSpace(filtroCaja)) count++;
             if (!string.IsNullOrWhiteSpace(filtroTramite)) count++;
+            if (filtroDesde is not null || filtroHasta is not null) count++;
             return count;
         }
     }
@@ -955,6 +1205,8 @@
         filtroCaja = null;
         filtroSinCaja = null;
         filtroEstado = null;
+        filtroDesde = null;
+        filtroHasta = null;
         texto = null;
         CancelarSeleccion();
         await CargarAsync();
@@ -974,12 +1226,16 @@
         CajaArchivo: filtroCaja,
         SinCaja: filtroSinCaja,
         Skip: skip,
-        Take: take);
+        Take: take,
+        Bandeja: bandejaActiva,
+        Desde: filtroDesde,
+        Hasta: filtroHasta);
 
     /// <summary>Recalcula el total con los filtros actuales y refresca las filas visibles del virtualizador.</summary>
     private async Task CargarAsync()
     {
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
+        conteosBandeja = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
         var antes = total;
         total = conteo.Total;
         if (virtualizador is not null && antes is > 0 && total > 0)

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Sgl.Domain;
 
 /// <summary>A citizen's license folder. Every mutation is recorded in <see cref="Historial"/>.</summary>
-public sealed class Carpeta
+public sealed partial class Carpeta
 {
     public const int MaxUsuarioLength = 100;
     public const int MaxIdoneidadLength = 200;

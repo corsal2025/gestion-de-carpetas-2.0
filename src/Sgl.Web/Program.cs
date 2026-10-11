@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sgl.Application.Carpetas;
 using Sgl.Infrastructure;
 using Sgl.Infrastructure.Persistence;
 using Sgl.Web.Components;
@@ -13,6 +14,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSglInfrastructure(builder.Configuration);
+builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.SectionName).Get<BandejasOptions>() ?? new BandejasOptions());
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
 builder.Services.AddSingleton<DuplicadosBadgeCache>();

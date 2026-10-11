@@ -204,11 +204,34 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     public async Task<ListResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var q = query.Normalized();
+        var search = ToSearch(query.Normalized());
+        var (items, total) = await repository.SearchAsync(search, ct);
+        if (search.Take is null or 0 || items.Count == 0)
+        {
+            return new ListResult<CarpetaResumenDto>(items, total);
+        }
 
+        // Indicators are computed only for the requested (visible) range.
+        var movimientos = (await repository.GetMovimientosAsync(items.Select(i => i.Id).ToList(), ct))
+            .ToLookup(m => m.CarpetaId);
+        var hoy = DateOnly.FromDateTime(Now);
+        var enriquecidos = items
+            .Select(i => i with { Indicadores = IndicadoresCalculator.Calcular(i, movimientos[i.Id], hoy) })
+            .ToList();
+        return new ListResult<CarpetaResumenDto>(enriquecidos, total);
+    }
+
+    /// <summary>Counts per tray honoring every filter except the tray itself.</summary>
+    public Task<IReadOnlyDictionary<Bandeja, int>> ContarPorBandejaAsync(ListarCarpetasQuery query, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return repository.CountByBandejaAsync(ToSearch(query.Normalized() with { Bandeja = null }), ct);
+    }
+
+    private static CarpetaSearch ToSearch(ListarCarpetasQuery q)
+    {
         var (rutFragment, nameFragment) = TextoBusqueda.Parse(q.Texto);
-
-        var search = new CarpetaSearch(
+        return new CarpetaSearch(
             rutFragment,
             nameFragment,
             q.Sede,
@@ -218,9 +241,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             q.SinCaja,
             q.Comuna,
             q.Skip,
-            q.Take);
-        var (items, total) = await repository.SearchAsync(search, ct);
-        return new ListResult<CarpetaResumenDto>(items, total);
+            q.Take,
+            q.Bandeja,
+            q.Desde,
+            q.Hasta);
     }
 
     public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>

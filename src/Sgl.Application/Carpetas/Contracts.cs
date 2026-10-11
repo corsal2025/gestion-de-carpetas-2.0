@@ -38,7 +38,10 @@ public sealed record ListarCarpetasQuery(
     bool? SinCaja = null,
     string? Comuna = null,
     int Skip = 0,
-    int? Take = null)
+    int? Take = null,
+    Bandeja? Bandeja = null,
+    DateOnly? Desde = null,
+    DateOnly? Hasta = null)
 {
 
     public ListarCarpetasQuery Normalized() => this with
@@ -66,7 +69,19 @@ public sealed record CarpetaResumenDto(
     string? CajaArchivo,
     EstadoCarpeta Estado,
     Decision Decision,
-    bool PendienteBusqueda = false);
+    bool PendienteBusqueda = false)
+{
+    /// <summary>When the carpeta was registered or imported (only filled by ranged listings).</summary>
+    public DateTime? FechaRegistro { get; init; }
+
+    /// <summary>Other open carpetas of the same citizen (only filled by ranged listings).</summary>
+    public int? OtrasAbiertas { get; init; }
+
+    /// <summary>Values derived from the audit trail (only filled by ranged listings).</summary>
+    public IndicadoresCarpeta? Indicadores { get; init; }
+
+    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo, PendienteBusqueda);
+}
 
 public sealed record HistorialDto(DateTime Fecha, string Usuario, string Campo, string? Anterior, string? Nuevo);
 
@@ -123,4 +138,7 @@ public sealed record CarpetaSearch(
     bool? SinCaja,
     string? Comuna,
     int Skip,
-    int? Take);
+    int? Take,
+    Bandeja? Bandeja = null,
+    DateOnly? Desde = null,
+    DateOnly? Hasta = null);

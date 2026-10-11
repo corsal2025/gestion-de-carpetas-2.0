@@ -16,6 +16,12 @@ public interface ICarpetaRepository
 
     Task<(IReadOnlyList<CarpetaResumenDto> Items, int Total)> SearchAsync(CarpetaSearch search, CancellationToken ct = default);
 
+    /// <summary>Folder count per tray for the given filters (tray filter ignored), in one grouped query.</summary>
+    Task<IReadOnlyDictionary<Bandeja, int>> CountByBandejaAsync(CarpetaSearch search, CancellationToken ct = default);
+
+    /// <summary>Audit entries of the given carpetas, used to compute tray indicators for a visible range.</summary>
+    Task<IReadOnlyList<MovimientoDto>> GetMovimientosAsync(IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default);
+
     Task<EstadisticasGlobalesDto> GetEstadisticasAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<CajaResumenDto>> GetCajasAsync(CancellationToken ct = default);

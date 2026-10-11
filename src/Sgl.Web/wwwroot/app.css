@@ -4118,3 +4118,46 @@ table.cases.doc-table td:first-child {
     cursor: not-allowed;
     background: transparent;
 }
+
+/* ---- Bandejas por etapa ---- */
+.bandeja-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.5rem 0 0.25rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.bandeja-tab {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.bandeja-tab:hover { background: #f1f5f9; }
+
+.bandeja-tab.active {
+    background: #1e3a8a;
+    border-color: #1e3a8a;
+    color: #fff;
+}
+
+.bandeja-tab.active .badge-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+
+.dias-cell { display: inline-flex; align-items: center; gap: 0.4rem; font-variant-numeric: tabular-nums; }
+
+.semaforo { width: 0.65rem; height: 0.65rem; border-radius: 50%; display: inline-block; }
+.semaforo-verde { background: #16a34a; }
+.semaforo-amarillo { background: #eab308; }
+.semaforo-rojo { background: #dc2626; }
+
+.fecha-filter-wrapper { display: flex; gap: 0.5rem; align-items: center; font-size: 0.82rem; color: #475569; }
+.fecha-filter-wrapper input { margin-left: 0.25rem; }

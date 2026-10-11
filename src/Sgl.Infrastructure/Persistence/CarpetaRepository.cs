@@ -42,6 +42,103 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         CarpetaSearch search, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(search);
+        var query = Filtrar(search);
+        if (search.Bandeja is { } bandeja)
+        {
+            query = query.Where(Carpeta.EnBandeja(bandeja));
+        }
+
+        var total = await query.CountAsync(ct);
+        if (search.Take is 0)
+        {
+            return ([], total);
+        }
+
+        // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
+        var ordered = query
+            .OrderByDescending(c => c.FechaCitacion)
+            .ThenBy(c => c.Ciudadano.Apellido)
+            .ThenBy(c => c.Id)
+            .Skip(search.Skip);
+        var limited = search.Take is { } take ? ordered.Take(take) : ordered;
+        var rows = await limited
+            .Select(c => new
+            {
+                c.Id,
+                Rut = c.Ciudadano.Rut.Value,
+                c.Ciudadano.Nombre,
+                c.Ciudadano.Apellido,
+                c.Sede,
+                c.FechaCitacion,
+                c.FechaSubida,
+                c.FechaUltimaCarpeta,
+                c.Comuna,
+                c.IdoneidadMoral,
+                c.TipoTramite,
+                c.CajaArchivo,
+                c.Estado,
+                c.Decision,
+                c.PendienteBusqueda,
+                c.FechaRegistro,
+                OtrasAbiertas = search.Take == null
+                    ? 0
+                    : db.Carpetas.Count(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id && o.Decision == Decision.Pendiente),
+            })
+            .ToListAsync(ct);
+
+        var conRango = search.Take is not null;
+        var items = rows
+            .Select(r => new CarpetaResumenDto(
+                r.Id,
+                Rut.TryParse(r.Rut, out var parsedRut) ? parsedRut!.Formatted : r.Rut,
+                $"{r.Nombre} {r.Apellido}".Trim(),
+                r.Sede,
+                r.FechaCitacion,
+                r.FechaSubida,
+                r.FechaUltimaCarpeta,
+                r.Comuna,
+                r.IdoneidadMoral,
+                r.TipoTramite,
+                r.CajaArchivo,
+                r.Estado,
+                r.Decision,
+                r.PendienteBusqueda)
+            {
+                FechaRegistro = r.FechaRegistro,
+                OtrasAbiertas = conRango ? r.OtrasAbiertas : null,
+            })
+            .ToList();
+        return (items, total);
+    }
+
+    public async Task<IReadOnlyDictionary<Bandeja, int>> CountByBandejaAsync(CarpetaSearch search, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(search);
+        var grupos = await Filtrar(search)
+            .GroupBy(Carpeta.BandejaExpresion)
+            .Select(g => new { g.Key, Total = g.Count() })
+            .ToListAsync(ct);
+
+        return Enum.GetValues<Bandeja>().ToDictionary(b => b, b => grupos.FirstOrDefault(g => g.Key == b)?.Total ?? 0);
+    }
+
+    public async Task<IReadOnlyList<MovimientoDto>> GetMovimientosAsync(IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(carpetaIds);
+        if (carpetaIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await db.Historial
+            .AsNoTracking()
+            .Where(h => carpetaIds.Contains(h.CarpetaId))
+            .Select(h => new MovimientoDto(h.CarpetaId, h.Fecha, h.Usuario, h.Campo, h.Nuevo))
+            .ToListAsync(ct);
+    }
+
+    private IQueryable<Carpeta> Filtrar(CarpetaSearch search)
+    {
         var query = db.Carpetas.AsNoTracking();
 
         if (search.RutFragment is { } rut)
@@ -88,58 +185,17 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             query = query.Where(c => c.Comuna != null && c.Comuna.Contains(comuna));
         }
 
-        var total = await query.CountAsync(ct);
-        if (search.Take is 0)
+        if (search.Desde is { } desde)
         {
-            return ([], total);
+            query = query.Where(c => c.FechaCitacion >= desde);
         }
 
-        // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
-        var ordered = query
-            .OrderByDescending(c => c.FechaCitacion)
-            .ThenBy(c => c.Ciudadano.Apellido)
-            .ThenBy(c => c.Id)
-            .Skip(search.Skip);
-        var limited = search.Take is { } take ? ordered.Take(take) : ordered;
-        var rows = await limited
-            .Select(c => new
-            {
-                c.Id,
-                Rut = c.Ciudadano.Rut.Value,
-                c.Ciudadano.Nombre,
-                c.Ciudadano.Apellido,
-                c.Sede,
-                c.FechaCitacion,
-                c.FechaSubida,
-                c.FechaUltimaCarpeta,
-                c.Comuna,
-                c.IdoneidadMoral,
-                c.TipoTramite,
-                c.CajaArchivo,
-                c.Estado,
-                c.Decision,
-                c.PendienteBusqueda,
-            })
-            .ToListAsync(ct);
+        if (search.Hasta is { } hasta)
+        {
+            query = query.Where(c => c.FechaCitacion <= hasta);
+        }
 
-        var items = rows
-            .Select(r => new CarpetaResumenDto(
-                r.Id,
-                Rut.TryParse(r.Rut, out var parsedRut) ? parsedRut!.Formatted : r.Rut,
-                $"{r.Nombre} {r.Apellido}".Trim(),
-                r.Sede,
-                r.FechaCitacion,
-                r.FechaSubida,
-                r.FechaUltimaCarpeta,
-                r.Comuna,
-                r.IdoneidadMoral,
-                r.TipoTramite,
-                r.CajaArchivo,
-                r.Estado,
-                r.Decision,
-                r.PendienteBusqueda))
-            .ToList();
-        return (items, total);
+        return query;
     }
 
     public async Task<EstadisticasGlobalesDto> GetEstadisticasAsync(CancellationToken ct = default)
