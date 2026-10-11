@@ -43,6 +43,15 @@ public sealed class Carpeta
     /// </summary>
     public bool PendienteBusqueda { get; private set; }
 
+    /// <summary>License classes requested in this carpeta (optional, may be several).</summary>
+    public ClaseLicencia Clases { get; private set; }
+
+    /// <summary>When the carpeta was registered or imported into the system.</summary>
+    public DateTime FechaRegistro { get; private set; }
+
+    /// <summary>An open carpeta has no final decision yet (neither Otorgado nor Denegado).</summary>
+    public bool EstaAbierta => Decision == Decision.Pendiente;
+
     public IReadOnlyList<HistorialCambio> Historial => _historial;
 
     private Carpeta()
@@ -79,6 +88,7 @@ public sealed class Carpeta
             IdoneidadMoral = idoneidadMoral,
             TipoTramite = tipoTramite,
             CajaArchivo = cajaArchivo,
+            FechaRegistro = now,
         };
         carpeta.Audit(now, "Sistema Importador", "Importacion", null, $"{sede} - {tipoTramite ?? estado.ToString()}");
         return carpeta;
@@ -136,11 +146,18 @@ public sealed class Carpeta
         }
     }
 
-    public static Carpeta Registrar(Ciudadano ciudadano, Sede sede, DateOnly fechaCitacion, string autor, DateTime now)
+    public static Carpeta Registrar(
+        Ciudadano ciudadano,
+        Sede sede,
+        DateOnly fechaCitacion,
+        string autor,
+        DateTime now,
+        ClaseLicencia clases = ClaseLicencia.Ninguna)
     {
         ArgumentNullException.ThrowIfNull(ciudadano);
         var usuario = RequireAutor(autor);
         RequireSede(sede);
+        RequireClases(clases);
 
         var carpeta = new Carpeta
         {
@@ -151,9 +168,36 @@ public sealed class Carpeta
             FechaCitacion = fechaCitacion,
             Estado = EstadoCarpeta.Citada,
             Decision = Decision.Pendiente,
+            Clases = clases,
+            FechaRegistro = now,
         };
         carpeta.Audit(now, usuario, "Registro", null, $"{EstadoCarpeta.Citada} ({sede})");
+        if (clases != ClaseLicencia.Ninguna)
+        {
+            carpeta.Audit(now, usuario, nameof(ClaseLicencia), null, ClasesLicencia.Format(clases));
+        }
         return carpeta;
+    }
+
+    public void AsignarClases(ClaseLicencia clases, string autor, DateTime now)
+    {
+        var usuario = RequireAutor(autor);
+        RequireClases(clases);
+        if (clases != Clases)
+        {
+            Audit(now, usuario, nameof(ClaseLicencia), NullIfEmpty(ClasesLicencia.Format(Clases)), NullIfEmpty(ClasesLicencia.Format(clases)));
+            Clases = clases;
+        }
+    }
+
+    private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
+
+    private static void RequireClases(ClaseLicencia clases)
+    {
+        if (!ClasesLicencia.IsValid(clases))
+        {
+            throw new DomainException("Clase de licencia inválida.");
+        }
     }
 
     public void CambiarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
