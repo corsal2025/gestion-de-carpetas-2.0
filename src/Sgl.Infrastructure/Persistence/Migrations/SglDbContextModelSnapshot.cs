@@ -64,6 +64,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<TimeOnly?>("HoraCita")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("IdoneidadMoral")
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
@@ -80,6 +83,10 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("TipoTramite")
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TramiteAgenda")
+                        .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

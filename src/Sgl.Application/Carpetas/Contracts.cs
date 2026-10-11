@@ -25,6 +25,17 @@ public sealed record EditarCarpetaCommand(
     string? FechaUltimaCarpeta = null,
     string? Comuna = null);
 
+/// <summary>Manual classification of one or more "Por clasificar" carpetas (applied atomically).</summary>
+public sealed record ClasificarCommand(
+    IReadOnlyList<Guid> CarpetaIds,
+    EstadoCarpeta Destino,
+    string? FechaUltimaCarpeta,
+    string? Comuna,
+    string Autor);
+
+/// <summary>Hint only: other carpetas of the same citizen. Not definitive (older history may be missing).</summary>
+public sealed record TramitePrevioDto(int Cantidad, Sede UltimaSede, DateOnly UltimaFecha);
+
 public sealed record AsignarCajaCommand(Guid CarpetaId, string? NuevaCaja, string Autor);
 
 public sealed record AsignarCajaLoteCommand(IReadOnlyList<Guid> CarpetaIds, string NuevaCaja, string Autor);
@@ -79,6 +90,15 @@ public sealed record CarpetaResumenDto(
 
     /// <summary>Values derived from the audit trail (only filled by ranged listings).</summary>
     public IndicadoresCarpeta? Indicadores { get; init; }
+
+    /// <summary>Appointment time from the daily agenda (agenda-imported carpetas only).</summary>
+    public TimeOnly? HoraCita { get; init; }
+
+    /// <summary>Trámite declared in the daily agenda (agenda-imported carpetas only).</summary>
+    public TramiteAgenda? TramiteAgenda { get; init; }
+
+    /// <summary>Other carpetas of the same citizen (only filled for "Por clasificar" ranged listings).</summary>
+    public TramitePrevioDto? TramitePrevio { get; init; }
 
     public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo);
 }

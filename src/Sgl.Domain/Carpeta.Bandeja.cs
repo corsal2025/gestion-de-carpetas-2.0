@@ -11,12 +11,13 @@ public sealed partial class Carpeta
     public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo);
 
     /// <summary>
-    /// Precedence: Archivadas (real caja) &gt; Cerradas (final decision) &gt; Sin carpeta (F8) &gt; Subidas
+    /// Precedence: Por clasificar (agenda, only by state) &gt; Archivadas (real caja) &gt; Cerradas (final decision) &gt; Sin carpeta (F8) &gt; Subidas
     /// &gt; Cambio de domicilio &gt; Por preparar. "Pendiente de búsqueda" is only a same-day flag, not a tray;
     /// location states (SeEncuentraEnArchivos/Of43) stay in Por preparar.
     /// </summary>
     public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja)
     {
+        if (estado == EstadoCarpeta.PorClasificar) return Bandeja.PorClasificar;
         if (!string.IsNullOrWhiteSpace(caja) && caja != ColaDeCaja) return Bandeja.Archivadas;
         if (decision is Decision.Otorgado or Decision.Denegado) return Bandeja.Cerradas;
         if (estado == EstadoCarpeta.NoExisteCarpeta) return Bandeja.SinCarpetaF8;
@@ -31,7 +32,8 @@ public sealed partial class Carpeta
 
     /// <summary>Same rules as <see cref="ClasificarBandeja"/>, translatable to SQL by EF Core.</summary>
     public static readonly Expression<Func<Carpeta, Bandeja>> BandejaExpresion = c =>
-        c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != ColaDeCaja ? Bandeja.Archivadas
+        c.Estado == EstadoCarpeta.PorClasificar ? Bandeja.PorClasificar
+        : c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != ColaDeCaja ? Bandeja.Archivadas
         : c.Decision == Decision.Otorgado || c.Decision == Decision.Denegado ? Bandeja.Cerradas
         : c.Estado == EstadoCarpeta.NoExisteCarpeta ? Bandeja.SinCarpetaF8
         : c.Estado == EstadoCarpeta.SubidaConaset

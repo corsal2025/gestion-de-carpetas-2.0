@@ -10,4 +10,6 @@ public enum Bandeja
     Subidas = 4,
     Cerradas = 5,
     Archivadas = 6,
+    /// <summary>Agenda-imported carpetas awaiting manual classification.</summary>
+    PorClasificar = 7,
 }

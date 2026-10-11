@@ -8,7 +8,7 @@ public sealed class EstadisticasService(IEstadisticasQuery query, TimeProvider c
     private const int DiasMaximos = 3650;
 
     private static readonly Bandeja[] BandejasAbiertas =
-        [Bandeja.PorPreparar, Bandeja.CambioDomicilio, Bandeja.SinCarpetaF8, Bandeja.Subidas];
+        [Bandeja.PorClasificar, Bandeja.PorPreparar, Bandeja.CambioDomicilio, Bandeja.SinCarpetaF8, Bandeja.Subidas];
 
     public Task<EstadisticasDto> ObtenerAsync(FiltroEstadisticas filtro, CancellationToken ct = default)
     {

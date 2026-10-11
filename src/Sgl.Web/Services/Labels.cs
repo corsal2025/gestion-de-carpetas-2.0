@@ -41,9 +41,10 @@ public static class Labels
         EstadoCarpeta.CambioDomicilioSolicitado => "CAMBIO DE DOMICILIO SOLICITADO",
         EstadoCarpeta.CambioDomicilio => "CAMBIO DE DOMICILIO",
         EstadoCarpeta.NoExisteCarpeta => "NO EXISTE CARPETA",
-        EstadoCarpeta.CrearCertificado => "CREAR CERTIFICADO",
+        EstadoCarpeta.CrearCertificado => "CREAR CERTIFICADO / OFICIO",
         EstadoCarpeta.CanjeLicExtranjera => "CANJE LIC. EXTRANJERA",
 
+        EstadoCarpeta.PorClasificar => "POR CLASIFICAR",
         EstadoCarpeta.Citada => "CITADA",
         EstadoCarpeta.Revision => "REVISIÓN",
         EstadoCarpeta.Alertada => "ALERTADA",
@@ -55,6 +56,16 @@ public static class Labels
         EstadoCarpeta.Denegado => "DENEGADO",
         _ => estado.ToString().ToUpperInvariant(),
     };
+
+    public static string Of(TramiteAgenda tramite) => tramite switch
+    {
+        TramiteAgenda.PrimeraVezExtension => "1° VEZ / EXTENSIÓN",
+        TramiteAgenda.Renovacion => "RENOVACIÓN",
+        _ => tramite.ToString().ToUpperInvariant(),
+    };
+
+    /// <summary>States offered when classifying a "Por clasificar" carpeta.</summary>
+    public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion => Carpeta.DestinosClasificacion;
 
     public static string Of(Decision decision) => decision switch
     {

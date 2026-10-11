@@ -55,9 +55,9 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         }
 
         // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
-        var ordered = query
-            .OrderByDescending(c => c.FechaCitacion)
-            .ThenBy(c => c.Ciudadano.Apellido)
+        var ordered = (search.Bandeja == Bandeja.PorClasificar
+                ? query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.HoraCita).ThenBy(c => c.Ciudadano.Apellido)
+                : query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.Ciudadano.Apellido))
             .ThenBy(c => c.Id)
             .Skip(search.Skip);
         var limited = search.Take is { } take ? ordered.Take(take) : ordered;
@@ -80,6 +80,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.Decision,
                 c.PendienteBusqueda,
                 c.FechaRegistro,
+                c.HoraCita,
+                c.TramiteAgenda,
                 OtrasAbiertas = search.Take == null
                     ? 0
                     : db.Carpetas.Count(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id && o.Decision == Decision.Pendiente),
@@ -105,6 +107,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.PendienteBusqueda)
             {
                 FechaRegistro = r.FechaRegistro,
+                HoraCita = r.HoraCita,
+                TramiteAgenda = r.TramiteAgenda,
                 OtrasAbiertas = conRango ? r.OtrasAbiertas : null,
             })
             .ToList();
@@ -135,6 +139,36 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             .Where(h => carpetaIds.Contains(h.CarpetaId))
             .Select(h => new MovimientoDto(h.CarpetaId, h.Fecha, h.Usuario, h.Campo, h.Nuevo))
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, TramitePrevioDto>> GetTramitesPreviosAsync(
+        IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(carpetaIds);
+        if (carpetaIds.Count == 0)
+        {
+            return new Dictionary<Guid, TramitePrevioDto>();
+        }
+
+        var pares = await db.Carpetas.AsNoTracking()
+            .Where(c => carpetaIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.CiudadanoId })
+            .ToListAsync(ct);
+        var ciudadanoIds = pares.Select(p => p.CiudadanoId).Distinct().ToList();
+        var otras = await db.Carpetas.AsNoTracking()
+            .Where(c => ciudadanoIds.Contains(c.CiudadanoId))
+            .Select(c => new { c.Id, c.CiudadanoId, c.Sede, c.FechaCitacion })
+            .ToListAsync(ct);
+
+        var resultado = new Dictionary<Guid, TramitePrevioDto>();
+        foreach (var p in pares)
+        {
+            var previas = otras.Where(o => o.CiudadanoId == p.CiudadanoId && o.Id != p.Id).ToList();
+            if (previas.Count == 0) continue;
+            var ultima = previas.OrderByDescending(o => o.FechaCitacion).First();
+            resultado[p.Id] = new TramitePrevioDto(previas.Count, ultima.Sede, ultima.FechaCitacion);
+        }
+        return resultado;
     }
 
     private IQueryable<Carpeta> Filtrar(CarpetaSearch search)

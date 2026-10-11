@@ -20,6 +20,14 @@ public static class EstadoTransitions
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],
+            [EstadoCarpeta.PorClasificar] =
+            [
+                EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8,
+                EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.CambioDomSubidoCorreo, EstadoCarpeta.SubidaConOficio,
+                EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CambioDomicilioSolicitado,
+                EstadoCarpeta.CambioDomicilio, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado,
+                EstadoCarpeta.CanjeLicExtranjera,
+            ],
         };
 
     public static IReadOnlyList<EstadoCarpeta> NextStates(EstadoCarpeta from) =>

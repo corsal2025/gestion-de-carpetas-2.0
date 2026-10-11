@@ -36,6 +36,7 @@ internal static class CarpetaFactory
     private static EstadoCarpeta[]? PathTo(EstadoCarpeta target) => target switch
     {
         EstadoCarpeta.Citada => [],
+        EstadoCarpeta.PorClasificar => null,
         EstadoCarpeta.Revision => [EstadoCarpeta.Revision],
         EstadoCarpeta.PrimeraLicencia => [EstadoCarpeta.PrimeraLicencia],
         EstadoCarpeta.CambioDomicilio => [EstadoCarpeta.CambioDomicilio],

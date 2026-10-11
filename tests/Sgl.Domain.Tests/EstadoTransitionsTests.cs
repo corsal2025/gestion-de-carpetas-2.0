@@ -20,6 +20,20 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar),
         (EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado),
         (EstadoCarpeta.Alertada, EstadoCarpeta.ParaDenegar),
+        // Manual classification of agenda-imported carpetas.
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.PrimeraLicencia),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConaset),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomSubidoConaset),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomSubidoCorreo),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConOficio),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SeEncuentraEnArchivos),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SeEncuentraEnOf43),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomicilioSolicitado),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomicilio),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.NoExisteCarpeta),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
     ];
 
     public static TheoryData<EstadoCarpeta, EstadoCarpeta> ValidPairs()

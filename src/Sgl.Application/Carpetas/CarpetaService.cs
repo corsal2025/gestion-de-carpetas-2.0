@@ -65,6 +65,24 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         await repository.SaveChangesAsync(ct);
     }
 
+    /// <summary>Classifies "Por clasificar" carpetas; all or nothing (a single save).</summary>
+    public async Task ClasificarAsync(ClasificarCommand cmd, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(cmd);
+        if (cmd.CarpetaIds.Count == 0)
+        {
+            return;
+        }
+
+        var now = Now;
+        foreach (var id in cmd.CarpetaIds.Distinct())
+        {
+            var carpeta = await LoadAsync(id, ct);
+            carpeta.Clasificar(cmd.Destino, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
+        }
+        await repository.SaveChangesAsync(ct);
+    }
+
     public async Task EditarAsync(EditarCarpetaCommand cmd, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(cmd);
@@ -215,8 +233,16 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         var movimientos = (await repository.GetMovimientosAsync(items.Select(i => i.Id).ToList(), ct))
             .ToLookup(m => m.CarpetaId);
         var hoy = DateOnly.FromDateTime(Now);
+        var porClasificar = items.Where(i => i.Estado == EstadoCarpeta.PorClasificar).Select(i => i.Id).ToList();
+        var previos = porClasificar.Count == 0
+            ? new Dictionary<Guid, TramitePrevioDto>()
+            : await repository.GetTramitesPreviosAsync(porClasificar, ct);
         var enriquecidos = items
-            .Select(i => i with { Indicadores = IndicadoresCalculator.Calcular(i, movimientos[i.Id], hoy) })
+            .Select(i => i with
+            {
+                Indicadores = IndicadoresCalculator.Calcular(i, movimientos[i.Id], hoy),
+                TramitePrevio = previos.GetValueOrDefault(i.Id),
+            })
             .ToList();
         return new ListResult<CarpetaResumenDto>(enriquecidos, total);
     }

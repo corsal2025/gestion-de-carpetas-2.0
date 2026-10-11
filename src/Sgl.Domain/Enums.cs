@@ -30,6 +30,15 @@ public enum EstadoCarpeta
     NoExisteCarpeta = 19,
     CrearCertificado = 20,
     CanjeLicExtranjera = 21,
+    /// <summary>Imported from the daily agenda; waiting for manual classification.</summary>
+    PorClasificar = 22,
+}
+
+/// <summary>Trámite as declared in the daily agenda (first-time and extension cannot be told apart).</summary>
+public enum TramiteAgenda
+{
+    PrimeraVezExtension = 1,
+    Renovacion = 2,
 }
 
 public enum Decision
