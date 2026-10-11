@@ -607,6 +607,8 @@ html[data-rows="classic"] body .data-table tbody td .btn-action-caja,
 html[data-rows="classic"] body .data-table tbody td .btn-detail {
     color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; background: #ffffff !important;
 }
+html[data-rows="classic"] body .data-table tbody td .btn-obs-trigger svg { stroke: #0f172a !important; }
+html[data-rows="classic"] body .data-table tbody td .btn-obs-trigger.has-obs svg { stroke: #2457e6 !important; }
 
 /* ---------- 10. Pantallas simples: Nueva carpeta y Detalle ----------------- */
 /* Blazor enfoca el <h1> al navegar: sin recuadro */
