@@ -15,18 +15,25 @@ public sealed record ExcelImportResult(
     int CarpetasActualizadas,
     int CiudadanosCreados,
     IReadOnlyList<string> SedesProcesadas,
-    IReadOnlyList<string> Errores
+    IReadOnlyList<string> Errores,
+    int TotalErrores = 0
 );
 
 public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger)
 {
+    private const int MaxMensajesError = 20;
+    private const int TamanoLoteTracker = 500;
+
     public async Task<ExcelImportResult> ImportarExcelAsync(Stream stream, string autor, CancellationToken ct = default)
     {
         try
         {
             using var sanitized = await QuitarValidacionesDeDatosAsync(stream, ct);
             using var workbook = new XLWorkbook(sanitized);
-            return await ImportarWorkbookAsync(workbook, autor, ct);
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            var result = await ImportarWorkbookAsync(workbook, autor, ct);
+            await tx.CommitAsync(ct);
+            return result;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -81,6 +88,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
         var ciudadanosCreados = 0;
         var sedesProcesadas = new HashSet<string>();
         var errores = new List<string>();
+        var totalErrores = 0;
 
         // Cache existing ciudadanos by Rut to optimize lookups
         var rutsInDb = await db.Ciudadanos
@@ -106,6 +114,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                 if (row.IsEmpty()) continue;
 
                 totalLeidas++;
+                string? rutAgregado = null;
 
                 try
                 {
@@ -156,7 +165,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                         db.Ciudadanos.Add(nuevoCiudadano);
                         ciudadanoId = nuevoCiudadano.Id;
                         rutsInDb[rutObj.Value] = ciudadanoId;
-                        ciudadanosCreados++;
+                        rutAgregado = rutObj.Value;
                     }
 
                     // 4. Fechas y Comuna
@@ -207,7 +216,6 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                             now
                         );
                         db.Carpetas.Add(nuevaCarpeta);
-                        carpetasCreadas++;
                     }
                     else
                     {
@@ -216,18 +224,24 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                         if (!string.IsNullOrEmpty(comuna)) carpetaExistente.AsignarComuna(comuna, usuario, now);
                         if (!string.IsNullOrEmpty(fechaUltimaCarpeta)) carpetaExistente.ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, usuario, now);
                         if (!string.IsNullOrEmpty(obs)) carpetaExistente.ModificarObservacion(obs, usuario, now);
-                        carpetasActualizadas++;
                     }
 
-                    // Flush incremental en lotes para mantener memoria controlada
-                    if (totalLeidas % 500 == 0)
-                    {
-                        await db.SaveChangesAsync(ct);
-                    }
+                    // Flush per row inside the transaction so a failing row never leaves half-tracked changes.
+                    // EF wraps each SaveChanges in a savepoint, so a failed flush only undoes that row.
+                    await db.SaveChangesAsync(ct);
+
+                    // Count only rows that were actually persisted.
+                    if (rutAgregado is not null) ciudadanosCreados++;
+                    if (carpetaExistente is null) carpetasCreadas++; else carpetasActualizadas++;
+                    if (totalLeidas % TamanoLoteTracker == 0) db.ChangeTracker.Clear();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    if (errores.Count < 20)
+                    // Discard everything this row added/modified (previous rows are already flushed).
+                    db.ChangeTracker.Clear();
+                    if (rutAgregado is not null) rutsInDb.Remove(rutAgregado);
+                    totalErrores++;
+                    if (errores.Count < MaxMensajesError)
                     {
                         errores.Add($"Fila {rowNum} ({ws.Name}): {ex.Message}");
                     }
@@ -243,7 +257,8 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
             carpetasActualizadas,
             ciudadanosCreados,
             sedesProcesadas.ToList(),
-            errores
+            errores,
+            totalErrores
         );
     }
 

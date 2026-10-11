@@ -93,6 +93,10 @@
                                 <li>@err</li>
                             }
                         </ul>
+                        @if (resultado.TotalErrores > resultado.Errores.Count)
+                        {
+                            <span class="imp-obs-more">y @(resultado.TotalErrores - resultado.Errores.Count) errores más</span>
+                        }
                     </div>
                 }
 
