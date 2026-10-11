@@ -31,6 +31,12 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .UseCollation("NOCASE");
 
+                    b.Property<int>("Clases")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0)
+                        .HasColumnName("ClasesLicencia");
+
                     b.Property<string>("Comuna")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -46,6 +52,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("FechaCitacion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("FechaSubida")
@@ -80,6 +89,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasIndex("CiudadanoId");
 
                     b.HasIndex("Comuna");
+
+                    b.HasIndex("Decision");
 
                     b.HasIndex("Estado");
 
@@ -156,6 +167,25 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.ToTable("HistorialCambios", (string)null);
                 });
 
+            modelBuilder.Entity("Sgl.Domain.RevisionDuplicado", b =>
+                {
+                    b.Property<Guid>("CiudadanoId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<DateTime>("RevisadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RevisadoPor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CiudadanoId");
+
+                    b.ToTable("RevisionesDuplicado", (string)null);
+                });
+
             modelBuilder.Entity("Sgl.Domain.Carpeta", b =>
                 {
                     b.HasOne("Sgl.Domain.Ciudadano", "Ciudadano")
@@ -200,6 +230,15 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasOne("Sgl.Domain.Carpeta", null)
                         .WithMany("Historial")
                         .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sgl.Domain.RevisionDuplicado", b =>
+                {
+                    b.HasOne("Sgl.Domain.Ciudadano", null)
+                        .WithMany()
+                        .HasForeignKey("CiudadanoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
