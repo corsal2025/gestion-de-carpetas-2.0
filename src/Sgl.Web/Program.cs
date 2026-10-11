@@ -14,6 +14,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSglInfrastructure(builder.Configuration);
 builder.Services.AddScoped<AutorState>();
+builder.Services.AddScoped<DuplicadosNotifier>();
 
 var app = builder.Build();
 

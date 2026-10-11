@@ -1,0 +1,54 @@
+@* Pending duplicate cases counter for the main navigation. Uses its own DI scope so it never
+   shares the page's DbContext (Blazor Server keeps one scope per circuit). *@
+@implements IDisposable
+@inject IServiceScopeFactory ScopeFactory
+@inject DuplicadosNotifier Notifier
+@inject NavigationManager Nav
+@inject ILogger<DuplicadosBadge> Logger
+
+@if (pendientes > 0)
+{
+    <span class="nav-badge" aria-label="@($"{pendientes} casos pendientes")">@(pendientes > 99 ? "99+" : pendientes.ToString())</span>
+}
+
+@code {
+    private int pendientes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        await RefrescarAsync();
+    }
+
+    private void OnChanged() => _ = InvokeAsync(RefrescarYRenderizarAsync);
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        _ = InvokeAsync(RefrescarYRenderizarAsync);
+
+    private async Task RefrescarYRenderizarAsync()
+    {
+        await RefrescarAsync();
+        StateHasChanged();
+    }
+
+    private async Task RefrescarAsync()
+    {
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<DuplicadosService>();
+            pendientes = await service.ContarPendientesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "No se pudo contar los posibles duplicados.");
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

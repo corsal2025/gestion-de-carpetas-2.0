@@ -4015,3 +4015,82 @@ table.cases.doc-table td:first-child {
 .tour-btn-primary:hover:not(:disabled) {
     background: #059669;
 }
+
+/* ===== Clase de licencia y Posibles Duplicados ===== */
+.nav-item.nav-duplicados {
+    color: #fecaca;
+    background: rgba(220, 38, 38, 0.16);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+.nav-item.nav-duplicados:hover {
+    background: rgba(220, 38, 38, 0.32);
+    color: #ffffff;
+    border-color: #ef4444;
+}
+.nav-item.nav-duplicados.active {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    border-color: #f87171 !important;
+}
+.nav-badge {
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #b91c1c;
+    font-size: 0.7rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.clases-selector { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.clase-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+}
+.clase-chip input { margin: 0; accent-color: var(--brand-primary); }
+.clase-chip.on { border-color: var(--brand-primary); background: var(--brand-light); color: var(--brand-primary); }
+.quick-add-clases { grid-column: 1 / -1; }
+
+.aviso-duplicado {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid;
+}
+.aviso-duplicado.bloqueo { background: var(--status-bad-bg); color: var(--status-bad-text); border-color: currentColor; }
+.aviso-duplicado.advertencia { background: var(--status-warn-bg); color: var(--status-warn-text); border-color: currentColor; }
+.aviso-duplicado .aviso-titulo { margin: 0 0 0.5rem; }
+.aviso-tabla { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+.aviso-tabla th, .aviso-tabla td { text-align: left; padding: 0.25rem 0.4rem; }
+.aviso-tabla .fila-bloqueo { font-weight: 700; }
+.aviso-duplicado a { color: inherit; text-decoration: underline; }
+
+.dup-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+.dup-filtros label { display: flex; flex-direction: column; gap: 0.25rem; }
+.dup-tabla { width: 100%; border-collapse: collapse; }
+.dup-tabla th, .dup-tabla td { padding: 0.45rem 0.5rem; text-align: left; vertical-align: top; }
+.dup-grupo { border-top: 1px solid var(--border-color); }
+.dup-detalle > td { background: var(--surface-alt); }
+.dup-carpetas { width: 100%; font-size: 0.88rem; }
+.btn-link { background: none; border: none; color: var(--brand-primary); cursor: pointer; font-size: 1rem; padding: 0 0.3rem; }
+.btn-small { margin-top: 0.3rem; font-size: 0.78rem; padding: 0.2rem 0.6rem; }
+.dup-paginacion { display: flex; gap: 1rem; align-items: center; justify-content: flex-end; margin-top: 0.75rem; flex-wrap: wrap; }
+@media (max-width: 640px) {
+    .dup-tabla, .dup-tabla tbody, .dup-tabla tr, .dup-tabla td { display: block; width: 100%; }
+    .dup-tabla thead { display: none; }
+}
