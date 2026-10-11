@@ -1461,3 +1461,7 @@ html body .data-table .nombre-wrapper-cell { gap: .75rem; }
 @media (max-width: 850px) {
     html body .data-table .col-sticky-nombre .name-cell { max-width: none !important; }
 }
+
+/* Bandejas: columnas compactas; la columna Persona absorbe el espacio sobrante */
+html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { width: 1% !important; min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .9rem; padding-right: .9rem; }
+html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: auto !important; min-width: 260px !important; }
