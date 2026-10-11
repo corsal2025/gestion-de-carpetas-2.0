@@ -9,6 +9,9 @@ public interface ICarpetaRepository
 
     Task<Ciudadano?> FindCiudadanoAsync(Rut rut, CancellationToken ct = default);
 
+    /// <summary>Open carpetas (no final decision) of a citizen, in any sede.</summary>
+    Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default);
+
     Task AddAsync(Carpeta carpeta, CancellationToken ct = default);
 
     Task<(IReadOnlyList<CarpetaResumenDto> Items, int Total)> SearchAsync(CarpetaSearch search, CancellationToken ct = default);

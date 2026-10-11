@@ -24,10 +24,26 @@ public static class DependencyInjection
 
         services.AddDbContext<SglDbContext>(options => DatabaseProvider.Configure(options, provider, connectionString));
         services.AddScoped<ICarpetaRepository, CarpetaRepository>();
+        services.AddScoped<IDuplicadoRepository, DuplicadoRepository>();
         services.AddScoped<CarpetaService>();
+        services.AddScoped<DuplicadosService>();
+        services.AddSingleton(BindLicenciasOptions(configuration));
         services.AddScoped<ExcelImportService>();
         services.AddSingleton(TimeProvider.System);
         return services;
+    }
+
+    private static LicenciasOptions BindLicenciasOptions(IConfiguration configuration)
+    {
+        var raw = configuration[$"{LicenciasOptions.SectionName}:{nameof(LicenciasOptions.ClaseObligatoriaDesde)}"];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new LicenciasOptions();
+        }
+
+        return DateOnly.TryParse(raw, System.Globalization.CultureInfo.InvariantCulture, out var desde)
+            ? new LicenciasOptions { ClaseObligatoriaDesde = desde }
+            : throw new InvalidOperationException($"Fecha inválida en '{LicenciasOptions.SectionName}:{nameof(LicenciasOptions.ClaseObligatoriaDesde)}': '{raw}'. Use el formato yyyy-MM-dd.");
     }
 }
 

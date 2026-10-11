@@ -32,6 +32,9 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         return db.Ciudadanos.SingleOrDefaultAsync(c => c.Rut.Value == value, ct);
     }
 
+    public Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasAsync(Guid ciudadanoId, CancellationToken ct = default) =>
+        CarpetasAbiertasQuery.ForCiudadanoAsync(db, ciudadanoId, ct);
+
     public async Task AddAsync(Carpeta carpeta, CancellationToken ct = default) =>
         await db.Carpetas.AddAsync(carpeta, ct);
 

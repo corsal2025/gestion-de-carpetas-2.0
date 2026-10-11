@@ -11,6 +11,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<HistorialCambio> Historial => Set<HistorialCambio>();
 
+    public DbSet<RevisionDuplicado> RevisionesDuplicado => Set<RevisionDuplicado>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -46,6 +48,9 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.Comuna).HasMaxLength(Carpeta.MaxComunaLength);
             b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.Property(c => c.PendienteBusqueda).HasDefaultValue(false);
+            b.Property(c => c.Clases).HasColumnName("ClasesLicencia").HasDefaultValue(ClaseLicencia.Ninguna);
+            b.Property(c => c.FechaRegistro);
+            b.HasIndex(c => c.Decision);
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.HasIndex(c => c.Sede);
@@ -64,6 +69,15 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(h => h.Campo).HasMaxLength(50).IsRequired();
             b.Property(h => h.Anterior).HasMaxLength(250);
             b.Property(h => h.Nuevo).HasMaxLength(250);
+        });
+
+        modelBuilder.Entity<RevisionDuplicado>(b =>
+        {
+            b.ToTable("RevisionesDuplicado");
+            b.HasKey(r => r.CiudadanoId);
+            b.Property(r => r.CiudadanoId).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(r => r.RevisadoPor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
+            b.HasOne<Ciudadano>().WithMany().HasForeignKey(r => r.CiudadanoId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

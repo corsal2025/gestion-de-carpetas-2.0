@@ -1,27 +1,60 @@
-using System.Text.RegularExpressions;
 using Sgl.Domain;
 
 namespace Sgl.Application.Carpetas;
 
 /// <summary>Use cases for carpetas: RegistrarCarpeta, CambiarEstado, EditarCarpeta, ListarCarpetas, ObtenerCarpeta.</summary>
-public sealed partial class CarpetaService(ICarpetaRepository repository, TimeProvider clock)
+public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider clock, LicenciasOptions? options = null)
 {
-    [GeneratedRegex(@"^[0-9.\-kK]+$")]
-    private static partial Regex RutLikeText();
+    private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
+    /// <summary>
+    /// Registers a new carpeta. Enforces the mandatory license class (when configured) and the duplicate
+    /// rules: an open carpeta of the same citizen sharing a class blocks; any other open carpeta requires
+    /// <see cref="RegistrarCarpetaCommand.ConfirmarDuplicado"/>.
+    /// </summary>
     public async Task<Guid> RegistrarAsync(RegistrarCarpetaCommand cmd, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(cmd);
         var rut = Rut.Parse(cmd.Rut);
-        var ciudadano = await repository.FindCiudadanoAsync(rut, ct)
-                        ?? new Ciudadano(rut, cmd.Nombre, cmd.Apellido);
+        if (cmd.Clases == ClaseLicencia.Ninguna && _options.ClaseEsObligatoria(DateOnly.FromDateTime(Now)))
+        {
+            throw new DomainException("Debe indicar al menos una clase de licencia.");
+        }
 
-        var carpeta = Carpeta.Registrar(ciudadano, cmd.Sede, cmd.FechaCitacion, cmd.Autor, Now);
+        var existente = await repository.FindCiudadanoAsync(rut, ct);
+        if (existente is not null)
+        {
+            var verificacion = VerificacionDuplicadoDto.Clasificar(
+                await repository.GetCarpetasAbiertasAsync(existente.Id, ct), cmd.Clases);
+            if (verificacion.Bloquea || (verificacion.RequiereConfirmacion && !cmd.ConfirmarDuplicado))
+            {
+                throw new CarpetaDuplicadaException(verificacion);
+            }
+        }
+
+        var ciudadano = existente ?? new Ciudadano(rut, cmd.Nombre, cmd.Apellido);
+        var carpeta = Carpeta.Registrar(ciudadano, cmd.Sede, cmd.FechaCitacion, cmd.Autor, Now, cmd.Clases);
         await repository.AddAsync(carpeta, ct);
         await repository.SaveChangesAsync(ct);
         return carpeta.Id;
+    }
+
+    /// <summary>Checks a prospective registration against the citizen's open carpetas without saving.</summary>
+    public async Task<VerificacionDuplicadoDto> VerificarDuplicadoAsync(string rutTexto, ClaseLicencia clases, CancellationToken ct = default)
+    {
+        var ciudadano = await repository.FindCiudadanoAsync(Rut.Parse(rutTexto), ct);
+        return ciudadano is null
+            ? VerificacionDuplicadoDto.Vacia
+            : VerificacionDuplicadoDto.Clasificar(await repository.GetCarpetasAbiertasAsync(ciudadano.Id, ct), clases);
+    }
+
+    public async Task AsignarClasesAsync(Guid id, ClaseLicencia clases, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.AsignarClases(clases, autor, Now);
+        await repository.SaveChangesAsync(ct);
     }
 
     public async Task CambiarEstadoAsync(CambiarEstadoCommand cmd, CancellationToken ct = default)
@@ -160,7 +193,8 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
             c.Estado,
             c.Decision,
             EstadoTransitions.NextStates(c.Estado),
-            historial);
+            historial,
+            c.Clases);
     }
 
     public async Task<PagedResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
@@ -168,19 +202,7 @@ public sealed partial class CarpetaService(ICarpetaRepository repository, TimePr
         ArgumentNullException.ThrowIfNull(query);
         var q = query.Normalized();
 
-        string? rutFragment = null;
-        string? nameFragment = null;
-        if (q.Texto is { } texto)
-        {
-            if (RutLikeText().IsMatch(texto))
-            {
-                rutFragment = texto.Replace(".", string.Empty).ToUpperInvariant();
-            }
-            else
-            {
-                nameFragment = Ciudadano.NormalizeForSearch(texto);
-            }
-        }
+        var (rutFragment, nameFragment) = TextoBusqueda.Parse(q.Texto);
 
         var search = new CarpetaSearch(
             rutFragment,

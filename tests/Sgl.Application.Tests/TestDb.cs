@@ -24,12 +24,21 @@ public sealed class TestDb : IDisposable
         new(new DbContextOptionsBuilder<SglDbContext>().UseSqlite(_connection).Options);
 
     /// <summary>Service over a fresh context so assertions never read stale tracked entities.</summary>
-    public CarpetaService NewService() => new(new CarpetaRepository(NewContext()), Clock);
+    public CarpetaService NewService(LicenciasOptions? options = null) =>
+        new(new CarpetaRepository(NewContext()), Clock, options);
+
+    public DuplicadosService NewDuplicadosService() => new(new DuplicadoRepository(NewContext()), Clock);
+
+    public void AdvanceClock(TimeSpan delta) => Clock.Advance(delta);
 
     public void Dispose() => _connection.Dispose();
 }
 
 public sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
 {
-    public override DateTimeOffset GetUtcNow() => now;
+    private DateTimeOffset _now = now;
+
+    public override DateTimeOffset GetUtcNow() => _now;
+
+    public void Advance(TimeSpan delta) => _now = _now.Add(delta);
 }

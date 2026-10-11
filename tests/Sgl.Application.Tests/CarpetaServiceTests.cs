@@ -47,7 +47,7 @@ public sealed class CarpetaServiceTests : IDisposable
     public async Task Registrar_reuses_existing_ciudadano_with_same_rut()
     {
         await _db.NewService().RegistrarAsync(Cmd(rut: "12345678-5"));
-        await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5", sede: Sede.Placilla));
+        await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5", sede: Sede.Placilla) with { ConfirmarDuplicado = true });
 
         await using var ctx = _db.NewContext();
         Assert.Equal(1, await ctx.Ciudadanos.CountAsync());

@@ -8,7 +8,9 @@ public sealed record RegistrarCarpetaCommand(
     string Apellido,
     Sede Sede,
     DateOnly FechaCitacion,
-    string Autor);
+    string Autor,
+    ClaseLicencia Clases = ClaseLicencia.Ninguna,
+    bool ConfirmarDuplicado = false);
 
 public sealed record CambiarEstadoCommand(Guid CarpetaId, EstadoCarpeta NuevoEstado, string Autor);
 
@@ -86,7 +88,8 @@ public sealed record CarpetaDetalleDto(
     EstadoCarpeta Estado,
     Decision Decision,
     IReadOnlyList<EstadoCarpeta> SiguientesEstados,
-    IReadOnlyList<HistorialDto> Historial);
+    IReadOnlyList<HistorialDto> Historial,
+    ClaseLicencia Clases = ClaseLicencia.Ninguna);
 
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize)
 {
