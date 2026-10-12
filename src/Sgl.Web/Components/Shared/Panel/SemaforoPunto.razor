@@ -1,0 +1,18 @@
+@* Traffic-light dot with an accessible label; renders nothing for modules without traffic light. *@
+@if (Color is { } c)
+{
+    <span class="semaforo-punto semaforo-@c.ToString().ToLowerInvariant()" role="img" aria-label="@Texto(c)" title="@Texto(c)"></span>
+}
+
+@code {
+    [Parameter] public Semaforo? Color { get; set; }
+
+    [Parameter] public int Atrasadas { get; set; }
+
+    private string Texto(Semaforo c) => c switch
+    {
+        Semaforo.Rojo => $"Rojo: {Atrasadas} con atraso",
+        Semaforo.Amarillo => "Amarillo: por vencer",
+        _ => "Verde: al día",
+    };
+}

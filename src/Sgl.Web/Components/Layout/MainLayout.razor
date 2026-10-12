@@ -3,7 +3,7 @@
 
 <header class="topbar">
     <div class="brand-group">
-        <a class="brand" href="carpetas">
+        <a class="brand" href="" title="Ir al inicio">
             <span class="brand-mark" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             </span>
@@ -11,9 +11,9 @@
         </a>
     </div>
     <nav class="main-nav" aria-label="Principal">
-        <NavLink href="carpetas" Match="NavLinkMatch.Prefix" class="nav-item nav-carpetas">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-            Gestión de Carpetas
+        <NavLink href="" Match="NavLinkMatch.All" class="nav-item nav-carpetas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+            Inicio
         </NavLink>
         <NavLink href="cajas" class="nav-item nav-cajas">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
@@ -22,11 +22,6 @@
         <NavLink href="importar" class="nav-item nav-importar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
             Cargar Excel Masivo
-        </NavLink>
-        <NavLink href="duplicados" class="nav-item nav-duplicados">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-            Posibles Duplicados
-            <DuplicadosBadge />
         </NavLink>
         <NavLink href="estadisticas" class="nav-item nav-estadisticas">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>

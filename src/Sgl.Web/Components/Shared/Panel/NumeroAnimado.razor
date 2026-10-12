@@ -1,0 +1,28 @@
+@* Number that eases from its previous value to the new one (skipped with prefers-reduced-motion, see app.js). *@
+@inject IJSRuntime JS
+
+<span @ref="elemento" class="numero-animado">@Valor.ToString("N0", Cultura)</span>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+    private ElementReference elemento;
+    private int? anterior;
+
+    [Parameter, EditorRequired] public int Valor { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (anterior is { } previo && previo != Valor)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("sglUi.animarNumero", elemento, previo, Valor);
+            }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+            {
+                // Sin animación: el valor final ya está renderizado.
+            }
+        }
+        anterior = Valor;
+    }
+}

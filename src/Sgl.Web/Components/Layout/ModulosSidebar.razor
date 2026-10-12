@@ -1,0 +1,169 @@
+@* Side menu of modules (replaces the former pill tab bar). Collapsible groups, counters and traffic lights;
+   the whole menu folds into a ~56px icon strip. Preferences are kept in localStorage (guarded in app.js). *@
+@implements IDisposable
+@inject ModulosState Estado
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<nav class="modulos-sidebar @(plegado ? "plegado" : "")" aria-label="Módulos">
+    <div class="sidebar-cabecera">
+        @if (!plegado)
+        {
+            <a class="sidebar-inicio" href="" title="Volver al inicio">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10" /></svg>
+                <span>Inicio</span>
+            </a>
+        }
+        <button type="button" class="sidebar-plegar" @onclick="TogglePlegadoAsync"
+                aria-expanded="@(plegado ? "false" : "true")" title="@(plegado ? "Expandir menú" : "Plegar menú")"
+                aria-label="@(plegado ? "Expandir menú de módulos" : "Plegar menú de módulos")">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="@(plegado ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6")" /></svg>
+        </button>
+    </div>
+
+    <div class="sidebar-grupos">
+        @foreach (var grupo in ModulosCatalogo.Grupos)
+        {
+            var abierto = !gruposCerrados.Contains(grupo.Clave);
+            var eg = Estado.DeGrupo(grupo);
+            <section class="sidebar-grupo @grupo.Css">
+                <button type="button" class="sidebar-grupo-titulo" @onclick="() => ToggleGrupoAsync(grupo)"
+                        aria-expanded="@(abierto ? "true" : "false")" title="@grupo.Nombre">
+                    <svg class="sidebar-grupo-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
+                    @if (!plegado)
+                    {
+                        <span class="sidebar-grupo-nombre">@grupo.Nombre</span>
+                        <span class="sidebar-chevron" aria-hidden="true">@(abierto ? "▾" : "▸")</span>
+                    }
+                    else
+                    {
+                        <SemaforoPunto Color="eg.Semaforo" Atrasadas="eg.Atrasadas" />
+                    }
+                </button>
+                @if (abierto || plegado)
+                {
+                    <ul>
+                        @foreach (var m in ModulosCatalogo.Todos.Where(x => x.Grupo == grupo))
+                        {
+                            var em = Estado.De(m);
+                            var activo = EsActivo(m);
+                            <li>
+                                <a class="sidebar-modulo @(activo ? "activo" : "")" href="@m.Href" aria-current="@(activo ? "page" : null)"
+                                   title="@($"{m.Nombre}: {em.Conteo:N0}")">
+                                    @if (plegado)
+                                    {
+                                        <span class="sidebar-corto">@m.Corto</span>
+                                    }
+                                    else
+                                    {
+                                        <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
+                                        <span class="sidebar-modulo-nombre">@m.Nombre</span>
+                                        <span class="sidebar-contador"><NumeroAnimado Valor="em.Conteo" /></span>
+                                    }
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        }
+    </div>
+</nav>
+
+@code {
+    private const string ClavePlegado = "sgl.sidebar.plegado";
+    private const string ClaveGrupos = "sgl.sidebar.gruposCerrados";
+    private bool plegado;
+    private readonly HashSet<string> gruposCerrados = [];
+
+    protected override void OnInitialized()
+    {
+        Estado.Changed += OnEstadoChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        DuplicadosNotifier.Changed += OnDuplicadosChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var p = await LeerAsync(ClavePlegado);
+        var g = await LeerAsync(ClaveGrupos);
+        plegado = p == "1";
+        if (!string.IsNullOrEmpty(g))
+        {
+            foreach (var clave in g.Split(',', StringSplitOptions.RemoveEmptyEntries)) gruposCerrados.Add(clave);
+        }
+        await Estado.AsegurarAsync();
+        StateHasChanged();
+    }
+
+    private bool EsActivo(Modulo m)
+    {
+        var rel = Nav.ToBaseRelativePath(Nav.Uri);
+        var ruta = rel.Split('?')[0].TrimEnd('/');
+        if (m.Bandeja is { } b)
+        {
+            return ruta == "carpetas" && (BandejaDeQuery(rel) ?? Bandeja.PorClasificar.ToString()).Equals(b.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+        return m.Clave switch
+        {
+            ModulosCatalogo.ClaveTodas => ruta == "carpetas" && string.Equals(BandejaDeQuery(rel), "todas", StringComparison.OrdinalIgnoreCase),
+            _ => ruta == m.Href,
+        };
+    }
+
+    private static string? BandejaDeQuery(string relativo)
+    {
+        var i = relativo.IndexOf('?');
+        if (i < 0) return null;
+        var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(relativo[i..]);
+        return q.TryGetValue("bandeja", out var v) ? v.ToString() : null;
+    }
+
+    private async Task TogglePlegadoAsync()
+    {
+        plegado = !plegado;
+        await GuardarAsync(ClavePlegado, plegado ? "1" : "0");
+    }
+
+    private async Task ToggleGrupoAsync(GrupoModulo grupo)
+    {
+        if (plegado)
+        {
+            plegado = false;
+            gruposCerrados.Remove(grupo.Clave);
+            await GuardarAsync(ClavePlegado, "0");
+        }
+        else if (!gruposCerrados.Remove(grupo.Clave))
+        {
+            gruposCerrados.Add(grupo.Clave);
+        }
+        await GuardarAsync(ClaveGrupos, string.Join(',', gruposCerrados));
+    }
+
+    private async Task<string?> LeerAsync(string clave)
+    {
+        try { return await JS.InvokeAsync<string?>("sglUi.leer", clave); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { return null; }
+    }
+
+    private async Task GuardarAsync(string clave, string valor)
+    {
+        try { await JS.InvokeVoidAsync("sglUi.guardar", clave, valor); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { /* preferencia solo por sesión */ }
+    }
+
+    private void OnDuplicadosChanged() => _ = Estado.RefrescarAsync();
+
+    private void OnEstadoChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Estado.Changed -= OnEstadoChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+        DuplicadosNotifier.Changed -= OnDuplicadosChanged;
+    }
+}

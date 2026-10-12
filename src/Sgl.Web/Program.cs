@@ -20,7 +20,7 @@ builder.Services.AddSglInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.SectionName).Get<BandejasOptions>() ?? new BandejasOptions());
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
-builder.Services.AddSingleton<DuplicadosBadgeCache>();
+builder.Services.AddScoped<ModulosState>();
 
 var app = builder.Build();
 

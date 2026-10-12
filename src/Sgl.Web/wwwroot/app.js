@@ -568,6 +568,25 @@ window.printPdfDocument = function () {
             save('sgl-rows', next);
             syncRowsButton();
         },
+        // Preferencias por navegador (menú lateral, Lico silenciado). Sin almacenamiento: null / no-op.
+        leer: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        guardar: function (k, v) { save(k, v); },
+        scrollTablaArriba: function () { var t = document.querySelector('.modulo-main .table-container'); if (t) t.scrollTop = 0; },
+        // Transición suave de un contador; respeta prefers-reduced-motion.
+        animarNumero: function (el, desde, hasta) {
+            if (!el) return;
+            var fmt = new Intl.NumberFormat('es-CL');
+            var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reducir || desde === hasta) { el.textContent = fmt.format(hasta); return; }
+            var inicio = null, dur = 450;
+            function paso(t) {
+                if (inicio === null) inicio = t;
+                var p = Math.min(1, (t - inicio) / dur), e = 1 - Math.pow(1 - p, 3);
+                el.textContent = fmt.format(Math.round(desde + (hasta - desde) * e));
+                if (p < 1) requestAnimationFrame(paso);
+            }
+            requestAnimationFrame(paso);
+        },
     };
     // El botón se vuelve a renderizar con Blazor: sincronizar su estado al cambiar el DOM.
     new MutationObserver(syncRowsButton).observe(document.body, { childList: true, subtree: true });

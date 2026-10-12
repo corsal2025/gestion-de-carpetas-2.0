@@ -1,6 +1,95 @@
 @page "/"
-@inject NavigationManager Nav
+@implements IDisposable
+@inject ModulosState Estado
+@inject IJSRuntime JS
+
+<PageTitle>Gestión de Carpetas 2.0 · Inicio</PageTitle>
+
+<div class="inicio">
+    <header class="inicio-cabecera">
+        <div>
+            <h1>Inicio</h1>
+            <p class="muted">Elige un módulo para trabajar. El color indica la etapa; el punto, si hay atrasos.</p>
+        </div>
+        @if (Estado.Panel is { } p && !licoSilenciado)
+        {
+            <aside class="lico-globo" role="status">
+                <span class="lico-slot" data-lico="@(p.AlertasDuplicado > 0 || p.DuplicadosPendientes > 0 ? "alerta" : p.Meta.Completa ? "celebra" : "explica")" aria-hidden="true"></span>
+                <p>@p.MensajeLico</p>
+                <button type="button" class="lico-silenciar" @onclick="SilenciarLicoAsync" title="Silenciar a Lico" aria-label="Silenciar el mensaje de Lico">✕</button>
+            </aside>
+        }
+    </header>
+
+    @if (Estado.Panel is not { } panel)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando módulos…</p></div>
+    }
+    else
+    {
+        <MetaDiaBar Meta="panel.Meta" />
+
+        @foreach (var grupo in ModulosCatalogo.Grupos)
+        {
+            <section class="inicio-grupo @grupo.Css" aria-labelledby="grupo-@grupo.Clave">
+                <h2 id="grupo-@grupo.Clave">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
+                    @grupo.Nombre
+                </h2>
+                <div class="inicio-tarjetas">
+                    @foreach (var m in ModulosCatalogo.Todos.Where(x => x.Grupo == grupo && x.Clave != ModulosCatalogo.ClaveTodas))
+                    {
+                        var e = Estado.De(m);
+                        <a class="modulo-tarjeta" href="@m.Href">
+                            <span class="tarjeta-nombre">@m.Nombre</span>
+                            <span class="tarjeta-fila">
+                                <span class="tarjeta-contador"><NumeroAnimado Valor="e.Conteo" /></span>
+                                <SemaforoPunto Color="e.Semaforo" Atrasadas="e.Atrasadas" />
+                            </span>
+                            <Sparkline Valores="e.Serie" Etiqueta="@($"Entradas de los últimos 7 días en {m.Nombre}")" />
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
 
 @code {
-    protected override void OnInitialized() => Nav.NavigateTo("carpetas", replace: true);
+    private const string ClaveLico = "sgl.inicio.licoSilenciado";
+    private bool licoSilenciado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Estado.Changed += OnChanged;
+        await Estado.RefrescarAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            if (await JS.InvokeAsync<string?>("sglUi.leer", ClaveLico) == "1")
+            {
+                licoSilenciado = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // Sin preferencias guardadas: Lico se muestra.
+        }
+    }
+
+    private async Task SilenciarLicoAsync()
+    {
+        licoSilenciado = true;
+        try { await JS.InvokeVoidAsync("sglUi.guardar", ClaveLico, "1"); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Estado.Changed -= OnChanged;
 }

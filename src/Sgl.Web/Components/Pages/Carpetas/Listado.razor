@@ -1,6 +1,9 @@
 @page "/carpetas"
+@layout ModuloLayout
+@implements IDisposable
 @using System.Globalization
 @inject CarpetaService Carpetas
+@inject ModulosState Modulos
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
@@ -253,22 +256,11 @@
             </div>
         }
 
-        <!-- Bandejas por etapa: cada carpeta cae automáticamente en una según su estado -->
-        <div class="bandeja-tabs" role="tablist">
-            @foreach (var grupo in BandejasTabs.GroupBy(t => t.Grupo))
-            {
-                <div class="bandeja-grupo" role="presentation">
-                    <span class="bandeja-grupo-etq">@grupo.Key</span>
-                    @foreach (var (_, b, etiqueta) in grupo)
-                    {
-                        <button type="button" role="tab" aria-selected="@(bandejaActiva == b ? "true" : "false")"
-                                class="bandeja-tab @(bandejaActiva == b ? "active" : "")" @onclick="() => SeleccionarBandeja(b)">
-                            @etiqueta <span class="badge-count">@ConteoBandeja(b).ToString("N0", CulturaCl)</span>
-                        </button>
-                    }
-                </div>
-            }
-        </div>
+        <!-- Navegación entre módulos: menú lateral (ModulosSidebar). Aquí solo la barra de meta en Por clasificar. -->
+        @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelMeta)
+        {
+            <MetaDiaBar Meta="panelMeta.Meta" Delgada="true" />
+        }
     </div>
 
     <!-- Grilla de resultados con máxima legibilidad -->
@@ -495,7 +487,10 @@
                         <option value="@e">@Labels.Of(e)</option>
                     }
                 </select>
-                <button type="button" class="btn-primary" disabled="@(seleccionadas.Count == 0 || destinoLote is null || clasificando)"
+                <span class="clasif-lote-clase" title="Clase de licencia (obligatoria)">Clase *</span>
+                <ClasesSelector @bind-Value="clasesLote" Disabled="clasificando" AriaLabel="Clase de licencia para las seleccionadas (obligatoria)" />
+                <button type="button" class="btn-primary" disabled="@(seleccionadas.Count == 0 || destinoLote is null || clasesLote == ClaseLicencia.Ninguna || clasificando)"
+                        title="@(clasesLote == ClaseLicencia.Ninguna ? "Marque al menos una clase de licencia" : null)"
                         @onclick="ClasificarLoteAsync">Aplicar a @seleccionadas.Count</button>
                 @if (!string.IsNullOrEmpty(errorClasif))
                 {
@@ -518,7 +513,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <Virtualize @key="bandejaActiva" @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
+                    <Virtualize @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
                                 ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
                         <ItemContent>
                         @{
@@ -559,8 +554,31 @@
                                             <span>—</span>
                                         }
                                     </td>
-                                    <td>
-                                        @if (c.TramitePrevio is { } tp)
+                                    <td class="@(MuestraAlerta(c) ? "td-alerta-dup" : null)" @ondblclick:stopPropagation>
+                                        @if (MuestraAlerta(c) && c.AlertaDuplicado is { } al)
+                                        {
+                                            <div class="alerta-dup" role="alert">
+                                                <span class="alerta-dup-texto">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))</span>
+                                                @if (eligiendoAnular == c.Id)
+                                                {
+                                                    <span class="alerta-dup-acciones">
+                                                        <span>¿Cuál anular?</span>
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(c.Id, c)">Esta (nueva)</button>
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(al.CarpetaId, c)">La del @al.FechaCitacion.ToString("dd-MM")</button>
+                                                        <button type="button" class="btn-alerta-sec" @onclick="() => eligiendoAnular = null">Cancelar</button>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="alerta-dup-acciones">
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" title="No crea carpeta: mueve la existente a esta fecha y anula esta fila" @onclick="() => ReagendarAsync(c, al)">Reagendar</button>
+                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" title="Clasificar esta fila como carpeta nueva (clase obligatoria)" @onclick="() => alertasDescartadas.Add(c.Id)">Crear nueva</button>
+                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" @onclick="() => eligiendoAnular = c.Id">Anular duplicada</button>
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else if (c.TramitePrevio is { } tp)
                                         {
                                             <span class="badge info" title="Pista, no definitiva: puede haber trámites anteriores no registrados en el sistema.">@tp.Cantidad previo(s) · @Labels.Of(tp.UltimaSede) @tp.UltimaFecha.ToString("dd-MM-yyyy")</span>
                                         }
@@ -573,6 +591,9 @@
                                         <input type="text" class="comuna-input-inline" placeholder="dd-mm-aaaa" value="@FechaClasif(c.Id)"
                                                @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
                                                title="@($"Fecha de última carpeta (opcional). Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <div class="clasif-cell">
@@ -589,7 +610,8 @@
                                                 <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
                                                        value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
                                             }
-                                            <button type="button" class="btn-action-caja" disabled="@(destinoClasif.GetValueOrDefault(c.Id) is null || clasificando)"
+                                            <button type="button" class="btn-action-caja" disabled="@(destinoClasif.GetValueOrDefault(c.Id) is null || clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna || clasificando)"
+                                                    title="@(clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna ? "Marque al menos una clase de licencia" : "Clasificar")"
                                                     @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
                                         </div>
                                     </td>
@@ -1092,6 +1114,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (pedirFilasTrasMontar && virtualizador is not null)
+        {
+            pedirFilasTrasMontar = false;
+            try { await JS.InvokeVoidAsync("sglUi.scrollTablaArriba"); }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException) { }
+            await virtualizador.RefreshDataAsync();
+        }
         if (!firstRender) return;
         try
         {
@@ -1110,30 +1139,8 @@
     [Inject] private BandejasOptions OpcionesBandejas { get; set; } = default!;
 
     private Bandeja? bandejaActiva = Bandeja.PorClasificar;
-    private IReadOnlyDictionary<Bandeja, int>? conteosBandeja;
     private DateOnly? filtroDesde;
     private DateOnly? filtroHasta;
-
-    private static readonly (string Grupo, Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
-    [
-        ("Entrada", Bandeja.PorClasificar, "Por clasificar"),
-        ("Preparación", Bandeja.PorPreparar, "1° Licencia"),
-        ("Preparación", Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos"),
-        ("Preparación", Bandeja.SeEncuentraEnOf43, "Se encuentra en Of. 43"),
-        ("Preparación", Bandeja.SinCarpetaF8, "No existe carpeta (F8)"),
-        ("Preparación", Bandeja.CrearCertificado, "Crear certificado / oficio"),
-        ("Preparación", Bandeja.CanjeLicExtranjera, "Canje lic. extranjera"),
-        ("Cambio de domicilio", Bandeja.CambioDomicilio, "Cambio de domicilio"),
-        ("Cambio de domicilio", Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado"),
-        ("Subidas", Bandeja.SubidaConaset, "Subida a Conaset"),
-        ("Subidas", Bandeja.SubidaConF8, "Subida con F8"),
-        ("Subidas", Bandeja.SubidaConOficio, "Subida con oficio"),
-        ("Subidas", Bandeja.CambioDomSubidoConaset, "Cambio dom. subido a Conaset"),
-        ("Subidas", Bandeja.CambioDomSubidoCorreo, "Cambio dom. subido con correo"),
-        ("Cierre", Bandeja.Cerradas, "Cerradas"),
-        ("Cierre", Bandeja.Archivadas, "Archivadas"),
-        ("Cierre", null, "Todas"),
-    ];
 
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA"];
@@ -1142,7 +1149,7 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
+        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
         [Bandeja.CrearCertificado] = ColumnasPreparacion,
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
@@ -1163,9 +1170,6 @@
     private IReadOnlyList<string> ColumnasBandeja =>
         bandejaActiva is { } b ? ColumnasPorBandeja[b] : [];
 
-    private int ConteoBandeja(Bandeja? b) =>
-        conteosBandeja is null ? 0 : b is { } x ? conteosBandeja.GetValueOrDefault(x) : conteosBandeja.Values.Sum();
-
     private async Task SeleccionarBandeja(Bandeja? b)
     {
         if (b == bandejaActiva) return;
@@ -1174,16 +1178,69 @@
         // con @key y pide su propio rango) no comparta el DbContext con otra consulta en curso.
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0) with { Bandeja = b });
         CancelarSeleccion();
-        virtualizador = null;
+        // Same Virtualize instance between trays (only "Todas" uses another table): re-measuring a fresh
+        // Virtualize costs ~1 s, refreshing the mounted one keeps the module switch well under 1 s.
+        var mismaTabla = (b is null) == (bandejaActiva is null) && total is > 0 && conteo.Total > 0;
+        if (!mismaTabla) virtualizador = null;
         bandejaActiva = b;
         total = conteo.Total;
+        pedirFilasTrasMontar = mismaTabla;
     }
+
+    private bool pedirFilasTrasMontar;
 
     // ---- Clasificación manual (bandeja Por clasificar) ----
     private readonly Dictionary<Guid, EstadoCarpeta?> destinoClasif = new();
     private readonly Dictionary<Guid, string?> fechaClasif = new();
     private readonly Dictionary<Guid, string?> comunaClasif = new();
+    private readonly Dictionary<Guid, ClaseLicencia> clasesClasif = new();
+    private ClaseLicencia clasesLote;
     private EstadoCarpeta? destinoLote;
+
+    // ---- Alerta de duplicado (R2): reagendar / crear nueva / anular duplicada ----
+    private readonly HashSet<Guid> alertasDescartadas = [];
+    private Guid? eligiendoAnular;
+    private bool resolviendo;
+
+    private bool MuestraAlerta(CarpetaResumenDto c) => c.AlertaDuplicado is not null && !alertasDescartadas.Contains(c.Id);
+
+    private async Task ReagendarAsync(CarpetaResumenDto fila, AlertaDuplicadoDto existente)
+    {
+        var mensaje = $"¿Reagendar la carpeta del {existente.FechaCitacion:dd-MM-yyyy} al {fila.FechaCitacion:dd-MM-yyyy}? Esta fila se anulará (motivo Reagendamiento).";
+        if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
+        await ResolverAsync(() => Carpetas.ReagendarAsync(fila.Id, existente.CarpetaId, AutorActual), fila.Id);
+    }
+
+    private async Task AnularDuplicadaAsync(Guid anularId, CarpetaResumenDto fila)
+    {
+        var cual = anularId == fila.Id ? "esta fila nueva" : $"la carpeta existente del {fila.AlertaDuplicado?.FechaCitacion:dd-MM-yyyy}";
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular {cual} por duplicado? Podrá restaurarse desde «Anuladas».")) return;
+        await ResolverAsync(() => Carpetas.AnularAsync(anularId, MotivosAnulacion.Duplicado, AutorActual), fila.Id);
+    }
+
+    private async Task ResolverAsync(Func<Task> accion, Guid filaId)
+    {
+        resolviendo = true;
+        errorClasif = null;
+        try
+        {
+            await accion();
+            eligiendoAnular = null;
+            alertasDescartadas.Remove(filaId);
+            DuplicadosNotifier.Notify();
+            await CargarAsync();
+        }
+        catch (Exception ex) when (ex is NotFoundException or DomainException)
+        {
+            errorClasif = ex.Message;
+        }
+        finally
+        {
+            resolviendo = false;
+        }
+    }
+
+    private string AutorActual => Autor.HasNombre ? Autor.Nombre : "Funcionario";
     private bool clasificando;
     private string? errorClasif;
 
@@ -1194,36 +1251,55 @@
 
     private Task ClasificarUnaAsync(Guid id) =>
         destinoClasif.GetValueOrDefault(id) is { } destino
-            ? EjecutarClasificacionAsync([id], destino, fechaClasif.GetValueOrDefault(id),
+            ? EjecutarClasificacionAsync([id], destino, clasesClasif.GetValueOrDefault(id), fechaClasif.GetValueOrDefault(id),
                 Carpeta.EsCambioDomicilio(destino) ? comunaClasif.GetValueOrDefault(id) : null)
             : Task.CompletedTask;
 
     private async Task ClasificarLoteAsync()
     {
         if (destinoLote is not { } destino || seleccionadas.Count == 0) return;
-        var mensaje = $"¿Clasificar {seleccionadas.Count} carpetas como «{Labels.Of(destino)}»?";
+        if (clasesLote == ClaseLicencia.Ninguna)
+        {
+            errorClasif = "Marque al menos una clase de licencia para clasificar.";
+            return;
+        }
+        var mensaje = $"¿Clasificar {seleccionadas.Count} carpetas como «{Labels.Of(destino)}» con clase {Labels.Of(clasesLote)}?";
         if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
-        await EjecutarClasificacionAsync(seleccionadas.ToList(), destino, null, null);
+        await EjecutarClasificacionAsync(seleccionadas.ToList(), destino, clasesLote, null, null);
     }
 
-    private async Task EjecutarClasificacionAsync(IReadOnlyList<Guid> ids, EstadoCarpeta destino, string? fecha, string? comuna)
+    private async Task EjecutarClasificacionAsync(IReadOnlyList<Guid> ids, EstadoCarpeta destino, ClaseLicencia clases, string? fecha, string? comuna)
     {
+        if (clases == ClaseLicencia.Ninguna)
+        {
+            errorClasif = "Marque al menos una clase de licencia para clasificar.";
+            return;
+        }
         clasificando = true;
         errorClasif = null;
         try
         {
             var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
-            await Carpetas.ClasificarAsync(new ClasificarCommand(ids, destino, fecha, comuna, autor));
+            await Carpetas.ClasificarAsync(new ClasificarCommand(ids, destino, clases, fecha, comuna, autor));
             foreach (var id in ids)
             {
                 destinoClasif.Remove(id);
                 fechaClasif.Remove(id);
                 comunaClasif.Remove(id);
+                clasesClasif.Remove(id);
+                alertasDescartadas.Remove(id);
             }
             CancelarSeleccion();
             destinoLote = null;
+            clasesLote = ClaseLicencia.Ninguna;
             await CargarMetricasAsync();
             await CargarAsync();
+        }
+        catch (CarpetaDuplicadaException ex)
+        {
+            errorClasif = ex.Bloqueante
+                ? "Bloqueado: este RUT ya tiene una carpeta abierta con la misma clase. Use Reagendar o Anular duplicada."
+                : ex.Message;
         }
         catch (Exception ex) when (ex is DomainException or NotFoundException)
         {
@@ -1315,8 +1391,22 @@
     [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
     [SupplyParameterFromQuery(Name = "caja")] public string? QueryCaja { get; set; }
 
+    private string? queryBandejaAplicada;
+
+    /// <summary>The side menu navigates with ?bandeja=…; switching module only reloads count and visible rows.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (total is null || QueryBandeja == queryBandejaAplicada) return;
+        queryBandejaAplicada = QueryBandeja;
+        var destino = QueryBandeja is null ? Bandeja.PorClasificar
+            : QueryBandeja.Equals("todas", StringComparison.OrdinalIgnoreCase) ? (Bandeja?)null
+            : Enum.TryParse<Bandeja>(QueryBandeja, true, out var b) && Enum.IsDefined(b) ? b : bandejaActiva;
+        await SeleccionarBandeja(destino);
+    }
+
     private void AplicarFiltrosDeQuery()
     {
+        queryBandejaAplicada = QueryBandeja;
         if (QueryBandeja is { } b)
         {
             bandejaActiva = b.Equals("todas", StringComparison.OrdinalIgnoreCase) ? null
@@ -1329,8 +1419,13 @@
         if (!string.IsNullOrWhiteSpace(QueryCaja)) filtroCaja = QueryCaja.Trim();
     }
 
+    private void OnModulosChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Modulos.Changed -= OnModulosChanged;
+
     protected override async Task OnInitializedAsync()
     {
+        Modulos.Changed += OnModulosChanged;
         AplicarFiltrosDeQuery();
         await CargarMetricasAsync();
         var abrir = false;
@@ -1437,7 +1532,8 @@
     private async Task CargarAsync()
     {
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
-        conteosBandeja = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
+        // Contadores del menú lateral e inicio: en su propio scope (no comparte este DbContext), sin bloquear la tabla.
+        _ = Modulos.RefrescarAsync();
         var antes = total;
         total = conteo.Total;
         if (virtualizador is not null && antes is > 0 && total > 0)

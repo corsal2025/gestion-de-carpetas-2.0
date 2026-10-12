@@ -1,0 +1,15 @@
+@* Compact license-class picker for table rows: a native disclosure showing the chosen classes. *@
+<details class="clase-rapida @(Value == ClaseLicencia.Ninguna ? "sin-clase" : null)">
+    <summary title="Clase de licencia (obligatoria para clasificar)">@(Value == ClaseLicencia.Ninguna ? "Clase ▾" : ClasesLicencia.Format(Value))</summary>
+    <div class="clase-rapida-panel">
+        <ClasesSelector Value="Value" ValueChanged="ValueChanged" Disabled="Disabled" AriaLabel="Clase de licencia de esta fila" />
+    </div>
+</details>
+
+@code {
+    [Parameter] public ClaseLicencia Value { get; set; }
+
+    [Parameter] public EventCallback<ClaseLicencia> ValueChanged { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+}

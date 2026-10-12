@@ -1,0 +1,25 @@
+@* Today's goal: "Hoy: X de Y clasificadas". Full variant on the home panel, thin variant in "Por clasificar". *@
+@using Sgl.Application.Panel
+
+<div class="meta-dia @(Delgada ? "meta-dia-delgada" : "") @(Meta.Completa ? "meta-completa" : "")" role="group" aria-label="Meta del día">
+    <div class="meta-dia-texto">
+        <span>Hoy: <strong><NumeroAnimado Valor="Meta.Clasificadas" /></strong> de <strong><NumeroAnimado Valor="Meta.Total" /></strong> clasificadas</span>
+        @if (Meta.Completa)
+        {
+            <span class="meta-celebra" role="status">¡Al día! <span aria-hidden="true">✓</span></span>
+        }
+        else
+        {
+            <span class="meta-pct">@Meta.Porcentaje%</span>
+        }
+    </div>
+    <div class="meta-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Meta.Porcentaje">
+        <span style="width: @(Meta.Porcentaje)%"></span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MetaDelDiaDto Meta { get; set; } = new(0, 0);
+
+    [Parameter] public bool Delgada { get; set; }
+}

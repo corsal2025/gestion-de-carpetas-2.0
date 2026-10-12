@@ -51,6 +51,18 @@ Configuración en `appsettings.json` (o `appsettings.Local.json`, no versionado)
 ```
 Para SQL Server: `"Provider": "SqlServer"` y la cadena de conexión correspondiente. Las migraciones incluidas son de SQLite; antes de usar SQL Server hay que generar un set de migraciones para ese proveedor y aplicarlo (`dotnet ef database update`). La migración automática al inicio solo se ejecuta con SQLite.
 
+## Fase 2: módulos, clasificación sin duplicados e inicio
+
+Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
+
+- **Clase obligatoria (R1)**: `Carpeta.Clasificar` exige al menos una clase; el servicio bloquea si el RUT ya tiene una carpeta abierta con una clase en común (también entre filas del mismo lote). Las carpetas antiguas no se tocan.
+- **Alerta de duplicado (R2)**: se calcula en vivo al listar "Por clasificar" (carpeta abierta = sin decisión final, no anulada y sin caja real), así desaparece sola al resolverse. La importación informa cuántas filas entran con alerta. Reagendar = la carpeta conservada toma fecha y sede de la otra, que se anula con motivo "Reagendamiento".
+- **Anulación (R3)**: flag `Anulada` + motivo/fecha/funcionario e historial; filtro global de EF (`HasQueryFilter`) la saca de módulos, contadores, estadísticas y duplicados. Solo la vista *Anuladas*, restaurar y la idempotencia de importadores usan `IgnoreQueryFilters()`. Nunca hay borrado físico.
+- **Navegación (R4)**: Inicio (`/`) con tarjetas por módulo; dentro de un módulo, menú lateral (`ModuloLayout`) plegable a 56 px con estado en `localStorage`. La barra superior queda para herramientas globales: Inicio, Cajas, Cargar Excel y Estadísticas; *Posibles duplicados* y *Anuladas* viven en el menú lateral (grupos Entrada y Cierre).
+- **Semáforo por módulo**: rojo si alguna carpeta alcanzó el umbral rojo (días desde citación, `Bandejas:Umbrales`), amarillo si alguna alcanzó el amarillo. Cerradas/Archivadas no llevan semáforo. Por clasificar: 1/3 días.
+- **Serie de 7 días**: entradas diarias al módulo según el historial (agenda, registro, cambio de estado, caja real).
+- **Meta del día**: clasificadas hoy (hora de Chile) frente a las que siguen en Por clasificar.
+
 ## Pendiente
 - Estado «Clase pendiente» no tiene transiciones de salida en el diagrama actual; confirmar flujo con el departamento.
 

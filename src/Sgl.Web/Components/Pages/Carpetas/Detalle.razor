@@ -17,6 +17,10 @@ else if (carpeta is null)
 else
 {
     <h1>@carpeta.Nombre @carpeta.Apellido <small class="muted">@carpeta.Rut</small></h1>
+    @if (carpeta.Anulada)
+    {
+        <p class="error" role="status"><span>Carpeta <strong>ANULADA</strong> (motivo: @carpeta.MotivoAnulacion). No aparece en módulos ni estadísticas; puede restaurarse desde <a href="anuladas">Anuladas</a>.</span></p>
+    }
 
     @if (error is not null)
     {

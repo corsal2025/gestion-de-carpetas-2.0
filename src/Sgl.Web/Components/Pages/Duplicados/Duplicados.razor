@@ -1,13 +1,16 @@
 @page "/duplicados"
+@layout ModuloLayout
 @inject DuplicadosService Revision
+@inject IJSRuntime JS
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject DuplicadosNotifier Notifier
 
 <PageTitle>Gestión de Carpetas 2.0 · Posibles Duplicados</PageTitle>
 
+<div class="modulo-scroll">
 <h1>Posibles Duplicados</h1>
-<p class="muted">Ciudadanos con más de una carpeta abierta (sin decisión de otorgamiento o denegación). Revise cada caso, asigne la clase de licencia si corresponde y márquelo como revisado.</p>
+<p class="muted">Ciudadanos con más de una carpeta abierta (mismo RUT, distintas fechas). Para cada caso: <strong>Reagendar</strong> (conservar una y moverla a la fecha de la otra, que se anula), <strong>Anular duplicada</strong> o <strong>mantener ambas</strong> (marcar como revisado).</p>
 
 <form class="card dup-filtros" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
     <label>Buscar por RUT o nombre
@@ -92,6 +95,15 @@ else
                                                             <a class="btn-small" href="carpetas/@c.Id">Abrir carpeta</a>
                                                             <a class="btn-small secondary" href="carpetas?abrir=@c.Id">Ver en listado</a>
                                                         </footer>
+                                                        <footer class="dup-card-acciones dup-resolver">
+                                                            @foreach (var otra in carpetas.Where(o => o.Id != c.Id))
+                                                            {
+                                                                <button type="button" class="btn-small" disabled="@ocupado"
+                                                                        title="Conserva esta carpeta con la fecha y sede de la otra; la otra se anula (Reagendamiento)"
+                                                                        @onclick="() => ReagendarAsync(g, origen: otra, destino: c)">Reagendar a @otra.FechaCitacion.ToString("dd-MM-yyyy")</button>
+                                                            }
+                                                            <button type="button" class="btn-small btn-peligro" disabled="@ocupado" @onclick="() => AnularAsync(g, c)">Anular duplicada</button>
+                                                        </footer>
                                                     </article>
                                                 }
                                             </div>
@@ -115,7 +127,7 @@ else
                                     <button type="button" class="secondary" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
                                         @(abierto ? "▾ Ocultar carpetas" : $"▸ Ver carpetas ({g.CarpetasAbiertas})")
                                     </button>
-                                    <button type="button" disabled="@(ocupado)" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Marcar como revisado</button>
+                                    <button type="button" disabled="@(ocupado)" title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
                                 </td>
                             </tr>
                         </ItemContent>
@@ -128,6 +140,7 @@ else
         </div>
     </section>
 }
+</div>
 
 @code {
     private static readonly System.Globalization.CultureInfo CulturaCl = new("es-CL");
@@ -280,7 +293,45 @@ else
 
             await CargarAsync();
             Notifier.Notify();
-        }, "Caso marcado como revisado.");
+        }, "Caso marcado como revisado (se mantienen ambas).");
+
+    private async Task ReagendarAsync(DuplicadoGrupoDto g, CarpetaDuplicadoDetalleDto origen, CarpetaDuplicadoDetalleDto destino)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Conservar la carpeta de {Labels.Of(destino.Sede)} y moverla al {origen.FechaCitacion:dd-MM-yyyy}? La otra se anulará (Reagendamiento).")) return;
+        await EjecutarAsync(async () =>
+        {
+            await Carpetas.ReagendarAsync(origen.Id, destino.Id, Autor.Nombre);
+            await TrasResolverAsync(g);
+        }, "Carpeta reagendada; la duplicada quedó anulada.");
+    }
+
+    private async Task AnularAsync(DuplicadoGrupoDto g, CarpetaDuplicadoDetalleDto c)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular por duplicado la carpeta del {c.FechaCitacion:dd-MM-yyyy} ({Labels.Of(c.Sede)})? Podrá restaurarse desde «Anuladas».")) return;
+        await EjecutarAsync(async () =>
+        {
+            await Carpetas.AnularAsync(c.Id, MotivosAnulacion.Duplicado, Autor.Nombre);
+            await TrasResolverAsync(g);
+        }, "Carpeta anulada por duplicado.");
+    }
+
+    /// <summary>Reloads the compared carpetas; closes the case when it no longer has duplicates.</summary>
+    private async Task TrasResolverAsync(DuplicadoGrupoDto g)
+    {
+        var restantes = await Revision.ObtenerDetalleCarpetasAsync(g.CiudadanoId);
+        if (restantes.Count < 2)
+        {
+            grupoAbierto = null;
+            expandidos.Clear();
+        }
+        else if (expandidos.ContainsKey(g.CiudadanoId))
+        {
+            expandidos[g.CiudadanoId] = restantes;
+        }
+
+        await CargarAsync();
+        Notifier.Notify();
+    }
 
     private async Task EjecutarAsync(Func<Task> action, string ok)
     {

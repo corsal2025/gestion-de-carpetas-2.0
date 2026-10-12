@@ -1,0 +1,121 @@
+@page "/anuladas"
+@layout ModuloLayout
+@inject CarpetaService Carpetas
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+
+<PageTitle>Gestión de Carpetas 2.0 · Anuladas</PageTitle>
+
+<div class="page-container">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Anuladas <span class="muted">· @(items?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
+        <form class="modulo-busqueda" @onsubmit="CargarAsync" @onsubmit:preventDefault>
+            <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar anuladas" maxlength="100" />
+            <button type="submit" class="btn-secondary">Buscar</button>
+        </form>
+    </div>
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error</div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">@mensaje</div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando anuladas…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay carpetas anuladas.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table">
+                <thead>
+                    <tr>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th>SEDE</th>
+                        <th>CITACIÓN</th>
+                        <th>ESTADO PREVIO</th>
+                        <th>MOTIVO</th>
+                        <th>ANULADA</th>
+                        <th>FUNCIONARIO</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <Virtualize Items="items" Context="a" ItemSize="44" OverscanCount="15" SpacerElement="tr">
+                        <tr>
+                            <td class="date-cell col-sticky-rut">@a.Rut</td>
+                            <td class="col-sticky-nombre"><span class="name-cell">@a.NombreCompleto</span></td>
+                            <td><span class="sede-tag">@Labels.Of(a.Sede)</span></td>
+                            <td class="date-cell">@a.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            <td>@Labels.Of(a.Estado)</td>
+                            <td><span class="badge @(a.Motivo == MotivosAnulacion.Reagendamiento ? "info" : "warn")">@a.Motivo</span></td>
+                            <td class="date-cell">@HoraChile.ALocal(a.AnuladaEn).ToString("dd-MM-yyyy HH:mm")</td>
+                            <td>@a.AnuladaPor</td>
+                            <td class="action-cell">
+                                <button type="button" class="btn-action-caja" disabled="@ocupado" @onclick="() => RestaurarAsync(a)" title="Vuelve al estado previo (queda en el historial)">Restaurar</button>
+                                <a class="btn-detail" href="carpetas/@a.Id" title="Ver detalle e historial">Abrir →</a>
+                            </td>
+                        </tr>
+                    </Virtualize>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+    private List<CarpetaAnuladaDto>? items;
+    private string? texto;
+    private bool ocupado;
+    private string? error;
+    private string? mensaje;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private async Task CargarAsync() => items = (await Carpetas.ListarAnuladasAsync(texto)).ToList();
+
+    private async Task RestaurarAsync(CarpetaAnuladaDto a)
+    {
+        error = null;
+        mensaje = null;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de restaurar.";
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Restaurar la carpeta de {a.NombreCompleto}? Volverá a «{Labels.Of(a.Estado)}»."))
+        {
+            return;
+        }
+
+        ocupado = true;
+        try
+        {
+            await Carpetas.RestaurarAsync(a.Id, Autor.Nombre!);
+            mensaje = "Carpeta restaurada.";
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+}

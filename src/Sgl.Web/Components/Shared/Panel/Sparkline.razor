@@ -1,0 +1,28 @@
+@* 7-day mini line chart without axes; the last point (today) is marked. *@
+@if (Valores.Count > 1)
+{
+    <svg class="sparkline" viewBox="0 0 @Ancho @Alto" preserveAspectRatio="none" role="img" aria-label="@Descripcion">
+        <polyline points="@Puntos" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+        <circle cx="@X(Valores.Count - 1)" cy="@Y(Valores[^1])" r="2.6" fill="currentColor" />
+    </svg>
+}
+
+@code {
+    private const double Ancho = 100;
+    private const double Alto = 28;
+    private const double Margen = 3;
+
+    [Parameter, EditorRequired] public IReadOnlyList<int> Valores { get; set; } = [];
+
+    [Parameter] public string Etiqueta { get; set; } = "Últimos 7 días";
+
+    private int Maximo => Math.Max(1, Valores.Max());
+
+    private string X(int i) => (Margen + i * (Ancho - 2 * Margen) / (Valores.Count - 1)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string Y(int v) => (Alto - Margen - v * (Alto - 2 * Margen) / Maximo).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string Puntos => string.Join(' ', Valores.Select((v, i) => $"{X(i)},{Y(v)}"));
+
+    private string Descripcion => $"{Etiqueta}: {string.Join(", ", Valores)}";
+}
