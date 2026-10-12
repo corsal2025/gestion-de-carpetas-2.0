@@ -23,7 +23,10 @@ public sealed record EditarCarpetaCommand(
     string Autor,
     string? Rut = null,
     string? FechaUltimaCarpeta = null,
-    string? Comuna = null);
+    string? Comuna = null,
+    string? Caja = null,
+    bool CambiarCaja = false,
+    ClaseLicencia? Clases = null);
 
 /// <summary>Manual classification of one or more "Por clasificar" carpetas (applied atomically). A class is mandatory.</summary>
 public sealed record ClasificarCommand(

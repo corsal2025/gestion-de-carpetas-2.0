@@ -7,6 +7,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 {
     private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
+    // One circuit shares this service and its DbContext: writes (and the discard on failure) are serialized so a
+    // ChangeTracker.Clear() can never run in the middle of another operation's SaveChanges.
+    private readonly SemaphoreSlim _gate = new(1, 1);
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>
@@ -16,6 +20,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task<Guid> RegistrarAsync(RegistrarCarpetaCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -48,6 +53,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     /// <summary>Checks a prospective registration against the citizen's open carpetas without saving.</summary>
@@ -61,6 +70,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 
     public async Task AsignarClasesAsync(Guid id, ClaseLicencia clases, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -73,10 +83,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task CambiarEstadoAsync(CambiarEstadoCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -90,6 +105,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     /// <summary>
@@ -98,6 +117,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task ClasificarAsync(ClasificarCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -148,11 +168,16 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     /// <summary>Soft-deletes a carpeta (never a physical delete). It disappears from modules, counts and statistics.</summary>
     public async Task AnularAsync(Guid id, string motivo, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -164,6 +189,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             // A failed operation must not leave tracked changes for a later save in the same circuit.
             repository.DescartarCambios();
             throw;
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
@@ -192,6 +221,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// <summary>Restores a cancelled carpeta to the state it had before the cancellation (audited). Blocked by a class conflict.</summary>
     public async Task RestaurarAsync(Guid id, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadAsync(id, ct);
@@ -209,6 +239,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     /// <summary>
@@ -217,6 +251,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task ReagendarAsync(Guid origenId, Guid destinoId, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             if (origenId == destinoId)
@@ -246,6 +281,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public Task<IReadOnlyList<CarpetaAnuladaDto>> ListarAnuladasAsync(string? texto = null, CancellationToken ct = default)
@@ -256,6 +295,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 
     public async Task EditarAsync(EditarCarpetaCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -270,6 +310,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
                     carpeta.ModificarRut(nuevoRut, existente, cmd.Autor, Now);
                 }
             }
+            if (cmd.CambiarCaja)
+            {
+                carpeta.AsignarCaja(cmd.Caja, cmd.Autor, Now);
+            }
+            if (cmd.Clases is { } clases)
+            {
+                carpeta.AsignarClases(clases, cmd.Autor, Now);
+            }
+            // Single save: the detail form is applied completely or not at all.
             await repository.SaveChangesAsync(ct);
         }
         catch
@@ -278,10 +327,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task ModificarRutAsync(Guid id, string nuevoRutTexto, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -301,10 +355,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task AsignarCajaAsync(AsignarCajaCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -318,10 +377,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task AsignarCajaLoteAsync(AsignarCajaLoteCommand cmd, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
@@ -338,10 +402,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task ForzarEstadoAsync(Guid id, EstadoCarpeta nuevoEstado, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -354,10 +423,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task MarcarPendienteBusquedaAsync(Guid id, bool valor, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -370,10 +444,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -386,10 +465,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task GuardarObservacionAsync(Guid id, string? observacion, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -402,10 +486,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task GuardarComunaAsync(Guid id, string? comuna, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -422,10 +511,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task GuardarFechaUltimaCarpetaAsync(Guid id, string? fecha, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
@@ -438,10 +532,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             repository.DescartarCambios();
             throw;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task ReabrirCajaAsync(string caja, string autor, CancellationToken ct = default)
     {
+        await _gate.WaitAsync(ct);
         try
         {
             var carpetas = await repository.GetCarpetasByCajaAsync(caja, ct);
@@ -457,6 +556,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             // A failed operation must not leave tracked changes for a later save in the same circuit.
             repository.DescartarCambios();
             throw;
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
