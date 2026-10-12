@@ -11,25 +11,34 @@ public sealed partial class Carpeta
     public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo);
 
     /// <summary>
-    /// Precedence: Por clasificar (agenda, only by state) &gt; Archivadas (real caja) &gt; Cerradas (final decision) &gt; Sin carpeta (F8) &gt; Subidas
-    /// &gt; Cambio de domicilio &gt; Cambio dom. solicitado &gt; Por preparar. "Pendiente de búsqueda" is only a same-day flag, not a tray;
-    /// location states (SeEncuentraEnArchivos/Of43) stay in Por preparar.
+    /// Precedence: Por clasificar (agenda, only by state) &gt; Archivadas (real caja) &gt; Cerradas (final decision) &gt; one tray per
+    /// action estado (subidas, cambio de domicilio, ubicación, certificado, canje, sin carpeta) &gt; Por preparar (1° Licencia).
+    /// "Pendiente de búsqueda" is only a same-day flag, not a tray.
     /// </summary>
     public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja)
     {
         if (estado == EstadoCarpeta.PorClasificar) return Bandeja.PorClasificar;
         if (!string.IsNullOrWhiteSpace(caja) && caja != ColaDeCaja) return Bandeja.Archivadas;
         if (decision is Decision.Otorgado or Decision.Denegado) return Bandeja.Cerradas;
-        if (estado == EstadoCarpeta.NoExisteCarpeta) return Bandeja.SinCarpetaF8;
-        if (EsEstadoSubidaBandeja(estado)) return Bandeja.Subidas;
-        if (estado == EstadoCarpeta.CambioDomicilio) return Bandeja.CambioDomicilio;
-        if (estado == EstadoCarpeta.CambioDomicilioSolicitado) return Bandeja.CambioDomicilioSolicitado;
-        return Bandeja.PorPreparar;
+        return BandejaPorEstado(estado);
     }
 
-    private static bool EsEstadoSubidaBandeja(EstadoCarpeta e) =>
-        e is EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.SubidaConOficio
-            or EstadoCarpeta.CambioDomSubidoConaset or EstadoCarpeta.CambioDomSubidoCorreo;
+    private static Bandeja BandejaPorEstado(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.NoExisteCarpeta => Bandeja.SinCarpetaF8,
+        EstadoCarpeta.SubidaConaset => Bandeja.SubidaConaset,
+        EstadoCarpeta.SubidaConF8 => Bandeja.SubidaConF8,
+        EstadoCarpeta.SubidaConOficio => Bandeja.SubidaConOficio,
+        EstadoCarpeta.CambioDomSubidoConaset => Bandeja.CambioDomSubidoConaset,
+        EstadoCarpeta.CambioDomSubidoCorreo => Bandeja.CambioDomSubidoCorreo,
+        EstadoCarpeta.CambioDomicilio => Bandeja.CambioDomicilio,
+        EstadoCarpeta.CambioDomicilioSolicitado => Bandeja.CambioDomicilioSolicitado,
+        EstadoCarpeta.SeEncuentraEnArchivos => Bandeja.SeEncuentraEnArchivos,
+        EstadoCarpeta.SeEncuentraEnOf43 => Bandeja.SeEncuentraEnOf43,
+        EstadoCarpeta.CrearCertificado => Bandeja.CrearCertificado,
+        EstadoCarpeta.CanjeLicExtranjera => Bandeja.CanjeLicExtranjera,
+        _ => Bandeja.PorPreparar,
+    };
 
     /// <summary>Same rules as <see cref="ClasificarBandeja"/>, translatable to SQL by EF Core.</summary>
     public static readonly Expression<Func<Carpeta, Bandeja>> BandejaExpresion = c =>
@@ -37,13 +46,17 @@ public sealed partial class Carpeta
         : c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != ColaDeCaja ? Bandeja.Archivadas
         : c.Decision == Decision.Otorgado || c.Decision == Decision.Denegado ? Bandeja.Cerradas
         : c.Estado == EstadoCarpeta.NoExisteCarpeta ? Bandeja.SinCarpetaF8
-        : c.Estado == EstadoCarpeta.SubidaConaset
-            || c.Estado == EstadoCarpeta.SubidaConF8
-            || c.Estado == EstadoCarpeta.SubidaConOficio
-            || c.Estado == EstadoCarpeta.CambioDomSubidoConaset
-            || c.Estado == EstadoCarpeta.CambioDomSubidoCorreo ? Bandeja.Subidas
+        : c.Estado == EstadoCarpeta.SubidaConaset ? Bandeja.SubidaConaset
+        : c.Estado == EstadoCarpeta.SubidaConF8 ? Bandeja.SubidaConF8
+        : c.Estado == EstadoCarpeta.SubidaConOficio ? Bandeja.SubidaConOficio
+        : c.Estado == EstadoCarpeta.CambioDomSubidoConaset ? Bandeja.CambioDomSubidoConaset
+        : c.Estado == EstadoCarpeta.CambioDomSubidoCorreo ? Bandeja.CambioDomSubidoCorreo
         : c.Estado == EstadoCarpeta.CambioDomicilio ? Bandeja.CambioDomicilio
         : c.Estado == EstadoCarpeta.CambioDomicilioSolicitado ? Bandeja.CambioDomicilioSolicitado
+        : c.Estado == EstadoCarpeta.SeEncuentraEnArchivos ? Bandeja.SeEncuentraEnArchivos
+        : c.Estado == EstadoCarpeta.SeEncuentraEnOf43 ? Bandeja.SeEncuentraEnOf43
+        : c.Estado == EstadoCarpeta.CrearCertificado ? Bandeja.CrearCertificado
+        : c.Estado == EstadoCarpeta.CanjeLicExtranjera ? Bandeja.CanjeLicExtranjera
         : Bandeja.PorPreparar;
 
     /// <summary>SQL-translatable predicate selecting the carpetas of one tray.</summary>

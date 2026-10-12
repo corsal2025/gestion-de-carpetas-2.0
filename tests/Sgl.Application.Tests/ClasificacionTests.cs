@@ -37,7 +37,7 @@ public sealed class ClasificacionTests : IDisposable
 
         var conteos = await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery());
         Assert.Equal(0, conteos[Bandeja.PorClasificar]);
-        Assert.Equal(2, conteos[Bandeja.Subidas]);
+        Assert.Equal(2, conteos[Bandeja.SubidaConaset]);
         var det = await _db.NewService().ObtenerAsync(a);
         Assert.Contains(det.Historial, h => h.Campo == "Estado" && h.Anterior == "PorClasificar" && h.Usuario == "javiera");
     }

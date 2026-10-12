@@ -3,15 +3,25 @@ namespace Sgl.Domain;
 /// <summary>Work tray a carpeta belongs to, derived from its state (never assigned manually).</summary>
 public enum Bandeja
 {
+    /// <summary>1° Licencia: PrimeraLicencia, Citada and any estado without its own tray.</summary>
     PorPreparar = 1,
     CambioDomicilio = 2,
     /// <summary>Folder not found (NoExisteCarpeta); handled by the external F8 module.</summary>
     SinCarpetaF8 = 3,
-    Subidas = 4,
+    // 4 was the grouped "Subidas" tray, replaced by one tray per subida estado.
     Cerradas = 5,
     Archivadas = 6,
     /// <summary>Agenda-imported carpetas awaiting manual classification.</summary>
     PorClasificar = 7,
     /// <summary>Change of address requested, not yet processed (CambioDomicilioSolicitado).</summary>
     CambioDomicilioSolicitado = 8,
+    SubidaConaset = 9,
+    SubidaConF8 = 10,
+    SubidaConOficio = 11,
+    CambioDomSubidoConaset = 12,
+    CambioDomSubidoCorreo = 13,
+    SeEncuentraEnArchivos = 14,
+    SeEncuentraEnOf43 = 15,
+    CrearCertificado = 16,
+    CanjeLicExtranjera = 17,
 }

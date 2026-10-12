@@ -123,7 +123,7 @@ public sealed class BandejasTests : IDisposable
         var opts = new BandejasOptions();
         opts.Umbrales[Bandeja.SinCarpetaF8] = new UmbralDias { Amarillo = 3, Rojo = 7 };
         Assert.Equal(Semaforo.Rojo, opts.Evaluar(Bandeja.SinCarpetaF8, 7));
-        Assert.Equal(Semaforo.Verde, opts.Evaluar(Bandeja.Subidas, 7));
+        Assert.Equal(Semaforo.Verde, opts.Evaluar(Bandeja.SubidaConF8, 7));
     }
 
     private async Task<Guid> Registrar(string rut, Sede sede = Sede.AvArgentina, DateOnly? citacion = null) =>
@@ -138,12 +138,12 @@ public sealed class BandejasTests : IDisposable
         await _db.NewService().ForzarEstadoAsync(b, EstadoCarpeta.SubidaConaset, "ana");
         await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(c, "CAJA 9", "ana"));
 
-        var subidas = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.Subidas, Take: 10));
+        var subidas = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.SubidaConaset, Take: 10));
         Assert.Equal(b, Assert.Single(subidas.Items).Id);
 
         var conteos = await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery());
         Assert.Equal(1, conteos[Bandeja.PorPreparar]);
-        Assert.Equal(1, conteos[Bandeja.Subidas]);
+        Assert.Equal(1, conteos[Bandeja.SubidaConaset]);
         Assert.Equal(1, conteos[Bandeja.Archivadas]);
         Assert.Equal(0, conteos[Bandeja.Cerradas]);
 

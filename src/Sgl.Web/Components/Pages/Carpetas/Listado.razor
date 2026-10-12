@@ -255,12 +255,18 @@
 
         <!-- Bandejas por etapa: cada carpeta cae automáticamente en una según su estado -->
         <div class="bandeja-tabs" role="tablist">
-            @foreach (var (b, etiqueta) in BandejasTabs)
+            @foreach (var grupo in BandejasTabs.GroupBy(t => t.Grupo))
             {
-                <button type="button" role="tab" aria-selected="@(bandejaActiva == b ? "true" : "false")"
-                        class="bandeja-tab @(bandejaActiva == b ? "active" : "")" @onclick="() => SeleccionarBandeja(b)">
-                    @etiqueta <span class="badge-count">@ConteoBandeja(b).ToString("N0", CulturaCl)</span>
-                </button>
+                <div class="bandeja-grupo" role="presentation">
+                    <span class="bandeja-grupo-etq">@grupo.Key</span>
+                    @foreach (var (_, b, etiqueta) in grupo)
+                    {
+                        <button type="button" role="tab" aria-selected="@(bandejaActiva == b ? "true" : "false")"
+                                class="bandeja-tab @(bandejaActiva == b ? "active" : "")" @onclick="() => SeleccionarBandeja(b)">
+                            @etiqueta <span class="badge-count">@ConteoBandeja(b).ToString("N0", CulturaCl)</span>
+                        </button>
+                    }
+                </div>
             }
         </div>
     </div>
@@ -589,6 +595,8 @@
                                     </td>
                                     break;
                                 case Bandeja.PorPreparar:
+                                case Bandeja.CrearCertificado:
+                                case Bandeja.CanjeLicExtranjera:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(ind?.DiasTramite)</td>
@@ -610,11 +618,22 @@
                                     <td>@Dias(ind?.DiasSinCarpeta)</td>
                                     <td class="date-cell">@(ind?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
                                     break;
-                                case Bandeja.Subidas:
+                                case Bandeja.SubidaConaset:
+                                case Bandeja.SubidaConF8:
+                                case Bandeja.SubidaConOficio:
+                                case Bandeja.CambioDomSubidoConaset:
+                                case Bandeja.CambioDomSubidoCorreo:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                     <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
                                     <td>@Dias(ind?.DiasCitacionSubida)</td>
-                                    <td>@ViaSubida(c.Estado)</td>
+                                    break;
+                                case Bandeja.SeEncuentraEnArchivos:
+                                case Bandeja.SeEncuentraEnOf43:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell">@(c.FechaUltimaCarpeta ?? "—")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) ? "—" : SectorFisico.Calcular(c.FechaUltimaCarpeta))</td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(ind?.DiasTramite)</td>
                                     break;
                                 case Bandeja.Cerradas:
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
@@ -1095,27 +1114,48 @@
     private DateOnly? filtroDesde;
     private DateOnly? filtroHasta;
 
-    private static readonly (Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
+    private static readonly (string Grupo, Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
     [
-        (Bandeja.PorClasificar, "Por clasificar"),
-        (Bandeja.PorPreparar, "1° Licencia"),
-        (Bandeja.CambioDomicilio, "Cambio de domicilio"),
-        (Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado"),
-        (Bandeja.Subidas, "Subidas"),
-        (Bandeja.SinCarpetaF8, "Sin carpeta (F8)"),
-        (Bandeja.Cerradas, "Cerradas"),
-        (Bandeja.Archivadas, "Archivadas"),
-        (null, "Todas"),
+        ("Entrada", Bandeja.PorClasificar, "Por clasificar"),
+        ("Preparación", Bandeja.PorPreparar, "1° Licencia"),
+        ("Preparación", Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos"),
+        ("Preparación", Bandeja.SeEncuentraEnOf43, "Se encuentra en Of. 43"),
+        ("Preparación", Bandeja.SinCarpetaF8, "No existe carpeta (F8)"),
+        ("Preparación", Bandeja.CrearCertificado, "Crear certificado / oficio"),
+        ("Preparación", Bandeja.CanjeLicExtranjera, "Canje lic. extranjera"),
+        ("Cambio de domicilio", Bandeja.CambioDomicilio, "Cambio de domicilio"),
+        ("Cambio de domicilio", Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado"),
+        ("Subidas", Bandeja.SubidaConaset, "Subida a Conaset"),
+        ("Subidas", Bandeja.SubidaConF8, "Subida con F8"),
+        ("Subidas", Bandeja.SubidaConOficio, "Subida con oficio"),
+        ("Subidas", Bandeja.CambioDomSubidoConaset, "Cambio dom. subido a Conaset"),
+        ("Subidas", Bandeja.CambioDomSubidoCorreo, "Cambio dom. subido con correo"),
+        ("Cierre", Bandeja.Cerradas, "Cerradas"),
+        ("Cierre", Bandeja.Archivadas, "Archivadas"),
+        ("Cierre", null, "Todas"),
     ];
+
+    private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"];
+    private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA"];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "ESTADO", "DÍAS DE TRÁMITE"];
+    private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
         [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
-        [Bandeja.PorPreparar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
-        [Bandeja.CambioDomicilio] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.CambioDomicilioSolicitado] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.PorPreparar] = ColumnasPreparacion,
+        [Bandeja.CrearCertificado] = ColumnasPreparacion,
+        [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
+        [Bandeja.SeEncuentraEnArchivos] = ColumnasUbicacion,
+        [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
+        [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
+        [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
         [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.Subidas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
+        [Bandeja.SubidaConaset] = ColumnasSubida,
+        [Bandeja.SubidaConF8] = ColumnasSubida,
+        [Bandeja.SubidaConOficio] = ColumnasSubida,
+        [Bandeja.CambioDomSubidoConaset] = ColumnasSubida,
+        [Bandeja.CambioDomSubidoCorreo] = ColumnasSubida,
         [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
         [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
     };
@@ -1228,15 +1268,6 @@
                 <option value="@d">@Labels.Of(d)</option>
             }
         </select>
-    };
-
-    private static string ViaSubida(EstadoCarpeta estado) => estado switch
-    {
-        EstadoCarpeta.SubidaConaset or EstadoCarpeta.CambioDomSubidoConaset => "CONASET",
-        EstadoCarpeta.SubidaConF8 => "F8",
-        EstadoCarpeta.SubidaConOficio => "OFICIO",
-        EstadoCarpeta.CambioDomSubidoCorreo => "CORREO",
-        _ => "—",
     };
 
     /// <summary>La carpeta buscada apareció: solo se quita la marca (recordatorio del día); el estado no cambia.</summary>

@@ -7,18 +7,18 @@ public class BandejaTests
     [Theory]
     [InlineData(EstadoCarpeta.Citada, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.PrimeraLicencia, Bandeja.PorPreparar)]
-    [InlineData(EstadoCarpeta.CanjeLicExtranjera, Bandeja.PorPreparar)]
-    [InlineData(EstadoCarpeta.CrearCertificado, Bandeja.PorPreparar)]
+    [InlineData(EstadoCarpeta.CanjeLicExtranjera, Bandeja.CanjeLicExtranjera)]
+    [InlineData(EstadoCarpeta.CrearCertificado, Bandeja.CrearCertificado)]
     [InlineData(EstadoCarpeta.Revision, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.CambioDomicilio, Bandeja.CambioDomicilio)]
     [InlineData(EstadoCarpeta.CambioDomicilioSolicitado, Bandeja.CambioDomicilioSolicitado)]
-    [InlineData(EstadoCarpeta.SubidaConaset, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.SubidaConF8, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.SubidaConOficio, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.CambioDomSubidoConaset, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.CambioDomSubidoCorreo, Bandeja.Subidas)]
-    [InlineData(EstadoCarpeta.SeEncuentraEnArchivos, Bandeja.PorPreparar)]
-    [InlineData(EstadoCarpeta.SeEncuentraEnOf43, Bandeja.PorPreparar)]
+    [InlineData(EstadoCarpeta.SubidaConaset, Bandeja.SubidaConaset)]
+    [InlineData(EstadoCarpeta.SubidaConF8, Bandeja.SubidaConF8)]
+    [InlineData(EstadoCarpeta.SubidaConOficio, Bandeja.SubidaConOficio)]
+    [InlineData(EstadoCarpeta.CambioDomSubidoConaset, Bandeja.CambioDomSubidoConaset)]
+    [InlineData(EstadoCarpeta.CambioDomSubidoCorreo, Bandeja.CambioDomSubidoCorreo)]
+    [InlineData(EstadoCarpeta.SeEncuentraEnArchivos, Bandeja.SeEncuentraEnArchivos)]
+    [InlineData(EstadoCarpeta.SeEncuentraEnOf43, Bandeja.SeEncuentraEnOf43)]
     [InlineData(EstadoCarpeta.NoExisteCarpeta, Bandeja.SinCarpetaF8)]
     public void Open_folder_without_caja_is_classified_by_estado(EstadoCarpeta estado, Bandeja esperada)
     {
@@ -31,7 +31,24 @@ public class BandejaTests
         var c = CarpetaFactory.New();
         c.ForzarEstado(EstadoCarpeta.SeEncuentraEnArchivos, "x", CarpetaFactory.Now);
         c.MarcarPendienteBusqueda(true, "x", CarpetaFactory.Now);
-        Assert.Equal(Bandeja.PorPreparar, c.Bandeja);
+        Assert.Equal(Bandeja.SeEncuentraEnArchivos, c.Bandeja);
+    }
+
+    [Fact]
+    public void Each_action_estado_has_its_own_bandeja_with_the_same_name()
+    {
+        EstadoCarpeta[] propios =
+        [
+            EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio,
+            EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.CambioDomSubidoCorreo,
+            EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43,
+            EstadoCarpeta.CrearCertificado, EstadoCarpeta.CanjeLicExtranjera,
+            EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomicilioSolicitado,
+        ];
+        foreach (var estado in propios)
+        {
+            Assert.Equal(estado.ToString(), Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null).ToString());
+        }
     }
 
     [Fact]
@@ -58,7 +75,7 @@ public class BandejaTests
     [Fact]
     public void Cola_de_caja_is_not_archived_yet()
     {
-        Assert.Equal(Bandeja.Subidas, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Pendiente, Carpeta.ColaDeCaja));
+        Assert.Equal(Bandeja.SubidaConaset, Carpeta.ClasificarBandeja(EstadoCarpeta.SubidaConaset, Decision.Pendiente, Carpeta.ColaDeCaja));
     }
 
     [Fact]
@@ -88,6 +105,6 @@ public class BandejaTests
         var c = CarpetaFactory.New();
         Assert.Equal(Bandeja.PorPreparar, c.Bandeja);
         c.ForzarEstado(EstadoCarpeta.SubidaConaset, "u", CarpetaFactory.Now);
-        Assert.Equal(Bandeja.Subidas, c.Bandeja);
+        Assert.Equal(Bandeja.SubidaConaset, c.Bandeja);
     }
 }

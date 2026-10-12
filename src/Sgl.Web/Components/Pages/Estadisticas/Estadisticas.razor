@@ -57,7 +57,7 @@ else
     var k = datos.Kpis;
     var a = datos.Actuales;
     <section class="est-kpis" aria-label="Indicadores principales">
-        <a class="est-kpi" href="@Url("Subidas", desdeOverride: InicioMes)">
+        <a class="est-kpi" href="@Url("todas", desdeOverride: InicioMes)">
             <span class="est-kpi-etq">Subidas este mes</span>
             <span class="est-kpi-valor">@N(k.SubidasEsteMes)</span>
             <span class="est-kpi-sub">desde el @InicioMes.ToString("dd-MM-yyyy")</span>
@@ -72,7 +72,7 @@ else
             <span class="est-kpi-valor">@N(k.BusquedasAbiertas)</span>
             <span class="est-kpi-sub">pendientes de búsqueda hoy</span>
         </a>
-        <a class="est-kpi" href="@Url("Subidas")">
+        <a class="est-kpi" href="@Url("todas")">
             <span class="est-kpi-etq">Mediana citación → subida</span>
             <span class="est-kpi-valor">@(k.MedianaDiasCitacionSubida is { } m ? $"{m:0.#} días" : "—")</span>
             <span class="est-kpi-sub">@N(a.CitacionSubida.Muestras) carpetas subidas</span>
@@ -119,7 +119,7 @@ else
     <h2 class="est-seccion">Subidas</h2>
     <div class="est-grid">
         <article class="card est-card est-ancha">
-            <header><h3>Subidas por mes y vía</h3><a href="@Url("Subidas")">Ver subidas →</a></header>
+            <header><h3>Subidas por mes y vía</h3><span class="est-links-subida">Ver: <a href="@Url("SubidaConaset")">Conaset</a> · <a href="@Url("SubidaConF8")">F8</a> · <a href="@Url("SubidaConOficio")">Oficio</a> · <a href="@Url("CambioDomSubidoConaset")">C. dom. Conaset</a> · <a href="@Url("CambioDomSubidoCorreo")">C. dom. correo</a></span></header>
             @if (a.SubidasPorMes.Count == 0)
             {
                 <p class="est-sin-datos">Sin subidas para los filtros seleccionados.</p>
