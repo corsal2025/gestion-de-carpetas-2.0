@@ -1514,3 +1514,24 @@ html .clasif-lote-bar .btn-primary, html .clasif-lote-bar .excel-select { paddin
 html body .data-table.bandeja-table td:has(.clasif-cell) { white-space: nowrap; }
 html body .data-table.bandeja-table td .badge.info { white-space: nowrap; max-width: none; }
 html body .data-table.bandeja-table td:has(.badge.info) { white-space: nowrap; }
+
+/* ---------- Duplicados / Cajas: la lista es protagonista ----------
+   Encabezado y filtros compactos; la lista nunca colapsa: si no cabe, la página hace scroll. */
+html .content:has(.dup-filtros) { gap: 0.5rem; padding-top: 1rem; }
+html .content:has(.dup-filtros) > h1 { font-size: 1.45rem; }
+html .content:has(.dup-filtros) > p.muted { margin: 0; font-size: 0.82rem; line-height: 1.3; }
+html .dup-filtros { flex-wrap: wrap; gap: 0.6rem; align-items: center; padding: 0.45rem 0.75rem; }
+html .dup-filtros label { flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+html .dup-filtros .actions { margin: 0; }
+html .content:has(.dup-filtros) section.card { padding: 0.6rem 0.75rem; }
+html .dup-total { margin: 0 0 0.35rem; font-size: 0.85rem; }
+html .dup-scroll { max-height: none; height: max(280px, calc(100vh - 290px)); min-height: 280px; }
+html body .dup-tabla th, html body .dup-tabla td { padding-top: 0.3rem; padding-bottom: 0.3rem; vertical-align: middle; }
+html body .dup-tabla td.dup-acciones { display: table-cell !important; white-space: nowrap; width: 1%; }
+html body .dup-tabla td.dup-acciones > button { display: inline-flex; margin-right: 0.3rem; padding-top: 0.2rem; padding-bottom: 0.2rem; }
+html .cajas-table-wrapper { max-height: none; min-height: max(280px, calc(100vh - 340px)); }
+html body .dup-tabla tbody td { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
+html body .dup-tabla thead th { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+html body .dup-filtros.card { padding: 0.4rem 0.75rem !important; }
+html body .dup-filtros input, html body .dup-filtros select, html body .dup-filtros button { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; min-height: 0 !important; }
+html .content:has(.dup-filtros) > h1 { margin: 0 !important; }
