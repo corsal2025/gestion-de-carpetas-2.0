@@ -301,7 +301,7 @@
                             <input type="checkbox" checked="@TodosSeleccionados" disabled="@seleccionandoTodas" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas que coinciden con los filtros" />
                         </th>
                         <th class="col-sticky-rut">RUT</th>
-                        <th class="col-sticky-nombre">NOMBRE COMPLETO DEL CIUDADANO</th>
+                        <th class="col-sticky-nombre th-wrap">NOMBRE DE CONTRIBUYENTE</th>
                         <th>SEDE</th>
                         <th>FECHA CITACIÓN</th>
                         <th>FECHA SUBIDA</th>
@@ -506,7 +506,7 @@
                         </th>
                         @foreach (var col in ColumnasBandeja)
                         {
-                            <th>@col</th>
+                            <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap" : null)">@col</th>
                         }
                         <th>ACCIÓN</th>
                     </tr>
@@ -821,7 +821,7 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 38px;">N°</th>
-                                        <th style="text-align: left;">NOMBRE COMPLETO</th>
+                                        <th style="text-align: left;">NOMBRE DE CONTRIBUYENTE</th>
                                         <th>RUT</th>
                                         <th>COMUNA</th>
                                         <th>FECHA ÚLTIMA CARPETA</th>
@@ -1097,7 +1097,7 @@
     private static readonly (Bandeja? Bandeja, string Etiqueta)[] BandejasTabs =
     [
         (Bandeja.PorClasificar, "Por clasificar"),
-        (Bandeja.PorPreparar, "Por preparar"),
+        (Bandeja.PorPreparar, "1° Licencia"),
         (Bandeja.CambioDomicilio, "Cambio de domicilio"),
         (Bandeja.Subidas, "Subidas"),
         (Bandeja.SinCarpetaF8, "Sin carpeta (F8)"),
@@ -1108,13 +1108,13 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorClasificar] = ["PERSONA", "RUT", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
-        [Bandeja.PorPreparar] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
-        [Bandeja.CambioDomicilio] = ["PERSONA", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.SinCarpetaF8] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.Subidas] = ["PERSONA", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
-        [Bandeja.Cerradas] = ["PERSONA", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
-        [Bandeja.Archivadas] = ["PERSONA", "RUT", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
+        [Bandeja.PorClasificar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
+        [Bandeja.PorPreparar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
+        [Bandeja.CambioDomicilio] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.SinCarpetaF8] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.Subidas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
+        [Bandeja.Cerradas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
+        [Bandeja.Archivadas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
     };
 
     private IReadOnlyList<string> ColumnasBandeja =>
@@ -1399,21 +1399,9 @@
         Hasta: filtroHasta);
 
     /// <summary>Recalcula el total con los filtros actuales y refresca las filas visibles del virtualizador.</summary>
-    private bool bandejaInicialResuelta;
 
     private async Task CargarAsync()
     {
-        if (!bandejaInicialResuelta)
-        {
-            bandejaInicialResuelta = true;
-            if (QueryBandeja is null)
-            {
-                // Abrir la primera bandeja con carpetas (Por clasificar suele quedar vacía tras clasificar).
-                var conteos = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
-                var primera = BandejasTabs.Select(t => t.Item1).FirstOrDefault(b => b is { } x && conteos.TryGetValue(x, out var n) && n > 0);
-                if (primera is not null) bandejaActiva = primera;
-            }
-        }
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
         conteosBandeja = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
         var antes = total;
