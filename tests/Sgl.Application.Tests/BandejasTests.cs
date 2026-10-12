@@ -36,6 +36,16 @@ public sealed class BandejasTests : IDisposable
     }
 
     [Fact]
+    public void DiasTramite_is_null_when_citacion_is_in_the_future_and_zero_today()
+    {
+        var futura = IndicadoresCalculator.Calcular(Resumen(citacion: Hoy.AddDays(10)), [], Hoy);
+        var hoy = IndicadoresCalculator.Calcular(Resumen(citacion: Hoy), [], Hoy);
+
+        Assert.Null(futura.DiasTramite);
+        Assert.Equal(0, hoy.DiasTramite);
+    }
+
+    [Fact]
     public void DiasSinCarpeta_counts_from_last_change_to_no_existe_else_citacion()
     {
         var conHist = IndicadoresCalculator.Calcular(Resumen(), [

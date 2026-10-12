@@ -595,6 +595,7 @@
                                     <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
                                     break;
                                 case Bandeja.CambioDomicilio:
+                                case Bandeja.CambioDomicilioSolicitado:
                                     <td class="excel-cell-comuna" @ondblclick:stopPropagation>
                                         <input type="text" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
                                                value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
@@ -1099,6 +1100,7 @@
         (Bandeja.PorClasificar, "Por clasificar"),
         (Bandeja.PorPreparar, "1° Licencia"),
         (Bandeja.CambioDomicilio, "Cambio de domicilio"),
+        (Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado"),
         (Bandeja.Subidas, "Subidas"),
         (Bandeja.SinCarpetaF8, "Sin carpeta (F8)"),
         (Bandeja.Cerradas, "Cerradas"),
@@ -1111,6 +1113,7 @@
         [Bandeja.PorClasificar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
         [Bandeja.CambioDomicilio] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.CambioDomicilioSolicitado] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
         [Bandeja.SinCarpetaF8] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
         [Bandeja.Subidas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
         [Bandeja.Cerradas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],

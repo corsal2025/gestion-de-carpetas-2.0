@@ -7,7 +7,7 @@ public sealed record MovimientoDto(Guid CarpetaId, DateTime Fecha, string Usuari
 
 /// <summary>Automatic per-carpeta values computed from the audit trail; never typed by users.</summary>
 public sealed record IndicadoresCarpeta(
-    int DiasTramite,
+    int? DiasTramite,
     int DiasSinCarpeta,
     int? DiasBuscando,
     string? MarcadaPor,
@@ -44,7 +44,7 @@ public static class IndicadoresCalculator
         var archivo = movs.LastOrDefault(m => m.Campo == CampoCaja && !string.IsNullOrWhiteSpace(m.Nuevo) && m.Nuevo != Carpeta.ColaDeCaja);
 
         return new IndicadoresCarpeta(
-            DiasTramite: Dias(c.FechaCitacion, hoy),
+            DiasTramite: c.FechaCitacion > hoy ? null : Dias(c.FechaCitacion, hoy),
             DiasSinCarpeta: Dias(inicioSinCarpeta, hoy),
             DiasBuscando: marca is null ? null : Dias(DateOnly.FromDateTime(marca.Fecha), hoy),
             MarcadaPor: marca?.Usuario,

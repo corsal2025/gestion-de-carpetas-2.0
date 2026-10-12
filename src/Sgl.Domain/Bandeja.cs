@@ -12,4 +12,6 @@ public enum Bandeja
     Archivadas = 6,
     /// <summary>Agenda-imported carpetas awaiting manual classification.</summary>
     PorClasificar = 7,
+    /// <summary>Change of address requested, not yet processed (CambioDomicilioSolicitado).</summary>
+    CambioDomicilioSolicitado = 8,
 }

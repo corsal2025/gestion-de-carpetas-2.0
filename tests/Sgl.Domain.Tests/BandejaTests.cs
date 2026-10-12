@@ -11,7 +11,7 @@ public class BandejaTests
     [InlineData(EstadoCarpeta.CrearCertificado, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.Revision, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.CambioDomicilio, Bandeja.CambioDomicilio)]
-    [InlineData(EstadoCarpeta.CambioDomicilioSolicitado, Bandeja.CambioDomicilio)]
+    [InlineData(EstadoCarpeta.CambioDomicilioSolicitado, Bandeja.CambioDomicilioSolicitado)]
     [InlineData(EstadoCarpeta.SubidaConaset, Bandeja.Subidas)]
     [InlineData(EstadoCarpeta.SubidaConF8, Bandeja.Subidas)]
     [InlineData(EstadoCarpeta.SubidaConOficio, Bandeja.Subidas)]

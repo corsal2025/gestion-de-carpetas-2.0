@@ -12,7 +12,7 @@ public sealed partial class Carpeta
 
     /// <summary>
     /// Precedence: Por clasificar (agenda, only by state) &gt; Archivadas (real caja) &gt; Cerradas (final decision) &gt; Sin carpeta (F8) &gt; Subidas
-    /// &gt; Cambio de domicilio &gt; Por preparar. "Pendiente de búsqueda" is only a same-day flag, not a tray;
+    /// &gt; Cambio de domicilio &gt; Cambio dom. solicitado &gt; Por preparar. "Pendiente de búsqueda" is only a same-day flag, not a tray;
     /// location states (SeEncuentraEnArchivos/Of43) stay in Por preparar.
     /// </summary>
     public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja)
@@ -22,7 +22,8 @@ public sealed partial class Carpeta
         if (decision is Decision.Otorgado or Decision.Denegado) return Bandeja.Cerradas;
         if (estado == EstadoCarpeta.NoExisteCarpeta) return Bandeja.SinCarpetaF8;
         if (EsEstadoSubidaBandeja(estado)) return Bandeja.Subidas;
-        if (estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado) return Bandeja.CambioDomicilio;
+        if (estado == EstadoCarpeta.CambioDomicilio) return Bandeja.CambioDomicilio;
+        if (estado == EstadoCarpeta.CambioDomicilioSolicitado) return Bandeja.CambioDomicilioSolicitado;
         return Bandeja.PorPreparar;
     }
 
@@ -41,7 +42,8 @@ public sealed partial class Carpeta
             || c.Estado == EstadoCarpeta.SubidaConOficio
             || c.Estado == EstadoCarpeta.CambioDomSubidoConaset
             || c.Estado == EstadoCarpeta.CambioDomSubidoCorreo ? Bandeja.Subidas
-        : c.Estado == EstadoCarpeta.CambioDomicilio || c.Estado == EstadoCarpeta.CambioDomicilioSolicitado ? Bandeja.CambioDomicilio
+        : c.Estado == EstadoCarpeta.CambioDomicilio ? Bandeja.CambioDomicilio
+        : c.Estado == EstadoCarpeta.CambioDomicilioSolicitado ? Bandeja.CambioDomicilioSolicitado
         : Bandeja.PorPreparar;
 
     /// <summary>SQL-translatable predicate selecting the carpetas of one tray.</summary>
