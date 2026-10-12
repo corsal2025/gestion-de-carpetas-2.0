@@ -89,12 +89,12 @@ else
     <section class="card">
         <h2>Historial de cambios</h2>
         <table>
-            <thead><tr><th>Fecha (UTC)</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
             <tbody>
                 @foreach (var h in carpeta.Historial)
                 {
                     <tr>
-                        <td>@h.Fecha.ToString("dd-MM-yyyy HH:mm")</td>
+                        <td>@Sgl.Domain.HoraChile.ALocal(h.Fecha).ToString("dd-MM-yyyy HH:mm")</td>
                         <td>@h.Usuario</td>
                         <td>@Labels.Campo(h.Campo)</td>
                         <td>@h.Anterior</td>

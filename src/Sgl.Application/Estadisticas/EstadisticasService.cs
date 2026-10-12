@@ -22,7 +22,7 @@ public sealed class EstadisticasService(IEstadisticasQuery query, TimeProvider c
                 b => b,
                 b => opciones.Umbrales.TryGetValue(b, out var u) ? u.Rojo : new UmbralDias().Rojo),
         };
-        var hoy = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        var hoy = clock.HoyChile();
         return query.ObtenerAsync(normalizado, hoy, ct);
     }
 }

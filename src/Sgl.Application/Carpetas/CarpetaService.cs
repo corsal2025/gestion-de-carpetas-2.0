@@ -18,7 +18,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     {
         ArgumentNullException.ThrowIfNull(cmd);
         var rut = Rut.Parse(cmd.Rut);
-        if (cmd.Clases == ClaseLicencia.Ninguna && _options.ClaseEsObligatoria(DateOnly.FromDateTime(Now)))
+        if (cmd.Clases == ClaseLicencia.Ninguna && _options.ClaseEsObligatoria(clock.HoyChile()))
         {
             throw new DomainException("Debe indicar al menos una clase de licencia.");
         }
@@ -232,7 +232,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         // Indicators are computed only for the requested (visible) range.
         var movimientos = (await repository.GetMovimientosAsync(items.Select(i => i.Id).ToList(), ct))
             .ToLookup(m => m.CarpetaId);
-        var hoy = DateOnly.FromDateTime(Now);
+        var hoy = clock.HoyChile();
         var porClasificar = items.Where(i => i.Estado == EstadoCarpeta.PorClasificar).Select(i => i.Id).ToList();
         var previos = porClasificar.Count == 0
             ? new Dictionary<Guid, TramitePrevioDto>()

@@ -506,7 +506,7 @@
                         </th>
                         @foreach (var col in ColumnasBandeja)
                         {
-                            <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap" : null)">@col</th>
+                            <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap col-sticky-nombre" : col == "RUT" ? "col-sticky-rut" : null)">@col</th>
                         }
                         <th>ACCIÓN</th>
                     </tr>
@@ -523,7 +523,8 @@
                             <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
                                 <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" />
                             </td>
-                            <td @ondblclick:stopPropagation>
+                            <td class="date-cell col-sticky-rut">@c.Rut</td>
+                            <td class="col-sticky-nombre" @ondblclick:stopPropagation>
                                 <div class="nombre-wrapper-cell">
                                     <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(ind?.DiasBuscando is { } db ? $" ({db} d, marcada por {ind.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
                                     <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
@@ -537,7 +538,6 @@
                                     </button>
                                 </div>
                             </td>
-                            <td class="date-cell">@c.Rut</td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                             @switch (bandejaActiva)
                             {
@@ -603,12 +603,12 @@
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(ind?.DiasTramite)</td>
-                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } um ? $"{um:dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
+                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } um ? $"{HoraChile.ALocal(um):dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.SinCarpetaF8:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                     <td>@Dias(ind?.DiasSinCarpeta)</td>
-                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } umF ? $"{umF:dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
+                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.Subidas:
                                     <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
@@ -797,8 +797,8 @@
                             </div>
                         </div>
                         <div class="doc-meta">
-                            <div>Folio: <strong>@(sectorPdfActivo == "Archivo" ? "Archivo" : "Oficina43")-@DateTime.Now.ToString("yyyyMMdd-HHmm")</strong></div>
-                            <div>Generado: <strong>@DateTime.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                            <div>Folio: <strong>@(sectorPdfActivo == "Archivo" ? "Archivo" : "Oficina43")-@HoraChile.ALocal(DateTime.UtcNow).ToString("yyyyMMdd-HHmm")</strong></div>
+                            <div>Generado: <strong>@HoraChile.ALocal(DateTime.UtcNow).ToString("dd-MM-yyyy HH:mm")</strong></div>
                         </div>
                     </div>
 
@@ -992,7 +992,7 @@
                         {
                             <div class="drawer-audit-item">
                                 <div class="audit-meta">
-                                    <strong>@h.Fecha.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</strong> · Por: <em>@h.Usuario</em>
+                                    <strong>@HoraChile.ALocal(h.Fecha).ToString("dd-MM-yyyy HH:mm")</strong> · Por: <em>@h.Usuario</em>
                                 </div>
                                 <div class="audit-change">
                                     <span class="audit-field">@Labels.Campo(h.Campo):</span>
@@ -1110,14 +1110,14 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorClasificar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
-        [Bandeja.PorPreparar] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
-        [Bandeja.CambioDomicilio] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.CambioDomicilioSolicitado] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.SinCarpetaF8] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
-        [Bandeja.Subidas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
-        [Bandeja.Cerradas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
-        [Bandeja.Archivadas] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
+        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASIFICAR"],
+        [Bandeja.PorPreparar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS"],
+        [Bandeja.CambioDomicilio] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.CambioDomicilioSolicitado] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO"],
+        [Bandeja.Subidas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "VÍA"],
+        [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES"],
+        [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN"],
     };
 
     private IReadOnlyList<string> ColumnasBandeja =>
@@ -1758,7 +1758,7 @@
     private string nuevoNombre = "";
     private string nuevoApellido = "";
     private Sede nuevaSede = Sede.AvArgentina;
-    private DateOnly nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly nuevaFechaCitacion = HoraChile.Fecha(DateTime.UtcNow);
     private ClaseLicencia nuevasClases;
     private bool guardandoNuevo;
     private string? errorNuevo;
@@ -1794,7 +1794,7 @@
             nuevasClases = ClaseLicencia.Ninguna;
             nuevoNombre = "";
             nuevoApellido = "";
-            nuevaFechaCitacion = DateOnly.FromDateTime(DateTime.Today);
+            nuevaFechaCitacion = HoraChile.Fecha(DateTime.UtcNow);
             mostrarAcordeonNuevo = false;
 
             guardadoOkId = id;

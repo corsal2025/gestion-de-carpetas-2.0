@@ -221,7 +221,7 @@ public sealed partial class Carpeta
 
         if (EsEstadoSubida(nuevo))
         {
-            var hoy = DateOnly.FromDateTime(now);
+            var hoy = HoraChile.Fecha(now);
             if (FechaSubida != hoy)
             {
                 Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
@@ -283,7 +283,7 @@ public sealed partial class Carpeta
 
             if (EsEstadoSubida(nuevo))
             {
-                var hoy = DateOnly.FromDateTime(now);
+                var hoy = HoraChile.Fecha(now);
                 if (FechaSubida != hoy)
                 {
                     Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
@@ -315,7 +315,7 @@ public sealed partial class Carpeta
 
             if (nueva is Decision.Otorgado or Decision.Denegado && FechaSubida is null)
             {
-                FechaSubida = DateOnly.FromDateTime(now);
+                FechaSubida = HoraChile.Fecha(now);
                 Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
             }
         }

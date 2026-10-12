@@ -216,7 +216,7 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
             .ToList();
 
         var porMes = cerradas
-            .Select(c => (c.Decision, Fecha: fechas.TryGetValue(c.Id, out var fh) ? DateOnly.FromDateTime(fh) : c.FechaSubida))
+            .Select(c => (c.Decision, Fecha: fechas.TryGetValue(c.Id, out var fh) ? HoraChile.Fecha(fh) : c.FechaSubida))
             .Where(x => x.Fecha is { } d && d >= FechaMinimaValida)
             .GroupBy(x => (x.Fecha!.Value.Year, x.Fecha.Value.Month))
             .OrderByDescending(g => g.Key.Year).ThenByDescending(g => g.Key.Month)

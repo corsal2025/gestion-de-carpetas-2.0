@@ -1,3 +1,4 @@
+using Sgl.Application;
 using Sgl.Infrastructure.Carpetas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,7 +34,7 @@ public static class DependencyInjection
         services.AddSingleton(BindLicenciasOptions(configuration));
         services.AddScoped<ExcelImportService>();
         services.AddScoped<AgendaImportService>();
-        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<TimeProvider>(RelojChile.Instancia);
         return services;
     }
 

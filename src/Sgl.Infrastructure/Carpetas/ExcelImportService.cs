@@ -165,7 +165,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                     }
 
                     // 4. Fechas y Comuna
-                    var fechaCitacion = ParsearFecha(ObtenerValorCelda(row, colMap.FechaCitacion)) ?? DateOnly.FromDateTime(now);
+                    var fechaCitacion = ParsearFecha(ObtenerValorCelda(row, colMap.FechaCitacion)) ?? HoraChile.Fecha(now);
                     var fechaSubida = ParsearFecha(ObtenerValorCelda(row, colMap.FechaSubida));
                     var rawUltimaCarpeta = ObtenerValorCelda(row, colMap.UltimaCarpeta);
                     var fechaUltimaCarpeta = string.IsNullOrWhiteSpace(rawUltimaCarpeta) ? null : rawUltimaCarpeta.Trim().ToUpperInvariant();

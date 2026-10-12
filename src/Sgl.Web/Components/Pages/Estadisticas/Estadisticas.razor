@@ -319,7 +319,7 @@ else
                     <tbody>
                         @foreach (var i in u.Importaciones)
                         {
-                            <tr><td>@i.Fecha.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</td><td class="num">@N(i.FilasLeidas)</td><td class="num">@N(i.Creadas)</td><td class="num">@N(i.Actualizadas)</td><td class="num">@N(i.Errores)</td></tr>
+                            <tr><td>@HoraChile.ALocal(i.Fecha).ToString("dd-MM-yyyy HH:mm")</td><td class="num">@N(i.FilasLeidas)</td><td class="num">@N(i.Creadas)</td><td class="num">@N(i.Actualizadas)</td><td class="num">@N(i.Errores)</td></tr>
                         }
                     </tbody>
                 </table>
@@ -348,7 +348,7 @@ else
             </table>
         </article>
     </div>
-    <p class="est-nota est-pie">Calculado en @tiempoMs ms · @DateTime.Now.ToString("dd-MM-yyyy HH:mm")</p>
+    <p class="est-nota est-pie">Calculado en @tiempoMs ms · @Reloj.GetLocalNow().ToString("dd-MM-yyyy HH:mm")</p>
 }
 
 @code {
@@ -368,7 +368,7 @@ else
     private string? error;
     private long tiempoMs;
 
-    private DateOnly Hoy => DateOnly.FromDateTime(Reloj.GetLocalNow().DateTime);
+    private DateOnly Hoy => Reloj.HoyChile();
     private DateOnly InicioMes => new(Hoy.Year, Hoy.Month, 1);
     private Sede? SedeSeleccionada => Enum.TryParse<Sede>(sedeTexto, out var s) && Enum.IsDefined(s) ? s : null;
 

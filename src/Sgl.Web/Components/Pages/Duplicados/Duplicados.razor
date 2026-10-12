@@ -101,15 +101,15 @@ else
         }
         <div class="dup-scroll">
             <table class="dup-tabla">
-                <thead><tr><th>RUT</th><th>Nombre</th><th>Carpetas abiertas</th><th></th></tr></thead>
+                <thead><tr><th class="dup-col-rut">RUT</th><th class="dup-col-nombre">Nombre</th><th>Carpetas abiertas</th><th></th></tr></thead>
                 <tbody>
                     <Virtualize @ref="virtualizador" TItem="DuplicadoGrupoDto" Context="g" ItemsProvider="CargarFilasAsync"
                                 ItemSize="52" OverscanCount="10" SpacerElement="tr">
                         <ItemContent>
                             @{ var abierto = grupoAbierto?.CiudadanoId == g.CiudadanoId; }
                             <tr class="dup-grupo @(abierto ? "abierto" : "")" @onclick="() => ToggleAsync(g)">
-                                <td>@g.Rut</td>
-                                <td>@g.NombreCompleto</td>
+                                <td class="dup-col-rut">@g.Rut</td>
+                                <td class="dup-col-nombre">@g.NombreCompleto</td>
                                 <td>@g.CarpetasAbiertas</td>
                                 <td class="dup-acciones" @onclick:stopPropagation>
                                     <button type="button" class="secondary" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
@@ -148,7 +148,7 @@ else
         new("Observación", c => string.IsNullOrWhiteSpace(c.IdoneidadMoral) ? "—" : c.IdoneidadMoral!),
         new("Comuna (cambio de domicilio)", c => Carpeta.EsCambioDomicilio(c.Estado) && !string.IsNullOrWhiteSpace(c.Comuna) ? c.Comuna! : "—"),
         new("Último movimiento", c => c.UltimoMovimientoFecha is { } f
-            ? $"{f.ToLocalTime():dd-MM-yyyy HH:mm} · {c.UltimoMovimientoPor}" : "Sin movimientos"),
+            ? $"{HoraChile.ALocal(f):dd-MM-yyyy HH:mm} · {c.UltimoMovimientoPor}" : "Sin movimientos"),
     ];
 
     private static string SectorTexto(string? fechaUltimaCarpeta) => SectorFisico.Calcular(fechaUltimaCarpeta) switch

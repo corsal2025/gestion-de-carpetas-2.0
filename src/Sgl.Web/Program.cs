@@ -52,7 +52,7 @@ app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, st
     return Results.File(
         EstadisticasExcel.Generar(datos),
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        $"estadisticas-{DateTime.Now:yyyyMMdd-HHmm}.xlsx");
+        $"estadisticas-{Sgl.Domain.HoraChile.ALocal(DateTime.UtcNow):yyyyMMdd-HHmm}.xlsx");
 });
 
 app.MapRazorComponents<App>()

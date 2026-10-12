@@ -18,8 +18,9 @@ public sealed class BandejasTests : IDisposable
             EstadoCarpeta.Citada, decision, pendiente)
         { FechaRegistro = registro ?? new DateTime(2026, 4, 20, 8, 0, 0) };
 
+    // Audit timestamps are UTC; date-only fixtures are placed at 12:00 UTC so they land on the same Chile date.
     private static MovimientoDto Mov(DateTime fecha, string campo, string? nuevo, string usuario = "ana") =>
-        new(Guid.Empty, fecha, usuario, campo, nuevo);
+        new(Guid.Empty, fecha.TimeOfDay == TimeSpan.Zero ? fecha.AddHours(12) : fecha, usuario, campo, nuevo);
 
     [Fact]
     public void DiasTramite_counts_from_citacion_regardless_of_estado_changes()
@@ -31,7 +32,7 @@ public sealed class BandejasTests : IDisposable
         ], Hoy);
 
         Assert.Equal(33, ind.DiasTramite);
-        Assert.Equal(new DateTime(2026, 5, 1), ind.UltimoMovimiento);
+        Assert.Equal(new DateTime(2026, 5, 1, 12, 0, 0), ind.UltimoMovimiento);
         Assert.Equal("luis", ind.UltimoUsuario);
     }
 

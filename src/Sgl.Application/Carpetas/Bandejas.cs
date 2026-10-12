@@ -31,7 +31,7 @@ public static class IndicadoresCalculator
         var movs = movimientos.OrderBy(m => m.Fecha).ToList();
 
         var noEncontrada = movs.LastOrDefault(m => m.Campo == CampoEstado && m.Nuevo == nameof(EstadoCarpeta.NoExisteCarpeta));
-        var inicioSinCarpeta = noEncontrada is not null ? DateOnly.FromDateTime(noEncontrada.Fecha) : c.FechaCitacion;
+        var inicioSinCarpeta = noEncontrada is not null ? HoraChile.Fecha(noEncontrada.Fecha) : c.FechaCitacion;
 
         var marca = c.PendienteBusqueda ? movs.LastOrDefault(m => m.Campo == CampoPendiente && m.Nuevo == "Si") : null;
         var ultimo = movs.LastOrDefault();
@@ -39,19 +39,19 @@ public static class IndicadoresCalculator
         var cierreMov = movs.LastOrDefault(m => m.Campo == CampoDecision && m.Nuevo is nameof(Decision.Otorgado) or nameof(Decision.Denegado));
         DateOnly? fechaCierre = c.Decision == Decision.Pendiente
             ? null
-            : cierreMov is not null ? DateOnly.FromDateTime(cierreMov.Fecha) : c.FechaSubida;
+            : cierreMov is not null ? HoraChile.Fecha(cierreMov.Fecha) : c.FechaSubida;
 
         var archivo = movs.LastOrDefault(m => m.Campo == CampoCaja && !string.IsNullOrWhiteSpace(m.Nuevo) && m.Nuevo != Carpeta.ColaDeCaja);
 
         return new IndicadoresCarpeta(
             DiasTramite: c.FechaCitacion > hoy ? null : Dias(c.FechaCitacion, hoy),
             DiasSinCarpeta: Dias(inicioSinCarpeta, hoy),
-            DiasBuscando: marca is null ? null : Dias(DateOnly.FromDateTime(marca.Fecha), hoy),
+            DiasBuscando: marca is null ? null : Dias(HoraChile.Fecha(marca.Fecha), hoy),
             MarcadaPor: marca?.Usuario,
             UltimoMovimiento: ultimo?.Fecha,
             UltimoUsuario: ultimo?.Usuario,
             FechaCierre: fechaCierre,
-            FechaArchivo: archivo is null ? null : DateOnly.FromDateTime(archivo.Fecha),
+            FechaArchivo: archivo is null ? null : HoraChile.Fecha(archivo.Fecha),
             DiasCitacionSubida: c.FechaSubida is { } s ? s.DayNumber - c.FechaCitacion.DayNumber : null,
             DiasTotales: Dias(c.FechaCitacion, fechaCierre ?? hoy));
     }

@@ -109,7 +109,7 @@
 
         public Sede Sede { get; set; } = Sede.AvArgentina;
 
-        public DateOnly FechaCitacion { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DateOnly FechaCitacion { get; set; } = HoraChile.Fecha(DateTime.UtcNow);
 
         public ClaseLicencia Clases { get; set; }
     }
