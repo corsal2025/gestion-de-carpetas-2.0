@@ -123,7 +123,6 @@ html[data-theme="dark"] .alert.success { background: #0f2e1b; border-color: #166
     background: var(--surface);
     border-right: 1px solid var(--border-color);
     min-height: 0;
-    transition: width 0.18s ease;
 }
 .modulos-sidebar.plegado { width: var(--sidebar-plegado); }
 .sidebar-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; padding: 0.5rem 0.5rem 0.35rem; border-bottom: 1px solid var(--border-color); }
@@ -271,6 +270,14 @@ html[data-theme="dark"] .btn-alerta { color: #1b0a0a; }
 .imp-tile-alerta .imp-tile-num { color: var(--alerta-texto); }
 .dup-resolver { flex-wrap: wrap; border-top: 1px dashed var(--border-color); padding-top: 0.4rem; }
 .btn-peligro { background: var(--sem-rojo) !important; border-color: var(--sem-rojo) !important; color: #fff !important; }
+
+/* ---------- Foco visible (teclado) ------------------------------------------ */
+.modulo-tarjeta:focus-visible, .sidebar-modulo:focus-visible, .sidebar-grupo-titulo:focus-visible,
+.sidebar-plegar:focus-visible, .sidebar-inicio:focus-visible, .lico-silenciar:focus-visible,
+.btn-alerta:focus-visible, .btn-alerta-sec:focus-visible, .clase-rapida > summary:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+}
 
 /* ---------- Pantallas estrechas ------------------------------------------- */
 @media (max-width: 900px) {

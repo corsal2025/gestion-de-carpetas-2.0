@@ -85,6 +85,9 @@
 
     protected override Task OnInitializedAsync() => CargarAsync();
 
+    private static string Describir(IEnumerable<CarpetaAbiertaDto> carpetas) =>
+        string.Join("; ", carpetas.Select(c => $"del {c.FechaCitacion:dd-MM-yyyy} en {Labels.Of(c.Sede)} ({Labels.Of(c.Estado)}, clase {Labels.Of(c.Clases)})"));
+
     private async Task CargarAsync() => items = (await Carpetas.ListarAnuladasAsync(texto)).ToList();
 
     private async Task RestaurarAsync(CarpetaAnuladaDto a)
@@ -96,18 +99,31 @@
             error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de restaurar.";
             return;
         }
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Restaurar la carpeta de {a.NombreCompleto}? Volverá a «{Labels.Of(a.Estado)}»."))
-        {
-            return;
-        }
-
         ocupado = true;
         try
         {
+            var verificacion = await Carpetas.VerificarRestauracionAsync(a.Id);
+            if (verificacion.Bloquea)
+            {
+                error = "No se puede restaurar: este RUT ya tiene una carpeta abierta con la misma clase " + Describir(verificacion.Bloqueantes) + ". Anule o cierre esa carpeta primero.";
+                return;
+            }
+            var aviso = verificacion.RequiereConfirmacion
+                ? $" Atención: este RUT ya tiene otra carpeta abierta {Describir(verificacion.Advertencias)} (sin clase en común)."
+                : "";
+            if (!await JS.InvokeAsync<bool>("confirm", $"¿Restaurar la carpeta de {a.NombreCompleto}? Volverá a «{Labels.Of(a.Estado)}».{aviso}"))
+            {
+                return;
+            }
+
             await Carpetas.RestaurarAsync(a.Id, Autor.Nombre!);
             mensaje = "Carpeta restaurada.";
             await CargarAsync();
             DuplicadosNotifier.Notify();
+        }
+        catch (CarpetaDuplicadaException)
+        {
+            error = "No se puede restaurar: este RUT ya tiene una carpeta abierta con la misma clase.";
         }
         catch (Exception ex) when (ex is DomainException or NotFoundException)
         {

@@ -63,6 +63,7 @@
                     <div class="imp-tile"><span class="imp-tile-label">Filas leídas</span><strong class="imp-tile-num">@resultadoAgenda.FilasLeidas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Carpetas creadas</span><strong class="imp-tile-num">+@resultadoAgenda.Creadas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Ya existían</span><strong class="imp-tile-num">@resultadoAgenda.YaExistian.ToString("N0")</strong></div>
+                    <div class="imp-tile" title="Filas ya importadas antes y anuladas (p. ej. por reagendamiento): no se vuelven a crear"><span class="imp-tile-label">Ya existían (anuladas)</span><strong class="imp-tile-num">@resultadoAgenda.YaExistianAnuladas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Canceladas omitidas</span><strong class="imp-tile-num">@resultadoAgenda.CanceladasOmitidas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">RUT inválidos</span><strong class="imp-tile-num">@resultadoAgenda.FilasRutInvalido.Count.ToString("N0")</strong></div>
                     <div class="imp-tile @(resultadoAgenda.ConAlertaDuplicado > 0 ? "imp-tile-alerta" : null)"><span class="imp-tile-label">Con alerta de duplicado</span><strong class="imp-tile-num">@resultadoAgenda.ConAlertaDuplicado.ToString("N0")</strong></div>

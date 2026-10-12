@@ -89,8 +89,9 @@
         if (!firstRender) return;
         var p = await LeerAsync(ClavePlegado);
         var g = await LeerAsync(ClaveGrupos);
-        plegado = p == "1";
-        if (!string.IsNullOrEmpty(g))
+        // A toggle made while the preferences were loading wins over the stored value.
+        if (!tocadoPorUsuario) plegado = p == "1";
+        if (!tocadoPorUsuario && !string.IsNullOrEmpty(g))
         {
             foreach (var clave in g.Split(',', StringSplitOptions.RemoveEmptyEntries)) gruposCerrados.Add(clave);
         }
@@ -121,14 +122,18 @@
         return q.TryGetValue("bandeja", out var v) ? v.ToString() : null;
     }
 
+    private bool tocadoPorUsuario;
+
     private async Task TogglePlegadoAsync()
     {
+        tocadoPorUsuario = true;
         plegado = !plegado;
         await GuardarAsync(ClavePlegado, plegado ? "1" : "0");
     }
 
     private async Task ToggleGrupoAsync(GrupoModulo grupo)
     {
+        tocadoPorUsuario = true;
         if (plegado)
         {
             plegado = false;

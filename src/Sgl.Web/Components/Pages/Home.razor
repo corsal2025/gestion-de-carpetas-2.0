@@ -40,7 +40,7 @@
                     @foreach (var m in ModulosCatalogo.Todos.Where(x => x.Grupo == grupo && x.Clave != ModulosCatalogo.ClaveTodas))
                     {
                         var e = Estado.De(m);
-                        <a class="modulo-tarjeta" href="@m.Href">
+                        <a class="modulo-tarjeta" href="@m.Href" aria-label="@($"{m.Nombre}: {e.Conteo:N0} carpetas{(e.Semaforo is Semaforo.Rojo ? $", {e.Atrasadas:N0} con atraso" : "")}. Abrir módulo")">
                             <span class="tarjeta-nombre">@m.Nombre</span>
                             <span class="tarjeta-fila">
                                 <span class="tarjeta-contador"><NumeroAnimado Valor="e.Conteo" /></span>

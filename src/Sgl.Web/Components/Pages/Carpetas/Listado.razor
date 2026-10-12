@@ -558,7 +558,7 @@
                                         @if (MuestraAlerta(c) && c.AlertaDuplicado is { } al)
                                         {
                                             <div class="alerta-dup" role="alert">
-                                                <span class="alerta-dup-texto">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))</span>
+                                                <span class="alerta-dup-texto" title="@string.Join(" | ", al.Todas.Select(o => $"{o.FechaCitacion:dd-MM-yyyy} · {Labels.Of(o.Sede)} · {Labels.Of(o.Estado)}"))">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))@(al.Total > 1 ? $" · {al.Total} abiertas en total" : "")</span>
                                                 @if (eligiendoAnular == c.Id)
                                                 {
                                                     <span class="alerta-dup-acciones">
