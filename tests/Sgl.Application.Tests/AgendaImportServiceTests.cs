@@ -193,5 +193,6 @@ public sealed class AgendaImportServiceTests : IDisposable
 
         Assert.Equal(0, res.Creadas);
         Assert.Equal(1, res.YaExistian);
+        Assert.Equal(1, res.YaExistianAnuladas);
     }
 }

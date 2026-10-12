@@ -191,23 +191,36 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var abiertas = await db.Carpetas.AsNoTracking()
             .Where(c => ciudadanoIds.Contains(c.CiudadanoId))
             .Where(Carpeta.AbiertaSinArchivarExpresion)
-            .Select(c => new { c.Id, c.CiudadanoId, c.FechaCitacion, c.Sede, c.Estado })
+            .Select(c => new { c.Id, c.CiudadanoId, c.FechaCitacion, c.Sede, c.Estado, c.Clases })
             .ToListAsync(ct);
 
         var resultado = new Dictionary<Guid, AlertaDuplicadoDto>();
         foreach (var p in pares)
         {
-            var otra = abiertas
+            var otras = abiertas
                 .Where(o => o.CiudadanoId == p.CiudadanoId && o.Id != p.Id)
                 .OrderByDescending(o => o.FechaCitacion)
-                .FirstOrDefault();
-            if (otra is not null)
+                .ToList();
+            if (otras.Count > 0)
             {
-                resultado[p.Id] = new AlertaDuplicadoDto(otra.Id, otra.FechaCitacion, otra.Sede, otra.Estado);
+                var otra = otras[0];
+                resultado[p.Id] = new AlertaDuplicadoDto(otra.Id, otra.FechaCitacion, otra.Sede, otra.Estado)
+                {
+                    Total = otras.Count,
+                    Todas = otras.Select(o => new CarpetaAbiertaDto(o.Id, o.Sede, o.FechaCitacion, o.Estado, o.Clases)).ToList(),
+                };
             }
         }
         return resultado;
     }
+
+    public async Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasSinArchivarAsync(Guid ciudadanoId, CancellationToken ct = default) =>
+        await db.Carpetas.AsNoTracking()
+            .Where(c => c.CiudadanoId == ciudadanoId)
+            .Where(Carpeta.AbiertaSinArchivarExpresion)
+            .OrderByDescending(c => c.FechaCitacion)
+            .Select(c => new CarpetaAbiertaDto(c.Id, c.Sede, c.FechaCitacion, c.Estado, c.Clases))
+            .ToListAsync(ct);
 
     public async Task<IReadOnlyList<CarpetaAnuladaDto>> GetAnuladasAsync(string? rutFragment, string? nameFragment, CancellationToken ct = default)
     {

@@ -39,5 +39,8 @@ public interface ICarpetaRepository
     /// <summary>Cancelled carpetas, most recently cancelled first, optionally filtered by RUT/name fragments.</summary>
     Task<IReadOnlyList<CarpetaAnuladaDto>> GetAnuladasAsync(string? rutFragment, string? nameFragment, CancellationToken ct = default);
 
+    /// <summary>Open carpetas of a citizen that are not archived in a real box (cancelled ones excluded).</summary>
+    Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasSinArchivarAsync(Guid ciudadanoId, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

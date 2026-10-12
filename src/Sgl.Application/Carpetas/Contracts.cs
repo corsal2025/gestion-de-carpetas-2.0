@@ -38,7 +38,14 @@ public sealed record ClasificarCommand(
 /// Red alert for a "Por clasificar" row: the same RUT already has an open (not cancelled, not archived,
 /// no final decision) carpeta. The most recent one is reported.
 /// </summary>
-public sealed record AlertaDuplicadoDto(Guid CarpetaId, DateOnly FechaCitacion, Sede Sede, EstadoCarpeta Estado);
+public sealed record AlertaDuplicadoDto(Guid CarpetaId, DateOnly FechaCitacion, Sede Sede, EstadoCarpeta Estado)
+{
+    /// <summary>How many other open carpetas the RUT has (two rows of the same RUT in "Por clasificar" alert each other).</summary>
+    public int Total { get; init; } = 1;
+
+    /// <summary>All of them, most recent first.</summary>
+    public IReadOnlyList<CarpetaAbiertaDto> Todas { get; init; } = [];
+}
 
 /// <summary>A cancelled (soft-deleted) carpeta, shown only in the "Anuladas" view.</summary>
 public sealed record CarpetaAnuladaDto(

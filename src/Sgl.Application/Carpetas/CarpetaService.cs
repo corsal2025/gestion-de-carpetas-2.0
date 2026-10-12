@@ -115,10 +115,37 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         await repository.SaveChangesAsync(ct);
     }
 
-    /// <summary>Restores a cancelled carpeta to the state it had before the cancellation (audited).</summary>
+    /// <summary>
+    /// Checks what restoring would reopen: an open, non-archived carpeta of the same RUT sharing a class blocks;
+    /// one without class overlap only warns (the UI asks for confirmation).
+    /// </summary>
+    public async Task<VerificacionDuplicadoDto> VerificarRestauracionAsync(Guid id, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        return await VerificarRestauracionAsync(carpeta, ct);
+    }
+
+    private async Task<VerificacionDuplicadoDto> VerificarRestauracionAsync(Carpeta carpeta, CancellationToken ct)
+    {
+        if (!carpeta.Anulada || !carpeta.EstaAbierta)
+        {
+            return VerificacionDuplicadoDto.Vacia;
+        }
+        var abiertas = (await repository.GetCarpetasAbiertasSinArchivarAsync(carpeta.CiudadanoId, ct))
+            .Where(a => a.Id != carpeta.Id)
+            .ToList();
+        return VerificacionDuplicadoDto.Clasificar(abiertas, carpeta.Clases);
+    }
+
+    /// <summary>Restores a cancelled carpeta to the state it had before the cancellation (audited). Blocked by a class conflict.</summary>
     public async Task RestaurarAsync(Guid id, string autor, CancellationToken ct = default)
     {
         var carpeta = await LoadAsync(id, ct);
+        var verificacion = await VerificarRestauracionAsync(carpeta, ct);
+        if (verificacion.Bloquea)
+        {
+            throw new CarpetaDuplicadaException(verificacion);
+        }
         carpeta.Restaurar(autor, Now);
         await repository.SaveChangesAsync(ct);
     }
@@ -139,6 +166,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         if (origen.CiudadanoId != destino.CiudadanoId)
         {
             throw new DomainException("Solo se puede reagendar entre carpetas del mismo RUT.");
+        }
+        if (!destino.EstaAbiertaSinArchivar)
+        {
+            throw new DomainException("Solo se puede reagendar hacia una carpeta abierta (sin decisión final, no anulada y sin caja de archivo).");
         }
 
         var now = Now;

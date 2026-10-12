@@ -17,7 +17,8 @@ public sealed record AgendaImportResult(
     int CiudadanosCreados,
     IReadOnlyList<int> FilasRutInvalido,
     IReadOnlyList<string> Errores,
-    int ConAlertaDuplicado = 0);
+    int ConAlertaDuplicado = 0,
+    int YaExistianAnuladas = 0);
 
 /// <summary>
 /// Imports the daily appointment agenda (one sheet, "Fecha Cita | Hora Inicio | RUT | Nombre | ...") as
@@ -89,7 +90,7 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
         var ciudadanos = await db.Ciudadanos.ToDictionaryAsync(c => c.Rut.Value, StringComparer.OrdinalIgnoreCase, ct);
         var claves = new HashSet<(Guid, Sede, DateOnly)>();
 
-        int leidas = 0, creadas = 0, yaExistian = 0, canceladas = 0, ciudadanosCreados = 0, conAlerta = 0;
+        int leidas = 0, creadas = 0, yaExistian = 0, canceladas = 0, ciudadanosCreados = 0, conAlerta = 0, yaExistianAnuladas = 0;
         var conCarpetaEnEstaCarga = new HashSet<Guid>();
         var rutInvalido = new List<int>();
         var errores = new List<string>();
@@ -141,11 +142,17 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
             var ciudadanoId = ciudadano.Id;
             var sedeValor = sede.Value;
             var fechaValor = fecha.Value;
-            var existe = !claves.Add((ciudadanoId, sedeValor, fechaValor)) || await db.Carpetas.IgnoreQueryFilters().AnyAsync(
-                c => c.CiudadanoId == ciudadanoId && c.Sede == sedeValor && c.FechaCitacion == fechaValor, ct);
-            if (existe)
+            bool? anuladaPrevia = !claves.Add((ciudadanoId, sedeValor, fechaValor))
+                ? false
+                : await db.Carpetas.IgnoreQueryFilters()
+                    .Where(c => c.CiudadanoId == ciudadanoId && c.Sede == sedeValor && c.FechaCitacion == fechaValor)
+                    .Select(c => (bool?)c.Anulada)
+                    .OrderBy(a => a)
+                    .FirstOrDefaultAsync(ct);
+            if (anuladaPrevia is { } esAnulada)
             {
                 yaExistian++;
+                if (esAnulada) yaExistianAnuladas++;
                 continue;
             }
 
@@ -161,7 +168,7 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
         }
 
         await db.SaveChangesAsync(ct);
-        return new AgendaImportResult(leidas, creadas, yaExistian, canceladas, ciudadanosCreados, rutInvalido, errores, conAlerta);
+        return new AgendaImportResult(leidas, creadas, yaExistian, canceladas, ciudadanosCreados, rutInvalido, errores, conAlerta, yaExistianAnuladas);
     }
 
     private static bool DetectarColumnas(IXLWorksheet ws, out Columnas cols, out int filaEncabezado)

@@ -177,4 +177,64 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
         using var ctx = _db.NewContext();
         Assert.Equal(3, ctx.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM Carpetas").Single());
     }
+
+    [Fact]
+    public async Task Restaurar_is_blocked_when_same_rut_has_open_carpeta_with_overlapping_clase()
+    {
+        var (existente, nueva, _) = Seed(ClaseLicencia.B);
+        await _db.NewService().ClasificarAsync(new ClasificarCommand([nueva], EstadoCarpeta.SubidaConaset, ClaseLicencia.A2, null, null, "javiera"));
+        await _db.NewService().AnularAsync(existente, MotivosAnulacion.Duplicado, "javiera");
+        await _db.NewService().AsignarClasesAsync(nueva, ClaseLicencia.B, "javiera");
+
+        var ex = await Assert.ThrowsAsync<CarpetaDuplicadaException>(() => _db.NewService().RestaurarAsync(existente, "raul"));
+
+        Assert.True(ex.Bloqueante);
+        Assert.Equal(nueva, Assert.Single(ex.Verificacion.Bloqueantes).Id);
+        Assert.True((await _db.NewService().ObtenerAsync(existente)).Anulada);
+    }
+
+    [Fact]
+    public async Task VerificarRestauracion_warns_when_same_rut_open_without_overlap()
+    {
+        var (existente, nueva, _) = Seed(ClaseLicencia.B);
+        await _db.NewService().AnularAsync(existente, MotivosAnulacion.Duplicado, "javiera");
+
+        var v = await _db.NewService().VerificarRestauracionAsync(existente);
+
+        Assert.False(v.Bloquea);
+        Assert.True(v.RequiereConfirmacion);
+        Assert.Equal(nueva, Assert.Single(v.Advertencias).Id);
+        await _db.NewService().RestaurarAsync(existente, "raul");
+        Assert.False((await _db.NewService().ObtenerAsync(existente)).Anulada);
+    }
+
+    [Fact]
+    public async Task Reagendar_rejects_a_target_that_is_not_open()
+    {
+        var (existente, nueva, _) = Seed();
+        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "CAJA 7", "javiera"));
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().ReagendarAsync(nueva, existente, "javiera"));
+        Assert.False((await _db.NewService().ObtenerAsync(nueva)).Anulada);
+    }
+
+    [Fact]
+    public async Task Alerta_reports_how_many_open_carpetas_the_rut_has_and_lists_them()
+    {
+        var (existente, nueva, _) = Seed();
+        using (var ctx = _db.NewContext())
+        {
+            var juan = ctx.Ciudadanos.Single(c => c.Nombre == "JUAN");
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(juan, Sede.Placilla, new DateOnly(2026, 3, 1), null, null, "imp", Antes));
+            ctx.SaveChanges();
+        }
+
+        var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
+
+        var alerta = res.Items.Single(i => i.Id == nueva).AlertaDuplicado!;
+        Assert.Equal(existente, alerta.CarpetaId);
+        Assert.Equal(2, alerta.Total);
+        Assert.Equal(2, alerta.Todas.Count);
+        Assert.Equal(new DateOnly(2026, 4, 2), alerta.Todas[0].FechaCitacion);
+    }
 }
