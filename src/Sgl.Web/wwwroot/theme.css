@@ -1464,7 +1464,22 @@ html body .data-table .nombre-wrapper-cell { gap: .75rem; }
 
 /* Bandejas: columnas compactas; la columna Persona absorbe el espacio sobrante */
 html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { width: 1% !important; min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .9rem; padding-right: .9rem; }
-html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: auto !important; min-width: 260px !important; }
+html body .data-table.bandeja-table { width: 100% !important; table-layout: auto !important; }
+html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: auto !important; min-width: 180px !important; white-space: normal; }
+/* Every cell must stay a table-cell or headers and cells drift apart */
+html body .data-table.bandeja-table td.action-cell { display: table-cell !important; white-space: nowrap; }
+html body .data-table.bandeja-table td.action-cell > * { display: inline-flex; vertical-align: middle; margin-right: .25rem; }
+html body .data-table.bandeja-table .nombre-wrapper-cell { width: auto !important; min-width: 0 !important; max-width: none !important; }
+html body .data-table.bandeja-table .name-cell { white-space: normal !important; overflow-wrap: anywhere; min-width: 0 !important; }
+html body .data-table.bandeja-table thead th { white-space: normal !important; word-break: keep-all; hyphens: none; vertical-align: bottom; }
+html body .data-table.bandeja-table thead th:first-child, html body .data-table.bandeja-table thead th:last-child { white-space: nowrap !important; }
+html body .data-table.bandeja-table .excel-select { width: auto !important; min-width: 0 !important; max-width: 210px; }
+html body .data-table.bandeja-table .comuna-input-inline { width: 120px !important; min-width: 0 !important; }
+html body .data-table.bandeja-table .clasif-cell { flex-wrap: wrap; max-width: 230px; }
+html body .data-table.bandeja-table .clasif-cell .excel-select { max-width: 170px; }
+html body .data-table.bandeja-table td .badge.info { white-space: normal; display: inline-block; max-width: 150px; }
+html body .data-table.bandeja-table td:has(.clasif-cell), html body .data-table.bandeja-table td:has(.badge.info) { white-space: normal; }
+html body .data-table.bandeja-table td .comuna-input-inline[placeholder="dd-mm-aaaa"] { width: 96px !important; }
 
 /* Listado "Todas": RUT con ancho fijo real (contenido + botón) y Nombre anclado justo después (36 + 136) */
 html body .data-table th.col-sticky-rut, html body .data-table td.col-sticky-rut { width: 136px !important; min-width: 136px !important; max-width: 136px !important; }
