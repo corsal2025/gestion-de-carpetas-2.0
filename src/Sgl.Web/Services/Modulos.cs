@@ -1,3 +1,4 @@
+using Sgl.Application;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Panel;
 using Sgl.Domain;
@@ -65,7 +66,6 @@ public sealed record EstadoModulo(int Conteo, Semaforo? Semaforo, int Atrasadas,
 public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<ModulosState> logger)
 {
     private static readonly IReadOnlyList<int> SinSerie = new int[SerieSieteDias.Dias];
-    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public PanelDto? Panel { get; private set; }
 
@@ -104,38 +104,29 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
         return new EstadoModulo(estados.Sum(e => e.Conteo), peor, estados.Sum(e => e.Atrasadas), SinSerie);
     }
 
-    private bool _pendiente;
+    private RefrescoCoalescido? _refresco;
 
     /// <summary>
-    /// Reloads the figures. Calls arriving while a refresh runs are coalesced into one more refresh afterwards,
-    /// so bursts (navigation + mutation + notifier) cost at most two queries.
+    /// Reloads the figures. Bursts (navigation + mutation + notifier) are coalesced: at most one extra run, and a
+    /// request arriving at the very end is never lost (see <see cref="RefrescoCoalescido"/>).
     /// </summary>
-    public async Task RefrescarAsync(CancellationToken ct = default)
+    public Task RefrescarAsync(CancellationToken ct = default)
     {
-        if (!await _lock.WaitAsync(0, ct))
-        {
-            _pendiente = true;
-            return;
-        }
+        _refresco ??= new RefrescoCoalescido(CargarAsync);
+        return _refresco.SolicitarAsync();
+    }
 
+    private async Task CargarAsync()
+    {
         try
         {
-            do
-            {
-                _pendiente = false;
-                await using var scope = scopeFactory.CreateAsyncScope();
-                Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync(ct);
-                Changed?.Invoke();
-            }
-            while (_pendiente);
+            await using var scope = scopeFactory.CreateAsyncScope();
+            Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync();
+            Changed?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "No se pudo actualizar el panel de módulos.");
-        }
-        finally
-        {
-            _lock.Release();
         }
     }
 

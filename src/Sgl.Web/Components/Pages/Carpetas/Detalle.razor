@@ -1,6 +1,7 @@
 @page "/carpetas/{Id:guid}"
 @inject CarpetaService Carpetas
 @inject AutorState Autor
+@inject ILogger<Detalle> Logger
 @inject IJSRuntime JS
 
 <PageTitle>Gestión de Carpetas 2.0 · Detalle</PageTitle>
@@ -19,7 +20,7 @@ else
     <h1>@carpeta.Nombre @carpeta.Apellido <small class="muted">@carpeta.Rut</small></h1>
     @if (carpeta.Anulada)
     {
-        <p class="error" role="status"><span>Carpeta <strong>ANULADA</strong> (motivo: @carpeta.MotivoAnulacion). No aparece en módulos ni estadísticas; puede restaurarse desde <a href="anuladas">Anuladas</a>.</span></p>
+        <p class="error banner-anulada" role="status"><span>Carpeta <strong>ANULADA</strong> — restaurar desde «Anuladas». (motivo: @carpeta.MotivoAnulacion). No aparece en módulos ni estadísticas; puede restaurarse desde <a href="anuladas">Anuladas</a>.</span></p>
     }
 
     @if (error is not null)
@@ -31,6 +32,7 @@ else
         <p class="ok-msg" role="status"><span class="lico-slot lico-msg" data-lico="celebra" aria-hidden="true"></span><span>@mensaje</span></p>
     }
 
+    <fieldset class="fieldset-limpio" disabled="@carpeta.Anulada" aria-disabled="@(carpeta.Anulada ? "true" : "false")">
     <div class="grid">
         <section class="card">
             <h2>Estado</h2>
@@ -89,6 +91,7 @@ else
             </div>
         </section>
     </div>
+    </fieldset>
 
     <section class="card">
         <h2>Historial de cambios</h2>
@@ -159,16 +162,12 @@ else
     private Task GuardarAsync() =>
         EjecutarAsync(async () =>
         {
+            // One command, one save: the form is applied completely or not at all.
             await Carpetas.EditarAsync(new EditarCarpetaCommand(
-                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut));
-            if (editCaja != (carpeta?.CajaArchivo ?? ""))
-            {
-                await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(Id, editCaja, Autor.Nombre));
-            }
-            if (editClases != carpeta?.Clases)
-            {
-                await Carpetas.AsignarClasesAsync(Id, editClases, Autor.Nombre);
-            }
+                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut,
+                Caja: editCaja,
+                CambiarCaja: editCaja != (carpeta?.CajaArchivo ?? ""),
+                Clases: editClases != carpeta?.Clases ? editClases : null));
         }, "Cambios guardados.");
 
     private async Task CopiarRutCasChileAsync(string? rut)
@@ -192,9 +191,14 @@ else
             await action();
             mensaje = ok;
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is DomainException or NotFoundException or CarpetaDuplicadaException)
         {
             error = ex.Message;
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            Logger.LogError(ex, "No se pudo guardar la carpeta desde el detalle.");
+            error = "No se pudieron guardar los cambios (conflicto al guardar). Recargue e intente nuevamente.";
         }
 
         await CargarAsync();

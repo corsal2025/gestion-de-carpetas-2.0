@@ -4,6 +4,7 @@
 @using System.Globalization
 @inject CarpetaService Carpetas
 @inject ModulosState Modulos
+@inject ILogger<Listado> Logger
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
@@ -256,6 +257,10 @@
             </div>
         }
 
+        @if (errorEdicion is not null)
+        {
+            <div class="alert error" role="alert">@errorEdicion <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => errorEdicion = null">✕</button></div>
+        }
         <!-- Navegación entre módulos: menú lateral (ModulosSidebar). Aquí solo la barra de meta en Por clasificar. -->
         @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelMeta)
         {
@@ -1258,6 +1263,20 @@
         }
     }
 
+    // ---- Errores de edición en línea: siempre registrados (sin datos personales) y visibles ----
+    private string? errorEdicion;
+
+    private void MostrarErrorEdicion(Exception ex, string contexto)
+    {
+        if (ex is DomainException or NotFoundException or CarpetaDuplicadaException)
+        {
+            errorEdicion = ex.Message;
+            return;
+        }
+        Logger.LogError(ex, "{Contexto} en el listado de carpetas.", contexto);
+        errorEdicion = $"{contexto}. Intente nuevamente.";
+    }
+
     private string AutorActual => Autor.HasNombre ? Autor.Nombre : "Funcionario";
     private bool clasificando;
     private string? errorClasif;
@@ -1445,7 +1464,8 @@
     {
         Modulos.Changed += OnModulosChanged;
         AplicarFiltrosDeQuery();
-        await CargarMetricasAsync();
+        // Not awaited: the table is the priority; the sede totals arrive a moment later (own scope).
+        _ = CargarMetricasAsync();
         var abrir = false;
         if (AbrirCarpetaId is { } id)
         {
@@ -1467,10 +1487,23 @@
         }
     }
 
+    [Inject] private IServiceScopeFactory ScopeFactory { get; set; } = default!;
+
+    /// <summary>Sede totals and boxes for the top panel, in their own DI scope (never shares the table's DbContext).</summary>
     private async Task CargarMetricasAsync()
     {
-        stats = await Carpetas.ObtenerEstadisticasAsync();
-        cajasDisponibles = await Carpetas.ObtenerCajasAsync();
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var svc = scope.ServiceProvider.GetRequiredService<CarpetaService>();
+            stats = await svc.ObtenerEstadisticasAsync();
+            cajasDisponibles = await svc.ObtenerCajasAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "No se pudieron cargar los totales por sede.");
+        }
     }
 
     private int GetCount(Sede s) =>
@@ -1749,7 +1782,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al marcar pendiente de búsqueda: {ex.Message}");
+            MostrarErrorEdicion(ex, "Error al marcar pendiente de búsqueda");
             await JS.InvokeVoidAsync("alert", $"No se pudo marcar la búsqueda pendiente: {ex.Message}");
         }
         await CargarAsync();
@@ -1782,7 +1815,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cambiar estado rápido: {ex.Message}");
+                MostrarErrorEdicion(ex, "Error al cambiar estado rápido");
                 await CargarAsync();
             }
             finally
@@ -1819,7 +1852,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cambiar decisión rápida: {ex.Message}");
+                MostrarErrorEdicion(ex, "Error al cambiar decisión rápida");
                 await CargarAsync();
             }
             finally
@@ -1854,7 +1887,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al actualizar fecha última carpeta: {ex.Message}");
+            MostrarErrorEdicion(ex, "Error al actualizar fecha última carpeta");
             await CargarAsync();
         }
         finally
@@ -1888,7 +1921,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al actualizar comuna: {ex.Message}");
+            MostrarErrorEdicion(ex, "Error al actualizar comuna");
             await CargarAsync();
         }
         finally

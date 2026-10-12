@@ -3,10 +3,15 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject AutorState Autor
+@inject ILogger<Cajas> Logger
 
 <PageTitle>@(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada} · SGL 2026" : "Cajas de Ordenamiento y Archivo · SGL 2026")</PageTitle>
 
 <div class="page-container">
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert error" role="alert">@mensajeError <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensajeError = null">✕</button></div>
+    }
     @if (!string.IsNullOrEmpty(cajaSeleccionada))
     {
         <!-- VISTA DE ACTA Y DETALLE IMPRIMIBLE DE LA CAJA (ESTILO F8 Y CAMBIO DE DOMICILIO) -->
@@ -339,6 +344,39 @@
     private string filtroCajaTexto = "";
     private string nuevoRotuloCaja = "";
     private string? mensajeExito;
+    private string? mensajeError;
+    private bool ocupado;
+
+    /// <summary>Runs a box mutation once at a time, requiring the official's name, with a visible error on failure.</summary>
+    private async Task EjecutarCajaAsync(Func<string, Task> accion)
+    {
+        if (ocupado) return;
+        mensajeError = null;
+        if (!Autor.HasNombre)
+        {
+            mensajeError = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar cajas.";
+            return;
+        }
+
+        ocupado = true;
+        try
+        {
+            await accion(Autor.Nombre);
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            mensajeError = ex.Message;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Fallo una operación de cajas.");
+            mensajeError = "No se pudo completar la operación. Intente nuevamente.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
     private bool cargandoDetalle;
 
     private IReadOnlyList<CajaResumenDto>? cajas;
@@ -422,12 +460,14 @@
     {
         if (string.IsNullOrWhiteSpace(cajaSeleccionada)) return;
         var rotulo = cajaSeleccionada;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
-        await Carpetas.ReabrirCajaAsync(rotulo, autor);
-        mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
-        cajaSeleccionada = null;
-        pestanaActiva = "cola";
-        await CargarDatosAsync();
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.ReabrirCajaAsync(rotulo, autor);
+            mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
+            cajaSeleccionada = null;
+            pestanaActiva = "cola";
+            await CargarDatosAsync();
+        });
     }
 
     private async Task ImprimirActa()
@@ -459,24 +499,25 @@
     private async Task AsignarCajaColaAsync()
     {
         if (colaSeleccionadas.Count == 0 || string.IsNullOrWhiteSpace(nuevoRotuloCaja)) return;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
         var rotulo = nuevoRotuloCaja.Trim();
-
-        await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
-        colaSeleccionadas.Clear();
-        mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
-
-        await CargarDatosAsync();
-        await AbrirDetalleCaja(rotulo);
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
+            colaSeleccionadas.Clear();
+            mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
+            await CargarDatosAsync();
+            await AbrirDetalleCaja(rotulo);
+        });
     }
 
     private async Task AsignarIndividualColaAsync(CarpetaResumenDto c)
     {
         var rotulo = string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "CAJA-01" : nuevoRotuloCaja.Trim();
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
-
-        await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
-        mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
-        await CargarDatosAsync();
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
+            mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
+            await CargarDatosAsync();
+        });
     }
 }

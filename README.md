@@ -65,6 +65,9 @@ Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
 - **Reimportación**: una fila ya importada y luego anulada (p. ej. por reagendamiento) cuenta como "ya existía" y además se informa aparte como "ya existían (anuladas)"; nunca se vuelve a crear.
 - **Restaurar**: bloqueado si el RUT tiene otra carpeta abierta (no archivada) con una clase en común; si solo coincide el RUT, se pide confirmación. Reagendar solo acepta como destino una carpeta abierta.
 - **Unidad de trabajo**: el DbContext vive por circuito Blazor; toda mutación de `CarpetaService`, `DuplicadosService` e importadores descarta los cambios rastreados si falla (`ChangeTracker.Clear()`), y la clasificación en lote valida todas las filas antes de modificar alguna. Las carpetas anuladas solo admiten Restaurar (servicio y dominio lo exigen).
+- **Escrituras serializadas por circuito**: `CarpetaService` serializa sus mutaciones con un semáforo (un `Clear()` nunca corre durante otro `SaveChanges`); el formulario de detalle se guarda con un solo comando y un solo `SaveChanges`.
+- **PDF por sector**: sigue en el panel «Mostrar sedes y acciones» arriba de la tabla de cada módulo (se activa al marcar carpetas de Archivo u Of. 43).
+- **Contraste AA**: auditado en claro/oscuro × filas suaves/Excel en todos los módulos (≥ 4,5:1). Cuatro colores Excel con texto blanco se oscurecieron un tono (Cambio de domicilio, En Archivos, No existe carpeta, Of. 43).
 - **Meta del día**: clasificadas hoy (hora de Chile) frente a las que siguen en Por clasificar.
 
 ## Pendiente

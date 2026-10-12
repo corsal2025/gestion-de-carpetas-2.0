@@ -294,3 +294,44 @@ html[data-theme="dark"] .btn-alerta { color: #1b0a0a; }
     .modulo-tarjeta:hover { transform: none; }
     .meta-celebra { animation: none; }
 }
+.fieldset-limpio { border: 0; padding: 0; margin: 0; min-width: 0; } .fieldset-limpio:disabled { opacity: .6; }
+
+/* ---------- Contraste AA en filas y barras (claro/oscuro × filas suaves/Excel) ---------------- */
+/* Por clasificar no tiene color de Excel: superficie del tema con su texto. */
+html body .data-table tbody tr.estado-porclasificar td {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+}
+html body .data-table tbody tr.estado-porclasificar td.td-alerta-dup { background: var(--alerta-bg) !important; }
+html body .data-table tbody tr.estado-porclasificar td .alerta-dup-texto {
+    color: var(--alerta-texto) !important;
+    -webkit-text-fill-color: var(--alerta-texto) !important;
+}
+/* Colores del Excel con texto blanco que no llegaban a 4.5:1: mismo tono, un punto más oscuro. */
+html[data-rows="classic"] body .data-table tbody tr.estado-cambiodomicilio td { background: #2c6aa3 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenarchivos td { background: #3d7a29 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-noexistecarpeta td { background: #c80000 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenoficina43 td { background: #6450a6 !important; }
+
+/* Barra de clasificación en lote */
+html body .clasif-lote-bar { background: var(--surface-alt) !important; color: var(--text-primary) !important; border-color: var(--border-color) !important; }
+html body .clasif-lote-bar > span { color: var(--text-primary) !important; }
+html body .clasif-lote-bar .clasif-lote-clase { color: var(--text-secondary) !important; }
+
+/* Botones de alerta y de acción: color explícito (las filas suaves/Excel fuerzan el color del texto) */
+html[data-rows] body .data-table tbody tr td .btn-alerta.btn-alerta,
+html body .btn-alerta { background: #b91c1c !important; border-color: #b91c1c !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-theme="dark"][data-rows] body .data-table tbody tr td .btn-alerta.btn-alerta,
+html[data-theme="dark"] body .btn-alerta { background: #fca5a5 !important; border-color: #fca5a5 !important; color: #3b0a0a !important; -webkit-text-fill-color: #3b0a0a !important; }
+html[data-rows] body .data-table tbody tr td .btn-alerta-sec.btn-alerta-sec,
+html body .btn-alerta-sec { background: var(--surface) !important; color: var(--alerta-texto) !important; -webkit-text-fill-color: var(--alerta-texto) !important; }
+/* Verde del tema un tono más oscuro: texto blanco a ≥ 4.5:1 en cualquier combinación de tema/filas. */
+html[data-rows] body .data-table tbody tr td .btn-action-caja.btn-action-caja { background: #15803d !important; box-shadow: 0 2px 6px rgb(21 128 61 / .35) !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-theme="dark"] body .badge.conaset { background: #1e3a8a !important; color: #dbeafe !important; -webkit-text-fill-color: #dbeafe !important; }
+html[data-theme="dark"] body .btn-primary { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html body .content .muted, html body .content p.muted { color: var(--text-muted) !important; }
+/* Texto secundario de la marca sobre el degradado de la barra superior y etiquetas pequeñas de Estadísticas. */
+html .topbar .brand-text { color: #eef1fc; }
+html body .est-dl dt, html body .dup-campos dt { color: var(--text-secondary); }
+/* Texto atenuado del tema claro: >= 4.5:1 también sobre el lienzo (#eef2fb), no solo sobre blanco. */
+html:not([data-theme="dark"]) { --text-muted: #556079; }
