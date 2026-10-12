@@ -1496,3 +1496,21 @@ html body .data-table thead th.th-pend { word-break: keep-all; hyphens: none; }
 /* Detalle de carpeta (historial): columnas ajustadas, "Nuevo" absorbe el sobrante */
 html body .content > .card > table:not([class]) th, html body .content > .card > table:not([class]) td { width: 1%; white-space: nowrap; }
 html body .content > .card > table:not([class]) th:last-child, html body .content > .card > table:not([class]) td:last-child { width: auto; white-space: normal; }
+
+/* ---------- Listados: la tabla es protagonista ----------
+   Controles superiores compactos; la tabla nunca colapsa: si no cabe, la página hace scroll. */
+html .page-container:has(> .table-container) { overflow-y: auto; }
+html .page-container > .table-container,
+html .page-container > .table-container.standard-table,
+html .page-container > .table-container.panel-colapsado,
+html .page-container > .table-container.expanded-table { min-height: max(280px, calc(100vh - 300px)) !important; }
+html .sticky-controls-panel { gap: 0.3rem; padding: 0.15rem 0 0.3rem; }
+html .bandeja-tabs { padding: 0.2rem 0 0.15rem; gap: 0.25rem; }
+html .bandeja-tab { padding: 0.18rem 0.65rem; font-size: 0.8rem; }
+html .clasif-lote-bar { flex-wrap: nowrap; margin: 0.2rem 0; padding: 0.25rem 0.6rem; flex-shrink: 0; }
+html .clasif-lote-bar .excel-select { max-width: 240px; }
+html body .data-table.bandeja-table .clasif-cell { flex-wrap: nowrap; max-width: none; }
+html .clasif-lote-bar .btn-primary, html .clasif-lote-bar .excel-select { padding-top: 0.2rem; padding-bottom: 0.2rem; min-height: 0; height: auto; font-size: 0.82rem; }
+html body .data-table.bandeja-table td:has(.clasif-cell) { white-space: nowrap; }
+html body .data-table.bandeja-table td .badge.info { white-space: nowrap; max-width: none; }
+html body .data-table.bandeja-table td:has(.badge.info) { white-space: nowrap; }

@@ -17,7 +17,7 @@
 <div class="page-container">
     <!-- Panel estático y fijo de filtros, sedes y búsqueda siempre visible -->
     <div class="sticky-controls-panel">
-        <button type="button" class="btn-panel-toggle @(mostrarPanelSuperior ? "open" : "")" @onclick="() => mostrarPanelSuperior = !mostrarPanelSuperior" title="Mostrar u ocultar sedes y acciones">
+        <button type="button" class="btn-panel-toggle @(mostrarPanelSuperior ? "open" : "")" @onclick="TogglePanelSuperiorAsync" title="Mostrar u ocultar sedes y acciones">
             <span>@(mostrarPanelSuperior ? "Ocultar sedes y acciones" : "Mostrar sedes y acciones")</span>
             @if (!mostrarPanelSuperior)
             {
@@ -277,8 +277,16 @@
     {
         <div class="empty-state">
             <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
-            <p>No se encontraron carpetas con los criterios seleccionados.</p>
-            <button class="btn-secondary" @onclick="ResetFiltros">Restablecer filtros</button>
+            @if (bandejaActiva == Bandeja.PorClasificar)
+            {
+                <p>No hay carpetas por clasificar. Aquí llegan las personas de la agenda diaria.</p>
+                <a class="btn-primary" href="importar">Cargar agenda del día</a>
+            }
+            else
+            {
+                <p>No hay carpetas en esta bandeja con los filtros actuales.</p>
+                <button class="btn-secondary" @onclick="ResetFiltros">Restablecer filtros</button>
+            }
         </div>
     }
     else
@@ -1052,7 +1060,30 @@
 
     // Panel de filtros replegable
     private bool mostrarFiltros = false;
-    private bool mostrarPanelSuperior = true;
+    private const string PanelSuperiorStorageKey = "sgl.carpetas.panelSuperior";
+    private bool mostrarPanelSuperior = false;
+
+    private async Task TogglePanelSuperiorAsync()
+    {
+        mostrarPanelSuperior = !mostrarPanelSuperior;
+        try { await JS.InvokeVoidAsync("localStorage.setItem", PanelSuperiorStorageKey, mostrarPanelSuperior ? "1" : "0"); }
+        catch (Exception) { /* almacenamiento no disponible: la preferencia solo dura la sesión */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var guardado = await JS.InvokeAsync<string?>("localStorage.getItem", PanelSuperiorStorageKey);
+            if (guardado == "1" && !mostrarPanelSuperior)
+            {
+                mostrarPanelSuperior = true;
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { /* sin localStorage: se mantiene colapsado por defecto */ }
+    }
     private void ToggleFiltros() => mostrarFiltros = !mostrarFiltros;
 
     // ---- Bandejas por etapa ----
@@ -1368,8 +1399,21 @@
         Hasta: filtroHasta);
 
     /// <summary>Recalcula el total con los filtros actuales y refresca las filas visibles del virtualizador.</summary>
+    private bool bandejaInicialResuelta;
+
     private async Task CargarAsync()
     {
+        if (!bandejaInicialResuelta)
+        {
+            bandejaInicialResuelta = true;
+            if (QueryBandeja is null)
+            {
+                // Abrir la primera bandeja con carpetas (Por clasificar suele quedar vacía tras clasificar).
+                var conteos = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
+                var primera = BandejasTabs.Select(t => t.Item1).FirstOrDefault(b => b is { } x && conteos.TryGetValue(x, out var n) && n > 0);
+                if (primera is not null) bandejaActiva = primera;
+            }
+        }
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
         conteosBandeja = await Carpetas.ContarPorBandejaAsync(ConsultaActual());
         var antes = total;
