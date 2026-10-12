@@ -33,7 +33,7 @@ public sealed class ClasificacionTests : IDisposable
     {
         var (a, b) = SeedAgenda();
 
-        await _db.NewService().ClasificarAsync(new ClasificarCommand([a, b], EstadoCarpeta.SubidaConaset, null, null, "javiera"));
+        await _db.NewService().ClasificarAsync(new ClasificarCommand([a, b], EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, null, "javiera"));
 
         var conteos = await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery());
         Assert.Equal(0, conteos[Bandeja.PorClasificar]);
@@ -47,7 +47,7 @@ public sealed class ClasificacionTests : IDisposable
     {
         var (a, _) = SeedAgenda();
 
-        await _db.NewService().ClasificarAsync(new ClasificarCommand([a], EstadoCarpeta.CambioDomicilio, "10/02/2024", "QUILPUÉ", "javiera"));
+        await _db.NewService().ClasificarAsync(new ClasificarCommand([a], EstadoCarpeta.CambioDomicilio, ClaseLicencia.B, "10/02/2024", "QUILPUÉ", "javiera"));
 
         var det = await _db.NewService().ObtenerAsync(a);
         Assert.Equal(EstadoCarpeta.CambioDomicilio, det.Estado);
@@ -59,10 +59,10 @@ public sealed class ClasificacionTests : IDisposable
     public async Task ClasificarAsync_is_atomic_when_one_carpeta_is_not_PorClasificar()
     {
         var (a, b) = SeedAgenda();
-        await _db.NewService().ClasificarAsync(new ClasificarCommand([b], EstadoCarpeta.NoExisteCarpeta, null, null, "javiera"));
+        await _db.NewService().ClasificarAsync(new ClasificarCommand([b], EstadoCarpeta.NoExisteCarpeta, ClaseLicencia.B, null, null, "javiera"));
 
         await Assert.ThrowsAsync<DomainException>(() =>
-            _db.NewService().ClasificarAsync(new ClasificarCommand([a, b], EstadoCarpeta.SubidaConaset, null, null, "javiera")));
+            _db.NewService().ClasificarAsync(new ClasificarCommand([a, b], EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, null, "javiera")));
 
         Assert.Equal(EstadoCarpeta.PorClasificar, (await _db.NewService().ObtenerAsync(a)).Estado);
     }

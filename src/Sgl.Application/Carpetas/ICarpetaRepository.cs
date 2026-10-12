@@ -33,5 +33,11 @@ public interface ICarpetaRepository
     /// <summary>For each given carpeta, a summary of the other carpetas of the same citizen (absent when none).</summary>
     Task<IReadOnlyDictionary<Guid, TramitePrevioDto>> GetTramitesPreviosAsync(IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default);
 
+    /// <summary>For each given carpeta, the most recent other open (not archived) carpeta of the same citizen, if any.</summary>
+    Task<IReadOnlyDictionary<Guid, AlertaDuplicadoDto>> GetAlertasDuplicadoAsync(IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default);
+
+    /// <summary>Cancelled carpetas, most recently cancelled first, optionally filtered by RUT/name fragments.</summary>
+    Task<IReadOnlyList<CarpetaAnuladaDto>> GetAnuladasAsync(string? rutFragment, string? nameFragment, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

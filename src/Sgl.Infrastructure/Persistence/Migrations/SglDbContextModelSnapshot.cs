@@ -23,6 +23,18 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .UseCollation("NOCASE");
 
+                    b.Property<bool>("Anulada")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("AnuladaEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AnuladaPor")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CajaArchivo")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
@@ -71,6 +83,10 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("PendienteBusqueda")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -90,6 +106,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Anulada");
 
                     b.HasIndex("CajaArchivo");
 
@@ -168,6 +186,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CarpetaId");
+
+                    b.HasIndex("Fecha");
 
                     b.ToTable("HistorialCambios", (string)null);
                 });

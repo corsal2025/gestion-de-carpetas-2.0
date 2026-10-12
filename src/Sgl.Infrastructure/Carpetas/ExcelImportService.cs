@@ -186,6 +186,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
 
                     // 6. Buscar si ya existe la carpeta para este ciudadano en esta sede y citación
                     var carpetaExistente = await db.Carpetas
+                        .IgnoreQueryFilters()
                         .FirstOrDefaultAsync(c => c.CiudadanoId == ciudadanoId && c.Sede == sede && c.FechaCitacion == fechaCitacion, ct);
 
                     if (carpetaExistente is null)

@@ -8,7 +8,9 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
 {
     public async Task<Carpeta?> GetAsync(Guid id, CancellationToken ct = default)
     {
+        // Ignores the soft-delete filter: restoring or inspecting a cancelled carpeta must find it.
         var carpeta = await db.Carpetas
+            .IgnoreQueryFilters()
             .Include(c => c.Ciudadano)
             .Include(c => c.Historial)
             .SingleOrDefaultAsync(c => c.Id == id, ct);
@@ -17,6 +19,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         {
             var idStr = id.ToString();
             carpeta = await db.Carpetas
+                .IgnoreQueryFilters()
                 .Include(c => c.Ciudadano)
                 .Include(c => c.Historial)
                 .FirstOrDefaultAsync(c => EF.Functions.Like(c.Id.ToString(), idStr), ct);
@@ -169,6 +172,85 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             resultado[p.Id] = new TramitePrevioDto(previas.Count, ultima.Sede, ultima.FechaCitacion);
         }
         return resultado;
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, AlertaDuplicadoDto>> GetAlertasDuplicadoAsync(
+        IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(carpetaIds);
+        if (carpetaIds.Count == 0)
+        {
+            return new Dictionary<Guid, AlertaDuplicadoDto>();
+        }
+
+        var pares = await db.Carpetas.AsNoTracking()
+            .Where(c => carpetaIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.CiudadanoId })
+            .ToListAsync(ct);
+        var ciudadanoIds = pares.Select(p => p.CiudadanoId).Distinct().ToList();
+        var abiertas = await db.Carpetas.AsNoTracking()
+            .Where(c => ciudadanoIds.Contains(c.CiudadanoId))
+            .Where(Carpeta.AbiertaSinArchivarExpresion)
+            .Select(c => new { c.Id, c.CiudadanoId, c.FechaCitacion, c.Sede, c.Estado })
+            .ToListAsync(ct);
+
+        var resultado = new Dictionary<Guid, AlertaDuplicadoDto>();
+        foreach (var p in pares)
+        {
+            var otra = abiertas
+                .Where(o => o.CiudadanoId == p.CiudadanoId && o.Id != p.Id)
+                .OrderByDescending(o => o.FechaCitacion)
+                .FirstOrDefault();
+            if (otra is not null)
+            {
+                resultado[p.Id] = new AlertaDuplicadoDto(otra.Id, otra.FechaCitacion, otra.Sede, otra.Estado);
+            }
+        }
+        return resultado;
+    }
+
+    public async Task<IReadOnlyList<CarpetaAnuladaDto>> GetAnuladasAsync(string? rutFragment, string? nameFragment, CancellationToken ct = default)
+    {
+        var query = db.Carpetas.IgnoreQueryFilters().AsNoTracking().Where(c => c.Anulada);
+        if (rutFragment is { } rut)
+        {
+            query = query.Where(c => c.Ciudadano.Rut.Value.Contains(rut));
+        }
+        if (nameFragment is { } name)
+        {
+            query = query.Where(c => c.Ciudadano.NombreBusqueda.Contains(name));
+        }
+
+        var rows = await query
+            .OrderByDescending(c => c.AnuladaEn)
+            .ThenBy(c => c.Id)
+            .Select(c => new
+            {
+                c.Id,
+                Rut = c.Ciudadano.Rut.Value,
+                c.Ciudadano.Nombre,
+                c.Ciudadano.Apellido,
+                c.Sede,
+                c.FechaCitacion,
+                c.Estado,
+                c.MotivoAnulacion,
+                c.AnuladaEn,
+                c.AnuladaPor,
+            })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new CarpetaAnuladaDto(
+                r.Id,
+                Rut.TryParse(r.Rut, out var parsed) ? parsed!.Formatted : r.Rut,
+                $"{r.Nombre} {r.Apellido}".Trim(),
+                r.Sede,
+                r.FechaCitacion,
+                r.Estado,
+                r.MotivoAnulacion ?? "",
+                r.AnuladaEn ?? DateTime.MinValue,
+                r.AnuladaPor ?? ""))
+            .ToList();
     }
 
     private IQueryable<Carpeta> Filtrar(CarpetaSearch search)

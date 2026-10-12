@@ -25,13 +25,32 @@ public sealed record EditarCarpetaCommand(
     string? FechaUltimaCarpeta = null,
     string? Comuna = null);
 
-/// <summary>Manual classification of one or more "Por clasificar" carpetas (applied atomically).</summary>
+/// <summary>Manual classification of one or more "Por clasificar" carpetas (applied atomically). A class is mandatory.</summary>
 public sealed record ClasificarCommand(
     IReadOnlyList<Guid> CarpetaIds,
     EstadoCarpeta Destino,
+    ClaseLicencia Clases,
     string? FechaUltimaCarpeta,
     string? Comuna,
     string Autor);
+
+/// <summary>
+/// Red alert for a "Por clasificar" row: the same RUT already has an open (not cancelled, not archived,
+/// no final decision) carpeta. The most recent one is reported.
+/// </summary>
+public sealed record AlertaDuplicadoDto(Guid CarpetaId, DateOnly FechaCitacion, Sede Sede, EstadoCarpeta Estado);
+
+/// <summary>A cancelled (soft-deleted) carpeta, shown only in the "Anuladas" view.</summary>
+public sealed record CarpetaAnuladaDto(
+    Guid Id,
+    string Rut,
+    string NombreCompleto,
+    Sede Sede,
+    DateOnly FechaCitacion,
+    EstadoCarpeta Estado,
+    string Motivo,
+    DateTime AnuladaEn,
+    string AnuladaPor);
 
 /// <summary>Hint only: other carpetas of the same citizen. Not definitive (older history may be missing).</summary>
 public sealed record TramitePrevioDto(int Cantidad, Sede UltimaSede, DateOnly UltimaFecha);
@@ -100,6 +119,9 @@ public sealed record CarpetaResumenDto(
     /// <summary>Other carpetas of the same citizen (only filled for "Por clasificar" ranged listings).</summary>
     public TramitePrevioDto? TramitePrevio { get; init; }
 
+    /// <summary>Open carpeta of the same RUT (only filled for "Por clasificar" ranged listings).</summary>
+    public AlertaDuplicadoDto? AlertaDuplicado { get; init; }
+
     public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo);
 }
 
@@ -122,7 +144,9 @@ public sealed record CarpetaDetalleDto(
     Decision Decision,
     IReadOnlyList<EstadoCarpeta> SiguientesEstados,
     IReadOnlyList<HistorialDto> Historial,
-    ClaseLicencia Clases = ClaseLicencia.Ninguna);
+    ClaseLicencia Clases = ClaseLicencia.Ninguna,
+    bool Anulada = false,
+    string? MotivoAnulacion = null);
 
 /// <summary>A contiguous range of a filtered list plus the total count of the whole filtered set.</summary>
 public sealed record ListResult<T>(IReadOnlyList<T> Items, int Total);

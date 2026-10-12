@@ -156,4 +156,42 @@ public sealed class AgendaImportServiceTests : IDisposable
         Assert.Contains(res.Errores, e => e.StartsWith("Fila 2"));
         Assert.Contains(res.Errores, e => e.StartsWith("Fila 3"));
     }
+
+    [Fact]
+    public async Task Import_flags_row_when_rut_already_has_an_open_carpeta_but_still_creates_it()
+    {
+        using (var ctx = _db.NewContext())
+        {
+            var c = new Ciudadano(Rut.Parse("12345678-5"), "PERSONA", "PRUEBA");
+            ctx.Carpetas.Add(Carpeta.Registrar(c, Sede.Placilla, new DateOnly(2026, 9, 1), "x", new DateTime(2026, 9, 1, 12, 0, 0, DateTimeKind.Utc), ClaseLicencia.B));
+            ctx.SaveChanges();
+        }
+        using var s = Agenda(Ok("12345678-5"), Ok("11111111-1"));
+
+        var res = await NewService().ImportarAsync(s, "tester");
+
+        Assert.Equal(2, res.Creadas);
+        Assert.Equal(1, res.ConAlertaDuplicado);
+    }
+
+    [Fact]
+    public async Task Reimport_does_not_recreate_a_row_cancelled_by_reagendamiento()
+    {
+        using (var s = Agenda(Ok("12345678-5")))
+        {
+            await NewService().ImportarAsync(s, "tester");
+        }
+        using (var ctx = _db.NewContext())
+        {
+            var c = ctx.Carpetas.Single();
+            c.Anular(MotivosAnulacion.Reagendamiento, "javiera", new DateTime(2026, 10, 13, 12, 0, 0, DateTimeKind.Utc));
+            ctx.SaveChanges();
+        }
+
+        using var again = Agenda(Ok("12345678-5"));
+        var res = await NewService().ImportarAsync(again, "tester");
+
+        Assert.Equal(0, res.Creadas);
+        Assert.Equal(1, res.YaExistian);
+    }
 }

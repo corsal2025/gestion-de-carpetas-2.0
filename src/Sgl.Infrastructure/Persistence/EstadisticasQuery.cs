@@ -51,8 +51,11 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
 
     private IQueryable<HistorialCambio> Historial(FiltroEstadisticas f)
     {
+        // db.Carpetas honors the soft-delete filter, so audit entries of cancelled carpetas are excluded too.
         var q = db.Historial.AsNoTracking();
-        if (f.Sede is { } sede) q = q.Where(h => db.Carpetas.Any(c => c.Id == h.CarpetaId && c.Sede == sede));
+        q = f.Sede is { } sede
+            ? q.Where(h => db.Carpetas.Any(c => c.Id == h.CarpetaId && c.Sede == sede))
+            : q.Where(h => db.Carpetas.Any(c => c.Id == h.CarpetaId));
         if (f.Desde is { } desde)
         {
             var d = desde.ToDateTime(TimeOnly.MinValue);

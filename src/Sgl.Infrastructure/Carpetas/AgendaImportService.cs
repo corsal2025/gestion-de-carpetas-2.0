@@ -16,12 +16,15 @@ public sealed record AgendaImportResult(
     int CanceladasOmitidas,
     int CiudadanosCreados,
     IReadOnlyList<int> FilasRutInvalido,
-    IReadOnlyList<string> Errores);
+    IReadOnlyList<string> Errores,
+    int ConAlertaDuplicado = 0);
 
 /// <summary>
 /// Imports the daily appointment agenda (one sheet, "Fecha Cita | Hora Inicio | RUT | Nombre | ...") as
 /// "Por clasificar" carpetas. Email and phone are intentionally ignored (data minimization).
-/// Idempotent by citizen + sede + appointment date; all-or-nothing transaction.
+/// Idempotent by citizen + sede + appointment date (cancelled rows included, so a resolved duplicate is never
+/// re-created); all-or-nothing transaction. Rows whose RUT already has an open carpeta still enter "Por clasificar"
+/// and are counted as duplicate alerts (the alert itself is computed live when listing).
 /// </summary>
 public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILogger<AgendaImportService> logger)
 {
@@ -86,7 +89,8 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
         var ciudadanos = await db.Ciudadanos.ToDictionaryAsync(c => c.Rut.Value, StringComparer.OrdinalIgnoreCase, ct);
         var claves = new HashSet<(Guid, Sede, DateOnly)>();
 
-        int leidas = 0, creadas = 0, yaExistian = 0, canceladas = 0, ciudadanosCreados = 0;
+        int leidas = 0, creadas = 0, yaExistian = 0, canceladas = 0, ciudadanosCreados = 0, conAlerta = 0;
+        var conCarpetaEnEstaCarga = new HashSet<Guid>();
         var rutInvalido = new List<int>();
         var errores = new List<string>();
         var ultima = ws.LastRowUsed()?.RowNumber() ?? 0;
@@ -137,7 +141,7 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
             var ciudadanoId = ciudadano.Id;
             var sedeValor = sede.Value;
             var fechaValor = fecha.Value;
-            var existe = !claves.Add((ciudadanoId, sedeValor, fechaValor)) || await db.Carpetas.AnyAsync(
+            var existe = !claves.Add((ciudadanoId, sedeValor, fechaValor)) || await db.Carpetas.IgnoreQueryFilters().AnyAsync(
                 c => c.CiudadanoId == ciudadanoId && c.Sede == sedeValor && c.FechaCitacion == fechaValor, ct);
             if (existe)
             {
@@ -149,10 +153,15 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
                 ciudadano, sedeValor, fechaValor, LeerHora(row.Cell(cols.Hora)),
                 MapearTramite(Texto(row, cols.Tramite)), usuario, now));
             creadas++;
+            if (!conCarpetaEnEstaCarga.Add(ciudadanoId)
+                || await db.Carpetas.Where(c => c.CiudadanoId == ciudadanoId).AnyAsync(Carpeta.AbiertaSinArchivarExpresion, ct))
+            {
+                conAlerta++;
+            }
         }
 
         await db.SaveChangesAsync(ct);
-        return new AgendaImportResult(leidas, creadas, yaExistian, canceladas, ciudadanosCreados, rutInvalido, errores);
+        return new AgendaImportResult(leidas, creadas, yaExistian, canceladas, ciudadanosCreados, rutInvalido, errores, conAlerta);
     }
 
     private static bool DetectarColumnas(IXLWorksheet ws, out Columnas cols, out int filaEncabezado)

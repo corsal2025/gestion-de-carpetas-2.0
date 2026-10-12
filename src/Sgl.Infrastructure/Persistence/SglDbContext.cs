@@ -54,6 +54,14 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.FechaRegistro);
             b.Property(c => c.TramiteAgenda).HasConversion<string>().HasMaxLength(30);
             b.Property(c => c.HoraCita);
+            b.Property(c => c.Anulada).HasDefaultValue(false);
+            b.Property(c => c.MotivoAnulacion).HasMaxLength(MotivosAnulacion.MaxLength);
+            b.Property(c => c.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
+            b.Property(c => c.AnuladaEn);
+            // Soft delete: cancelled carpetas vanish from every query (modules, counts, statistics, duplicates).
+            // Only the "Anuladas" view, restore and import idempotency opt out with IgnoreQueryFilters().
+            b.HasQueryFilter(c => !c.Anulada);
+            b.HasIndex(c => c.Anulada);
             b.HasIndex(c => new { c.CiudadanoId, c.Decision });
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -73,6 +81,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(h => h.Campo).HasMaxLength(50).IsRequired();
             b.Property(h => h.Anterior).HasMaxLength(250);
             b.Property(h => h.Nuevo).HasMaxLength(250);
+            b.HasIndex(h => h.Fecha);
         });
 
         modelBuilder.Entity<ImportacionLog>(b =>

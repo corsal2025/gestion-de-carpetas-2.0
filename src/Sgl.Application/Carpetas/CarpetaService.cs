@@ -65,7 +65,10 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         await repository.SaveChangesAsync(ct);
     }
 
-    /// <summary>Classifies "Por clasificar" carpetas; all or nothing (a single save).</summary>
+    /// <summary>
+    /// Classifies "Por clasificar" carpetas; all or nothing (a single save). A class is mandatory, and an open
+    /// carpeta of the same RUT sharing a class blocks (also between rows of the same batch).
+    /// </summary>
     public async Task ClasificarAsync(ClasificarCommand cmd, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(cmd);
@@ -73,14 +76,81 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         {
             return;
         }
+        if (cmd.Clases == ClaseLicencia.Ninguna)
+        {
+            throw new DomainException("Debe marcar al menos una clase de licencia para clasificar.");
+        }
 
         var now = Now;
+        var asignadasEnLote = new Dictionary<Guid, List<CarpetaAbiertaDto>>();
         foreach (var id in cmd.CarpetaIds.Distinct())
         {
             var carpeta = await LoadAsync(id, ct);
-            carpeta.Clasificar(cmd.Destino, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
+            var abiertas = (await repository.GetCarpetasAbiertasAsync(carpeta.CiudadanoId, ct))
+                .Where(a => a.Id != carpeta.Id)
+                .Concat(asignadasEnLote.GetValueOrDefault(carpeta.CiudadanoId) ?? [])
+                .ToList();
+            var verificacion = VerificacionDuplicadoDto.Clasificar(abiertas, cmd.Clases);
+            if (verificacion.Bloquea)
+            {
+                throw new CarpetaDuplicadaException(verificacion);
+            }
+
+            carpeta.Clasificar(cmd.Destino, cmd.Clases, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
+            if (!asignadasEnLote.TryGetValue(carpeta.CiudadanoId, out var lista))
+            {
+                lista = [];
+                asignadasEnLote[carpeta.CiudadanoId] = lista;
+            }
+            lista.Add(new CarpetaAbiertaDto(carpeta.Id, carpeta.Sede, carpeta.FechaCitacion, carpeta.Estado, carpeta.Clases));
         }
         await repository.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Soft-deletes a carpeta (never a physical delete). It disappears from modules, counts and statistics.</summary>
+    public async Task AnularAsync(Guid id, string motivo, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.Anular(motivo, autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Restores a cancelled carpeta to the state it had before the cancellation (audited).</summary>
+    public async Task RestaurarAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        carpeta.Restaurar(autor, Now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Duplicate resolution "Reagendar": the kept carpeta (<paramref name="destinoId"/>) takes the appointment date and
+    /// sede of <paramref name="origenId"/>, which is cancelled with reason "Reagendamiento". Single save.
+    /// </summary>
+    public async Task ReagendarAsync(Guid origenId, Guid destinoId, string autor, CancellationToken ct = default)
+    {
+        if (origenId == destinoId)
+        {
+            throw new DomainException("Debe elegir dos carpetas distintas para reagendar.");
+        }
+
+        var origen = await LoadAsync(origenId, ct);
+        var destino = await LoadAsync(destinoId, ct);
+        if (origen.CiudadanoId != destino.CiudadanoId)
+        {
+            throw new DomainException("Solo se puede reagendar entre carpetas del mismo RUT.");
+        }
+
+        var now = Now;
+        destino.Reagendar(origen.FechaCitacion, origen.Sede, autor, now);
+        origen.Anular(MotivosAnulacion.Reagendamiento, autor, now);
+        await repository.SaveChangesAsync(ct);
+    }
+
+    public Task<IReadOnlyList<CarpetaAnuladaDto>> ListarAnuladasAsync(string? texto = null, CancellationToken ct = default)
+    {
+        var (rutFragment, nameFragment) = TextoBusqueda.Parse(string.IsNullOrWhiteSpace(texto) ? null : texto.Trim());
+        return repository.GetAnuladasAsync(rutFragment, nameFragment, ct);
     }
 
     public async Task EditarAsync(EditarCarpetaCommand cmd, CancellationToken ct = default)
@@ -216,7 +286,9 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             c.Decision,
             EstadoTransitions.NextStates(c.Estado),
             historial,
-            c.Clases);
+            c.Clases,
+            c.Anulada,
+            c.MotivoAnulacion);
     }
 
     public async Task<ListResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
@@ -237,11 +309,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         var previos = porClasificar.Count == 0
             ? new Dictionary<Guid, TramitePrevioDto>()
             : await repository.GetTramitesPreviosAsync(porClasificar, ct);
+        var alertas = porClasificar.Count == 0
+            ? new Dictionary<Guid, AlertaDuplicadoDto>()
+            : await repository.GetAlertasDuplicadoAsync(porClasificar, ct);
         var enriquecidos = items
             .Select(i => i with
             {
                 Indicadores = IndicadoresCalculator.Calcular(i, movimientos[i.Id], hoy),
                 TramitePrevio = previos.GetValueOrDefault(i.Id),
+                AlertaDuplicado = alertas.GetValueOrDefault(i.Id),
             })
             .ToList();
         return new ListResult<CarpetaResumenDto>(enriquecidos, total);
