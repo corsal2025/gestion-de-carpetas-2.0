@@ -138,24 +138,16 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                     string nombre;
                     string apellido;
 
-                    if (string.IsNullOrWhiteSpace(rawNombre) && string.IsNullOrWhiteSpace(rawApellido))
+                    if (!string.IsNullOrWhiteSpace(rawNombre) && !string.IsNullOrWhiteSpace(rawApellido))
                     {
-                        if (!string.IsNullOrWhiteSpace(rawCompleto))
-                        {
-                            var parts = rawCompleto.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            nombre = parts[0].ToUpperInvariant();
-                            apellido = (parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : "VECINO").ToUpperInvariant();
-                        }
-                        else
-                        {
-                            nombre = "VECINO";
-                            apellido = "SIN APELLIDO";
-                        }
+                        nombre = rawNombre.Trim().ToUpperInvariant();
+                        apellido = rawApellido.Trim().ToUpperInvariant();
                     }
                     else
                     {
-                        nombre = (string.IsNullOrWhiteSpace(rawNombre) ? "VECINO" : rawNombre.Trim()).ToUpperInvariant();
-                        apellido = (string.IsNullOrWhiteSpace(rawApellido) ? "VECINO" : rawApellido.Trim()).ToUpperInvariant();
+                        // A single name column holds the full name: split it (last two words = surnames).
+                        var completo = new[] { rawCompleto, rawNombre, rawApellido }.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+                        (nombre, apellido) = AgendaImportService.SepararNombre(completo);
                     }
 
                     if (nombre.Length > Ciudadano.MaxNameLength) nombre = nombre[..Ciudadano.MaxNameLength];
@@ -186,11 +178,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                     var rawDecision = ObtenerValorCelda(row, colMap.Decision);
                     var (estado, decision, tipoTramite) = MapearEstadoYDecision(rawEstado, rawDecision);
 
-                    // Si el estado es de subida y no viene fecha de subida, se asigna hoy si ya está subido
-                    if (fechaSubida is null && (estado is EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.CambioDomSubidoConaset or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio))
-                    {
-                        fechaSubida = DateOnly.FromDateTime(now);
-                    }
+                    // FechaSubida is only taken from the Excel; it is never invented.
 
                     var rawObs = ObtenerValorCelda(row, colMap.Observacion);
                     var obs = string.IsNullOrWhiteSpace(rawObs) ? null : rawObs.Trim().ToUpperInvariant();
@@ -421,6 +409,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                 var txt = row.Cell(c).GetString().Trim().ToUpperInvariant();
                 if (string.IsNullOrEmpty(txt)) continue;
 
+                if (txt.Contains("ATENC")) continue;
                 if (txt.Contains("RUT")) colRut = c;
                 else if (txt.Contains("CITAC")) colCitacion = c;
                 else if (txt.Contains("SUBID")) colSubida = c;
@@ -437,19 +426,10 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
             if (colRut.HasValue)
             {
                 headerRowIndex = r;
+                // Only columns whose header was recognised are read; nothing is guessed by position.
                 return new ColumnMapping(
-                    colCitacion ?? 1,
-                    colSubida ?? 2,
-                    colUltima ?? 3,
-                    colNombre ?? 4,
-                    colApellido ?? 5,
-                    colCompleto ?? 6,
-                    colRut,
-                    colComuna ?? 8,
-                    colEstado ?? 9,
-                    colDecision ?? 10,
-                    colObs ?? 11
-                );
+                    colCitacion, colSubida, colUltima, colNombre, colApellido, colCompleto,
+                    colRut, colComuna, colEstado, colDecision, colObs);
             }
         }
 
