@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Estadisticas;
+using Sgl.Application.Panel;
 using Sgl.Infrastructure.Persistence;
 
 namespace Sgl.Infrastructure;
@@ -29,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IDuplicadoRepository, DuplicadoRepository>();
         services.AddScoped<CarpetaService>();
         services.AddScoped<DuplicadosService>();
+        services.AddScoped<IPanelQuery, PanelQuery>();
+        services.AddScoped<PanelService>();
         services.AddScoped<IEstadisticasQuery, EstadisticasQuery>();
         services.AddScoped<EstadisticasService>();
         services.AddSingleton(BindLicenciasOptions(configuration));
