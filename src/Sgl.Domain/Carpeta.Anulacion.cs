@@ -27,6 +27,14 @@ public sealed partial class Carpeta
     /// <summary>Open for duplicate alerts: not cancelled, no final decision and not physically archived in a box.</summary>
     public bool EstaAbiertaSinArchivar => !Anulada && EstaAbierta && Bandeja != Bandeja.Archivadas;
 
+    private void RequireActiva()
+    {
+        if (Anulada)
+        {
+            throw new DomainException("La carpeta está anulada: restáurela antes de modificarla.");
+        }
+    }
+
     /// <summary>Cancels the carpeta without deleting it. The current state is kept so it can be restored.</summary>
     public void Anular(string motivo, string autor, DateTime now)
     {

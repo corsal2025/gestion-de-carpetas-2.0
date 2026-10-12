@@ -327,64 +327,48 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         return query;
     }
 
+    /// <summary>Per-sede totals computed with one GROUP BY in SQL (never materializes the carpetas).</summary>
     public async Task<EstadisticasGlobalesDto> GetEstadisticasAsync(CancellationToken ct = default)
     {
-        var raw = await db.Carpetas
+        var filas = await db.Carpetas
             .AsNoTracking()
-            .Select(c => new
+            .GroupBy(c => c.Sede)
+            .Select(g => new
             {
-                c.Sede,
-                c.Decision,
-                c.IdoneidadMoral,
-                c.TipoTramite,
+                Sede = g.Key,
+                Total = g.Count(),
+                Otorgadas = g.Count(c => c.Decision == Decision.Otorgado),
+                Denegadas = g.Count(c => c.Decision == Decision.Denegado),
+                Alertadas = g.Count(c => c.IdoneidadMoral != null && c.IdoneidadMoral != ""),
+                Conaset = g.Count(c => c.TipoTramite != null && EF.Functions.Like(c.TipoTramite, "%CONASET%")),
+                Primera = g.Count(c => c.TipoTramite != null && EF.Functions.Like(c.TipoTramite, "%1°%")),
+                Domicilio = g.Count(c => c.TipoTramite != null && EF.Functions.Like(c.TipoTramite, "%DOMICILIO%")),
             })
             .ToListAsync(ct);
 
-        var sedesMetrics = new List<SedeMetricDto>();
         var sedes = new[] { Sede.AvArgentina, Sede.Placilla, Sede.MercadoPuerto };
-
-        foreach (var s in sedes)
-        {
-            var items = raw.Where(x => x.Sede == s).ToList();
-            var total = items.Count;
-            var otorgadas = items.Count(x => x.Decision == Decision.Otorgado);
-            var denegadas = items.Count(x => x.Decision == Decision.Denegado);
-            var alertadas = items.Count(x => !string.IsNullOrEmpty(x.IdoneidadMoral));
-            var subidasConaset = items.Count(x => x.TipoTramite != null && x.TipoTramite.Contains("CONASET", StringComparison.OrdinalIgnoreCase));
-            var primeraLic = items.Count(x => x.TipoTramite != null && x.TipoTramite.Contains("1°", StringComparison.OrdinalIgnoreCase));
-            var cambioDom = items.Count(x => x.TipoTramite != null && x.TipoTramite.Contains("DOMICILIO", StringComparison.OrdinalIgnoreCase));
-
-            string nombre = s switch
+        var metricas = sedes
+            .Select(s =>
             {
-                Sede.AvArgentina => "Av. Argentina",
-                Sede.Placilla => "Placilla",
-                Sede.MercadoPuerto => "Mercado Puerto",
-                _ => s.ToString(),
-            };
-
-            sedesMetrics.Add(new SedeMetricDto(
-                s,
-                nombre,
-                total,
-                otorgadas,
-                denegadas,
-                alertadas,
-                subidasConaset,
-                primeraLic,
-                cambioDom));
-        }
-
-        var totalGlobal = raw.Count;
-        var totalOtorgadas = raw.Count(x => x.Decision == Decision.Otorgado);
-        var totalDenegadas = raw.Count(x => x.Decision == Decision.Denegado);
-        var totalAlertadas = raw.Count(x => !string.IsNullOrEmpty(x.IdoneidadMoral));
+                var f = filas.FirstOrDefault(x => x.Sede == s);
+                var nombre = s switch
+                {
+                    Sede.AvArgentina => "Av. Argentina",
+                    Sede.Placilla => "Placilla",
+                    Sede.MercadoPuerto => "Mercado Puerto",
+                    _ => s.ToString(),
+                };
+                return new SedeMetricDto(s, nombre, f?.Total ?? 0, f?.Otorgadas ?? 0, f?.Denegadas ?? 0, f?.Alertadas ?? 0,
+                    f?.Conaset ?? 0, f?.Primera ?? 0, f?.Domicilio ?? 0);
+            })
+            .ToList();
 
         return new EstadisticasGlobalesDto(
-            totalGlobal,
-            totalOtorgadas,
-            totalDenegadas,
-            totalAlertadas,
-            sedesMetrics);
+            filas.Sum(f => f.Total),
+            filas.Sum(f => f.Otorgadas),
+            filas.Sum(f => f.Denegadas),
+            filas.Sum(f => f.Alertadas),
+            metricas);
     }
 
     public async Task<IReadOnlyList<CajaResumenDto>> GetCajasAsync(CancellationToken ct = default)
@@ -456,6 +440,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             .OrderBy(t => t)
             .ToListAsync(ct);
     }
+
+    public void DescartarCambios() => db.ChangeTracker.Clear();
 
     public Task SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
 }

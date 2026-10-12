@@ -16,29 +16,38 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task<Guid> RegistrarAsync(RegistrarCarpetaCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        var rut = Rut.Parse(cmd.Rut);
-        if (cmd.Clases == ClaseLicencia.Ninguna && _options.ClaseEsObligatoria(clock.HoyChile()))
+        try
         {
-            throw new DomainException("Debe indicar al menos una clase de licencia.");
-        }
-
-        var existente = await repository.FindCiudadanoAsync(rut, ct);
-        if (existente is not null)
-        {
-            var verificacion = VerificacionDuplicadoDto.Clasificar(
-                await repository.GetCarpetasAbiertasAsync(existente.Id, ct), cmd.Clases);
-            if (verificacion.Bloquea || (verificacion.RequiereConfirmacion && !cmd.ConfirmarDuplicado))
+            ArgumentNullException.ThrowIfNull(cmd);
+            var rut = Rut.Parse(cmd.Rut);
+            if (cmd.Clases == ClaseLicencia.Ninguna && _options.ClaseEsObligatoria(clock.HoyChile()))
             {
-                throw new CarpetaDuplicadaException(verificacion);
+                throw new DomainException("Debe indicar al menos una clase de licencia.");
             }
-        }
 
-        var ciudadano = existente ?? new Ciudadano(rut, cmd.Nombre, cmd.Apellido);
-        var carpeta = Carpeta.Registrar(ciudadano, cmd.Sede, cmd.FechaCitacion, cmd.Autor, Now, cmd.Clases);
-        await repository.AddAsync(carpeta, ct);
-        await repository.SaveChangesAsync(ct);
-        return carpeta.Id;
+            var existente = await repository.FindCiudadanoAsync(rut, ct);
+            if (existente is not null)
+            {
+                var verificacion = VerificacionDuplicadoDto.Clasificar(
+                    await repository.GetCarpetasAbiertasAsync(existente.Id, ct), cmd.Clases);
+                if (verificacion.Bloquea || (verificacion.RequiereConfirmacion && !cmd.ConfirmarDuplicado))
+                {
+                    throw new CarpetaDuplicadaException(verificacion);
+                }
+            }
+
+            var ciudadano = existente ?? new Ciudadano(rut, cmd.Nombre, cmd.Apellido);
+            var carpeta = Carpeta.Registrar(ciudadano, cmd.Sede, cmd.FechaCitacion, cmd.Autor, Now, cmd.Clases);
+            await repository.AddAsync(carpeta, ct);
+            await repository.SaveChangesAsync(ct);
+            return carpeta.Id;
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     /// <summary>Checks a prospective registration against the citizen's open carpetas without saving.</summary>
@@ -52,17 +61,35 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 
     public async Task AsignarClasesAsync(Guid id, ClaseLicencia clases, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.AsignarClases(clases, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.AsignarClases(clases, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task CambiarEstadoAsync(CambiarEstadoCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        var carpeta = await LoadAsync(cmd.CarpetaId, ct);
-        carpeta.CambiarEstado(cmd.NuevoEstado, cmd.Autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            ArgumentNullException.ThrowIfNull(cmd);
+            var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
+            carpeta.CambiarEstado(cmd.NuevoEstado, cmd.Autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     /// <summary>
@@ -71,48 +98,73 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task ClasificarAsync(ClasificarCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        if (cmd.CarpetaIds.Count == 0)
+        try
         {
-            return;
-        }
-        if (cmd.Clases == ClaseLicencia.Ninguna)
-        {
-            throw new DomainException("Debe marcar al menos una clase de licencia para clasificar.");
-        }
-
-        var now = Now;
-        var asignadasEnLote = new Dictionary<Guid, List<CarpetaAbiertaDto>>();
-        foreach (var id in cmd.CarpetaIds.Distinct())
-        {
-            var carpeta = await LoadAsync(id, ct);
-            var abiertas = (await repository.GetCarpetasAbiertasAsync(carpeta.CiudadanoId, ct))
-                .Where(a => a.Id != carpeta.Id)
-                .Concat(asignadasEnLote.GetValueOrDefault(carpeta.CiudadanoId) ?? [])
-                .ToList();
-            var verificacion = VerificacionDuplicadoDto.Clasificar(abiertas, cmd.Clases);
-            if (verificacion.Bloquea)
+            ArgumentNullException.ThrowIfNull(cmd);
+            if (cmd.CarpetaIds.Count == 0)
             {
-                throw new CarpetaDuplicadaException(verificacion);
+                return;
+            }
+            if (cmd.Clases == ClaseLicencia.Ninguna)
+            {
+                throw new DomainException("Debe marcar al menos una clase de licencia para clasificar.");
             }
 
-            carpeta.Clasificar(cmd.Destino, cmd.Clases, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
-            if (!asignadasEnLote.TryGetValue(carpeta.CiudadanoId, out var lista))
+            var now = Now;
+            var asignadasEnLote = new Dictionary<Guid, List<CarpetaAbiertaDto>>();
+            var validadas = new List<Carpeta>();
+            foreach (var id in cmd.CarpetaIds.Distinct())
             {
-                lista = [];
-                asignadasEnLote[carpeta.CiudadanoId] = lista;
+                var carpeta = await LoadActivaAsync(id, ct);
+                var abiertas = (await repository.GetCarpetasAbiertasAsync(carpeta.CiudadanoId, ct))
+                    .Where(a => a.Id != carpeta.Id)
+                    .Concat(asignadasEnLote.GetValueOrDefault(carpeta.CiudadanoId) ?? [])
+                    .ToList();
+                var verificacion = VerificacionDuplicadoDto.Clasificar(abiertas, cmd.Clases);
+                if (verificacion.Bloquea)
+                {
+                    throw new CarpetaDuplicadaException(verificacion);
+                }
+
+                carpeta.ValidarClasificacion(cmd.Destino, cmd.Clases, cmd.Comuna, cmd.Autor);
+                validadas.Add(carpeta);
+                if (!asignadasEnLote.TryGetValue(carpeta.CiudadanoId, out var lista))
+                {
+                    lista = [];
+                    asignadasEnLote[carpeta.CiudadanoId] = lista;
+                }
+                lista.Add(new CarpetaAbiertaDto(carpeta.Id, carpeta.Sede, carpeta.FechaCitacion, cmd.Destino, cmd.Clases));
             }
-            lista.Add(new CarpetaAbiertaDto(carpeta.Id, carpeta.Sede, carpeta.FechaCitacion, carpeta.Estado, carpeta.Clases));
+            // Second phase: every row passed validation, only now is anything changed.
+            foreach (var carpeta in validadas)
+            {
+                carpeta.Clasificar(cmd.Destino, cmd.Clases, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
+            }
+            await repository.SaveChangesAsync(ct);
         }
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     /// <summary>Soft-deletes a carpeta (never a physical delete). It disappears from modules, counts and statistics.</summary>
     public async Task AnularAsync(Guid id, string motivo, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.Anular(motivo, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.Anular(motivo, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     /// <summary>
@@ -140,14 +192,23 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// <summary>Restores a cancelled carpeta to the state it had before the cancellation (audited). Blocked by a class conflict.</summary>
     public async Task RestaurarAsync(Guid id, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        var verificacion = await VerificarRestauracionAsync(carpeta, ct);
-        if (verificacion.Bloquea)
+        try
         {
-            throw new CarpetaDuplicadaException(verificacion);
+            var carpeta = await LoadAsync(id, ct);
+            var verificacion = await VerificarRestauracionAsync(carpeta, ct);
+            if (verificacion.Bloquea)
+            {
+                throw new CarpetaDuplicadaException(verificacion);
+            }
+            carpeta.Restaurar(autor, Now);
+            await repository.SaveChangesAsync(ct);
         }
-        carpeta.Restaurar(autor, Now);
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     /// <summary>
@@ -156,26 +217,35 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
     /// </summary>
     public async Task ReagendarAsync(Guid origenId, Guid destinoId, string autor, CancellationToken ct = default)
     {
-        if (origenId == destinoId)
+        try
         {
-            throw new DomainException("Debe elegir dos carpetas distintas para reagendar.");
-        }
+            if (origenId == destinoId)
+            {
+                throw new DomainException("Debe elegir dos carpetas distintas para reagendar.");
+            }
 
-        var origen = await LoadAsync(origenId, ct);
-        var destino = await LoadAsync(destinoId, ct);
-        if (origen.CiudadanoId != destino.CiudadanoId)
-        {
-            throw new DomainException("Solo se puede reagendar entre carpetas del mismo RUT.");
-        }
-        if (!destino.EstaAbiertaSinArchivar)
-        {
-            throw new DomainException("Solo se puede reagendar hacia una carpeta abierta (sin decisión final, no anulada y sin caja de archivo).");
-        }
+            var origen = await LoadActivaAsync(origenId, ct);
+            var destino = await LoadActivaAsync(destinoId, ct);
+            if (origen.CiudadanoId != destino.CiudadanoId)
+            {
+                throw new DomainException("Solo se puede reagendar entre carpetas del mismo RUT.");
+            }
+            if (!destino.EstaAbiertaSinArchivar)
+            {
+                throw new DomainException("Solo se puede reagendar hacia una carpeta abierta (sin decisión final, no anulada y sin caja de archivo).");
+            }
 
-        var now = Now;
-        destino.Reagendar(origen.FechaCitacion, origen.Sede, autor, now);
-        origen.Anular(MotivosAnulacion.Reagendamiento, autor, now);
-        await repository.SaveChangesAsync(ct);
+            var now = Now;
+            destino.Reagendar(origen.FechaCitacion, origen.Sede, autor, now);
+            origen.Anular(MotivosAnulacion.Reagendamiento, autor, now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public Task<IReadOnlyList<CarpetaAnuladaDto>> ListarAnuladasAsync(string? texto = null, CancellationToken ct = default)
@@ -186,109 +256,208 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 
     public async Task EditarAsync(EditarCarpetaCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        var carpeta = await LoadAsync(cmd.CarpetaId, ct);
-        carpeta.Editar(cmd.Sede, cmd.FechaCitacion, cmd.FechaSubida, cmd.IdoneidadMoral, cmd.Autor, Now);
-        if (!string.IsNullOrWhiteSpace(cmd.Rut))
+        try
         {
-            var nuevoRut = Rut.Parse(cmd.Rut);
-            if (carpeta.Ciudadano.Rut != nuevoRut)
+            ArgumentNullException.ThrowIfNull(cmd);
+            var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
+            carpeta.Editar(cmd.Sede, cmd.FechaCitacion, cmd.FechaSubida, cmd.IdoneidadMoral, cmd.Autor, Now);
+            if (!string.IsNullOrWhiteSpace(cmd.Rut))
             {
-                var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
-                carpeta.ModificarRut(nuevoRut, existente, cmd.Autor, Now);
+                var nuevoRut = Rut.Parse(cmd.Rut);
+                if (carpeta.Ciudadano.Rut != nuevoRut)
+                {
+                    var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
+                    carpeta.ModificarRut(nuevoRut, existente, cmd.Autor, Now);
+                }
             }
+            await repository.SaveChangesAsync(ct);
         }
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task ModificarRutAsync(Guid id, string nuevoRutTexto, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        var nuevoRut = Rut.Parse(nuevoRutTexto);
-        if (carpeta.Ciudadano.Rut == nuevoRut)
+        try
         {
-            return;
-        }
+            var carpeta = await LoadActivaAsync(id, ct);
+            var nuevoRut = Rut.Parse(nuevoRutTexto);
+            if (carpeta.Ciudadano.Rut == nuevoRut)
+            {
+                return;
+            }
 
-        var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
-        carpeta.ModificarRut(nuevoRut, existente, autor, Now);
-        await repository.SaveChangesAsync(ct);
+            var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
+            carpeta.ModificarRut(nuevoRut, existente, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task AsignarCajaAsync(AsignarCajaCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        var carpeta = await LoadAsync(cmd.CarpetaId, ct);
-        carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            ArgumentNullException.ThrowIfNull(cmd);
+            var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
+            carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task AsignarCajaLoteAsync(AsignarCajaLoteCommand cmd, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(cmd);
-        foreach (var id in cmd.CarpetaIds)
+        try
         {
-            var carpeta = await LoadAsync(id, ct);
-            carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+            ArgumentNullException.ThrowIfNull(cmd);
+            foreach (var id in cmd.CarpetaIds)
+            {
+                var carpeta = await LoadActivaAsync(id, ct);
+                carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+            }
+            await repository.SaveChangesAsync(ct);
         }
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task ForzarEstadoAsync(Guid id, EstadoCarpeta nuevoEstado, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.ForzarEstado(nuevoEstado, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.ForzarEstado(nuevoEstado, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task MarcarPendienteBusquedaAsync(Guid id, bool valor, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.MarcarPendienteBusqueda(valor, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.MarcarPendienteBusqueda(valor, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.CambiarDecision(nuevaDecision, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.CambiarDecision(nuevaDecision, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task GuardarObservacionAsync(Guid id, string? observacion, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.ModificarObservacion(observacion, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.ModificarObservacion(observacion, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task GuardarComunaAsync(Guid id, string? comuna, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        if (!Carpeta.EsCambioDomicilio(carpeta.Estado))
+        try
         {
-            throw new DomainException("Solo se puede editar la comuna de una carpeta en cambio de domicilio.");
+            var carpeta = await LoadActivaAsync(id, ct);
+            if (!Carpeta.EsCambioDomicilio(carpeta.Estado))
+            {
+                throw new DomainException("Solo se puede editar la comuna de una carpeta en cambio de domicilio.");
+            }
+            carpeta.AsignarComuna(comuna, autor, Now);
+            await repository.SaveChangesAsync(ct);
         }
-        carpeta.AsignarComuna(comuna, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task GuardarFechaUltimaCarpetaAsync(Guid id, string? fecha, string autor, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        carpeta.ModificarFechaUltimaCarpeta(fecha, autor, Now);
-        await repository.SaveChangesAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.ModificarFechaUltimaCarpeta(fecha, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task ReabrirCajaAsync(string caja, string autor, CancellationToken ct = default)
     {
-        var carpetas = await repository.GetCarpetasByCajaAsync(caja, ct);
-        foreach (var c in carpetas)
+        try
         {
-            var carpeta = await LoadAsync(c.Id, ct);
-            carpeta.AsignarCaja("Cola de Caja", autor, Now);
+            var carpetas = await repository.GetCarpetasByCajaAsync(caja, ct);
+            foreach (var c in carpetas)
+            {
+                var carpeta = await LoadActivaAsync(c.Id, ct);
+                carpeta.AsignarCaja("Cola de Caja", autor, Now);
+            }
+            await repository.SaveChangesAsync(ct);
         }
-        await repository.SaveChangesAsync(ct);
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
     }
 
     public async Task<CarpetaDetalleDto> ObtenerAsync(Guid id, CancellationToken ct = default)
@@ -391,6 +560,15 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
 
     public Task<IReadOnlyList<string>> ObtenerTiposTramiteAsync(CancellationToken ct = default) =>
         repository.GetTiposTramiteAsync(ct);
+
+    /// <summary>Loads a carpeta that may be mutated: cancelled ones are rejected (only restore/inspect may see them).</summary>
+    private async Task<Carpeta> LoadActivaAsync(Guid id, CancellationToken ct)
+    {
+        var carpeta = await LoadAsync(id, ct);
+        return carpeta.Anulada
+            ? throw new DomainException("La carpeta está anulada: restáurela desde «Anuladas» antes de modificarla.")
+            : carpeta;
+    }
 
     private async Task<Carpeta> LoadAsync(Guid id, CancellationToken ct) =>
         await repository.GetAsync(id, ct) ?? throw new NotFoundException($"Carpeta {id} no encontrada.");

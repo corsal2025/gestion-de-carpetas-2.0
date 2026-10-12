@@ -108,5 +108,7 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
     public async Task AddRevisionAsync(RevisionDuplicado revision, CancellationToken ct = default) =>
         await db.RevisionesDuplicado.AddAsync(revision, ct);
 
+    public void DescartarCambios() => db.ChangeTracker.Clear();
+
     public Task SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
 }

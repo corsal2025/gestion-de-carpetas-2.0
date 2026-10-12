@@ -31,16 +31,24 @@ public sealed class DuplicadosService(IDuplicadoRepository repository, TimeProvi
 
     public async Task MarcarRevisadoAsync(Guid ciudadanoId, string autor, CancellationToken ct = default)
     {
-        var existente = await repository.GetRevisionAsync(ciudadanoId, ct);
-        if (existente is null)
+        try
         {
-            await repository.AddRevisionAsync(new RevisionDuplicado(ciudadanoId, autor, Now), ct);
-        }
-        else
-        {
-            existente.Renovar(autor, Now);
-        }
+            var existente = await repository.GetRevisionAsync(ciudadanoId, ct);
+            if (existente is null)
+            {
+                await repository.AddRevisionAsync(new RevisionDuplicado(ciudadanoId, autor, Now), ct);
+            }
+            else
+            {
+                existente.Renovar(autor, Now);
+            }
 
-        await repository.SaveChangesAsync(ct);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
     }
 }

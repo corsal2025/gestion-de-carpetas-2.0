@@ -96,6 +96,7 @@ public sealed partial class Carpeta
 
     public void AsignarCaja(string? nuevaCaja, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var caja = string.IsNullOrWhiteSpace(nuevaCaja) ? null : nuevaCaja.Trim();
         if (caja != CajaArchivo)
@@ -107,6 +108,7 @@ public sealed partial class Carpeta
 
     public void AsignarComuna(string? nuevaComuna, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var com = string.IsNullOrWhiteSpace(nuevaComuna) ? null : nuevaComuna.Trim();
         if (com?.Length > MaxComunaLength)
@@ -122,6 +124,7 @@ public sealed partial class Carpeta
 
     public void ModificarFechaUltimaCarpeta(string? nuevaFecha, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var f = string.IsNullOrWhiteSpace(nuevaFecha) ? null : nuevaFecha.Trim();
         if (f != FechaUltimaCarpeta)
@@ -133,6 +136,7 @@ public sealed partial class Carpeta
 
     public void ModificarObservacion(string? nuevaObservacion, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var obs = string.IsNullOrWhiteSpace(nuevaObservacion) ? null : nuevaObservacion.Trim();
         if (obs?.Length > MaxIdoneidadLength)
@@ -181,6 +185,7 @@ public sealed partial class Carpeta
 
     public void AsignarClases(ClaseLicencia clases, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         RequireClases(clases);
         if (clases != Clases)
@@ -202,6 +207,7 @@ public sealed partial class Carpeta
 
     public void CambiarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (!EstadoTransitions.CanTransition(Estado, nuevo))
         {
@@ -241,6 +247,7 @@ public sealed partial class Carpeta
 
     public void MarcarPendienteBusqueda(bool valor, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (valor && !PermiteBusquedaPendiente(Estado))
         {
@@ -267,6 +274,7 @@ public sealed partial class Carpeta
 
     public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (nuevo != Estado)
         {
@@ -307,6 +315,7 @@ public sealed partial class Carpeta
 
     public void CambiarDecision(Decision nueva, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (nueva != Decision)
         {
@@ -323,6 +332,7 @@ public sealed partial class Carpeta
 
     public void Editar(Sede sede, DateOnly fechaCitacion, DateOnly? fechaSubida, string? idoneidadMoral, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         RequireSede(sede);
         if (fechaSubida is { } subida && subida < fechaCitacion)
@@ -363,6 +373,7 @@ public sealed partial class Carpeta
 
     public void ModificarRut(Rut nuevoRut, Ciudadano? ciudadanoExistente, string autor, DateTime now)
     {
+        RequireActiva();
         ArgumentNullException.ThrowIfNull(nuevoRut);
         var usuario = RequireAutor(autor);
         if (Ciudadano.Rut != nuevoRut)

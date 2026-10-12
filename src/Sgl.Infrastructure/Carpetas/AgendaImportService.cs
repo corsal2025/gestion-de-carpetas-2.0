@@ -75,9 +75,14 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
             await tx.CommitAsync(ct);
             return result;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
-            logger.LogError(ex, "Agenda import failed for author {Autor}", autor);
+            // Nothing of a failed import may stay tracked in the circuit's context for a later save.
+            db.ChangeTracker.Clear();
+            if (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Agenda import failed for author {Autor}", autor);
+            }
             throw;
         }
     }

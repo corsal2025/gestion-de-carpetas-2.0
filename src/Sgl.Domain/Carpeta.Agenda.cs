@@ -49,6 +49,24 @@ public sealed partial class Carpeta
     /// </summary>
     public void Clasificar(EstadoCarpeta destino, ClaseLicencia clases, string? fechaUltimaCarpeta, string? comuna, string autor, DateTime now)
     {
+        ValidarClasificacion(destino, clases, comuna, autor);
+        CambiarEstado(destino, autor, now);
+        AsignarClases(clases, autor, now);
+        if (!string.IsNullOrWhiteSpace(fechaUltimaCarpeta))
+        {
+            ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, autor, now);
+        }
+        if (!string.IsNullOrWhiteSpace(comuna))
+        {
+            AsignarComuna(comuna, autor, now);
+        }
+    }
+
+    /// <summary>Checks every classification rule without changing anything (lets a batch validate all rows first).</summary>
+    public void ValidarClasificacion(EstadoCarpeta destino, ClaseLicencia clases, string? comuna, string autor)
+    {
+        RequireActiva();
+        RequireAutor(autor);
         if (Estado != EstadoCarpeta.PorClasificar)
         {
             throw new DomainException("Solo se pueden clasificar carpetas en 'Por clasificar'.");
@@ -63,15 +81,13 @@ public sealed partial class Carpeta
             throw new DomainException("La comuna solo aplica a estados de cambio de domicilio.");
         }
 
-        CambiarEstado(destino, autor, now);
-        AsignarClases(clases, autor, now);
-        if (!string.IsNullOrWhiteSpace(fechaUltimaCarpeta))
+        if (!EstadoTransitions.CanTransition(Estado, destino))
         {
-            ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, autor, now);
+            throw new InvalidTransitionException(Estado, destino);
         }
-        if (!string.IsNullOrWhiteSpace(comuna))
+        if (comuna?.Trim().Length > MaxComunaLength)
         {
-            AsignarComuna(comuna, autor, now);
+            throw new DomainException($"La comuna excede {MaxComunaLength} caracteres.");
         }
     }
 }

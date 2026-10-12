@@ -42,5 +42,8 @@ public interface ICarpetaRepository
     /// <summary>Open carpetas of a citizen that are not archived in a real box (cancelled ones excluded).</summary>
     Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasSinArchivarAsync(Guid ciudadanoId, CancellationToken ct = default);
 
+    /// <summary>Drops every tracked, unsaved change (unit-of-work boundary after a failed operation).</summary>
+    void DescartarCambios();
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

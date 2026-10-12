@@ -107,5 +107,7 @@ public interface IDuplicadoRepository
 
     Task AddRevisionAsync(RevisionDuplicado revision, CancellationToken ct = default);
 
+    void DescartarCambios();
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
