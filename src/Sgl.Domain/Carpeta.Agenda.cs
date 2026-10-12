@@ -85,9 +85,9 @@ public sealed partial class Carpeta
         {
             throw new InvalidTransitionException(Estado, destino);
         }
-        if (comuna?.Trim().Length > MaxComunaLength)
+        if (!string.IsNullOrWhiteSpace(comuna) && ComunasChile.Normalizar(comuna) is null)
         {
-            throw new DomainException($"La comuna excede {MaxComunaLength} caracteres.");
+            throw new DomainException("Comuna no reconocida: elija una de las 346 comunas de Chile de la lista.");
         }
     }
 }

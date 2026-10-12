@@ -8,6 +8,7 @@ public sealed partial class Carpeta
     public const int MaxUsuarioLength = 100;
     public const int MaxIdoneidadLength = 200;
     public const int MaxComunaLength = 100;
+    public const int MaxCajaLength = 50;
 
     private readonly List<HistorialCambio> _historial = [];
 
@@ -99,6 +100,10 @@ public sealed partial class Carpeta
         RequireActiva();
         var usuario = RequireAutor(autor);
         var caja = string.IsNullOrWhiteSpace(nuevaCaja) ? null : nuevaCaja.Trim();
+        if (caja?.Length > MaxCajaLength)
+        {
+            throw new DomainException($"El rótulo de caja excede {MaxCajaLength} caracteres.");
+        }
         if (caja != CajaArchivo)
         {
             Audit(now, usuario, nameof(CajaArchivo), CajaArchivo, caja);
@@ -110,10 +115,11 @@ public sealed partial class Carpeta
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
-        var com = string.IsNullOrWhiteSpace(nuevaComuna) ? null : nuevaComuna.Trim();
-        if (com?.Length > MaxComunaLength)
+        string? com = null;
+        if (!string.IsNullOrWhiteSpace(nuevaComuna))
         {
-            throw new DomainException($"La comuna excede {MaxComunaLength} caracteres.");
+            com = ComunasChile.Normalizar(nuevaComuna)
+                ?? throw new DomainException("Comuna no reconocida: elija una de las 346 comunas de Chile de la lista.");
         }
         if (com != Comuna)
         {

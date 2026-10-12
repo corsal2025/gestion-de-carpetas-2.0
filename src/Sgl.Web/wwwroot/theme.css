@@ -60,7 +60,7 @@ html {
 }
 
 html[data-theme="dark"] {
-    --btn-grad: linear-gradient(135deg, #3a55cf, #5570e6);
+    --btn-grad: linear-gradient(135deg, #3a55cf, #4863d6);
     --btn-grad-hover: linear-gradient(135deg, #2f49bd, #3a55cf);
     --head-grad: linear-gradient(120deg, #131a4a, #1d2c75 55%, #2a3fa8);
     --dots: rgb(143 162 240 / 0.06);

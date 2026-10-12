@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject AutorState Autor
+@inject IJSRuntime JS
 
 <header class="topbar">
     <div class="brand-group">
@@ -48,7 +49,7 @@
     <div class="user-block">
         <label class="autor">
             Funcionario
-            <input @bind="Autor.Nombre" @bind:event="oninput" placeholder="Su nombre" maxlength="100" />
+            <input @bind="Autor.Nombre" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" maxlength="100" />
         </label>
     </div>
 </header>
@@ -64,3 +65,29 @@
     <a href="." class="reload">Recargar</a>
     <span class="dismiss">✕</span>
 </div>
+
+@code {
+    private const string ClaveNombre = "sgl.funcionario";
+
+    // The official's name survives reloads (per browser); storage failures are ignored.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Autor.HasNombre) return;
+        try
+        {
+            var guardado = await JS.InvokeAsync<string?>("sglUi.leer", ClaveNombre);
+            if (!string.IsNullOrWhiteSpace(guardado))
+            {
+                Autor.Nombre = guardado.Trim();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
+    }
+
+    private async Task GuardarNombreAsync()
+    {
+        try { await JS.InvokeVoidAsync("sglUi.guardar", ClaveNombre, Autor.Nombre ?? ""); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
+    }
+}

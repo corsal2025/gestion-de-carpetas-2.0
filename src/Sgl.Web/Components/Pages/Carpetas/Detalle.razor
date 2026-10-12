@@ -82,7 +82,7 @@ else
                     <span>Clase de licencia</span>
                     <ClasesSelector @bind-Value="editClases" />
                 </div>
-                <label>Caja / Archivo físico <input @bind="editCaja" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
+                <label>Caja / Archivo físico <input @bind="editCaja" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
                 <div class="info-block">
                     <p>Trámite / Tipo: <strong>@(string.IsNullOrEmpty(carpeta.TipoTramite) ? "—" : carpeta.TipoTramite)</strong></p>
                     <p>Última carpeta / Comuna: <strong>@(string.IsNullOrEmpty(carpeta.FechaUltimaCarpeta) ? "—" : carpeta.FechaUltimaCarpeta)</strong></p>

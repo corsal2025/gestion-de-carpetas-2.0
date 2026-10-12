@@ -1,4 +1,7 @@
-namespace Sgl.Web;
+using System.Globalization;
+using System.Text;
+
+namespace Sgl.Domain;
 
 /// <summary>Las 346 comunas de Chile (division 2018, con region de Nuble), en mayusculas como las guarda el importador.</summary>
 public static class ComunasChile
@@ -66,6 +69,24 @@ public static class ComunasChile
         "Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos", "Antártica", "Porvenir", "Primavera",
         "Timaukel", "Natales", "Torres del Paine");
 
+    private static readonly Dictionary<string, string> PorClave =
+        Todas.GroupBy(Clave).ToDictionary(g => g.Key, g => g.First());
+
+    /// <summary>Official spelling for a comuna typed in any case/with or without accents; null when unknown.</summary>
+    public static string? Normalizar(string? texto) =>
+        string.IsNullOrWhiteSpace(texto) ? null : PorClave.GetValueOrDefault(Clave(texto));
+
+    private static string Clave(string texto)
+    {
+        var d = texto.Trim().ToUpperInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(d.Length);
+        foreach (var ch in d)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark) sb.Append(ch);
+        }
+        return string.Join(' ', sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
     private static IReadOnlyList<string> Construir(params string[] nombres) =>
-        nombres.Select(n => n.ToUpperInvariant()).Distinct().Order(StringComparer.Create(new System.Globalization.CultureInfo("es-CL"), true)).ToArray();
+        nombres.Select(n => n.ToUpperInvariant()).Distinct().Order(StringComparer.Create(new CultureInfo("es-CL"), true)).ToArray();
 }

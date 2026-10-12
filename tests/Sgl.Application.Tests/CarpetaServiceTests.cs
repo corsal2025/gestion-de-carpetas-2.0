@@ -339,6 +339,6 @@ public sealed class CarpetaServiceTests : IDisposable
 
         await _db.NewService().GuardarComunaAsync(id, "Maipu", "ana");
 
-        Assert.Equal("Maipu", (await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
+        Assert.Equal("MAIPÚ", (await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
     }
 }

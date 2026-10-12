@@ -335,3 +335,96 @@ html .topbar .brand-text { color: #eef1fc; }
 html body .est-dl dt, html body .dup-campos dt { color: var(--text-secondary); }
 /* Texto atenuado del tema claro: >= 4.5:1 también sobre el lienzo (#eef2fb), no solo sobre blanco. */
 html:not([data-theme="dark"]) { --text-muted: #556079; }
+
+/* ---------- Distintivos dentro de filas: color propio, independiente del color que fuerzan las filas ---------- */
+/* Las filas suaves/Excel imponen `color` a todo el contenido de la celda; los elementos con fondo propio
+   (badges, enlace de caja) fijan aquí fondo y texto juntos, con tokens para claro y oscuro (≥ 4.5:1). */
+html {
+    --b-def-bg: #e6e9f6; --b-def-fg: #26388c;
+    --b-ok-bg: #dcfce7; --b-ok-fg: #166534;
+    --b-bad-bg: #fee2e2; --b-bad-fg: #991b1b;
+    --b-warn-bg: #fef3c7; --b-warn-fg: #92400e;
+    --b-info-bg: #e0f2fe; --b-info-fg: #075985;
+    --b-conaset-bg: #e0f2fe; --b-conaset-fg: #075985;
+    --b-primera-bg: #f3e8ff; --b-primera-fg: #6b21a8;
+    --b-domicilio-bg: #ede9fe; --b-domicilio-fg: #4c1d95;
+    --b-muted-bg: #eef1f8; --b-muted-fg: #475069;
+    --b-caja-bg: #fef9c3; --b-caja-fg: #713f12; --b-caja-bd: #facc15;
+}
+html[data-theme="dark"] {
+    --b-def-bg: #24306b; --b-def-fg: #dfe5ff;
+    --b-ok-bg: #12351f; --b-ok-fg: #86efac;
+    --b-bad-bg: #431818; --b-bad-fg: #fca5a5;
+    --b-warn-bg: #43310c; --b-warn-fg: #fcd34d;
+    --b-info-bg: #0c3350; --b-info-fg: #bae6fd;
+    --b-conaset-bg: #0c3350; --b-conaset-fg: #bae6fd;
+    --b-primera-bg: #3b1d5c; --b-primera-fg: #e9d5ff;
+    --b-domicilio-bg: #2e1f5e; --b-domicilio-fg: #ddd6fe;
+    --b-muted-bg: #232b55; --b-muted-fg: #c3c9e6;
+    --b-caja-bg: #3d330c; --b-caja-fg: #fde68a; --b-caja-bd: #a16207;
+}
+html body .badge { --bb: var(--b-def-bg); --bf: var(--b-def-fg); }
+html body .badge.ok { --bb: var(--b-ok-bg); --bf: var(--b-ok-fg); }
+html body .badge.bad { --bb: var(--b-bad-bg); --bf: var(--b-bad-fg); }
+html body .badge.warn { --bb: var(--b-warn-bg); --bf: var(--b-warn-fg); }
+html body .badge.info { --bb: var(--b-info-bg); --bf: var(--b-info-fg); }
+html body .badge.conaset { --bb: var(--b-conaset-bg); --bf: var(--b-conaset-fg); }
+html body .badge.primera { --bb: var(--b-primera-bg); --bf: var(--b-primera-fg); }
+html body .badge.domicilio { --bb: var(--b-domicilio-bg); --bf: var(--b-domicilio-fg); }
+html body .badge.muted-badge { --bb: var(--b-muted-bg); --bf: var(--b-muted-fg); }
+html[data-rows] body .data-table tbody tr td .badge.badge,
+html body .badge.badge {
+    background: var(--bb) !important;
+    color: var(--bf) !important;
+    -webkit-text-fill-color: var(--bf) !important;
+}
+html[data-rows] body .data-table tbody tr td .btn-action-caja-ok.btn-action-caja-ok,
+html body .btn-action-caja-ok {
+    background: var(--b-caja-bg) !important;
+    border-color: var(--b-caja-bd) !important;
+    color: var(--b-caja-fg) !important;
+    -webkit-text-fill-color: var(--b-caja-fg) !important;
+}
+/* Contenido de botones dentro de filas Excel/suaves: el texto interno sigue al botón, no a la fila. */
+html[data-rows] body .data-table tbody tr td .btn-action-caja.btn-action-caja * { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail,
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail *,
+html body .btn-detail { color: var(--brand-primary) !important; -webkit-text-fill-color: var(--brand-primary) !important; }
+/* Títulos de tarjetas antiguas con color fijo de tema claro */
+html[data-theme="dark"] body .content .card h3, html[data-theme="dark"] body .content .card h4 { color: var(--text-primary) !important; }
+/* Filas seleccionadas / abiertas en el panel lateral: fondo azul claro fijo y texto oscuro en todo su contenido,
+   aunque el estado (Excel/suave) imponga otro fondo o texto blanco. Especificidad alta a propósito: debe ganar
+   también a las reglas de columnas fijas (RUT/nombre) de theme.css. */
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-selected.row-selected.row-selected td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-selected.row-selected.row-selected td[class] {
+    background: #bfdbfe !important;
+}
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-drawer-active.row-drawer-active.row-drawer-active td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-drawer-active.row-drawer-active.row-drawer-active td[class] {
+    background: #dbeafe !important;
+}
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td[class],
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-alerta):not(.btn-alerta-sec):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja-ok):not(select):not(input) {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail,
+html body .btn-detail { background: var(--surface) !important; border: 1px solid var(--border-color) !important; }
+/* Contador del botón PDF por sector */
+html body .btn-pdf-pill .pdf-count-badge { background: #1e3a8a !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html body .btn-pdf-pill .pdf-count-badge.gold { background: #78350f !important; }
+
+/* Barra superior: contraste >= 4.5:1 también sobre el extremo claro del degradado. */
+html body .topbar .user-block .autor { color: #e8ecff; }
+html body .main-nav .nav-item.active,
+html body .main-nav .nav-item.nav-carpetas.active,
+html body .main-nav .nav-item.nav-cajas.active,
+html body .main-nav .nav-item.nav-importar.active { background: rgb(8 16 58 / 0.42) !important; }
+
+/* Fila "Citada" en tema oscuro con filas Excel: fondo de superficie oscuro, texto claro (antes texto oscuro fijo, 1.29:1). */
+html[data-theme="dark"][data-rows="classic"] body .data-table tbody tr.estado-citada td,
+html[data-theme="dark"][data-rows="classic"] body .data-table tbody tr.estado-citada td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja-ok):not(select):not(input) {
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+}

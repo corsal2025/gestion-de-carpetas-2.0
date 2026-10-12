@@ -12,7 +12,7 @@
 <PageTitle>Gestión de Carpetas 2.0 · SGL</PageTitle>
 
 <datalist id="lista-comunas-chile">
-    @foreach (var comuna in Sgl.Web.ComunasChile.Todas)
+    @foreach (var comuna in Sgl.Domain.ComunasChile.Todas)
     {
         <option value="@comuna"></option>
     }
@@ -518,183 +518,24 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @if (filasDirectas is { } directas)
+                    {
+                        @* Small trays (the daily agenda): rendered at once, no Virtualize warm-up. *@
+                        @foreach (var c in directas)
+                        {
+                            @FilaBandeja(c)
+                        }
+                    }
+                    else
+                    {
                     <Virtualize @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
                                 ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
-                        <ItemContent>
-                        @{
-                        var isSelected = seleccionadas.Contains(c.Id);
-                        var ind = c.Indicadores;
-                        <tr class="@Labels.EstadoRowCss(c.Estado) @(isSelected ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
-                            @ondblclick="() => AbrirDrawerAsync(c.Id)">
-                            <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
-                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" />
-                            </td>
-                            <td class="date-cell col-sticky-rut">@c.Rut</td>
-                            <td class="col-sticky-nombre" @ondblclick:stopPropagation>
-                                <div class="nombre-wrapper-cell">
-                                    <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(ind?.DiasBuscando is { } db ? $" ({db} d, marcada por {ind.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
-                                    <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
-                                            title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
-                                            @onclick="() => AbrirModalObs(c)" type="button">
-                                        <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-                                        @if (!string.IsNullOrEmpty(c.IdoneidadMoral))
-                                        {
-                                            <span class="obs-badge-indicator"></span>
-                                        }
-                                    </button>
-                                </div>
-                            </td>
-                            <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
-                            @switch (bandejaActiva)
-                            {
-                                case Bandeja.PorClasificar:
-                                    <td class="date-cell">@(c.HoraCita?.ToString("HH:mm") ?? "—") · @c.FechaCitacion.ToString("dd-MM")</td>
-                                    <td>
-                                        @if (c.TramiteAgenda is { } ta)
-                                        {
-                                            <span class="badge @(ta == TramiteAgenda.Renovacion ? "conaset" : "primera")">@Labels.Of(ta)</span>
-                                        }
-                                        else
-                                        {
-                                            <span>—</span>
-                                        }
-                                    </td>
-                                    <td class="@(MuestraAlerta(c) ? "td-alerta-dup" : null)" @ondblclick:stopPropagation>
-                                        @if (MuestraAlerta(c) && c.AlertaDuplicado is { } al)
-                                        {
-                                            <div class="alerta-dup" role="alert">
-                                                <span class="alerta-dup-texto" title="@string.Join(" | ", al.Todas.Select(o => $"{o.FechaCitacion:dd-MM-yyyy} · {Labels.Of(o.Sede)} · {Labels.Of(o.Estado)}"))">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))@(al.Total > 1 ? $" · {al.Total} abiertas en total" : "")</span>
-                                                @if (eligiendoAnular == c.Id)
-                                                {
-                                                    <span class="alerta-dup-acciones">
-                                                        <span>¿Cuál anular?</span>
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(c.Id, c)">Esta (nueva)</button>
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(al.CarpetaId, c)">La del @al.FechaCitacion.ToString("dd-MM")</button>
-                                                        <button type="button" class="btn-alerta-sec" @onclick="() => eligiendoAnular = null">Cancelar</button>
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="alerta-dup-acciones">
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" title="No crea carpeta: mueve la existente a esta fecha y anula esta fila" @onclick="() => ReagendarAsync(c, al)">Reagendar</button>
-                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" title="Clasificar esta fila como carpeta nueva (clase obligatoria)" @onclick="() => alertasDescartadas.Add(c.Id)">Crear nueva</button>
-                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" @onclick="() => eligiendoAnular = c.Id">Anular duplicada</button>
-                                                    </span>
-                                                }
-                                            </div>
-                                        }
-                                        else if (c.TramitePrevio is { } tp)
-                                        {
-                                            <span class="badge info" title="Pista, no definitiva: puede haber trámites anteriores no registrados en el sistema.">@tp.Cantidad previo(s) · @Labels.Of(tp.UltimaSede) @tp.UltimaFecha.ToString("dd-MM-yyyy")</span>
-                                        }
-                                        else
-                                        {
-                                            <span title="Pista, no definitiva: sin otras carpetas de este RUT en el sistema.">—</span>
-                                        }
-                                    </td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>
-                                        <input type="text" class="comuna-input-inline" placeholder="dd-mm-aaaa" value="@FechaClasif(c.Id)"
-                                               @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
-                                               title="@($"Fecha de última carpeta (opcional). Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
-                                    </td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>
-                                        <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
-                                    </td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>
-                                        <div class="clasif-cell">
-                                            <select class="excel-select" value="@(destinoClasif.GetValueOrDefault(c.Id)?.ToString() ?? "")"
-                                                    @onchange="(e) => SeleccionarDestino(c.Id, e)">
-                                                <option value="">— Clasificar —</option>
-                                                @foreach (var e in Labels.OpcionesClasificacion)
-                                                {
-                                                    <option value="@e">@Labels.Of(e)</option>
-                                                }
-                                            </select>
-                                            @if (destinoClasif.GetValueOrDefault(c.Id) is { } dSel && Carpeta.EsCambioDomicilio(dSel))
-                                            {
-                                                <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
-                                                       value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
-                                            }
-                                            <button type="button" class="btn-action-caja" disabled="@(destinoClasif.GetValueOrDefault(c.Id) is null || clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna || clasificando)"
-                                                    title="@(clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna ? "Marque al menos una clase de licencia" : "Clasificar")"
-                                                    @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
-                                        </div>
-                                    </td>
-                                    break;
-                                case Bandeja.PorPreparar:
-                                case Bandeja.CrearCertificado:
-                                case Bandeja.CanjeLicExtranjera:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(ind?.DiasTramite)</td>
-                                    <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
-                                    break;
-                                case Bandeja.CambioDomicilio:
-                                case Bandeja.CambioDomicilioSolicitado:
-                                    <td class="excel-cell-comuna" @ondblclick:stopPropagation>
-                                        <input type="text" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
-                                               value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
-                                               title="Comuna de origen: escribe o elige de la lista" />
-                                    </td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(ind?.DiasTramite)</td>
-                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } um ? $"{HoraChile.ALocal(um):dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
-                                    break;
-                                case Bandeja.SinCarpetaF8:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td>@Dias(ind?.DiasSinCarpeta)</td>
-                                    <td class="date-cell">@(ind?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {ind.UltimoUsuario}" : "—")</td>
-                                    break;
-                                case Bandeja.SubidaConaset:
-                                case Bandeja.SubidaConF8:
-                                case Bandeja.SubidaConOficio:
-                                case Bandeja.CambioDomSubidoConaset:
-                                case Bandeja.CambioDomSubidoCorreo:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
-                                    <td>@Dias(ind?.DiasCitacionSubida)</td>
-                                    break;
-                                case Bandeja.SeEncuentraEnArchivos:
-                                case Bandeja.SeEncuentraEnOf43:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td class="date-cell">@(c.FechaUltimaCarpeta ?? "—")</td>
-                                    <td>@(string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) ? "—" : SectorFisico.Calcular(c.FechaUltimaCarpeta))</td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(ind?.DiasTramite)</td>
-                                    break;
-                                case Bandeja.Cerradas:
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
-                                    <td class="date-cell">@(ind?.FechaCierre?.ToString("dd-MM-yyyy") ?? "—")</td>
-                                    <td>@Dias(ind?.DiasTotales)</td>
-                                    break;
-                                case Bandeja.Archivadas:
-                                    <td><a class="btn-action-caja-ok" href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo ?? "")">@c.CajaArchivo</a></td>
-                                    <td class="date-cell">@(ind?.FechaArchivo?.ToString("dd-MM-yyyy") ?? "—")</td>
-                                    <td>@Labels.Of(c.Decision)</td>
-                                    break;
-                            }
-                            <td class="action-cell" @ondblclick:stopPropagation>
-                                @if (c.PendienteBusqueda)
-                                {
-                                    <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
-                                }
-                                else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
-                                {
-                                    <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
-                                }
-                                else if (c.CajaArchivo == Carpeta.ColaDeCaja)
-                                {
-                                    <span class="badge warn" title="En cola para la próxima caja">En cola</span>
-                                }
-                                <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
-                            </td>
-                        </tr>
-                        }
-                        </ItemContent>
+                        <ItemContent>@FilaBandeja(c)</ItemContent>
                         <Placeholder>
                             <tr class="fila-placeholder"><td colspan="@(ColumnasBandeja.Count + 2)">&nbsp;</td></tr>
                         </Placeholder>
                     </Virtualize>
+                    }
                 </tbody>
             </table>
         </div>
@@ -839,11 +680,11 @@
                             <img src="images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
                             <div>
                                 <p class="doc-org">MUNICIPALIDAD DE VALPARAÍSO — DIRECCIÓN DE TRÁNSITO</p>
-                                <h2>Cambio de Domicilio — Listado de carpetas — Sector @sectorPdfActivo</h2>
+                                <h2>@TituloModuloPdf — Listado de carpetas — Sector @(EsSectorArchivo ? "Archivo" : "Oficina 43")</h2>
                             </div>
                         </div>
                         <div class="doc-meta">
-                            <div>Folio: <strong>@(sectorPdfActivo == "Archivo" ? "Archivo" : "Oficina43")-@HoraChile.ALocal(DateTime.UtcNow).ToString("yyyyMMdd-HHmm")</strong></div>
+                            <div>Folio: <strong>@(EsSectorArchivo ? "Archivo" : "Oficina43")-@HoraChile.ALocal(DateTime.UtcNow).ToString("yyyyMMdd-HHmm")</strong></div>
                             <div>Generado: <strong>@HoraChile.ALocal(DateTime.UtcNow).ToString("dd-MM-yyyy HH:mm")</strong></div>
                         </div>
                     </div>
@@ -1185,14 +1026,208 @@
         CancelarSeleccion();
         // Same Virtualize instance between trays (only "Todas" uses another table): re-measuring a fresh
         // Virtualize costs ~1 s, refreshing the mounted one keeps the module switch well under 1 s.
-        var mismaTabla = (b is null) == (bandejaActiva is null) && total is > 0 && conteo.Total > 0;
-        if (!mismaTabla) virtualizador = null;
+        var eraDirecta = filasDirectas is not null;
         bandejaActiva = b;
+        await CargarFilasDirectasAsync(conteo.Total);
+        var mismaTabla = !eraDirecta && filasDirectas is null && virtualizador is not null
+            && (b is null) == (bandejaActiva is null) && total is > 0 && conteo.Total > 0;
+        if (!mismaTabla) virtualizador = null;
         total = conteo.Total;
         pedirFilasTrasMontar = mismaTabla;
     }
 
     private bool pedirFilasTrasMontar;
+
+    /// <summary>Trays up to this size are rendered directly (all rows at once) instead of virtualized.</summary>
+    private const int MaxFilasDirectas = 200;
+
+    /// <summary>All rows of a small tray, already enriched; null when the tray is virtualized.</summary>
+    private List<CarpetaResumenDto>? filasDirectas;
+
+    private async Task CargarFilasDirectasAsync(int totalBandeja)
+    {
+        if (bandejaActiva is null || totalBandeja == 0 || totalBandeja > MaxFilasDirectas)
+        {
+            filasDirectas = null;
+            return;
+        }
+
+        var rango = await Carpetas.ListarAsync(ConsultaActual(0, totalBandeja));
+        filasDirectas = rango.Items.ToList();
+        foreach (var item in filasDirectas.Where(i => seleccionadas.Contains(i.Id)))
+        {
+            itemsSeleccionadosMap[item.Id] = item;
+        }
+        virtualizador = null;
+    }
+
+    private RenderFragment<CarpetaResumenDto> FilaBandeja => c =>
+                        @<tr class="@Labels.EstadoRowCss(c.Estado) @(seleccionadas.Contains(c.Id) ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
+                            @ondblclick="() => AbrirDrawerAsync(c.Id)">
+                            <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
+                                <input type="checkbox" checked="@seleccionadas.Contains(c.Id)" @onchange="() => ToggleSelect(c)" />
+                            </td>
+                            <td class="date-cell col-sticky-rut">@c.Rut</td>
+                            <td class="col-sticky-nombre" @ondblclick:stopPropagation>
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(c.Indicadores?.DiasBuscando is { } db ? $" ({db} d, marcada por {c.Indicadores.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
+                                    <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
+                                            title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
+                                            @onclick="() => AbrirModalObs(c)" type="button">
+                                        <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                        @if (!string.IsNullOrEmpty(c.IdoneidadMoral))
+                                        {
+                                            <span class="obs-badge-indicator"></span>
+                                        }
+                                    </button>
+                                </div>
+                            </td>
+                            <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
+                            @switch (bandejaActiva)
+                            {
+                                case Bandeja.PorClasificar:
+                                    <td class="date-cell">@(c.HoraCita?.ToString("HH:mm") ?? "—") · @c.FechaCitacion.ToString("dd-MM")</td>
+                                    <td>
+                                        @if (c.TramiteAgenda is { } ta)
+                                        {
+                                            <span class="badge @(ta == TramiteAgenda.Renovacion ? "conaset" : "primera")">@Labels.Of(ta)</span>
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                    <td class="@(MuestraAlerta(c) ? "td-alerta-dup" : null)" @ondblclick:stopPropagation>
+                                        @if (MuestraAlerta(c) && c.AlertaDuplicado is { } al)
+                                        {
+                                            <div class="alerta-dup" role="alert">
+                                                <span class="alerta-dup-texto" title="@string.Join(" | ", al.Todas.Select(o => $"{o.FechaCitacion:dd-MM-yyyy} · {Labels.Of(o.Sede)} · {Labels.Of(o.Estado)}"))">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))@(al.Total > 1 ? $" · {al.Total} abiertas en total" : "")</span>
+                                                @if (eligiendoAnular == c.Id)
+                                                {
+                                                    <span class="alerta-dup-acciones">
+                                                        <span>¿Cuál anular?</span>
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(c.Id, c)">Esta (nueva)</button>
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(al.CarpetaId, c)">La del @al.FechaCitacion.ToString("dd-MM")</button>
+                                                        <button type="button" class="btn-alerta-sec" @onclick="() => eligiendoAnular = null">Cancelar</button>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="alerta-dup-acciones">
+                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" title="No crea carpeta: mueve la existente a esta fecha y anula esta fila" @onclick="() => ReagendarAsync(c, al)">Reagendar</button>
+                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" title="Clasificar esta fila como carpeta nueva (clase obligatoria)" @onclick="() => alertasDescartadas.Add(c.Id)">Crear nueva</button>
+                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" @onclick="() => eligiendoAnular = c.Id">Anular duplicada</button>
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else if (c.TramitePrevio is { } tp)
+                                        {
+                                            <span class="badge info" title="Pista, no definitiva: puede haber trámites anteriores no registrados en el sistema.">@tp.Cantidad previo(s) · @Labels.Of(tp.UltimaSede) @tp.UltimaFecha.ToString("dd-MM-yyyy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span title="Pista, no definitiva: sin otras carpetas de este RUT en el sistema.">—</span>
+                                        }
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <input type="text" class="comuna-input-inline" placeholder="dd-mm-aaaa" value="@FechaClasif(c.Id)"
+                                               @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
+                                               title="@($"Fecha de última carpeta (opcional). Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>
+                                        <div class="clasif-cell">
+                                            <select class="excel-select" value="@(destinoClasif.GetValueOrDefault(c.Id)?.ToString() ?? "")"
+                                                    @onchange="(e) => SeleccionarDestino(c.Id, e)">
+                                                <option value="">— Clasificar —</option>
+                                                @foreach (var e in Labels.OpcionesClasificacion)
+                                                {
+                                                    <option value="@e">@Labels.Of(e)</option>
+                                                }
+                                            </select>
+                                            @if (destinoClasif.GetValueOrDefault(c.Id) is { } dSel && Carpeta.EsCambioDomicilio(dSel))
+                                            {
+                                                <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
+                                                       value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
+                                            }
+                                            <button type="button" class="btn-action-caja" disabled="@(destinoClasif.GetValueOrDefault(c.Id) is null || clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna || clasificando)"
+                                                    title="@(clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna ? "Marque al menos una clase de licencia" : "Clasificar")"
+                                                    @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
+                                        </div>
+                                    </td>
+                                    break;
+                                case Bandeja.PorPreparar:
+                                case Bandeja.CrearCertificado:
+                                case Bandeja.CanjeLicExtranjera:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
+                                    break;
+                                case Bandeja.CambioDomicilio:
+                                case Bandeja.CambioDomicilioSolicitado:
+                                    <td class="excel-cell-comuna" @ondblclick:stopPropagation>
+                                        <input type="text" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
+                                               value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
+                                               title="Comuna de origen: escribe o elige de la lista" />
+                                    </td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } um ? $"{HoraChile.ALocal(um):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
+                                    break;
+                                case Bandeja.SinCarpetaF8:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td>@Dias(c.Indicadores?.DiasSinCarpeta)</td>
+                                    <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
+                                    break;
+                                case Bandeja.SubidaConaset:
+                                case Bandeja.SubidaConF8:
+                                case Bandeja.SubidaConOficio:
+                                case Bandeja.CambioDomSubidoConaset:
+                                case Bandeja.CambioDomSubidoCorreo:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Dias(c.Indicadores?.DiasCitacionSubida)</td>
+                                    break;
+                                case Bandeja.SeEncuentraEnArchivos:
+                                case Bandeja.SeEncuentraEnOf43:
+                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell">@(c.FechaUltimaCarpeta ?? "—")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) ? "—" : SectorFisico.Calcular(c.FechaUltimaCarpeta))</td>
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    break;
+                                case Bandeja.Cerradas:
+                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
+                                    <td class="date-cell">@(c.Indicadores?.FechaCierre?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Dias(c.Indicadores?.DiasTotales)</td>
+                                    break;
+                                case Bandeja.Archivadas:
+                                    <td><a class="btn-action-caja-ok" href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo ?? "")">@c.CajaArchivo</a></td>
+                                    <td class="date-cell">@(c.Indicadores?.FechaArchivo?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td>@Labels.Of(c.Decision)</td>
+                                    break;
+                            }
+                            <td class="action-cell" @ondblclick:stopPropagation>
+                                @if (c.PendienteBusqueda)
+                                {
+                                    <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                }
+                                else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
+                                {
+                                    <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                }
+                                else if (c.CajaArchivo == Carpeta.ColaDeCaja)
+                                {
+                                    <span class="badge warn" title="En cola para la próxima caja">En cola</span>
+                                }
+                                <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
+                            </td>
+                        </tr>;
+
 
     // ---- Clasificación manual (bandeja Por clasificar) ----
     private readonly Dictionary<Guid, EstadoCarpeta?> destinoClasif = new();
@@ -1277,7 +1312,18 @@
         errorEdicion = $"{contexto}. Intente nuevamente.";
     }
 
-    private string AutorActual => Autor.HasNombre ? Autor.Nombre : "Funcionario";
+    private string AutorActual => Autor.HasNombre ? Autor.Nombre : throw new DomainException(MensajeSinNombre);
+
+    private const string MensajeSinNombre = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.";
+
+    /// <summary>Every change is attributed to a real official: without a name nothing is saved and a message is shown.</summary>
+    private string? AutorRequerido()
+    {
+        if (Autor.HasNombre) return Autor.Nombre;
+        errorEdicion = MensajeSinNombre;
+        errorClasif = MensajeSinNombre;
+        return null;
+    }
     private bool clasificando;
     private string? errorClasif;
 
@@ -1316,7 +1362,7 @@
         errorClasif = null;
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.ClasificarAsync(new ClasificarCommand(ids, destino, clases, fecha, comuna, autor));
             foreach (var id in ids)
             {
@@ -1386,7 +1432,7 @@
     /// <summary>La carpeta buscada apareció: solo se quita la marca (recordatorio del día); el estado no cambia.</summary>
     private async Task MarcarEncontradaAsync(CarpetaResumenDto c)
     {
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        if (AutorRequerido() is not { } autor) return;
         guardandoId = c.Id;
         try
         {
@@ -1456,7 +1502,11 @@
         if (!string.IsNullOrWhiteSpace(QueryCaja)) filtroCaja = QueryCaja.Trim();
     }
 
-    private void OnModulosChanged() => _ = InvokeAsync(StateHasChanged);
+    // Only the goal bar of "Por clasificar" depends on the panel figures: avoid re-rendering the table otherwise.
+    private void OnModulosChanged()
+    {
+        if (bandejaActiva == Bandeja.PorClasificar) _ = InvokeAsync(StateHasChanged);
+    }
 
     public void Dispose() => Modulos.Changed -= OnModulosChanged;
 
@@ -1480,7 +1530,7 @@
             }
         }
 
-        await CargarAsync();
+        await CargarAsync(refrescarPanel: false);
         if (abrir)
         {
             await AbrirDrawerAsync(AbrirCarpetaId!.Value);
@@ -1498,7 +1548,7 @@
             var svc = scope.ServiceProvider.GetRequiredService<CarpetaService>();
             stats = await svc.ObtenerEstadisticasAsync();
             cajasDisponibles = await svc.ObtenerCajasAsync();
-            await InvokeAsync(StateHasChanged);
+            if (mostrarPanelSuperior || mostrarFiltros) await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -1580,14 +1630,17 @@
 
     /// <summary>Recalcula el total con los filtros actuales y refresca las filas visibles del virtualizador.</summary>
 
-    private async Task CargarAsync()
+    private async Task CargarAsync(bool refrescarPanel = true)
     {
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
         // Contadores del menú lateral e inicio: en su propio scope (no comparte este DbContext), sin bloquear la tabla.
-        _ = Modulos.RefrescarAsync();
+        // En la primera carga no hace falta: el menú lateral ya refresca al montarse.
+        if (refrescarPanel) _ = Modulos.RefrescarAsync();
         var antes = total;
+        var eraDirecta = filasDirectas is not null;
+        await CargarFilasDirectasAsync(conteo.Total);
         total = conteo.Total;
-        if (virtualizador is not null && antes is > 0 && total > 0)
+        if (filasDirectas is null && !eraDirecta && virtualizador is not null && antes is > 0 && total > 0)
         {
             await virtualizador.RefreshDataAsync();
         }
@@ -1687,7 +1740,7 @@
     private async Task GuardarCajaAsync()
     {
         if (string.IsNullOrWhiteSpace(nuevaCajaTexto)) return;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        if (AutorRequerido() is not { } autor) return;
 
         if (esModoLote)
         {
@@ -1706,7 +1759,7 @@
 
     private async Task EnviarACajaDirectoAsync(CarpetaResumenDto c)
     {
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        if (AutorRequerido() is not { } autor) return;
         await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, "Cola de Caja", autor));
         await CargarMetricasAsync();
         await CargarAsync();
@@ -1715,7 +1768,7 @@
     private async Task EnviarSeleccionadasACajaColaAsync()
     {
         if (seleccionadas.Count == 0) return;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+        if (AutorRequerido() is not { } autor) return;
         await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(seleccionadas.ToList(), "Cola de Caja", autor));
         CancelarSeleccion();
         await CargarMetricasAsync();
@@ -1756,7 +1809,7 @@
         errorObs = null;
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.GuardarObservacionAsync(carpetaParaObs.Id, textoObs, autor);
             CerrarModalObs();
             await CargarMetricasAsync();
@@ -1777,7 +1830,7 @@
         if (!Carpeta.PermiteBusquedaPendiente(c.Estado)) return;
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.MarcarPendienteBusquedaAsync(c.Id, !c.PendienteBusqueda, autor);
         }
         catch (Exception ex)
@@ -1797,7 +1850,7 @@
 
             try
             {
-                var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+                if (AutorRequerido() is not { } autor) return;
                 await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
                 guardadoOkId = id;
                 await CargarMetricasAsync();
@@ -1834,7 +1887,7 @@
 
             try
             {
-                var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+                if (AutorRequerido() is not { } autor) return;
                 await Carpetas.CambiarDecisionAsync(id, nuevaDecision, autor);
                 guardadoOkId = id;
                 await CargarMetricasAsync();
@@ -1869,7 +1922,7 @@
 
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             var nuevaFecha = e.Value?.ToString();
             await Carpetas.GuardarFechaUltimaCarpetaAsync(id, nuevaFecha, autor);
             guardadoOkId = id;
@@ -1903,7 +1956,7 @@
 
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             var nuevaComuna = e.Value?.ToString();
             await Carpetas.GuardarComunaAsync(id, nuevaComuna, autor);
             guardadoOkId = id;
@@ -1956,7 +2009,7 @@
 
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             var id = await Carpetas.RegistrarAsync(new RegistrarCarpetaCommand(
                 nuevoRut.Trim(),
                 nuevoNombre.Trim(),
@@ -2061,7 +2114,7 @@
         errorDrawer = null;
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.EditarAsync(new EditarCarpetaCommand(
                 drawerDetalle.Id,
                 drawerSede,
@@ -2110,7 +2163,7 @@
 
         try
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.ModificarRutAsync(id, nuevoRutTexto, autor);
             guardadoOkId = id;
             await CargarMetricasAsync();
@@ -2142,7 +2195,7 @@
         if (drawerDetalle is null) return;
         if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.ForzarEstadoAsync(drawerDetalle.Id, nuevoEstado, autor);
             drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
             await CargarMetricasAsync();
@@ -2155,7 +2208,7 @@
         if (drawerDetalle is null) return;
         if (Enum.TryParse<Decision>(e.Value?.ToString(), out var nuevaDecision))
         {
-            var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+            if (AutorRequerido() is not { } autor) return;
             await Carpetas.CambiarDecisionAsync(drawerDetalle.Id, nuevaDecision, autor);
             drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
             await CargarMetricasAsync();
@@ -2223,7 +2276,12 @@
 
     // Modal de Impresión / Guardado PDF por Sector
     private bool mostrarModalPdf;
-    private string sectorPdfActivo = "ARCHIVO";
+    private string sectorPdfActivo = SectorFisico.Archivo;
+
+    private bool EsSectorArchivo => string.Equals(sectorPdfActivo, SectorFisico.Archivo, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>PDF heading follows the module the list was printed from.</summary>
+    private string TituloModuloPdf => bandejaActiva is { } b && ModulosCatalogo.DeBandeja(b) is { } m ? m.Nombre : "Todas las carpetas";
     private string pdfPageSize = "A4";
     private List<CarpetaResumenDto> carpetasParaPdf = new();
 
