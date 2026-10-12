@@ -51,7 +51,7 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        c.Clasificar(destino, null, null, "javiera", Now);
+        c.Clasificar(destino, ClaseLicencia.B, null, null, "javiera", Now);
 
         Assert.Equal(destino, c.Estado);
         Assert.NotEqual(Bandeja.PorClasificar, c.Bandeja);
@@ -63,7 +63,7 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        c.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, "15/03/2019", null, "javiera", Now);
+        c.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, ClaseLicencia.B, "15/03/2019", null, "javiera", Now);
 
         Assert.Equal("15/03/2019", c.FechaUltimaCarpeta);
         Assert.Equal(SectorFisico.Archivo, SectorFisico.Calcular(c.FechaUltimaCarpeta));
@@ -74,7 +74,7 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        c.Clasificar(EstadoCarpeta.CambioDomicilio, null, "VIÑA DEL MAR", "javiera", Now);
+        c.Clasificar(EstadoCarpeta.CambioDomicilio, ClaseLicencia.B, null, "VIÑA DEL MAR", "javiera", Now);
 
         Assert.Equal("VIÑA DEL MAR", c.Comuna);
         Assert.Equal(Bandeja.CambioDomicilio, c.Bandeja);
@@ -85,7 +85,7 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        Assert.Throws<DomainException>(() => c.Clasificar(EstadoCarpeta.SubidaConaset, null, "VIÑA DEL MAR", "javiera", Now));
+        Assert.Throws<DomainException>(() => c.Clasificar(EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, "VIÑA DEL MAR", "javiera", Now));
         Assert.Equal(EstadoCarpeta.PorClasificar, c.Estado);
     }
 
@@ -94,16 +94,16 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        Assert.Throws<InvalidTransitionException>(() => c.Clasificar(EstadoCarpeta.Otorgado, null, null, "javiera", Now));
+        Assert.Throws<InvalidTransitionException>(() => c.Clasificar(EstadoCarpeta.Otorgado, ClaseLicencia.B, null, null, "javiera", Now));
     }
 
     [Fact]
     public void Clasificar_rejects_carpeta_already_classified()
     {
         var c = NuevaDesdeAgenda();
-        c.Clasificar(EstadoCarpeta.SubidaConaset, null, null, "javiera", Now);
+        c.Clasificar(EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, null, "javiera", Now);
 
-        Assert.Throws<DomainException>(() => c.Clasificar(EstadoCarpeta.SubidaConF8, null, null, "javiera", Now));
+        Assert.Throws<DomainException>(() => c.Clasificar(EstadoCarpeta.SubidaConF8, ClaseLicencia.B, null, null, "javiera", Now));
     }
 
     [Theory]

@@ -43,21 +43,28 @@ public sealed partial class Carpeta
     }
 
     /// <summary>
-    /// Manual classification of a "Por clasificar" carpeta. Optionally records the last-folder date and,
-    /// only for change-of-address states, the comuna. Everything is audited.
+    /// Manual classification of a "Por clasificar" carpeta. At least one license class is mandatory.
+    /// Optionally records the last-folder date and, only for change-of-address states, the comuna.
+    /// Everything is audited.
     /// </summary>
-    public void Clasificar(EstadoCarpeta destino, string? fechaUltimaCarpeta, string? comuna, string autor, DateTime now)
+    public void Clasificar(EstadoCarpeta destino, ClaseLicencia clases, string? fechaUltimaCarpeta, string? comuna, string autor, DateTime now)
     {
         if (Estado != EstadoCarpeta.PorClasificar)
         {
             throw new DomainException("Solo se pueden clasificar carpetas en 'Por clasificar'.");
         }
+        if (clases == ClaseLicencia.Ninguna)
+        {
+            throw new DomainException("Debe marcar al menos una clase de licencia para clasificar.");
+        }
+        RequireClases(clases);
         if (!string.IsNullOrWhiteSpace(comuna) && !EsCambioDomicilio(destino))
         {
             throw new DomainException("La comuna solo aplica a estados de cambio de domicilio.");
         }
 
         CambiarEstado(destino, autor, now);
+        AsignarClases(clases, autor, now);
         if (!string.IsNullOrWhiteSpace(fechaUltimaCarpeta))
         {
             ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, autor, now);

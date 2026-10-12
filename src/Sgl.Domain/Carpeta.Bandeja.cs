@@ -59,6 +59,12 @@ public sealed partial class Carpeta
         : c.Estado == EstadoCarpeta.CanjeLicExtranjera ? Bandeja.CanjeLicExtranjera
         : Bandeja.PorPreparar;
 
+    /// <summary>SQL-translatable twin of <see cref="EstaAbiertaSinArchivar"/>.</summary>
+    public static readonly Expression<Func<Carpeta, bool>> AbiertaSinArchivarExpresion = c =>
+        !c.Anulada
+        && c.Decision == Decision.Pendiente
+        && (c.CajaArchivo == null || c.CajaArchivo.Trim() == "" || c.CajaArchivo == ColaDeCaja);
+
     /// <summary>SQL-translatable predicate selecting the carpetas of one tray.</summary>
     public static Expression<Func<Carpeta, bool>> EnBandeja(Bandeja bandeja) =>
         Expression.Lambda<Func<Carpeta, bool>>(
