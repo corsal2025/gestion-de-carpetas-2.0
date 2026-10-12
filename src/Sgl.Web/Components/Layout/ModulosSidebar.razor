@@ -50,7 +50,7 @@
                             var activo = EsActivo(m);
                             <li>
                                 <a class="sidebar-modulo @(activo ? "activo" : "")" href="@m.Href" aria-current="@(activo ? "page" : null)"
-                                   title="@($"{m.Nombre}: {em.Conteo:N0}")">
+                                   title="@(Estado.Panel is null ? m.Nombre : $"{m.Nombre}: {em.Conteo:N0}")">
                                     @if (plegado)
                                     {
                                         <span class="sidebar-corto">@m.Corto</span>
@@ -59,7 +59,7 @@
                                     {
                                         <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
                                         <span class="sidebar-modulo-nombre">@m.Nombre</span>
-                                        <span class="sidebar-contador"><NumeroAnimado Valor="em.Conteo" /></span>
+                                        <span class="sidebar-contador">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
                                     }
                                 </a>
                             </li>
@@ -95,7 +95,7 @@
         {
             foreach (var clave in g.Split(',', StringSplitOptions.RemoveEmptyEntries)) gruposCerrados.Add(clave);
         }
-        await Estado.AsegurarAsync();
+        await Estado.RefrescarAsync();
         StateHasChanged();
     }
 
@@ -163,7 +163,12 @@
 
     private void OnEstadoChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+    // Every navigation refreshes the counters (own DI scope, never blocks the page).
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(StateHasChanged);
+        _ = Estado.RefrescarAsync();
+    }
 
     public void Dispose()
     {

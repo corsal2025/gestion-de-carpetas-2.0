@@ -104,25 +104,39 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
         return new EstadoModulo(estados.Sum(e => e.Conteo), peor, estados.Sum(e => e.Atrasadas), SinSerie);
     }
 
+    private bool _pendiente;
+
+    /// <summary>
+    /// Reloads the figures. Calls arriving while a refresh runs are coalesced into one more refresh afterwards,
+    /// so bursts (navigation + mutation + notifier) cost at most two queries.
+    /// </summary>
     public async Task RefrescarAsync(CancellationToken ct = default)
     {
-        await _lock.WaitAsync(ct);
+        if (!await _lock.WaitAsync(0, ct))
+        {
+            _pendiente = true;
+            return;
+        }
+
         try
         {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync(ct);
+            do
+            {
+                _pendiente = false;
+                await using var scope = scopeFactory.CreateAsyncScope();
+                Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync(ct);
+                Changed?.Invoke();
+            }
+            while (_pendiente);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "No se pudo actualizar el panel de módulos.");
-            return;
         }
         finally
         {
             _lock.Release();
         }
-
-        Changed?.Invoke();
     }
 
     /// <summary>Loads once per circuit; later calls reuse the current figures.</summary>

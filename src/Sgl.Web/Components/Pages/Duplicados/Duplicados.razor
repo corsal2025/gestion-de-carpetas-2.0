@@ -2,6 +2,7 @@
 @layout ModuloLayout
 @inject DuplicadosService Revision
 @inject IJSRuntime JS
+@inject ILogger<Duplicados> Logger
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject DuplicadosNotifier Notifier
@@ -215,8 +216,9 @@ else
                 await virtualizador.RefreshDataAsync();
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            Logger.LogError(ex, "No se pudo cargar la lista de posibles duplicados.");
             error = "No se pudo cargar la lista de posibles duplicados.";
             total ??= 0;
         }
@@ -297,7 +299,18 @@ else
 
     private async Task ReagendarAsync(DuplicadoGrupoDto g, CarpetaDuplicadoDetalleDto origen, CarpetaDuplicadoDetalleDto destino)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Conservar la carpeta de {Labels.Of(destino.Sede)} y moverla al {origen.FechaCitacion:dd-MM-yyyy}? La otra se anulará (Reagendamiento).")) return;
+        if (ocupado) return;
+        ocupado = true; // disabled before the first await (no double submit)
+        bool confirmado;
+        try
+        {
+            confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Conservar la carpeta de {Labels.Of(destino.Sede)} y moverla al {origen.FechaCitacion:dd-MM-yyyy}? La otra se anulará (Reagendamiento).");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+        if (!confirmado) return;
         await EjecutarAsync(async () =>
         {
             await Carpetas.ReagendarAsync(origen.Id, destino.Id, Autor.Nombre);
@@ -307,7 +320,18 @@ else
 
     private async Task AnularAsync(DuplicadoGrupoDto g, CarpetaDuplicadoDetalleDto c)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular por duplicado la carpeta del {c.FechaCitacion:dd-MM-yyyy} ({Labels.Of(c.Sede)})? Podrá restaurarse desde «Anuladas».")) return;
+        if (ocupado) return;
+        ocupado = true; // disabled before the first await (no double submit)
+        bool confirmado;
+        try
+        {
+            confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Anular por duplicado la carpeta del {c.FechaCitacion:dd-MM-yyyy} ({Labels.Of(c.Sede)})? Podrá restaurarse desde «Anuladas».");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+        if (!confirmado) return;
         await EjecutarAsync(async () =>
         {
             await Carpetas.AnularAsync(c.Id, MotivosAnulacion.Duplicado, Autor.Nombre);

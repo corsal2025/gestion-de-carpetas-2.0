@@ -64,6 +64,7 @@ Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
 - **Alerta con varias abiertas**: si el RUT tiene 2+ carpetas abiertas se muestra la más reciente, el total y (al pasar el mouse) la lista completa. Dos filas del mismo RUT dentro de Por clasificar se alertan entre sí a propósito.
 - **Reimportación**: una fila ya importada y luego anulada (p. ej. por reagendamiento) cuenta como "ya existía" y además se informa aparte como "ya existían (anuladas)"; nunca se vuelve a crear.
 - **Restaurar**: bloqueado si el RUT tiene otra carpeta abierta (no archivada) con una clase en común; si solo coincide el RUT, se pide confirmación. Reagendar solo acepta como destino una carpeta abierta.
+- **Unidad de trabajo**: el DbContext vive por circuito Blazor; toda mutación de `CarpetaService`, `DuplicadosService` e importadores descarta los cambios rastreados si falla (`ChangeTracker.Clear()`), y la clasificación en lote valida todas las filas antes de modificar alguna. Las carpetas anuladas solo admiten Restaurar (servicio y dominio lo exigen).
 - **Meta del día**: clasificadas hoy (hora de Chile) frente a las que siguen en Por clasificar.
 
 ## Pendiente

@@ -574,15 +574,20 @@ window.printPdfDocument = function () {
         scrollTablaArriba: function () { var t = document.querySelector('.modulo-main .table-container'); if (t) t.scrollTop = 0; },
         // Transición suave de un contador; respeta prefers-reduced-motion.
         animarNumero: function (el, desde, hasta) {
-            if (!el) return;
+            // Writes into Blazor's own text node (never replaces it), and a newer call cancels an older one,
+            // so the rendered value always ends up being the latest one.
+            var nodo = el && el.firstChild;
+            if (!nodo || nodo.nodeType !== 3) return;
             var fmt = new Intl.NumberFormat('es-CL');
+            var token = (el.__animToken || 0) + 1; el.__animToken = token;
             var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (reducir || desde === hasta) { el.textContent = fmt.format(hasta); return; }
+            if (reducir || desde === hasta) { nodo.nodeValue = fmt.format(hasta); return; }
             var inicio = null, dur = 450;
             function paso(t) {
+                if (el.__animToken !== token) return;
                 if (inicio === null) inicio = t;
                 var p = Math.min(1, (t - inicio) / dur), e = 1 - Math.pow(1 - p, 3);
-                el.textContent = fmt.format(Math.round(desde + (hasta - desde) * e));
+                nodo.nodeValue = fmt.format(Math.round(desde + (hasta - desde) * e));
                 if (p < 1) requestAnimationFrame(paso);
             }
             requestAnimationFrame(paso);

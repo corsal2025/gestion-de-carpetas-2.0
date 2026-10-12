@@ -5,6 +5,7 @@
 @inject AgendaImportService AgendaImport
 @inject AutorState Autor
 @inject NavigationManager Nav
+@inject ModulosState Modulos
 
 <PageTitle>Carga Masiva de Excels · SGL</PageTitle>
 
@@ -228,10 +229,12 @@
             if (AgendaImportService.EsFormatoAgenda(memoryStream))
             {
                 resultadoAgenda = await AgendaImport.ImportarAsync(memoryStream, autor);
+                _ = Modulos.RefrescarAsync();
             }
             else
             {
                 resultado = await ExcelImport.ImportarExcelAsync(memoryStream, autor);
+                _ = Modulos.RefrescarAsync();
             }
         }
         catch (Exception ex)

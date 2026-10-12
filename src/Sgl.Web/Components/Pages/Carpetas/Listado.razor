@@ -1207,15 +1207,33 @@
     private async Task ReagendarAsync(CarpetaResumenDto fila, AlertaDuplicadoDto existente)
     {
         var mensaje = $"¿Reagendar la carpeta del {existente.FechaCitacion:dd-MM-yyyy} al {fila.FechaCitacion:dd-MM-yyyy}? Esta fila se anulará (motivo Reagendamiento).";
-        if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
-        await ResolverAsync(() => Carpetas.ReagendarAsync(fila.Id, existente.CarpetaId, AutorActual), fila.Id);
+        if (resolviendo) return;
+        resolviendo = true; // disabled before the first await: a double click cannot launch it twice
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
+            await ResolverAsync(() => Carpetas.ReagendarAsync(fila.Id, existente.CarpetaId, AutorActual), fila.Id);
+        }
+        finally
+        {
+            resolviendo = false;
+        }
     }
 
     private async Task AnularDuplicadaAsync(Guid anularId, CarpetaResumenDto fila)
     {
         var cual = anularId == fila.Id ? "esta fila nueva" : $"la carpeta existente del {fila.AlertaDuplicado?.FechaCitacion:dd-MM-yyyy}";
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular {cual} por duplicado? Podrá restaurarse desde «Anuladas».")) return;
-        await ResolverAsync(() => Carpetas.AnularAsync(anularId, MotivosAnulacion.Duplicado, AutorActual), fila.Id);
+        if (resolviendo) return;
+        resolviendo = true;
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular {cual} por duplicado? Podrá restaurarse desde «Anuladas».")) return;
+            await ResolverAsync(() => Carpetas.AnularAsync(anularId, MotivosAnulacion.Duplicado, AutorActual), fila.Id);
+        }
+        finally
+        {
+            resolviendo = false;
+        }
     }
 
     private async Task ResolverAsync(Func<Task> accion, Guid filaId)
