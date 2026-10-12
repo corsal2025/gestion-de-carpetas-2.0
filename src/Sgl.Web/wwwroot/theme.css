@@ -1471,7 +1471,7 @@ html body .data-table.bandeja-table th:last-child, html body .data-table.bandeja
 /* Every cell must stay a table-cell or headers and cells drift apart */
 html body .data-table.bandeja-table td.action-cell { display: table-cell !important; white-space: nowrap; }
 html body .data-table.bandeja-table td.action-cell > * { display: inline-flex; vertical-align: middle; margin-right: .25rem; }
-html body .data-table.bandeja-table .nombre-wrapper-cell { width: auto !important; min-width: 0 !important; max-width: none !important; justify-content: flex-start !important; }
+html body .data-table.bandeja-table .nombre-wrapper-cell { width: auto !important; min-width: 0 !important; max-width: none !important; justify-content: space-between !important; }
 html body .data-table.bandeja-table .name-cell { white-space: nowrap !important; min-width: 0 !important; }
 html body .data-table.bandeja-table thead th { white-space: normal !important; word-break: keep-all; hyphens: none; vertical-align: bottom; }
 html body .data-table.bandeja-table thead th:first-child, html body .data-table.bandeja-table thead th:last-child { white-space: nowrap !important; }
