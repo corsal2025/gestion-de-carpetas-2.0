@@ -1537,3 +1537,11 @@ html body .dup-tabla thead th { padding-top: 0.35rem !important; padding-bottom:
 html body .dup-filtros.card { padding: 0.4rem 0.75rem !important; }
 html body .dup-filtros input, html body .dup-filtros select, html body .dup-filtros button { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; min-height: 0 !important; }
 html .content:has(.dup-filtros) > h1 { margin: 0 !important; }
+
+/* Bandejas: encabezados y celdas centrados en su columna, con separadores verticales */
+html body .data-table.bandeja-table thead th,
+html body .data-table.bandeja-table tbody td { text-align: center !important; vertical-align: middle; }
+html body .data-table.bandeja-table thead th + th { border-left: 1px solid rgb(255 255 255 / .25) !important; }
+html body .data-table.bandeja-table tbody td + td { border-left: 1px solid rgb(15 23 42 / .12) !important; }
+html body .data-table.bandeja-table tbody td:nth-child(2) { text-align: left !important; }
+html body .data-table.bandeja-table td.action-cell { text-align: center !important; }
