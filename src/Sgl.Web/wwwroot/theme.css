@@ -1545,3 +1545,19 @@ html body .data-table.bandeja-table thead th + th { border-left: 1px solid rgb(2
 html body .data-table.bandeja-table tbody td + td { border-left: 1px solid rgb(15 23 42 / .12) !important; }
 html body .data-table.bandeja-table tbody td:nth-child(2) { text-align: left !important; }
 html body .data-table.bandeja-table td.action-cell { text-align: center !important; }
+
+/* Todos los módulos: columnas centradas y separadas (nombres y textos largos a la izquierda) */
+html body .data-table:not(.bandeja-table) thead th, html body .data-table:not(.bandeja-table) tbody td,
+html body .dup-tabla th, html body .dup-tabla td,
+html body .est-tabla th, html body .est-tabla td,
+html body .aviso-tabla th, html body .aviso-tabla td,
+html .content > .card table th, html .content > .card table td { text-align: center !important; vertical-align: middle; }
+html body .data-table:not(.bandeja-table) thead th + th, html body .dup-tabla thead th + th, html body .est-tabla thead th + th { border-left: 1px solid rgb(255 255 255 / .25) !important; }
+html body .data-table:not(.bandeja-table) tbody td + td, html body .dup-tabla tbody td + td, html body .est-tabla tbody td + td,
+html body .aviso-tabla td + td, html body .aviso-tabla th + th,
+html .content > .card table td + td, html .content > .card table th + th { border-left: 1px solid rgb(15 23 42 / .12) !important; }
+html body .data-table td.col-sticky-nombre, html body .dup-tabla td:nth-child(2),
+html body .est-tabla td:first-child, html .content > .card table td:last-child { text-align: left !important; }
+
+html body .dup-tabla td:last-child, html body .data-table td:last-child, html body .est-tabla td:last-child { text-align: center !important; }
+html body .dup-tabla td.dup-acciones { justify-content: center !important; }
