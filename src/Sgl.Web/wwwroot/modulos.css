@@ -504,3 +504,8 @@ html:not([data-theme="dark"]):not(#sgl) body main p > a[href="/"] { color: #2638
 html:not(#sgl) body .data-table tbody tr td input::placeholder {
     color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
 }
+
+/* Menú acordeón: los módulos del grupo abierto cuelgan de su título como un árbol con línea guía */
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul { margin-left: 18px; border-left: 1.5px solid var(--border-strong, #cbd5e1); }
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li { position: relative; padding-left: 10px; }
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li::before { content: ""; position: absolute; left: 0; top: 50%; width: 8px; border-top: 1.5px solid var(--border-strong, #cbd5e1); }

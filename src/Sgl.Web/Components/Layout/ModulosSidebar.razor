@@ -22,7 +22,7 @@
     <div class="sidebar-grupos">
         @foreach (var grupo in ModulosCatalogo.Grupos)
         {
-            var abierto = !gruposCerrados.Contains(grupo.Clave);
+            var abierto = grupoAbierto == grupo.Clave;
             var eg = Estado.DeGrupo(grupo);
             <section class="sidebar-grupo @grupo.Css">
                 <button type="button" class="sidebar-grupo-titulo" @onclick="() => ToggleGrupoAsync(grupo)"
@@ -70,12 +70,16 @@
 
 @code {
     private const string ClavePlegado = "sgl.sidebar.plegado";
-    private const string ClaveGrupos = "sgl.sidebar.gruposCerrados";
+    private const string ClaveGrupo = "sgl.sidebar.grupoAbierto";
     private bool plegado;
-    private readonly HashSet<string> gruposCerrados = [];
+    // Accordion: only one group is open at a time (null = all closed).
+    private string? grupoAbierto;
+
+    private string? GrupoDelModuloActivo() => ModulosCatalogo.Todos.FirstOrDefault(EsActivo)?.Grupo.Clave;
 
     protected override void OnInitialized()
     {
+        grupoAbierto = GrupoDelModuloActivo();
         Estado.Changed += OnEstadoChanged;
         Nav.LocationChanged += OnLocationChanged;
         DuplicadosNotifier.Changed += OnDuplicadosChanged;
@@ -85,13 +89,8 @@
     {
         if (!firstRender) return;
         var p = await LeerAsync(ClavePlegado);
-        var g = await LeerAsync(ClaveGrupos);
         // A toggle made while the preferences were loading wins over the stored value.
         if (!tocadoPorUsuario) plegado = p == "1";
-        if (!tocadoPorUsuario && !string.IsNullOrEmpty(g))
-        {
-            foreach (var clave in g.Split(',', StringSplitOptions.RemoveEmptyEntries)) gruposCerrados.Add(clave);
-        }
         await Estado.RefrescarAsync();
         StateHasChanged();
     }
@@ -134,14 +133,15 @@
         if (plegado)
         {
             plegado = false;
-            gruposCerrados.Remove(grupo.Clave);
+            grupoAbierto = grupo.Clave;
             await GuardarAsync(ClavePlegado, "0");
         }
-        else if (!gruposCerrados.Remove(grupo.Clave))
+        else
         {
-            gruposCerrados.Add(grupo.Clave);
+            // Opening a group closes the previous one; clicking the open one closes it.
+            grupoAbierto = grupoAbierto == grupo.Clave ? null : grupo.Clave;
         }
-        await GuardarAsync(ClaveGrupos, string.Join(',', gruposCerrados));
+        await GuardarAsync(ClaveGrupo, grupoAbierto ?? "");
     }
 
     private async Task<string?> LeerAsync(string clave)
@@ -163,6 +163,8 @@
     // Every navigation refreshes the counters (own DI scope, never blocks the page).
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        // Navigating opens the group of the module you land on.
+        if (GrupoDelModuloActivo() is { } g) grupoAbierto = g;
         _ = InvokeAsync(StateHasChanged);
         _ = Estado.RefrescarAsync();
     }
