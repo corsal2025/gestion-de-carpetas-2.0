@@ -509,3 +509,13 @@ html:not(#sgl) body .data-table tbody tr td input::placeholder {
 .modulos-sidebar:not(.plegado) .sidebar-grupo > ul { margin-left: 18px; border-left: 1.5px solid var(--border-strong, #cbd5e1); }
 .modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li { position: relative; padding-left: 10px; }
 .modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li::before { content: ""; position: absolute; left: 0; top: 50%; width: 8px; border-top: 1.5px solid var(--border-strong, #cbd5e1); }
+
+/* Selector de clase abierto: la fila que lo contiene queda por encima de las siguientes y el panel no se corta ni se monta */
+html body .data-table tbody tr:has(.clase-rapida[open]) { position: relative; z-index: 40; }
+html body .data-table tbody td:has(.clase-rapida[open]) { position: relative; z-index: 41; overflow: visible; }
+.clase-rapida[open] { z-index: 42; }
+.clase-rapida-panel { z-index: 60; width: max-content; max-width: 19rem; }
+.clase-rapida-panel .clases-selector { gap: 0.4rem; }
+.clase-rapida-panel .clase-chip { flex: 0 0 auto; white-space: nowrap; }
+/* El aviso de lo que falta debe poder partirse en varias líneas, no cortarse */
+html body .data-table .clasif-sugerencia { white-space: normal; max-width: 300px; line-height: 1.35; overflow-wrap: anywhere; }
