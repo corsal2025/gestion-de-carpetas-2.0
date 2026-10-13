@@ -1600,3 +1600,7 @@ html .user-block .autor input { width: clamp(120px, 11vw, 180px); min-width: 0; 
 @media (max-width: 1560px) {
     html .user-block .autor .autor-etq { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
+
+/* Logo municipal en la barra superior: sobre un recuadro blanco para que se lea en el fondo azul */
+html .brand-mark.brand-logo { width: auto; height: 50px; padding: 3px 8px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgb(10 16 60 / .35); display: inline-flex; align-items: center; justify-content: center; }
+html .brand-mark.brand-logo img { height: 100%; width: auto; max-width: 70px; object-fit: contain; display: block; }
