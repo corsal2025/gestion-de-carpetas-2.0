@@ -503,8 +503,8 @@
                 </select>
                 <span class="clasif-lote-clase" title="Clase de licencia (obligatoria)">Clase *</span>
                 <ClasesSelector @bind-Value="clasesLote" Disabled="clasificando" AriaLabel="Clase de licencia para las seleccionadas (obligatoria)" />
-                <button type="button" class="btn-primary" disabled="@(seleccionadas.Count == 0 || string.IsNullOrEmpty(destinoLote) || clasesLote == ClaseLicencia.Ninguna || clasificando)"
-                        title="@(clasesLote == ClaseLicencia.Ninguna ? "Marque al menos una clase de licencia" : null)"
+                <button type="button" class="btn-primary" disabled="@(seleccionadas.Count == 0 || clasificando)"
+                        title="Aplicar la clasificación a las carpetas marcadas"
                         @onclick="ClasificarLoteAsync">Aplicar a @seleccionadas.Count</button>
                 @if (!string.IsNullOrEmpty(errorClasif))
                 {
@@ -1223,10 +1223,14 @@
                                                 <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
                                                        value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
                                             }
-                                            <button type="button" class="btn-action-caja" disabled="@((elegido is null && porFecha is null) || clasesClasif.GetValueOrDefault(c.Id) == ClaseLicencia.Ninguna || clasificando)"
-                                                    title="@TituloAplicar(c.Id)"
+                                            <button type="button" class="btn-action-caja" disabled="@clasificando"
+                                                    title="Aplicar la clasificación a esta carpeta"
                                                     @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
                                         </div>
+                                        @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id) is { } faltan)
+                                        {
+                                            <div class="clasif-sugerencia clasif-sugerencia-aviso" role="alert">@faltan</div>
+                                        }
                                         @if (elegido is null && porFecha is { } destinoSug)
                                         {
                                             <div class="clasif-sugerencia" role="status">
@@ -1453,8 +1457,26 @@
         return "Clasificar";
     }
 
+    private readonly HashSet<Guid> intentoAplicar = [];
+
+    /// <summary>What is still missing before a row can be classified (null when it is ready). Shown after the first click.</summary>
+    private string? Faltantes(Guid id)
+    {
+        var sinClase = clasesClasif.GetValueOrDefault(id) == ClaseLicencia.Ninguna;
+        var sinDestino = destinoClasif.GetValueOrDefault(id) is null && DestinoPorFecha(id) is null;
+        return (sinClase, sinDestino) switch
+        {
+            (true, true) => "Falta marcar la clase de licencia y escribir la fecha de la última carpeta (dd-mm-aaaa) o elegir un estado.",
+            (true, false) => "Falta marcar al menos una clase de licencia (botón «Clase»).",
+            (false, true) => "Falta escribir la fecha de la última carpeta (dd-mm-aaaa) o elegir un estado.",
+            _ => null,
+        };
+    }
+
     private Task ClasificarUnaAsync(Guid id)
     {
+        intentoAplicar.Add(id);
+        if (Faltantes(id) is not null) return Task.CompletedTask;
         var elegido = destinoClasif.GetValueOrDefault(id);
         if (elegido is null && DestinoPorFecha(id) is null) return Task.CompletedTask;
         // No explicit state => null: the service applies the default action from the date.
@@ -1464,7 +1486,12 @@
 
     private async Task ClasificarLoteAsync()
     {
-        if (string.IsNullOrEmpty(destinoLote) || seleccionadas.Count == 0) return;
+        if (seleccionadas.Count == 0) return;
+        if (string.IsNullOrEmpty(destinoLote))
+        {
+            errorClasif = "Elija en el selector cómo clasificar las carpetas marcadas.";
+            return;
+        }
         if (clasesLote == ClaseLicencia.Ninguna)
         {
             errorClasif = "Marque al menos una clase de licencia para clasificar.";
@@ -1499,6 +1526,7 @@
                 fechaClasif.Remove(id);
                 comunaClasif.Remove(id);
                 clasesClasif.Remove(id);
+                intentoAplicar.Remove(id);
                 alertasDescartadas.Remove(id);
             }
             CancelarSeleccion();
