@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 
 namespace Sgl.Domain;
@@ -72,9 +72,23 @@ public static class ComunasChile
     private static readonly Dictionary<string, string> PorClave =
         Todas.GroupBy(Clave).ToDictionary(g => g.Key, g => g.First());
 
+    // Spellings seen in the legacy Excel that are not the official name.
+    private static readonly Dictionary<string, string> Alias = new()
+    {
+        ["CON CON"] = "Concón",
+        ["LA CALERA"] = "Calera",
+        ["CASA BLANCA"] = "Casablanca",
+        ["LLAY LLAY"] = "Llaillay",
+    };
+
     /// <summary>Official spelling for a comuna typed in any case/with or without accents; null when unknown.</summary>
-    public static string? Normalizar(string? texto) =>
-        string.IsNullOrWhiteSpace(texto) ? null : PorClave.GetValueOrDefault(Clave(texto));
+    public static string? Normalizar(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        var clave = Clave(texto.Replace('-', ' '));
+        if (PorClave.TryGetValue(clave, out var oficial)) return oficial;
+        return Alias.TryGetValue(clave, out var alias) ? PorClave.GetValueOrDefault(Clave(alias)) : null;
+    }
 
     private static string Clave(string texto)
     {

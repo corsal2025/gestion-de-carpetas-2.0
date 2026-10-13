@@ -70,6 +70,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasIndex(c => c.CajaArchivo);
             b.HasIndex(c => c.TipoTramite);
             b.HasIndex(c => c.Comuna);
+            b.HasIndex(c => new { c.FechaCitacion, c.Id });
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>

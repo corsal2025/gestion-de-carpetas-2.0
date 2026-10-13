@@ -115,6 +115,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Estado");
 
+                    b.HasIndex("FechaCitacion", "Id");
+
                     b.HasIndex("Sede");
 
                     b.HasIndex("TipoTramite");

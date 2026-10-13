@@ -29,7 +29,23 @@ var app = builder.Build();
 if (string.Equals(builder.Configuration[DependencyInjection.ProviderKey], DatabaseProvider.Sqlite, StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<SglDbContext>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<SglDbContext>();
+    db.Database.Migrate();
+
+    // Legacy Excel artefact: comuna names stored in "última carpeta". Backup first, idempotent, counts only in the log.
+    var pendientes = await LegacyComunaRepair.PendientesAsync(db);
+    if (pendientes > 0)
+    {
+        var file = db.Database.GetDbConnection().DataSource;
+        if (!string.IsNullOrEmpty(file) && File.Exists(file))
+        {
+            var copia = $"{file}.backup-{DateTime.Now:yyyyMMdd-HHmmss}-prereparacion";
+            db.Database.ExecuteSqlRaw("VACUUM INTO {0}", copia);
+        }
+
+        var reparadas = await LegacyComunaRepair.RepararAsync(db);
+        app.Logger.LogInformation("Reparación de datos heredados: {Count} carpeta(s) con comuna movida desde 'última carpeta'.", reparadas);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
