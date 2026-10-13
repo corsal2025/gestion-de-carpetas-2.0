@@ -519,3 +519,12 @@ html body .data-table tbody td:has(.clase-rapida[open]) { position: relative; z-
 .clase-rapida-panel .clase-chip { flex: 0 0 auto; white-space: nowrap; }
 /* El aviso de lo que falta debe poder partirse en varias líneas, no cortarse */
 html body .data-table .clasif-sugerencia { white-space: normal; max-width: 300px; line-height: 1.35; overflow-wrap: anywhere; }
+
+/* Duplicado en "Por clasificar": toda la fila en rojo y parpadeando; con movimiento reducido queda fija y marcada */
+@keyframes fila-duplicada-parpadeo { 0%, 100% { background-color: #fecaca; } 50% { background-color: #ef4444; } }
+html body .data-table tbody tr.fila-duplicada > td { background-color: #fecaca !important; color: #7f1d1d !important; animation: fila-duplicada-parpadeo 1.1s ease-in-out infinite; }
+html body .data-table tbody tr.fila-duplicada > td * { color: #7f1d1d; }
+html body .data-table tbody tr.fila-duplicada > td:first-child { box-shadow: inset 4px 0 0 #b91c1c; }
+@media (prefers-reduced-motion: reduce) { html body .data-table tbody tr.fila-duplicada > td { animation: none; background-color: #fecaca !important; } }
+.btn-alerta-buscar { display: inline-block; margin-top: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: #b91c1c; color: #fff !important; font-size: 0.78rem; font-weight: 700; text-decoration: none; white-space: normal; }
+.btn-alerta-buscar:hover, .btn-alerta-buscar:focus-visible { background: #7f1d1d; }

@@ -567,7 +567,10 @@
                         {
                             <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap col-sticky-nombre" : col == "RUT" ? "col-sticky-rut" : null)">@col</th>
                         }
-                        <th>ACCIÓN</th>
+                        @if (bandejaActiva != Bandeja.PorClasificar)
+                        {
+                            <th>ACCIÓN</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -1057,7 +1060,7 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
+        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
         [Bandeja.CrearCertificado] = ColumnasPreparacion,
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
@@ -1125,7 +1128,7 @@
     }
 
     private RenderFragment<CarpetaResumenDto> FilaBandeja => c =>
-                        @<tr class="@Labels.EstadoRowCss(c.Estado) @(seleccionadas.Contains(c.Id) ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
+                        @<tr class="@Labels.EstadoRowCss(c.Estado) @(bandejaActiva == Bandeja.PorClasificar && MuestraAlerta(c) ? "fila-duplicada" : "") @(seleccionadas.Contains(c.Id) ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
                             @ondblclick="() => AbrirDrawerAsync(c.Id)">
                             <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
                                 <input type="checkbox" checked="@seleccionadas.Contains(c.Id)" @onchange="() => ToggleSelect(c)" />
@@ -1157,39 +1160,6 @@
                                         else
                                         {
                                             <span>—</span>
-                                        }
-                                    </td>
-                                    <td class="@(MuestraAlerta(c) ? "td-alerta-dup" : null)" @ondblclick:stopPropagation>
-                                        @if (MuestraAlerta(c) && c.AlertaDuplicado is { } al)
-                                        {
-                                            <div class="alerta-dup" role="alert">
-                                                <span class="alerta-dup-texto" title="@string.Join(" | ", al.Todas.Select(o => $"{o.FechaCitacion:dd-MM-yyyy} · {Labels.Of(o.Sede)} · {Labels.Of(o.Estado)}"))">Ya tiene carpeta abierta del @al.FechaCitacion.ToString("dd-MM-yyyy") en @Labels.Of(al.Sede) (@Labels.Of(al.Estado))@(al.Total > 1 ? $" · {al.Total} abiertas en total" : "")</span>
-                                                @if (eligiendoAnular == c.Id)
-                                                {
-                                                    <span class="alerta-dup-acciones">
-                                                        <span>¿Cuál anular?</span>
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(c.Id, c)">Esta (nueva)</button>
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" @onclick="() => AnularDuplicadaAsync(al.CarpetaId, c)">La del @al.FechaCitacion.ToString("dd-MM")</button>
-                                                        <button type="button" class="btn-alerta-sec" @onclick="() => eligiendoAnular = null">Cancelar</button>
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="alerta-dup-acciones">
-                                                        <button type="button" class="btn-alerta" disabled="@resolviendo" title="No crea carpeta: mueve la existente a esta fecha y anula esta fila" @onclick="() => ReagendarAsync(c, al)">Reagendar</button>
-                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" title="Clasificar esta fila como carpeta nueva (clase obligatoria)" @onclick="() => alertasDescartadas.Add(c.Id)">Crear nueva</button>
-                                                        <button type="button" class="btn-alerta-sec" disabled="@resolviendo" @onclick="() => eligiendoAnular = c.Id">Anular duplicada</button>
-                                                    </span>
-                                                }
-                                            </div>
-                                        }
-                                        else if (c.TramitePrevio is { } tp)
-                                        {
-                                            <span class="badge info" title="Pista, no definitiva: puede haber trámites anteriores no registrados en el sistema.">@tp.Cantidad previo(s) · @Labels.Of(tp.UltimaSede) @tp.UltimaFecha.ToString("dd-MM-yyyy")</span>
-                                        }
-                                        else
-                                        {
-                                            <span title="Pista, no definitiva: sin otras carpetas de este RUT en el sistema.">—</span>
                                         }
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
@@ -1225,6 +1195,13 @@
                                             <button type="button" class="btn-action-caja" disabled="@clasificando"
                                                     title="Aplicar la clasificación a esta carpeta"
                                                     @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
+                                            @if (MuestraAlerta(c) && c.AlertaDuplicado is { } alDup)
+                                            {
+                                                <a class="btn-alerta-buscar" href="@($"carpetas?bandeja=todas&buscar={Uri.EscapeDataString(c.Rut)}")"
+                                                   title="@($"Duplicado: ya tiene carpeta abierta del {alDup.FechaCitacion:dd-MM-yyyy} en {Labels.Of(alDup.Sede)} ({Labels.Of(alDup.Estado)}). Buscarla en el sistema.")">
+                                                    Duplicado · Buscar en el sistema
+                                                </a>
+                                            }
                                         </div>
                                         @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id) is { } faltan)
                                         {
@@ -1322,21 +1299,24 @@
                                     }
                                 </td>
                             }
-                            <td class="action-cell" @ondblclick:stopPropagation>
-                                @if (c.PendienteBusqueda)
-                                {
-                                    <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
-                                }
-                                else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
-                                {
-                                    <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
-                                }
-                                else if (c.CajaArchivo == Carpeta.ColaDeCaja)
-                                {
-                                    <span class="badge warn" title="En cola para la próxima caja">En cola</span>
-                                }
-                                <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
-                            </td>
+                            @if (bandejaActiva != Bandeja.PorClasificar)
+                            {
+                                <td class="action-cell" @ondblclick:stopPropagation>
+                                    @if (c.PendienteBusqueda)
+                                    {
+                                        <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                    }
+                                    else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
+                                    {
+                                        <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                    }
+                                    else if (c.CajaArchivo == Carpeta.ColaDeCaja)
+                                    {
+                                        <span class="badge warn" title="En cola para la próxima caja">En cola</span>
+                                    }
+                                    <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
+                                </td>
+                            }
                         </tr>;
 
 
@@ -1353,64 +1333,8 @@
 
     // ---- Alerta de duplicado (R2): reagendar / crear nueva / anular duplicada ----
     private readonly HashSet<Guid> alertasDescartadas = [];
-    private Guid? eligiendoAnular;
-    private bool resolviendo;
 
     private bool MuestraAlerta(CarpetaResumenDto c) => c.AlertaDuplicado is not null && !alertasDescartadas.Contains(c.Id);
-
-    private async Task ReagendarAsync(CarpetaResumenDto fila, AlertaDuplicadoDto existente)
-    {
-        var mensaje = $"¿Reagendar la carpeta del {existente.FechaCitacion:dd-MM-yyyy} al {fila.FechaCitacion:dd-MM-yyyy}? Esta fila se anulará (motivo Reagendamiento).";
-        if (resolviendo) return;
-        resolviendo = true; // disabled before the first await: a double click cannot launch it twice
-        try
-        {
-            if (!await JS.InvokeAsync<bool>("confirm", mensaje)) return;
-            await ResolverAsync(() => Carpetas.ReagendarAsync(fila.Id, existente.CarpetaId, AutorActual), fila.Id);
-        }
-        finally
-        {
-            resolviendo = false;
-        }
-    }
-
-    private async Task AnularDuplicadaAsync(Guid anularId, CarpetaResumenDto fila)
-    {
-        var cual = anularId == fila.Id ? "esta fila nueva" : $"la carpeta existente del {fila.AlertaDuplicado?.FechaCitacion:dd-MM-yyyy}";
-        if (resolviendo) return;
-        resolviendo = true;
-        try
-        {
-            if (!await JS.InvokeAsync<bool>("confirm", $"¿Anular {cual} por duplicado? Podrá restaurarse desde «Anuladas».")) return;
-            await ResolverAsync(() => Carpetas.AnularAsync(anularId, MotivosAnulacion.Duplicado, AutorActual), fila.Id);
-        }
-        finally
-        {
-            resolviendo = false;
-        }
-    }
-
-    private async Task ResolverAsync(Func<Task> accion, Guid filaId)
-    {
-        resolviendo = true;
-        errorClasif = null;
-        try
-        {
-            await accion();
-            eligiendoAnular = null;
-            alertasDescartadas.Remove(filaId);
-            DuplicadosNotifier.Notify();
-            await CargarAsync();
-        }
-        catch (Exception ex) when (ex is NotFoundException or DomainException)
-        {
-            errorClasif = ex.Message;
-        }
-        finally
-        {
-            resolviendo = false;
-        }
-    }
 
     // ---- Errores de edición en línea: siempre registrados (sin datos personales) y visibles ----
     private string? errorEdicion;
@@ -1537,7 +1461,7 @@
         catch (CarpetaDuplicadaException ex)
         {
             errorClasif = ex.Bloqueante
-                ? "Bloqueado: este RUT ya tiene una carpeta abierta con la misma clase. Use Reagendar o Anular duplicada."
+                ? "Bloqueado: este RUT ya tiene una carpeta abierta con la misma clase. Búsquela en el sistema y resuélvala en «Posibles duplicados»."
                 : ex.Message;
         }
         catch (Exception ex) when (ex is DomainException or NotFoundException)
@@ -1629,13 +1553,28 @@
     [SupplyParameterFromQuery(Name = "desde")] public string? QueryDesde { get; set; }
     [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
     [SupplyParameterFromQuery(Name = "caja")] public string? QueryCaja { get; set; }
+    [SupplyParameterFromQuery(Name = "buscar")] public string? QueryBuscar { get; set; }
 
     private string? queryBandejaAplicada;
+    private string? queryBuscarAplicada;
 
     /// <summary>The side menu navigates with ?bandeja=…; switching module only reloads count and visible rows.</summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (total is null || QueryBandeja == queryBandejaAplicada) return;
+        if (total is null) return;
+        var cambioBuscar = QueryBuscar != queryBuscarAplicada;
+        var cambioBandeja = QueryBandeja != queryBandejaAplicada;
+        if (!cambioBuscar && !cambioBandeja) return;
+        if (cambioBuscar)
+        {
+            queryBuscarAplicada = QueryBuscar;
+            if (!string.IsNullOrWhiteSpace(QueryBuscar)) texto = QueryBuscar.Trim();
+        }
+        if (!cambioBandeja)
+        {
+            await CargarAsync();
+            return;
+        }
         queryBandejaAplicada = QueryBandeja;
         var destino = QueryBandeja is null ? Bandeja.PorClasificar
             : QueryBandeja.Equals("todas", StringComparison.OrdinalIgnoreCase) ? (Bandeja?)null
@@ -1646,6 +1585,8 @@
     private void AplicarFiltrosDeQuery()
     {
         queryBandejaAplicada = QueryBandeja;
+        queryBuscarAplicada = QueryBuscar;
+        if (!string.IsNullOrWhiteSpace(QueryBuscar)) texto = QueryBuscar.Trim();
         if (QueryBandeja is { } b)
         {
             bandejaActiva = b.Equals("todas", StringComparison.OrdinalIgnoreCase) ? null
