@@ -451,15 +451,15 @@ html:not(#sgl) body textarea:not(.x)::placeholder {
     color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
 }
 html:not(#sgl) body .user-block .autor input::placeholder { color: #c9d1f5 !important; -webkit-text-fill-color: #c9d1f5 !important; }
-html:not(#sgl) body .search-icon { color: var(--ph) !important; }
+html:not(#sgl) body .search-icon { color: var(--ph) !important; opacity: 1 !important; }
 
 /* Filas marcadas / con panel abierto: un solo fondo y un solo texto por tema, también en Por clasificar y en filas Excel. */
-html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td,
-html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td[class] { background: var(--sel-bg) !important; }
-html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td,
-html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td[class] { background: var(--drw-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td:not(.td-alerta-dup),
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td[class]:not(.td-alerta-dup) { background: var(--sel-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td:not(.td-alerta-dup),
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td[class]:not(.td-alerta-dup) { background: var(--drw-bg) !important; }
 html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td,
-html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(.btn-detail):not(.btn-detail *):not(.btn-alerta):not(.btn-alerta-sec):not(.sector-vacio):not(.alerta-dup-texto):not(.alerta-dup-texto *) {
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(.btn-detail):not(.btn-detail *):not(.btn-alerta):not(.btn-alerta-sec):not(.sector-vacio):not(.sector-cell):not(.alerta-dup-texto):not(.alerta-dup-texto *) {
     color: var(--sel-fg) !important; -webkit-text-fill-color: var(--sel-fg) !important;
 }
 html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td :is(select, input:not([type="checkbox"]), summary, .clase-chip, .clase-chip *) {
@@ -467,7 +467,7 @@ html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawe
     border-color: var(--ctl-bd) !important;
 }
 html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td input::placeholder {
-    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important;
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
 }
 
 /* Barra de clasificación en lote y selects de tabla fuera de una fila marcada: control con fondo y texto propios. */
@@ -500,7 +500,7 @@ html:not([data-theme="dark"]):not(#sgl) body .content p > a[href="carpetas"],
 html:not([data-theme="dark"]):not(#sgl) body main p > a[href="."],
 html:not([data-theme="dark"]):not(#sgl) body main p > a[href="/"] { color: #26388c; }
 
-/* Marcadores de posición dentro de la tabla: siguen al texto de la fila (que ya cumple el contraste de su fondo). */
+/* Marcadores de posición dentro de la tabla: mismo token que el resto (sin opacidad extra). */
 html:not(#sgl) body .data-table tbody tr td input::placeholder {
-    color: inherit !important; -webkit-text-fill-color: currentColor !important; opacity: .85 !important;
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
 }
