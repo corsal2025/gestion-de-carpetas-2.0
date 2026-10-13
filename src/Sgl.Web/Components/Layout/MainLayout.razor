@@ -45,7 +45,7 @@
     <div class="user-block">
         <label class="autor">
             <span class="autor-etq">Funcionario</span>
-            <input @bind="Autor.Nombre" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" aria-label="Funcionario: su nombre" title="Funcionario: su nombre queda en el historial de cada cambio" maxlength="100" />
+            <input @bind="Autor.Ingresado" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" aria-label="Funcionario: su nombre" title="Funcionario: su nombre queda en el historial de cada cambio" maxlength="100" />
         </label>
     </div>
 </header>
@@ -68,7 +68,7 @@
     // The official's name survives reloads (per browser); storage failures are ignored.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || Autor.HasNombre) return;
+        if (!firstRender || Autor.HasIngresado) return;
         try
         {
             var guardado = await JS.InvokeAsync<string?>("sglUi.leer", ClaveNombre);
@@ -83,7 +83,7 @@
 
     private async Task GuardarNombreAsync()
     {
-        try { await JS.InvokeVoidAsync("sglUi.guardar", ClaveNombre, Autor.Nombre ?? ""); }
+        try { await JS.InvokeVoidAsync("sglUi.guardar", ClaveNombre, Autor.Ingresado); }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
     }
 }
