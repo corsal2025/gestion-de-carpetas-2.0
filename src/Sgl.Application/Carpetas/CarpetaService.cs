@@ -89,15 +89,18 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         }
     }
 
-    public async Task CambiarEstadoAsync(CambiarEstadoCommand cmd, CancellationToken ct = default)
+    /// <summary>Changes the state through the state machine. Returns the point the change can be undone to.</summary>
+    public async Task<PuntoRestauracionEstado> CambiarEstadoAsync(CambiarEstadoCommand cmd, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
         {
             ArgumentNullException.ThrowIfNull(cmd);
             var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
+            var punto = carpeta.PuntoRestauracion();
             carpeta.CambiarEstado(cmd.NuevoEstado, cmd.Autor, Now);
             await repository.SaveChangesAsync(ct);
+            return punto;
         }
         catch
         {

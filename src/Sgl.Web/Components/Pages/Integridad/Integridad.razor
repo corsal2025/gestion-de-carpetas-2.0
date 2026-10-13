@@ -1,0 +1,176 @@
+@page "/integridad"
+@layout ModuloLayout
+@inject IntegridadService Vigilante
+@inject ModulosState Modulos
+@inject ILogger<Integridad> Logger
+
+<PageTitle>@TituloPagina.De("Integridad")</PageTitle>
+
+<div class="modulo-scroll integridad">
+    <header class="integridad-cabecera">
+        <div>
+            <h1>Integridad de los datos</h1>
+            <p class="muted">
+                Cinco reglas que nunca deben romperse. Se revisan al iniciar el sistema, después de cada importación y una vez al día.
+                Aquí ve qué carpetas incumplen cada regla para corregirlas.
+            </p>
+        </div>
+        <button type="button" class="btn-primary" @onclick="RevisarAsync" disabled="@revisando">
+            @(revisando ? "Revisando…" : "Revisar ahora")
+        </button>
+    </header>
+
+    @if (error is not null)
+    {
+        <p class="error" role="alert"><span>@error</span></p>
+    }
+
+    @if (resultado is null && cargando)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Revisando las reglas…</p></div>
+    }
+    else if (resultado is { } r)
+    {
+        <section class="integridad-estado @(r.Corrida.TieneProblemas ? "con-problemas" : "sin-problemas")" role="status">
+            <span class="lico-slot" data-lico="@(r.Corrida.TieneProblemas ? "alerta" : "celebra")" aria-hidden="true"></span>
+            <div>
+                @if (r.Corrida.TieneProblemas)
+                {
+                    <strong>@r.Corrida.Problemas.ToString("N0", new System.Globalization.CultureInfo("es-CL")) problema(s) por resolver</strong>
+                    <p>Abra cada carpeta afectada desde la lista y corríjala; el aviso del Inicio se limpia en la próxima revisión.</p>
+                }
+                else
+                {
+                    <strong>Todo en orden</strong>
+                    <p>Las cinco reglas se cumplen. Última revisión: @FechaChile(r.Corrida.Fecha) (@OrigenTexto(r.Corrida.Origen)).</p>
+                }
+            </div>
+        </section>
+
+        <section class="integridad-reglas" aria-label="Resultado por regla">
+            @foreach (var regla in Enum.GetValues<ReglaIntegridad>())
+            {
+                var n = r.PorRegla.GetValueOrDefault(regla);
+                <article class="integridad-regla @(n > 0 ? "falla" : "cumple")">
+                    <span class="integridad-regla-estado" aria-hidden="true">@(n > 0 ? "!" : "✓")</span>
+                    <div>
+                        <h2>@ReglasIntegridadInfo.Titulo(regla)</h2>
+                        <p>@(n > 0 ? $"{n.ToString("N0", new System.Globalization.CultureInfo("es-CL"))} caso(s)" : "Se cumple")</p>
+                    </div>
+                </article>
+            }
+        </section>
+
+        @if (r.Problemas.Count > 0)
+        {
+            <section class="card">
+                <h2>Carpetas afectadas</h2>
+                <div class="dup-scroll">
+                    <table class="dup-tabla">
+                        <thead><tr><th>Regla</th><th>Qué pasa</th><th>RUT</th><th>Nombre</th><th>Sede</th><th>Estado</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var p in r.Problemas)
+                            {
+                                <tr>
+                                    <td><span class="integridad-codigo" title="@ReglasIntegridadInfo.Titulo(p.Regla)">@ReglasIntegridadInfo.Codigo(p.Regla)</span></td>
+                                    <td>@p.Detalle</td>
+                                    <td>@(p.Rut ?? "—")</td>
+                                    <td>@(p.NombreCompleto ?? "—")</td>
+                                    <td>@(p.Sede is { } s ? Labels.Of(s) : "—")</td>
+                                    <td>@(p.Estado is { } e ? Labels.Of(e) : "—")</td>
+                                    <td>
+                                        @if (p.CarpetaId is { } id)
+                                        {
+                                            <a class="btn-small" href="carpetas/@id">Abrir carpeta</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (r.Ocultos > 0)
+                {
+                    <p class="muted">Se muestran las primeras @r.Problemas.Count; hay @r.Ocultos.ToString("N0", new System.Globalization.CultureInfo("es-CL")) más con las mismas reglas. Corrija estas y vuelva a revisar.</p>
+                }
+            </section>
+        }
+    }
+
+    <section class="card">
+        <h2>Últimas revisiones</h2>
+        @if (historial.Count == 0)
+        {
+            <p class="muted">Todavía no hay revisiones registradas.</p>
+        }
+        else
+        {
+            <div class="dup-scroll">
+                <table class="dup-tabla">
+                    <thead><tr><th>Fecha (Chile)</th><th>Origen</th><th>Resultado</th><th>Problemas</th><th>Duración</th></tr></thead>
+                    <tbody>
+                        @foreach (var h in historial)
+                        {
+                            <tr>
+                                <td>@FechaChile(h.Fecha)</td>
+                                <td>@OrigenTexto(h.Origen)</td>
+                                <td>@(h.Fallo ? "No se pudo completar" : h.Problemas > 0 ? "Con problemas" : "En orden")</td>
+                                <td>@h.Problemas</td>
+                                <td>@h.DuracionMs ms</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private ResultadoIntegridadDto? resultado;
+    private IReadOnlyList<CorridaIntegridadDto> historial = [];
+    private bool cargando = true;
+    private bool revisando;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Entering the view always shows the live state, not an old run.
+        await RevisarAsync();
+        cargando = false;
+    }
+
+    private async Task RevisarAsync()
+    {
+        if (revisando) return;
+        revisando = true;
+        error = null;
+        try
+        {
+            resultado = await Vigilante.EjecutarAsync(OrigenIntegridad.Manual);
+            historial = await Vigilante.HistorialAsync();
+            await Modulos.RefrescarAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "No se pudo revisar la integridad de los datos.");
+            error = "No se pudo completar la revisión. Intente nuevamente.";
+            historial = await Vigilante.HistorialAsync();
+        }
+        finally
+        {
+            revisando = false;
+        }
+    }
+
+    private static string FechaChile(DateTime utc) => HoraChile.ALocal(utc).ToString("dd-MM-yyyy HH:mm");
+
+    private static string OrigenTexto(string origen) => origen switch
+    {
+        OrigenIntegridad.Inicio => "al iniciar",
+        OrigenIntegridad.Importacion => "tras una importación",
+        OrigenIntegridad.Diaria => "revisión diaria",
+        OrigenIntegridad.Manual => "manual",
+        _ => origen,
+    };
+}

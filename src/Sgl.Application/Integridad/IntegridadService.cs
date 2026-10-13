@@ -38,7 +38,8 @@ public sealed record CorridaIntegridadDto(
 public sealed record ResultadoIntegridadDto(
     CorridaIntegridadDto Corrida,
     IReadOnlyDictionary<ReglaIntegridad, int> PorRegla,
-    IReadOnlyList<ProblemaIntegridadDto> Problemas);
+    IReadOnlyList<ProblemaIntegridadDto> Problemas,
+    int Ocultos = 0);
 
 /// <summary>Persistence/read port of the watchdog. Implemented in Infrastructure.</summary>
 public interface IIntegridadRepository
@@ -63,6 +64,9 @@ public sealed class IntegridadService(IIntegridadRepository repositorio, TimePro
 {
     public const int CorridasVisibles = 15;
 
+    /// <summary>Rows listed in the view; the rest are only counted (a legacy data problem can touch thousands).</summary>
+    public const int ProblemasListados = 200;
+
     /// <summary>Runs the rules, stores the run (counts only) and returns the full result.</summary>
     public async Task<ResultadoIntegridadDto> EjecutarAsync(string origen, CancellationToken ct = default)
     {
@@ -78,14 +82,15 @@ public sealed class IntegridadService(IIntegridadRepository repositorio, TimePro
                 string.Join(';', porRegla.Select(p => $"{ReglasIntegridadInfo.Codigo(p.Key)}={p.Value}")));
             await repositorio.GuardarCorridaAsync(corrida, ct);
 
-            var ids = violaciones.Where(x => x.CarpetaId is not null).Select(x => x.CarpetaId!.Value).Distinct().ToList();
+            var listadas = violaciones.Take(ProblemasListados).ToList();
+            var ids = listadas.Where(x => x.CarpetaId is not null).Select(x => x.CarpetaId!.Value).Distinct().ToList();
             var quien = await repositorio.IdentificarAsync(ids, ct);
-            var problemas = violaciones
+            var problemas = listadas
                 .Select(x => x.CarpetaId is { } id && quien.TryGetValue(id, out var info)
                     ? info with { Regla = x.Regla, Detalle = x.Detalle }
                     : new ProblemaIntegridadDto(x.Regla, x.Detalle, x.CarpetaId, null, null, null, null))
                 .ToList();
-            return new ResultadoIntegridadDto(Mapear(corrida), porRegla, problemas);
+            return new ResultadoIntegridadDto(Mapear(corrida), porRegla, problemas, violaciones.Count - listadas.Count);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

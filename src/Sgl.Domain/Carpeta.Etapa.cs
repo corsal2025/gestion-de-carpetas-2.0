@@ -46,8 +46,10 @@ public sealed partial class Carpeta
             Decision = decision;
         }
 
-        // FechaSubida is only stamped when empty: an upload date typed or imported earlier is never overwritten.
-        if (EsEstadoSubida(nuevo) && FechaSubida is null)
+        // FechaSubida is only stamped when empty (an upload date typed or imported earlier is never overwritten) and
+        // never before the appointment: an upload "before" its own citation would be an impossible date, so it stays
+        // empty rather than invented.
+        if (EsEstadoSubida(nuevo) && FechaSubida is null && HoraChile.Fecha(now) >= FechaCitacion)
         {
             var hoy = HoraChile.Fecha(now);
             Audit(now, usuario, nameof(FechaSubida), null, Format(hoy));

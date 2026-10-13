@@ -7,9 +7,9 @@
 
 <div class="inicio">
     <header class="inicio-cabecera">
-        <div>
+        <div class="inicio-titulo">
             <h1>Inicio</h1>
-            <p class="muted">Elige un módulo para trabajar. El color indica la etapa; el punto, si hay atrasos.</p>
+            <p class="muted">Elige un módulo para trabajar. El color de cada grupo marca la etapa; el punto indica si hay atrasos.</p>
         </div>
         @if (Estado.Panel is { } p && !licoSilenciado)
         {
@@ -21,6 +21,26 @@
         }
     </header>
 
+    @if (Estado.Integridad is { TieneProblemas: true } corrida)
+    {
+        <a class="aviso-integridad" href="integridad" role="alert">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg>
+            <span class="aviso-integridad-texto">
+                @if (corrida.Fallo)
+                {
+                    <strong>La última revisión de integridad no pudo completarse.</strong>
+                    <small>Abra el detalle para volver a revisarla.</small>
+                }
+                else
+                {
+                    <strong>El vigilante detectó @corrida.Problemas.ToString("N0", Cl) problema(s) de integridad en las carpetas.</strong>
+                    <small>Revise la lista de carpetas afectadas y corríjalas.</small>
+                }
+            </span>
+            <span class="aviso-integridad-enlace">Ver carpetas afectadas →</span>
+        </a>
+    }
+
     @if (Estado.Panel is not { } panel)
     {
         <div class="loading-state"><div class="spinner"></div><p>Cargando módulos…</p></div>
@@ -29,33 +49,48 @@
     {
         <MetaDiaBar Meta="panel.Meta" />
 
-        @foreach (var grupo in ModulosCatalogo.Grupos)
-        {
-            <section class="inicio-grupo @grupo.Css" aria-labelledby="grupo-@grupo.Clave">
-                <h2 id="grupo-@grupo.Clave">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
-                    @grupo.Nombre
-                </h2>
-                <div class="inicio-tarjetas">
-                    @foreach (var m in ModulosCatalogo.Todos.Where(x => x.Grupo == grupo && x.Clave != ModulosCatalogo.ClaveTodas))
-                    {
-                        var e = Estado.De(m);
-                        <a class="modulo-tarjeta" href="@m.Href" aria-label="@($"{m.Nombre}: {e.Conteo:N0} carpetas{(e.Semaforo is Semaforo.Rojo ? $", {e.Atrasadas:N0} con atraso" : "")}. Abrir módulo")">
-                            <span class="tarjeta-nombre">@m.Nombre</span>
-                            <span class="tarjeta-fila">
-                                <span class="tarjeta-contador"><NumeroAnimado Valor="e.Conteo" /></span>
-                                <SemaforoPunto Color="e.Semaforo" Atrasadas="e.Atrasadas" />
-                            </span>
-                            <Sparkline Valores="e.Serie" Etiqueta="@($"Entradas de los últimos 7 días en {m.Nombre}")" />
-                        </a>
-                    }
-                </div>
-            </section>
-        }
+        <ul class="inicio-leyenda" aria-label="Significado de los puntos de color">
+            <li title="Ninguna carpeta del módulo supera el plazo de atención"><span class="semaforo-punto semaforo-verde" aria-hidden="true"></span> Al día</li>
+            <li title="Hay carpetas que ya pasaron el plazo de atención"><span class="semaforo-punto semaforo-amarillo" aria-hidden="true"></span> Atención</li>
+            <li title="Hay carpetas con atraso importante"><span class="semaforo-punto semaforo-rojo" aria-hidden="true"></span> Con atrasos</li>
+            <li class="leyenda-barras" title="Entradas al módulo por día, de hace 6 días hasta hoy"><span class="leyenda-mini" aria-hidden="true"><i></i><i></i><i></i></span> Entradas de los últimos 7 días</li>
+        </ul>
+
+        <div class="inicio-grupos">
+            @foreach (var grupo in ModulosCatalogo.Grupos)
+            {
+                var resumen = Estado.DeGrupo(grupo);
+                <section class="inicio-grupo @grupo.Css" aria-labelledby="grupo-@grupo.Clave">
+                    <h2 id="grupo-@grupo.Clave">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
+                        <span>@grupo.Nombre</span>
+                        @if (grupo != ModulosCatalogo.Sistema)
+                        {
+                            <span class="grupo-total" title="Carpetas en este grupo">@resumen.Conteo.ToString("N0", Cl)</span>
+                        }
+                    </h2>
+                    <div class="inicio-tarjetas">
+                        @foreach (var m in ModulosCatalogo.Todos.Where(x => x.Grupo == grupo && x.Clave != ModulosCatalogo.ClaveTodas))
+                        {
+                            var e = Estado.De(m);
+                            <a class="modulo-tarjeta" href="@m.Href" aria-label="@($"{m.Nombre}: {e.Conteo:N0} carpetas{(e.Semaforo is Semaforo.Rojo ? $", {e.Atrasadas:N0} con atraso" : "")}. Abrir módulo")">
+                                <span class="tarjeta-nombre">@m.Nombre</span>
+                                <span class="tarjeta-fila">
+                                    <span class="tarjeta-contador"><NumeroAnimado Valor="e.Conteo" /></span>
+                                    <SemaforoPunto Color="e.Semaforo" Atrasadas="e.Atrasadas" />
+                                </span>
+                                <span class="tarjeta-serie"><Sparkline Valores="e.Serie" Etiqueta="@($"Entradas de los últimos 7 días en {m.Nombre}")" /></span>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
     }
 </div>
 
 @code {
+    private static readonly System.Globalization.CultureInfo Cl = new("es-CL");
     private const string ClaveLico = "sgl.inicio.licoSilenciado";
     private bool licoSilenciado;
 

@@ -70,6 +70,26 @@ Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
 - **Contraste AA**: auditado en claro/oscuro × filas suaves/Excel en todos los módulos (≥ 4,5:1). Cuatro colores Excel con texto blanco se oscurecieron un tono (Cambio de domicilio, En Archivos, No existe carpeta, Of. 43).
 - **Meta del día**: clasificadas hoy (hora de Chile) frente a las que siguen en Por clasificar.
 
+## Fase 3: interacciones entre estados, listados para búsqueda e integridad
+
+Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
+
+- **Clasificación por fecha (R6)**: en Por clasificar, si solo se escribe la fecha de última carpeta, la acción por defecto es «Buscar carpeta física»: el destino (Archivos antes del 01-07-2023, Of. 43 desde entonces) se calcula en el dominio (`Carpeta.ResolverDestinoClasificacion`) y la fila lo muestra antes de aplicar. Un estado elegido a mano siempre se respeta; sin fecha ni estado no se puede aplicar. El lote admite «Buscar carpeta física» usando la fecha ya guardada de cada carpeta (todo o nada). Las fechas se leen día-primero (`02-07-2023` es 2 de julio) y se guardan en ISO.
+- **Fecha de etapa y cierre (R7)**: `FechaEstadoActual` se re-estampa en cada cambio de estado (instante UTC, se muestra en hora de Chile); `FechaSubida` solo se estampa si está vacía y nunca antes de la citación; `FechaCierre` se anota al entrar a un estado de cierre (subidas, certificado/oficio) o con decisión final, y se limpia si la carpeta se reabre. Las carpetas anteriores se rellenan una vez al iniciar desde el historial (`EtapaBackfill`), sin inventar fechas: sin dato, queda vacío. Antes de migrar se hace una copia `*.backup-…-premigracion` de la base.
+- **Transiciones (R8)**: la máquina de estados agrega Archivos/Of. 43 → {Subida a Conaset, No existe carpeta} y No existe carpeta → {Subida con F8, Crear certificado/oficio, Subida con oficio, Archivos, Of. 43}. La edición rápida del listado sigue siendo una corrección manual (`ForzarEstado`, auditada).
+- **Cierre por subida (R9, opción A)**: la carpeta se queda en su pestaña «Subida…»; no existe «mover a Cerradas».
+- **Listado para búsqueda (R10)**: botón en Archivos y Of. 43 (todo el módulo bajo los filtros, o solo las marcadas), orden por fecha de última carpeta, folio y emisión en hora de Chile, casillas «encontrada / no existe». «Marcar como impreso» deja `FechaImpresion` auditada (se limpia si la carpeta sale de Archivos/Of. 43). Tras clasificar a Archivos/Of. 43 se ofrece el listado de lo recién clasificado.
+- **Deshacer (R11)**: toast «Pasó a <módulo>» de 10 s. Cada cambio devuelve un punto de restauración (estado, decisión, fechas, marca de búsqueda, impresión); deshacer se rechaza si la carpeta cambió de nuevo (no pisa decisiones de otra persona) y queda auditado.
+- **Vigilante de integridad (R12)**: `IntegridadService` evalúa cinco reglas (una sola bandeja, suma de bandejas = total y = panel, mismo RUT/misma clase, anuladas invisibles, fechas imposibles) leyendo los mismos filtros y contadores que usan las pantallas. Corre al iniciar, tras cada importación (`IntegridadSolicitudes`) y cada 24 h (`IntegridadHostedService`); guarda solo conteos en `IntegridadCorridas`. Inicio muestra un aviso rojo con la cantidad y enlaza a `/integridad`, donde se ven las carpetas afectadas (el aviso no lleva datos personales).
+- **Caché del orden de bandejas (ARB6-01)**: `OrdenCacheado` guarda los ids ordenados junto con la versión de datos (`MAX(HistorialCambios.Id)`); se revalida cada 3 s y se descarta en cuanto una ventana vuelve incompleta.
+
+### Diseño del panel
+
+- **Una familia visual**: la barra superior usa un único acento (amarillo = activo); «Cómo usar el sistema» es acción secundaria. Lico vive en una tarjeta contenida de Inicio y la mascota de la barra no lleva globo flotante.
+- **Inicio**: grupos de etapa como paneles con su total, tarjetas compactas en rejilla fluida (`auto-fit`), leyenda del semáforo y de las barras de 7 días (con valores diarios en el tooltip; sin entradas se dice «sin movimientos»). La meta del día tiene etiqueta, mensaje motivador y estado vacío propio.
+- **Movimiento**: solo transiciones cortas; con `prefers-reduced-motion` desaparecen (toast, pulso, elevación de tarjetas).
+- **Contraste**: verificado ≥ 4,5:1 en claro y oscuro para los pares nuevos (avisos, toast, grupos, chips). Estilos nuevos en `wwwroot/polish.css` (se carga al final).
+
 ## Pendiente
 - Estado «Clase pendiente» no tiene transiciones de salida en el diagrama actual; confirmar flujo con el departamento.
 

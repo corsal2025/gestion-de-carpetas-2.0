@@ -1,0 +1,160 @@
+@inject IJSRuntime JS
+
+@* R10: printable "listado para búsqueda" of a physical-search module. Print = browser print dialog ("Guardar como PDF"). *@
+<div class="pdf-modal-overlay" role="dialog" aria-modal="true" aria-label="@Listado.Titulo">
+    <div class="pdf-modal-container">
+        <div class="pdf-modal-toolbar no-print">
+            <div class="pdf-toolbar-actions">
+                <button type="button" class="btn-primary btn-print-pdf" @onclick="ImprimirAsync" disabled="@(Listado.Total == 0)">
+                    🖨️ Imprimir / Guardar como PDF
+                </button>
+                <button type="button" class="@(impreso && !marcado ? "btn-primary btn-pulso" : "btn-secondary")" @onclick="MarcarAsync"
+                        disabled="@(Listado.Total == 0 || marcando || marcado)"
+                        title="Deja registrada la fecha de impresión de cada carpeta de este listado">
+                    @(marcado ? "✓ Marcado como impreso" : marcando ? "Marcando…" : "Marcar como impreso")
+                </button>
+                <div class="page-size-selector-pdf">
+                    <label for="listado-page-size">TAMAÑO DE HOJA</label>
+                    <select id="listado-page-size" value="@pageSize" @onchange="CambiarHojaAsync">
+                        <option value="A4">A4</option>
+                        <option value="letter">Carta</option>
+                        <option value="legal">Oficio</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pdf-toolbar-hint">
+                @if (impreso && !marcado)
+                {
+                    <span>¿Ya lo imprimió? Márquelo como impreso para dejar registro en cada carpeta.</span>
+                }
+                else if (marcado)
+                {
+                    <span>Listo: la fecha de impresión quedó registrada en el historial.</span>
+                }
+                else
+                {
+                    <span>Incluye todas las carpetas del módulo, ordenadas por fecha de última carpeta.</span>
+                }
+            </div>
+            <button type="button" class="btn-close-pdf-modal" @onclick="() => OnCerrar.InvokeAsync()" title="Cerrar">✕ Cerrar</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMarca))
+        {
+            <div class="alert error no-print" role="alert">@errorMarca</div>
+        }
+
+        <div class="pdf-modal-scroll">
+            <div class="doc-sheet doc-listado">
+                <div class="doc-header">
+                    <div class="doc-title-block">
+                        <img src="images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                        <div>
+                            <p class="doc-org">MUNICIPALIDAD DE VALPARAÍSO — DIRECCIÓN DE TRÁNSITO</p>
+                            <h2>@Listado.Titulo</h2>
+                        </div>
+                    </div>
+                    <div class="doc-meta">
+                        <div>Folio: <strong>@Listado.Folio</strong></div>
+                        <div>Emitido: <strong>@Listado.EmitidoTexto</strong> (hora de Chile)</div>
+                    </div>
+                </div>
+
+                <div class="doc-subheader">
+                    <span>Sector @Listado.Sector · @(Listado.Sede is { } s ? Labels.Of(s) : "Todas las sedes")</span>
+                    <span>@Listado.Total carpeta(s) por buscar</span>
+                </div>
+
+                <div class="doc-table-card">
+                    @if (Listado.Total == 0)
+                    {
+                        <p class="doc-empty">No hay carpetas en este módulo con los filtros actuales. No hay nada que buscar.</p>
+                    }
+                    else
+                    {
+                        <table class="cases doc-table doc-busqueda">
+                            <thead>
+                                <tr>
+                                    <th class="c-num">N°</th>
+                                    <th class="c-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                                    <th>RUT</th>
+                                    <th>SEDE</th>
+                                    <th>FECHA ÚLTIMA CARPETA</th>
+                                    <th class="c-marca">ENCONTRADA</th>
+                                    <th class="c-marca">NO EXISTE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var i in Listado.Items)
+                                {
+                                    <tr>
+                                        <td class="c-num">@i.Numero</td>
+                                        <td class="c-nombre">@i.NombreCompleto.ToUpperInvariant()</td>
+                                        <td>@i.Rut</td>
+                                        <td>@Labels.Of(i.Sede)</td>
+                                        <td>@i.FechaUltimaCarpeta</td>
+                                        <td class="c-marca"><span class="casilla" aria-hidden="true"></span></td>
+                                        <td class="c-marca"><span class="casilla" aria-hidden="true"></span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <p class="doc-count">Total: @Listado.Total carpeta(s)</p>
+                        <div class="doc-signoff">
+                            <div><div class="sig-line"></div>Quien busca</div>
+                            <div><div class="sig-line"></div>Fecha y hora de término</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="doc-footer-bottom">
+                    <span>@Listado.Titulo · Municipalidad de Valparaíso</span>
+                    <span>Modelo y sistema creados por <strong>Raúl Salazar</strong> · 2026</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ListadoBusquedaDto Listado { get; set; } = default!;
+
+    [Parameter] public EventCallback OnCerrar { get; set; }
+
+    /// <summary>Marks every carpeta of the listing as printed (the page owns the use case and its audit); returns an error text or null.</summary>
+    [Parameter] public Func<IReadOnlyList<Guid>, Task<string?>>? OnMarcarImpreso { get; set; }
+
+    private string? errorMarca;
+
+    private string pageSize = "A4";
+    private bool impreso;
+    private bool marcando;
+    private bool marcado;
+
+    private async Task ImprimirAsync()
+    {
+        impreso = true;
+        await JS.InvokeVoidAsync("printPdfDocument", $"{Listado.Titulo} - {Listado.Folio}");
+    }
+
+    private async Task CambiarHojaAsync(ChangeEventArgs e)
+    {
+        pageSize = e.Value?.ToString() ?? "A4";
+        await JS.InvokeVoidAsync("updatePdfPageSize", pageSize);
+    }
+
+    private async Task MarcarAsync()
+    {
+        if (OnMarcarImpreso is null || marcando || marcado) return;
+        marcando = true;
+        try
+        {
+            errorMarca = await OnMarcarImpreso(Listado.Ids);
+            marcado = errorMarca is null;
+        }
+        finally
+        {
+            marcando = false;
+        }
+    }
+}

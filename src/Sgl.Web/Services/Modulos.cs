@@ -1,5 +1,6 @@
 using Sgl.Application;
 using Sgl.Application.Carpetas;
+using Sgl.Application.Integridad;
 using Sgl.Application.Panel;
 using Sgl.Domain;
 
@@ -17,6 +18,7 @@ public static class ModulosCatalogo
     public const string ClaveDuplicados = "duplicados";
     public const string ClaveAnuladas = "anuladas";
     public const string ClaveTodas = "todas";
+    public const string ClaveIntegridad = "integridad";
 
     // Simple 24x24 stroke icons (paths only).
     public static readonly GrupoModulo Entrada = new("entrada", "Entrada", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
@@ -25,7 +27,9 @@ public static class ModulosCatalogo
     public static readonly GrupoModulo Subidas = new("subidas", "Subidas", "grupo-subidas", "M12 19V5M6 11l6-6 6 6");
     public static readonly GrupoModulo Cierre = new("cierre", "Cierre", "grupo-cierre", "M21 8l-9-5-9 5 9 5zM3 8v8l9 5 9-5V8");
 
-    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Subidas, Cierre];
+    public static readonly GrupoModulo Sistema = new("sistema", "Control", "grupo-sistema", "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4");
+
+    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Subidas, Cierre, Sistema];
 
     public static readonly IReadOnlyList<Modulo> Todos =
     [
@@ -47,6 +51,7 @@ public static class ModulosCatalogo
         Tray(Cierre, Bandeja.Cerradas, "Cerradas", "CE"),
         Tray(Cierre, Bandeja.Archivadas, "Archivadas", "AV"),
         new(ClaveAnuladas, Cierre, "Anuladas", "AN", "anuladas"),
+        new(ClaveIntegridad, Sistema, "Integridad", "IN", "integridad"),
         new(ClaveTodas, Cierre, "Todas las carpetas", "TO", "carpetas?bandeja=todas"),
     ];
 
@@ -69,6 +74,9 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
 
     public PanelDto? Panel { get; private set; }
 
+    /// <summary>Last integrity watchdog run (null until one exists).</summary>
+    public CorridaIntegridadDto? Integridad { get; private set; }
+
     public event Action? Changed;
 
     public EstadoModulo De(Modulo modulo)
@@ -89,6 +97,11 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
             ModulosCatalogo.ClaveDuplicados => new EstadoModulo(
                 p.DuplicadosPendientes, p.DuplicadosPendientes > 0 ? Semaforo.Amarillo : Semaforo.Verde, p.DuplicadosPendientes, SinSerie),
             ModulosCatalogo.ClaveAnuladas => new EstadoModulo(p.Anuladas, null, 0, p.SerieAnuladas),
+            ModulosCatalogo.ClaveIntegridad => new EstadoModulo(
+                Integridad?.Problemas ?? 0,
+                Integridad is { TieneProblemas: true } ? Semaforo.Rojo : Semaforo.Verde,
+                Integridad?.Problemas ?? 0,
+                SinSerie),
             ModulosCatalogo.ClaveTodas => new EstadoModulo(p.Modulos.Sum(m => m.Conteo), null, 0, SinSerie),
             _ => new EstadoModulo(0, null, 0, SinSerie),
         };
@@ -122,6 +135,7 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync();
+            Integridad = await scope.ServiceProvider.GetRequiredService<IntegridadService>().UltimaAsync();
             Changed?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

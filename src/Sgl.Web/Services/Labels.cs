@@ -102,6 +102,10 @@ public static class Labels
         "FechaSubida" => "FECHA DE SUBIDA",
         "IdoneidadMoral" => "IDONEIDAD MORAL",
         "ClaseLicencia" => "CLASE DE LICENCIA",
+        "FechaCierre" => "FECHA DE CIERRE",
+        "FechaImpresion" => "IMPRESIÓN DEL LISTADO",
+        "PendienteBusqueda" => "PENDIENTE DE BÚSQUEDA",
+        "Deshacer" => "CAMBIO DESHECHO",
         _ => campo.ToUpperInvariant(),
     };
 

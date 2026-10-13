@@ -84,6 +84,15 @@ else
                 </div>
                 <label>Caja / Archivo físico <input @bind="editCaja" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
                 <div class="info-block">
+                    <p>En esta etapa desde: <strong>@(carpeta.FechaEstadoActual is { } etapa ? HoraChile.ALocal(etapa).ToString("dd-MM-yyyy HH:mm") : "—")</strong></p>
+                    @if (carpeta.FechaCierre is { } cierre)
+                    {
+                        <p>Proceso cerrado el: <strong>@cierre.ToString("dd-MM-yyyy")</strong></p>
+                    }
+                    @if (carpeta.FechaImpresion is { } impresa)
+                    {
+                        <p>Incluida en un listado impreso el: <strong>@HoraChile.ALocal(impresa).ToString("dd-MM-yyyy HH:mm")</strong></p>
+                    }
                     <p>Trámite / Tipo: <strong>@(string.IsNullOrEmpty(carpeta.TipoTramite) ? "—" : carpeta.TipoTramite)</strong></p>
                     <p>Última carpeta / Comuna: <strong>@(string.IsNullOrEmpty(carpeta.FechaUltimaCarpeta) ? "—" : carpeta.FechaUltimaCarpeta)</strong></p>
                 </div>
@@ -115,6 +124,8 @@ else
     <p><a href="carpetas">‹ Volver al listado</a></p>
 }
 
+<UndoToast Aviso="toast" OnDeshacer="DeshacerAsync" OnCerrar="CerrarToast" />
+
 @code {
     [Parameter]
     public Guid Id { get; set; }
@@ -128,6 +139,20 @@ else
     private bool notFound;
     private string? error;
     private string? mensaje;
+    private UndoToast.AvisoDeshacer? toast;
+
+    private void CerrarToast(UndoToast.AvisoDeshacer aviso)
+    {
+        if (toast?.Token == aviso.Token) toast = null;
+    }
+
+    private async Task DeshacerAsync(UndoToast.AvisoDeshacer aviso)
+    {
+        toast = null;
+        await EjecutarAsync(
+            () => Carpetas.DeshacerEstadoAsync(aviso.CarpetaId, aviso.Punto, aviso.EstadoNuevo, Autor.Nombre),
+            "Cambio de estado deshecho.");
+    }
 
     protected override Task OnParametersSetAsync() => CargarAsync();
 
@@ -156,7 +181,16 @@ else
 
     private Task CambiarEstadoAsync() =>
         nuevoEstado is { } estado
-            ? EjecutarAsync(() => Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre)), "Estado actualizado.")
+            ? EjecutarAsync(async () =>
+            {
+                var punto = await Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre));
+                var bandeja = Carpeta.ClasificarBandeja(estado, EstadoTransitions.DecisionFor(estado), carpeta?.CajaArchivo);
+                var modulo = ModulosCatalogo.DeBandeja(bandeja);
+                toast = new UndoToast.AvisoDeshacer(
+                    Guid.NewGuid(),
+                    modulo is not null ? $"Pasó a {modulo.Nombre}" : $"Estado cambiado a {Labels.Of(estado)}",
+                    Id, punto, estado);
+            }, "Estado actualizado.")
             : Task.CompletedTask;
 
     private Task GuardarAsync() =>

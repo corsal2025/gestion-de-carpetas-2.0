@@ -170,4 +170,16 @@ public class EtapaYCierreTests
 
         Assert.Contains(c.Historial, h => h.Campo == "FechaCierre" && h.Anterior is null && h.Nuevo == "2026-03-12");
     }
+
+    [Fact]
+    public void An_upload_before_the_appointment_date_never_invents_an_impossible_FechaSubida()
+    {
+        var c = Carpeta.CrearDesdeAgenda(new Ciudadano(Rut.Parse("12345678-5"), "Juan", "Pérez"),
+            Sede.Placilla, new DateOnly(2026, 3, 20), null, TramiteAgenda.Renovacion, "importador", Alta);
+
+        c.ForzarEstado(EstadoCarpeta.SubidaConaset, "ana", Despues);
+
+        Assert.Null(c.FechaSubida);
+        Assert.Equal(new DateOnly(2026, 3, 12), c.FechaCierre);
+    }
 }
