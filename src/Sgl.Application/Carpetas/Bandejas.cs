@@ -37,9 +37,11 @@ public static class IndicadoresCalculator
         var ultimo = movs.LastOrDefault();
 
         var cierreMov = movs.LastOrDefault(m => m.Campo == CampoDecision && m.Nuevo is nameof(Decision.Otorgado) or nameof(Decision.Denegado));
-        DateOnly? fechaCierre = c.Decision == Decision.Pendiente
-            ? null
-            : cierreMov is not null ? HoraChile.Fecha(cierreMov.Fecha) : c.FechaSubida;
+        // The stored closing date wins (set on uploads, certificates and final decisions); older rows derive it.
+        DateOnly? fechaCierre = c.FechaCierre
+            ?? (c.Decision == Decision.Pendiente
+                ? null
+                : cierreMov is not null ? HoraChile.Fecha(cierreMov.Fecha) : c.FechaSubida);
 
         var archivo = movs.LastOrDefault(m => m.Campo == CampoCaja && !string.IsNullOrWhiteSpace(m.Nuevo) && m.Nuevo != Carpeta.ColaDeCaja);
 

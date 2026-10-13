@@ -28,14 +28,28 @@ public sealed record EditarCarpetaCommand(
     bool CambiarCaja = false,
     ClaseLicencia? Clases = null);
 
-/// <summary>Manual classification of one or more "Por clasificar" carpetas (applied atomically). A class is mandatory.</summary>
+/// <summary>
+/// Manual classification of one or more "Por clasificar" carpetas (applied atomically). A class is mandatory.
+/// A null <see cref="Destino"/> means the default action "Buscar carpeta física": the destination is computed per
+/// carpeta from the entered (or already stored) last-folder date.
+/// </summary>
 public sealed record ClasificarCommand(
     IReadOnlyList<Guid> CarpetaIds,
-    EstadoCarpeta Destino,
+    EstadoCarpeta? Destino,
     ClaseLicencia Clases,
     string? FechaUltimaCarpeta,
     string? Comuna,
     string Autor);
+
+/// <summary>What classification did to one carpeta (resolved destination, e.g. computed from the date).</summary>
+public sealed record ClasificacionAplicada(Guid CarpetaId, EstadoCarpeta Destino);
+
+public sealed record ClasificarResultado(IReadOnlyList<ClasificacionAplicada> Aplicadas)
+{
+    /// <summary>Ids that landed in the given state (to offer the search listing right away).</summary>
+    public IReadOnlyList<Guid> IdsEn(EstadoCarpeta destino) =>
+        Aplicadas.Where(a => a.Destino == destino).Select(a => a.CarpetaId).ToList();
+}
 
 /// <summary>
 /// Red alert for a "Por clasificar" row: the same RUT already has an open (not cancelled, not archived,
@@ -112,6 +126,15 @@ public sealed record CarpetaResumenDto(
     Decision Decision,
     bool PendienteBusqueda = false)
 {
+    /// <summary>When the carpeta entered its current stage (UTC; only filled by listings).</summary>
+    public DateTime? FechaEstadoActual { get; init; }
+
+    /// <summary>Chile date the process closed (upload / certificate / final decision), when recorded.</summary>
+    public DateOnly? FechaCierre { get; init; }
+
+    /// <summary>When the physical-search listing including it was marked as printed (UTC).</summary>
+    public DateTime? FechaImpresion { get; init; }
+
     /// <summary>When the carpeta was registered or imported (only filled by ranged listings).</summary>
     public DateTime? FechaRegistro { get; init; }
 
@@ -157,7 +180,14 @@ public sealed record CarpetaDetalleDto(
     IReadOnlyList<HistorialDto> Historial,
     ClaseLicencia Clases = ClaseLicencia.Ninguna,
     bool Anulada = false,
-    string? MotivoAnulacion = null);
+    string? MotivoAnulacion = null)
+{
+    public DateTime? FechaEstadoActual { get; init; }
+
+    public DateOnly? FechaCierre { get; init; }
+
+    public DateTime? FechaImpresion { get; init; }
+}
 
 /// <summary>A contiguous range of a filtered list plus the total count of the whole filtered set.</summary>
 public sealed record ListResult<T>(IReadOnlyList<T> Items, int Total);

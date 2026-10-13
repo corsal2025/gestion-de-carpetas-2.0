@@ -15,6 +15,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<ImportacionLog> ImportacionLogs => Set<ImportacionLog>();
 
+    public DbSet<IntegridadCorrida> IntegridadCorridas => Set<IntegridadCorrida>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -58,6 +60,9 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.MotivoAnulacion).HasMaxLength(MotivosAnulacion.MaxLength);
             b.Property(c => c.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
             b.Property(c => c.AnuladaEn);
+            b.Property(c => c.FechaEstadoActual);
+            b.Property(c => c.FechaCierre);
+            b.Property(c => c.FechaImpresion);
             // Soft delete: cancelled carpetas vanish from every query (modules, counts, statistics, duplicates).
             // Only the "Anuladas" view, restore and import idempotency opt out with IgnoreQueryFilters().
             b.HasQueryFilter(c => !c.Anulada);
@@ -90,6 +95,15 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.ToTable("ImportacionLogs");
             b.HasKey(i => i.Id);
             b.Property(i => i.Usuario).HasMaxLength(ImportacionLog.MaxUsuarioLength).IsRequired();
+            b.HasIndex(i => i.Fecha);
+        });
+
+        modelBuilder.Entity<IntegridadCorrida>(b =>
+        {
+            b.ToTable("IntegridadCorridas");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Origen).HasMaxLength(IntegridadCorrida.MaxOrigenLength).IsRequired();
+            b.Property(i => i.Detalle).HasMaxLength(IntegridadCorrida.MaxDetalleLength).IsRequired();
             b.HasIndex(i => i.Fecha);
         });
 

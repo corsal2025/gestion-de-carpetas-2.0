@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Sgl.Application.Integridad;
 using Sgl.Domain;
 using Sgl.Infrastructure.Persistence;
 
@@ -20,7 +21,8 @@ public sealed record ExcelImportResult(
     int ComunasNoReconocidas = 0
 );
 
-public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger)
+public sealed class ExcelImportService(
+    SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger, IntegridadSolicitudes? integridad = null)
 {
     private const int MaxMensajesError = 20;
     private const int TamanoLoteTracker = 500;
@@ -38,6 +40,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                 result.CarpetasActualizadas, Math.Max(result.TotalErrores, result.Errores.Count)));
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
+            integridad?.Solicitar(OrigenIntegridad.Importacion);
             return result;
         }
         catch (Exception ex)

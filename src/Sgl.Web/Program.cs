@@ -21,6 +21,7 @@ builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.S
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
 builder.Services.AddScoped<ModulosState>();
+builder.Services.AddHostedService<IntegridadHostedService>();
 
 var app = builder.Build();
 
@@ -30,7 +31,27 @@ if (string.Equals(builder.Configuration[DependencyInjection.ProviderKey], Databa
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<SglDbContext>();
+
+    // A schema change never touches the real database without a consistent copy next to it.
+    if (db.Database.GetPendingMigrations().Any() && db.Database.GetAppliedMigrations().Any())
+    {
+        var archivo = db.Database.GetDbConnection().DataSource;
+        if (!string.IsNullOrEmpty(archivo) && File.Exists(archivo))
+        {
+            var copia = $"{archivo}.backup-{DateTime.Now:yyyyMMdd-HHmmss}-premigracion";
+            db.Database.ExecuteSqlRaw("VACUUM INTO {0}", copia);
+            app.Logger.LogInformation("Copia de seguridad previa a la migración: {Copia}", Path.GetFileName(copia));
+        }
+    }
+
     db.Database.Migrate();
+
+    // Phase 3 dates for carpetas that existed before the columns (idempotent; audit-trail facts only).
+    var etapas = await EtapaBackfill.EjecutarAsync(db, DateTime.UtcNow);
+    if (etapas > 0)
+    {
+        app.Logger.LogInformation("Fechas de etapa y cierre completadas desde el historial: {Count} carpeta(s).", etapas);
+    }
 
     // Legacy Excel artefact: comuna names stored in "última carpeta". Backup first, idempotent, counts only in the log.
     var pendientes = await LegacyComunaRepair.PendientesAsync(db);

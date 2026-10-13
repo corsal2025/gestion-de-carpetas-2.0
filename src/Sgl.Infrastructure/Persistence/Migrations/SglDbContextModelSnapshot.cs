@@ -63,7 +63,16 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("FechaCierre")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("FechaCitacion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaEstadoActual")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FechaImpresion")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("FechaRegistro")
@@ -115,13 +124,13 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Estado");
 
-                    b.HasIndex("FechaCitacion", "Id");
-
                     b.HasIndex("Sede");
 
                     b.HasIndex("TipoTramite");
 
                     b.HasIndex("CiudadanoId", "Decision");
+
+                    b.HasIndex("FechaCitacion", "Id");
 
                     b.ToTable("Carpetas", (string)null);
                 });
@@ -225,6 +234,41 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasIndex("Fecha");
 
                     b.ToTable("ImportacionLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.IntegridadCorrida", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Detalle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DuracionMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Fallo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Problemas")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.ToTable("IntegridadCorridas", (string)null);
                 });
 
             modelBuilder.Entity("Sgl.Domain.RevisionDuplicado", b =>

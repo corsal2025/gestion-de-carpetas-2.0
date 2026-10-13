@@ -3,6 +3,7 @@ using System.Text;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Sgl.Application.Integridad;
 using Sgl.Domain;
 using Sgl.Infrastructure.Persistence;
 
@@ -27,7 +28,8 @@ public sealed record AgendaImportResult(
 /// re-created); all-or-nothing transaction. Rows whose RUT already has an open carpeta still enter "Por clasificar"
 /// and are counted as duplicate alerts (the alert itself is computed live when listing).
 /// </summary>
-public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILogger<AgendaImportService> logger)
+public sealed class AgendaImportService(
+    SglDbContext db, TimeProvider clock, ILogger<AgendaImportService> logger, IntegridadSolicitudes? integridad = null)
 {
     private const int MaxFilasEncabezado = 5;
     private const string SinApellido = "SIN APELLIDO";
@@ -73,6 +75,7 @@ public sealed class AgendaImportService(SglDbContext db, TimeProvider clock, ILo
                 result.FilasRutInvalido.Count + result.Errores.Count));
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
+            integridad?.Solicitar(OrigenIntegridad.Importacion);
             return result;
         }
         catch (Exception ex)

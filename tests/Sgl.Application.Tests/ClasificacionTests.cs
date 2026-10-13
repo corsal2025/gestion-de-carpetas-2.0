@@ -51,7 +51,7 @@ public sealed class ClasificacionTests : IDisposable
 
         var det = await _db.NewService().ObtenerAsync(a);
         Assert.Equal(EstadoCarpeta.CambioDomicilio, det.Estado);
-        Assert.Equal("10/02/2024", det.FechaUltimaCarpeta);
+        Assert.Equal("2024-02-10", det.FechaUltimaCarpeta);
         Assert.Equal("QUILPUÉ", det.Comuna);
     }
 
