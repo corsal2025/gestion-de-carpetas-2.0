@@ -16,7 +16,8 @@ public sealed record ExcelImportResult(
     int CiudadanosCreados,
     IReadOnlyList<string> SedesProcesadas,
     IReadOnlyList<string> Errores,
-    int TotalErrores = 0
+    int TotalErrores = 0,
+    int ComunasNoReconocidas = 0
 );
 
 public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger)
@@ -98,6 +99,7 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
         var sedesProcesadas = new HashSet<string>();
         var errores = new List<string>();
         var totalErrores = 0;
+        var comunasNoReconocidas = 0;
 
         // Cache existing ciudadanos by Rut to optimize lookups
         var rutsInDb = await db.Ciudadanos
@@ -175,8 +177,13 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
                     var rawUltimaCarpeta = ObtenerValorCelda(row, colMap.UltimaCarpeta);
                     var fechaUltimaCarpeta = string.IsNullOrWhiteSpace(rawUltimaCarpeta) ? null : rawUltimaCarpeta.Trim().ToUpperInvariant();
                     var rawComuna = ObtenerValorCelda(row, colMap.Comuna);
-                    var comuna = string.IsNullOrWhiteSpace(rawComuna) ? null : rawComuna.Trim().ToUpperInvariant();
-                    if (comuna?.Length > Carpeta.MaxComunaLength) comuna = comuna[..Carpeta.MaxComunaLength];
+                    string? comuna = null;
+                    if (!string.IsNullOrWhiteSpace(rawComuna))
+                    {
+                        // Unknown comunas never discard the row: the rest of the data is applied and the comuna is left unset.
+                        comuna = ComunasChile.Normalizar(rawComuna);
+                        if (comuna is null) comunasNoReconocidas++;
+                    }
 
                     // 5. Estado y Decisión
                     var rawEstado = ObtenerValorCelda(row, colMap.Estado);
@@ -256,7 +263,8 @@ public sealed class ExcelImportService(SglDbContext db, TimeProvider clock, ILog
             ciudadanosCreados,
             sedesProcesadas.ToList(),
             errores,
-            totalErrores
+            totalErrores,
+            comunasNoReconocidas
         );
     }
 

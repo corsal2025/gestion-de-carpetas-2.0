@@ -51,19 +51,25 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             query = query.Where(Carpeta.EnBandeja(bandeja));
         }
 
-        var total = await query.CountAsync(ct);
-        if (search.Take is 0)
+        if (search.Ids is { } ids)
+        {
+            // By primary key: no count, no OFFSET; the caller already knows the order.
+            query = query.Where(c => ids.Contains(c.Id));
+        }
+
+        var total = search.Ids is { } known ? known.Count : await query.CountAsync(ct);
+        if (search.Take is 0 && search.Ids is null)
         {
             return ([], total);
         }
 
-        // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
-        var ordered = (search.Bandeja == Bandeja.PorClasificar
-                ? query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.HoraCita).ThenBy(c => c.Ciudadano.Apellido)
-                : query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.Ciudadano.Apellido))
-            .ThenBy(c => c.Id)
-            .Skip(search.Skip);
-        var limited = search.Take is { } take ? ordered.Take(take) : ordered;
+        IQueryable<Carpeta> limited = query;
+        if (search.Ids is null)
+        {
+            var paged = Ordenar(query, search.Bandeja).Skip(search.Skip);
+            limited = search.Take is { } take ? paged.Take(take) : paged;
+        }
+
         var rows = await limited
             .Select(c => new
             {
@@ -85,13 +91,13 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.FechaRegistro,
                 c.HoraCita,
                 c.TramiteAgenda,
-                OtrasAbiertas = search.Take == null
+                OtrasAbiertas = search.Take == null && search.Ids == null
                     ? 0
                     : db.Carpetas.Count(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id && o.Decision == Decision.Pendiente),
             })
             .ToListAsync(ct);
 
-        var conRango = search.Take is not null;
+        var conRango = search.Take is not null || search.Ids is not null;
         var items = rows
             .Select(r => new CarpetaResumenDto(
                 r.Id,
@@ -115,7 +121,32 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 OtrasAbiertas = conRango ? r.OtrasAbiertas : null,
             })
             .ToList();
+        if (search.Ids is { } orden)
+        {
+            var posicion = orden.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+            items = items.OrderBy(i => posicion.GetValueOrDefault(i.Id)).ToList();
+        }
+
         return (items, total);
+    }
+
+    // Id as final tie-breaker keeps the order total, so consecutive ranges never repeat or skip rows.
+    private static IOrderedQueryable<Carpeta> Ordenar(IQueryable<Carpeta> query, Bandeja? bandeja) =>
+        (bandeja == Bandeja.PorClasificar
+            ? query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.HoraCita).ThenBy(c => c.Ciudadano.Apellido)
+            : query.OrderByDescending(c => c.FechaCitacion).ThenBy(c => c.Ciudadano.Apellido))
+        .ThenBy(c => c.Id);
+
+    public async Task<IReadOnlyList<Guid>> SearchIdsAsync(CarpetaSearch search, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(search);
+        var query = Filtrar(search);
+        if (search.Bandeja is { } bandeja)
+        {
+            query = query.Where(Carpeta.EnBandeja(bandeja));
+        }
+
+        return await Ordenar(query, search.Bandeja).Select(c => c.Id).ToListAsync(ct);
     }
 
     public async Task<IReadOnlyDictionary<Bandeja, int>> CountByBandejaAsync(CarpetaSearch search, CancellationToken ct = default)

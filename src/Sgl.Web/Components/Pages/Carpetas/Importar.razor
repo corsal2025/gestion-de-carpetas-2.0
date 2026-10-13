@@ -128,6 +128,11 @@
                     🏛️ <strong>Sedes procesadas:</strong> @(string.Join(", ", resultado.SedesProcesadas))
                 </p>
 
+                @if (resultado.ComunasNoReconocidas > 0)
+                {
+                    <div class="imp-sedes">⚠️ <strong>@resultado.ComunasNoReconocidas.ToString("N0")</strong> fila(s) con comuna no reconocida: se importaron sin comuna (el resto de los datos sí se aplicó).</div>
+                }
+
                 @if (resultado.Errores.Count > 0)
                 {
                     <div class="imp-obs">
@@ -225,7 +230,12 @@
             await stream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
-            var autor = Autor.HasNombre ? Autor.Nombre! : "FUNCIONARIO";
+            if (!Autor.HasNombre)
+            {
+                error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de importar: queda registrado en el historial.";
+                return;
+            }
+            var autor = Autor.Nombre!;
             if (AgendaImportService.EsFormatoAgenda(memoryStream))
             {
                 resultadoAgenda = await AgendaImport.ImportarAsync(memoryStream, autor);

@@ -599,7 +599,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         ArgumentNullException.ThrowIfNull(query);
         var search = ToSearch(query.Normalized());
         var (items, total) = await repository.SearchAsync(search, ct);
-        if (search.Take is null or 0 || items.Count == 0)
+        if ((search.Take is null or 0 && search.Ids is null) || items.Count == 0)
         {
             return new ListResult<CarpetaResumenDto>(items, total);
         }
@@ -626,6 +626,13 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         return new ListResult<CarpetaResumenDto>(enriquecidos, total);
     }
 
+    /// <summary>Ids of all matches in list order, to page big trays by primary key (no OFFSET scans).</summary>
+    public Task<IReadOnlyList<Guid>> ListarIdsAsync(ListarCarpetasQuery query, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return repository.SearchIdsAsync(ToSearch(query.Normalized() with { Skip = 0, Take = null, Ids = null }), ct);
+    }
+
     /// <summary>Counts per tray honoring every filter except the tray itself.</summary>
     public Task<IReadOnlyDictionary<Bandeja, int>> ContarPorBandejaAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
@@ -649,7 +656,8 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             q.Take,
             q.Bandeja,
             q.Desde,
-            q.Hasta);
+            q.Hasta,
+            q.Ids);
     }
 
     public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>

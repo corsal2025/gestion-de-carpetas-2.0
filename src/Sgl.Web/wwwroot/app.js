@@ -164,7 +164,11 @@ window.updatePdfPageSize = function (size) {
 };
 
 // Disparador de impresión del navegador para PDF
-window.printPdfDocument = function () {
+window.printPdfDocument = function (titulo) {
+    var previo = document.title;
+    if (titulo) document.title = titulo;
+    var restaurar = function () { document.title = previo; window.removeEventListener('afterprint', restaurar); };
+    window.addEventListener('afterprint', restaurar);
     window.print();
 };
 

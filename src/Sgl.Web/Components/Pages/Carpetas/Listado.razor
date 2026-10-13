@@ -9,7 +9,7 @@
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
 
-<PageTitle>Gestión de Carpetas 2.0 · SGL</PageTitle>
+<PageTitle>@TituloModuloPdf · Gestión de Carpetas · SGL</PageTitle>
 
 <datalist id="lista-comunas-chile">
     @foreach (var comuna in Sgl.Domain.ComunasChile.Todas)
@@ -319,7 +319,7 @@
                 </thead>
                 <tbody>
                     <Virtualize @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
-                                ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
+                                ItemSize="FilaAlturaEstimada" OverscanCount="20" SpacerElement="tr">
                         <ItemContent>
                         @{
                         var isSelected = seleccionadas.Contains(c.Id);
@@ -366,9 +366,14 @@
                             <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
                             <td class="excel-cell-date" @ondblclick:stopPropagation>
+                                @if (!string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) && !EsFechaIso(c.FechaUltimaCarpeta))
+                                {
+                                    <span class="legacy-ultima" title="Valor antiguo no válido como fecha (dato heredado del Excel)">@c.FechaUltimaCarpeta</span>
+                                }
                                 <input type="date"
+                                       @key="@($"fu-{c.Id}-{revEdicion}")"
                                        class="date-input-inline"
-                                       value="@c.FechaUltimaCarpeta"
+                                       value="@(EsFechaIso(c.FechaUltimaCarpeta) ? c.FechaUltimaCarpeta : null)"
                                        @onchange="(e) => CambiarFechaUltimaRapidaAsync(c.Id, e)"
                                        title="Fecha de la última carpeta" />
                             </td>
@@ -393,6 +398,7 @@
                             </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"
+                                        @key="@($"es-{c.Id}-{revEdicion}")"
                                         value="@c.Estado"
                                         @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)"
                                         title="Cambiar estado de carpeta directamente (como en Excel)">
@@ -410,6 +416,7 @@
                                 @if (Carpeta.EsCambioDomicilio(c.Estado))
                                 {
                                     <input type="text"
+                                           @key="@($"co-{c.Id}-{revEdicion}")"
                                            class="comuna-input-inline"
                                            list="lista-comunas-chile"
                                            autocomplete="off"
@@ -429,6 +436,7 @@
                             </td>
                             <td class="excel-cell" @ondblclick:stopPropagation>
                                 <select class="excel-select"
+                                        @key="@($"de-{c.Id}-{revEdicion}")"
                                         value="@c.Decision"
                                         @onchange="(e) => CambiarDecisionRapidaAsync(c.Id, e)"
                                         title="Cambiar decisión directamente">
@@ -529,7 +537,7 @@
                     else
                     {
                     <Virtualize @ref="virtualizador" TItem="CarpetaResumenDto" Context="c" ItemsProvider="CargarFilasAsync"
-                                ItemSize="FilaAlturaEstimada" OverscanCount="15" SpacerElement="tr">
+                                ItemSize="FilaAlturaEstimada" OverscanCount="20" SpacerElement="tr">
                         <ItemContent>@FilaBandeja(c)</ItemContent>
                         <Placeholder>
                             <tr class="fila-placeholder"><td colspan="@(ColumnasBandeja.Count + 2)">&nbsp;</td></tr>
@@ -614,7 +622,7 @@
 
             <div class="modal-form">
                 <label>Código / Identificador de la Caja o Estante:
-                    <input @bind="nuevaCajaTexto" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
+                    <input @bind="nuevaCajaTexto" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
                 </label>
 
                 @if (cajasDisponibles.Count > 0)
@@ -690,7 +698,7 @@
                     </div>
 
                     <div class="doc-subheader">
-                        <span>Solicitudes de cambio de domicilio — carpetas físicas a retirar</span>
+                        <span>@SubtituloPdf</span>
                         <span>@carpetasParaPdf.Count registro(s)</span>
                     </div>
 
@@ -913,7 +921,7 @@
     private const string TramiteF8 = "SUBIDA CON F8";
 
     private static readonly System.Globalization.CultureInfo CulturaCl = new("es-CL");
-    private const float FilaAlturaEstimada = 44f;
+    private const float FilaAlturaEstimada = 42.8f;
 
     private int? total;
     private Virtualize<CarpetaResumenDto>? virtualizador;
@@ -1022,6 +1030,7 @@
         // Los conteos por bandeja no dependen de la bandeja activa: solo se recalcula el total.
         // Se consulta ANTES de cambiar de pestaña para que la tabla nueva (que se vuelve a montar
         // con @key y pide su propio rango) no comparta el DbContext con otra consulta en curso.
+        InvalidarIds();
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0) with { Bandeja = b });
         CancelarSeleccion();
         // Same Virtualize instance between trays (only "Todas" uses another table): re-measuring a fresh
@@ -1170,7 +1179,7 @@
                                 case Bandeja.CambioDomicilio:
                                 case Bandeja.CambioDomicilioSolicitado:
                                     <td class="excel-cell-comuna" @ondblclick:stopPropagation>
-                                        <input type="text" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
+                                        <input type="text" @key="@($"co2-{c.Id}-{revEdicion}")" class="comuna-input-inline" list="lista-comunas-chile" autocomplete="off"
                                                value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
                                                title="Comuna de origen: escribe o elige de la lista" />
                                     </td>
@@ -1407,7 +1416,7 @@
 
     private RenderFragment SelectEstado(CarpetaResumenDto c) => __builder =>
     {
-        <select class="excel-select" value="@c.Estado" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Cambiar estado de carpeta">
+        <select class="excel-select" @key="@($"es2-{c.Id}-{revEdicion}")" value="@c.Estado" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Cambiar estado de carpeta">
             @if (!Labels.OpcionesDesplegable.Contains(c.Estado))
             {
                 <option value="@c.Estado" disabled>@Labels.Of(c.Estado)</option>
@@ -1421,7 +1430,7 @@
 
     private RenderFragment SelectDecision(CarpetaResumenDto c) => __builder =>
     {
-        <select class="excel-select" value="@c.Decision" @onchange="(e) => CambiarDecisionRapidaAsync(c.Id, e)" title="Cambiar decisión">
+        <select class="excel-select" @key="@($"de2-{c.Id}-{revEdicion}")" value="@c.Decision" @onchange="(e) => CambiarDecisionRapidaAsync(c.Id, e)" title="Cambiar decisión">
             @foreach (var d in Enum.GetValues<Decision>())
             {
                 <option value="@d">@Labels.Of(d)</option>
@@ -1632,6 +1641,7 @@
 
     private async Task CargarAsync(bool refrescarPanel = true)
     {
+        InvalidarIds();
         var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
         // Contadores del menú lateral e inicio: en su propio scope (no comparte este DbContext), sin bloquear la tabla.
         // En la primera carga no hace falta: el menú lateral ya refresca al montarse.
@@ -1647,9 +1657,63 @@
         StateHasChanged();
     }
 
+    // Big trays: the ordered ids are loaded once (own scope) and every window is then read by primary key,
+    // instead of re-sorting the whole table with OFFSET on each scroll.
+    private List<Guid>? idsOrdenados;
+    private int idsGeneracion;
+    private bool idsEnCarga;
+
+    private void InvalidarIds()
+    {
+        idsOrdenados = null;
+        idsGeneracion++;
+        idsEnCarga = false;
+    }
+
+    private void IniciarCargaIds()
+    {
+        if (idsEnCarga || idsOrdenados is not null) return;
+        idsEnCarga = true;
+        var generacion = idsGeneracion;
+        var consulta = ConsultaActual();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = ScopeFactory.CreateAsyncScope();
+                var svc = scope.ServiceProvider.GetRequiredService<CarpetaService>();
+                var ids = await svc.ListarIdsAsync(consulta);
+                // Compile the by-ids query shape now (own scope), so the first far jump does not pay for it.
+                if (ids.Count > 0) _ = await svc.ListarAsync(consulta with { Ids = [ids[0]] });
+                await InvokeAsync(() =>
+                {
+                    if (generacion == idsGeneracion) idsOrdenados = ids.ToList();
+                });
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Logger.LogWarning(ex, "No se pudo precargar el orden de la bandeja.");
+                await InvokeAsync(() => { if (generacion == idsGeneracion) idsEnCarga = false; });
+            }
+        });
+    }
+
     private async ValueTask<ItemsProviderResult<CarpetaResumenDto>> CargarFilasAsync(ItemsProviderRequest request)
     {
-        var rango = await Carpetas.ListarAsync(ConsultaActual(request.StartIndex, request.Count), request.CancellationToken);
+        ListResult<CarpetaResumenDto> rango;
+        var ids = idsOrdenados;
+        if (ids is not null && request.StartIndex < ids.Count)
+        {
+            var corte = ids.Skip(request.StartIndex).Take(request.Count).ToArray();
+            var porIds = await Carpetas.ListarAsync(ConsultaActual() with { Ids = corte }, request.CancellationToken);
+            rango = new ListResult<CarpetaResumenDto>(porIds.Items, ids.Count);
+        }
+        else
+        {
+            rango = await Carpetas.ListarAsync(ConsultaActual(request.StartIndex, request.Count), request.CancellationToken);
+            IniciarCargaIds();
+        }
+
         foreach (var item in rango.Items)
         {
             if (seleccionadas.Contains(item.Id))
@@ -1841,6 +1905,12 @@
         await CargarAsync();
     }
 
+    /// <summary>Bumped when an inline edit is rejected so the control is re-created showing the persisted value.</summary>
+    private int revEdicion;
+
+    private static bool EsFechaIso(string? v) =>
+        DateOnly.TryParseExact(v, "yyyy-MM-dd", out _);
+
     private async Task CambiarEstadoRapidoAsync(Guid id, ChangeEventArgs e)
     {
         if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
@@ -1850,7 +1920,7 @@
 
             try
             {
-                if (AutorRequerido() is not { } autor) return;
+                if (AutorRequerido() is not { } autor) { revEdicion++; return; }
                 await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
                 guardadoOkId = id;
                 await CargarMetricasAsync();
@@ -1869,6 +1939,7 @@
             catch (Exception ex)
             {
                 MostrarErrorEdicion(ex, "Error al cambiar estado rápido");
+                revEdicion++;
                 await CargarAsync();
             }
             finally
@@ -1887,7 +1958,7 @@
 
             try
             {
-                if (AutorRequerido() is not { } autor) return;
+                if (AutorRequerido() is not { } autor) { revEdicion++; return; }
                 await Carpetas.CambiarDecisionAsync(id, nuevaDecision, autor);
                 guardadoOkId = id;
                 await CargarMetricasAsync();
@@ -1906,6 +1977,7 @@
             catch (Exception ex)
             {
                 MostrarErrorEdicion(ex, "Error al cambiar decisión rápida");
+                revEdicion++;
                 await CargarAsync();
             }
             finally
@@ -1922,7 +1994,7 @@
 
         try
         {
-            if (AutorRequerido() is not { } autor) return;
+            if (AutorRequerido() is not { } autor) { revEdicion++; return; }
             var nuevaFecha = e.Value?.ToString();
             await Carpetas.GuardarFechaUltimaCarpetaAsync(id, nuevaFecha, autor);
             guardadoOkId = id;
@@ -1941,6 +2013,7 @@
         catch (Exception ex)
         {
             MostrarErrorEdicion(ex, "Error al actualizar fecha última carpeta");
+                revEdicion++;
             await CargarAsync();
         }
         finally
@@ -1956,7 +2029,7 @@
 
         try
         {
-            if (AutorRequerido() is not { } autor) return;
+            if (AutorRequerido() is not { } autor) { revEdicion++; return; }
             var nuevaComuna = e.Value?.ToString();
             await Carpetas.GuardarComunaAsync(id, nuevaComuna, autor);
             guardadoOkId = id;
@@ -1975,6 +2048,7 @@
         catch (Exception ex)
         {
             MostrarErrorEdicion(ex, "Error al actualizar comuna");
+                revEdicion++;
             await CargarAsync();
         }
         finally
@@ -2281,6 +2355,12 @@
     private bool EsSectorArchivo => string.Equals(sectorPdfActivo, SectorFisico.Archivo, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>PDF heading follows the module the list was printed from.</summary>
+    private string SubtituloPdf => bandejaActiva is Bandeja.CambioDomicilio or Bandeja.CambioDomicilioSolicitado
+        ? "Solicitudes de cambio de domicilio — carpetas físicas a retirar"
+        : $"{TituloModuloPdf} — carpetas físicas a retirar";
+
+    private string NombreArchivoPdf => $"{TituloModuloPdf} - Sector {(EsSectorArchivo ? "Archivo" : "Oficina 43")} - {HoraChile.ALocal(DateTime.UtcNow):yyyyMMdd-HHmm}";
+
     private string TituloModuloPdf => bandejaActiva is { } b && ModulosCatalogo.DeBandeja(b) is { } m ? m.Nombre : "Todas las carpetas";
     private string pdfPageSize = "A4";
     private List<CarpetaResumenDto> carpetasParaPdf = new();
@@ -2326,6 +2406,6 @@
 
     private async Task ImprimirPdf()
     {
-        await JS.InvokeVoidAsync("printPdfDocument");
+        await JS.InvokeVoidAsync("printPdfDocument", NombreArchivoPdf);
     }
 }

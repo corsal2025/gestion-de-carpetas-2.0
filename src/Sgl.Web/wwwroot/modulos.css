@@ -428,3 +428,79 @@ html[data-theme="dark"][data-rows="classic"] body .data-table tbody tr.estado-ci
     color: var(--text-primary) !important;
     -webkit-text-fill-color: var(--text-primary) !important;
 }
+
+/* Valor heredado no válido como fecha (columna "Última carpeta" del Excel antiguo): se muestra como texto. */
+html body .legacy-ultima { display: inline-block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; vertical-align: middle; margin-right: .25rem; color: var(--text-secondary); }
+
+/* ================= Ronda 5: estados interactivos (fila marcada, panel abierto, barra de lote, placeholders) =============
+   `:not(#sgl)` sube la especificidad por encima de las reglas de estado/columnas fijas anteriores sin más !important en cascada. */
+html {
+    --ph: #566179;                 /* placeholder y lupa: >= 4.5:1 sobre blanco y sobre el lienzo claro */
+    --sel-bg: #bfdbfe; --sel-fg: #0f172a;
+    --drw-bg: #dbeafe;
+    --ctl-bg: #ffffff; --ctl-fg: #0f172a; --ctl-bd: #94a3b8;
+}
+html[data-theme="dark"] {
+    --ph: #aab4d8;
+    --sel-bg: #1e3a6e; --sel-fg: #eef2ff;
+    --drw-bg: #1a2f5c;
+    --ctl-bg: #0e1530; --ctl-fg: #eef2ff; --ctl-bd: #4a5a99;
+}
+html:not(#sgl) body input:not(.x)::placeholder,
+html:not(#sgl) body textarea:not(.x)::placeholder {
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
+}
+html:not(#sgl) body .user-block .autor input::placeholder { color: #c9d1f5 !important; -webkit-text-fill-color: #c9d1f5 !important; }
+html:not(#sgl) body .search-icon { color: var(--ph) !important; }
+
+/* Filas marcadas / con panel abierto: un solo fondo y un solo texto por tema, también en Por clasificar y en filas Excel. */
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td,
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td[class] { background: var(--sel-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td,
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td[class] { background: var(--drw-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td,
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(.btn-detail):not(.btn-detail *):not(.btn-alerta):not(.btn-alerta-sec):not(.sector-vacio):not(.alerta-dup-texto):not(.alerta-dup-texto *) {
+    color: var(--sel-fg) !important; -webkit-text-fill-color: var(--sel-fg) !important;
+}
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td :is(select, input:not([type="checkbox"]), summary, .clase-chip, .clase-chip *) {
+    background: var(--ctl-bg) !important; color: var(--ctl-fg) !important; -webkit-text-fill-color: var(--ctl-fg) !important;
+    border-color: var(--ctl-bd) !important;
+}
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td input::placeholder {
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important;
+}
+
+/* Barra de clasificación en lote y selects de tabla fuera de una fila marcada: control con fondo y texto propios. */
+html:not(#sgl) body .clasif-lote-bar select,
+html:not(#sgl) body .clasif-lote-bar input {
+    background: var(--ctl-bg) !important; color: var(--ctl-fg) !important; -webkit-text-fill-color: var(--ctl-fg) !important;
+    border: 1px solid var(--ctl-bd) !important;
+}
+html[data-theme="dark"]:not(#sgl) body select.excel-select:not([class*="x-"]) { color-scheme: dark; }
+
+/* Sector vacío: distintivo neutro con fondo propio (antes gris sobre colores de fila). */
+html:not(#sgl) body .sector-cell.sector-vacio {
+    background: var(--b-muted-bg) !important; color: var(--b-muted-fg) !important; -webkit-text-fill-color: var(--b-muted-fg) !important;
+    padding: 0 .4rem; border-radius: 6px;
+}
+/* Comuna deshabilitada: hereda el texto de la fila (que ya cumple el contraste de su fondo). */
+html:not(#sgl) body input.comuna-input-disabled {
+    color: inherit !important; -webkit-text-fill-color: currentColor !important; opacity: 1 !important;
+}
+/* Botón de anulación (peligro) con texto blanco legible en ambos temas. */
+html:not(#sgl) body .btn-peligro, html:not(#sgl) body .btn-small.btn-peligro {
+    background: #b91c1c !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; border-color: #991b1b !important;
+}
+/* Historial: texto "nuevo" en verde AA sobre blanco. */
+html:not([data-theme="dark"]):not(#sgl) body .audit-new { color: #15803d; }
+/* Acta de caja: documento impreso, texto secundario >= 4.5:1 sobre papel blanco. */
+html:not(#sgl) body .acta-signs small, html:not(#sgl) body .acta-foot, html:not(#sgl) body .acta-foot span { color: #475569 !important; -webkit-text-fill-color: #475569 !important; }
+/* Enlaces de retorno sobre el lienzo claro. */
+html:not([data-theme="dark"]):not(#sgl) body .content p > a[href="carpetas"],
+html:not([data-theme="dark"]):not(#sgl) body main p > a[href="."],
+html:not([data-theme="dark"]):not(#sgl) body main p > a[href="/"] { color: #26388c; }
+
+/* Marcadores de posición dentro de la tabla: siguen al texto de la fila (que ya cumple el contraste de su fondo). */
+html:not(#sgl) body .data-table tbody tr td input::placeholder {
+    color: inherit !important; -webkit-text-fill-color: currentColor !important; opacity: .85 !important;
+}

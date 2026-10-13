@@ -16,6 +16,9 @@ public interface ICarpetaRepository
 
     Task<(IReadOnlyList<CarpetaResumenDto> Items, int Total)> SearchAsync(CarpetaSearch search, CancellationToken ct = default);
 
+    /// <summary>Ids of every match, in list order (no paging): lets big trays page by primary key afterwards.</summary>
+    Task<IReadOnlyList<Guid>> SearchIdsAsync(CarpetaSearch search, CancellationToken ct = default);
+
     /// <summary>Folder count per tray for the given filters (tray filter ignored), in one grouped query.</summary>
     Task<IReadOnlyDictionary<Bandeja, int>> CountByBandejaAsync(CarpetaSearch search, CancellationToken ct = default);
 

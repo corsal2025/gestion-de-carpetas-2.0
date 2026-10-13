@@ -81,7 +81,8 @@ public sealed record ListarCarpetasQuery(
     int? Take = null,
     Bandeja? Bandeja = null,
     DateOnly? Desde = null,
-    DateOnly? Hasta = null)
+    DateOnly? Hasta = null,
+    IReadOnlyList<Guid>? Ids = null)
 {
 
     public ListarCarpetasQuery Normalized() => this with
@@ -195,4 +196,5 @@ public sealed record CarpetaSearch(
     int? Take,
     Bandeja? Bandeja = null,
     DateOnly? Desde = null,
-    DateOnly? Hasta = null);
+    DateOnly? Hasta = null,
+    IReadOnlyList<Guid>? Ids = null);
