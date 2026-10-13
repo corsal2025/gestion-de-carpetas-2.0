@@ -5,7 +5,7 @@
 @inject AutorState Autor
 @inject ILogger<Cajas> Logger
 
-<PageTitle>@(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada} · SGL 2026" : "Cajas de Ordenamiento y Archivo · SGL 2026")</PageTitle>
+<PageTitle>@TituloPagina.De(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada}" : "Cajas de archivo")</PageTitle>
 
 <div class="page-container">
     @if (!string.IsNullOrEmpty(mensajeError))

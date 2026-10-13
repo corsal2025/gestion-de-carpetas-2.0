@@ -1590,3 +1590,13 @@ html[data-rows] body .data-table tbody td .btn-obs-trigger.has-obs { border-colo
 html body .btn-obs-trigger.has-obs svg,
 html[data-rows] body .data-table tbody td .btn-obs-trigger.has-obs svg { stroke: #2457e6 !important; }
 html body .btn-obs-trigger:hover { background: #f1f5f9 !important; }
+
+/* ---------- Funcionario: ancho fluido (ARB6-04) -------------------------- */
+/* El bloque nunca fuerza el desborde de la barra: el campo se encoge y, en pantallas medianas,
+   la etiqueta visible cede su lugar (el nombre accesible sigue en aria-label). */
+html .user-block { flex: 0 1 auto; min-width: 0; }
+html .user-block .autor { min-width: 0; }
+html .user-block .autor input { width: clamp(120px, 11vw, 180px); min-width: 0; }
+@media (max-width: 1560px) {
+    html .user-block .autor .autor-etq { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

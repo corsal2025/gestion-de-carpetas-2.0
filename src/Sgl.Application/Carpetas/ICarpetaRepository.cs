@@ -45,6 +45,12 @@ public interface ICarpetaRepository
     /// <summary>Open carpetas of a citizen that are not archived in a real box (cancelled ones excluded).</summary>
     Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasSinArchivarAsync(Guid ciudadanoId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Monotonic stamp of the data: the newest audit entry id (0 when empty). Every mutation writes an audit row, so
+    /// a different value means "something changed" (another circuit, an import) — one indexed read.
+    /// </summary>
+    Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default);
+
     /// <summary>Drops every tracked, unsaved change (unit-of-work boundary after a failed operation).</summary>
     void DescartarCambios();
 

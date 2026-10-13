@@ -37,4 +37,38 @@ public sealed class LegacyComunaRepairTests
         Assert.Equal(1, first);
         Assert.Equal(0, second);
     }
+
+    [Fact]
+    public async Task RepararYRegistrarAsync_logs_one_summary_row_with_counts_only()
+    {
+        using var db = new TestDb();
+        await SeedAsync(db, "11111111-1", "CambioDomicilio", "quilpue");
+        await SeedAsync(db, "22222222-2", "CambioDomicilio", "VIÑA DEL MAR");
+        await SeedAsync(db, "33333333-3", "CambioDomicilio", "ZZ NO EXISTE");
+
+        var reparadas = await LegacyComunaRepair.RepararYRegistrarAsync(db.NewContext(), db.Clock.GetUtcNow().UtcDateTime);
+
+        using var ctx = db.NewContext();
+        var log = await ctx.ImportacionLogs.SingleAsync();
+        Assert.Equal(2, reparadas);
+        Assert.Equal(LegacyComunaRepair.UsuarioRegistro, log.Usuario);
+        Assert.Equal(3, log.FilasLeidas);
+        Assert.Equal(0, log.CarpetasCreadas);
+        Assert.Equal(2, log.CarpetasActualizadas);
+        Assert.Equal(1, log.Errores);
+        Assert.Equal(db.Clock.GetUtcNow().UtcDateTime, log.Fecha);
+    }
+
+    [Fact]
+    public async Task RepararYRegistrarAsync_writes_nothing_when_there_is_nothing_to_repair()
+    {
+        using var db = new TestDb();
+        await SeedAsync(db, "11111111-1", "CambioDomicilio", "2024-03-05");
+
+        var reparadas = await LegacyComunaRepair.RepararYRegistrarAsync(db.NewContext(), db.Clock.GetUtcNow().UtcDateTime);
+
+        using var ctx = db.NewContext();
+        Assert.Equal(0, reparadas);
+        Assert.False(await ctx.ImportacionLogs.AnyAsync());
+    }
 }

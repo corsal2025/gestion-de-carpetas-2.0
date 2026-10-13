@@ -43,7 +43,7 @@ if (string.Equals(builder.Configuration[DependencyInjection.ProviderKey], Databa
             db.Database.ExecuteSqlRaw("VACUUM INTO {0}", copia);
         }
 
-        var reparadas = await LegacyComunaRepair.RepararAsync(db);
+        var reparadas = await LegacyComunaRepair.RepararYRegistrarAsync(db, DateTime.UtcNow);
         app.Logger.LogInformation("Reparación de datos heredados: {Count} carpeta(s) con comuna movida desde 'última carpeta'.", reparadas);
     }
 }

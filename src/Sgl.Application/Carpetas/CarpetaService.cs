@@ -633,6 +633,9 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         return repository.SearchIdsAsync(ToSearch(query.Normalized() with { Skip = 0, Take = null, Ids = null }), ct);
     }
 
+    /// <summary>Cheap data-version stamp used to validate cached orderings across circuits.</summary>
+    public Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default) => repository.ObtenerVersionDatosAsync(ct);
+
     /// <summary>Counts per tray honoring every filter except the tray itself.</summary>
     public Task<IReadOnlyDictionary<Bandeja, int>> ContarPorBandejaAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {

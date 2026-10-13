@@ -48,8 +48,8 @@
     </div>
     <div class="user-block">
         <label class="autor">
-            Funcionario
-            <input @bind="Autor.Nombre" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" maxlength="100" />
+            <span class="autor-etq">Funcionario</span>
+            <input @bind="Autor.Nombre" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" aria-label="Funcionario: su nombre" title="Funcionario: su nombre queda en el historial de cada cambio" maxlength="100" />
         </label>
     </div>
 </header>

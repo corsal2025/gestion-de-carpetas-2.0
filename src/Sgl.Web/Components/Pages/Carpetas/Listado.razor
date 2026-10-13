@@ -9,7 +9,7 @@
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
 
-<PageTitle>@TituloModuloPdf · Gestión de Carpetas · SGL</PageTitle>
+<PageTitle>@TituloPagina.De(TituloModuloPdf)</PageTitle>
 
 <datalist id="lista-comunas-chile">
     @foreach (var comuna in Sgl.Domain.ComunasChile.Todas)
@@ -1658,23 +1658,18 @@
     }
 
     // Big trays: the ordered ids are loaded once (own scope) and every window is then read by primary key,
-    // instead of re-sorting the whole table with OFFSET on each scroll.
-    private List<Guid>? idsOrdenados;
-    private int idsGeneracion;
-    private bool idsEnCarga;
+    // instead of re-sorting the whole table with OFFSET on each scroll. The order is shared state that other
+    // circuits (or an import) can invalidate: it is re-validated against a cheap data-version stamp every few
+    // seconds and dropped as soon as a window comes back short (see OrdenCacheado).
+    private readonly OrdenCacheado orden = new();
 
-    private void InvalidarIds()
-    {
-        idsOrdenados = null;
-        idsGeneracion++;
-        idsEnCarga = false;
-    }
+    [Inject] private TimeProvider Reloj { get; set; } = default!;
+
+    private void InvalidarIds() => orden.Invalidar();
 
     private void IniciarCargaIds()
     {
-        if (idsEnCarga || idsOrdenados is not null) return;
-        idsEnCarga = true;
-        var generacion = idsGeneracion;
+        if (!orden.IniciarCarga(out var generacion)) return;
         var consulta = ConsultaActual();
         _ = Task.Run(async () =>
         {
@@ -1682,31 +1677,60 @@
             {
                 await using var scope = ScopeFactory.CreateAsyncScope();
                 var svc = scope.ServiceProvider.GetRequiredService<CarpetaService>();
+                // The stamp is read BEFORE the ids: a change in between only costs one extra reload, never a stale hit.
+                var version = await svc.ObtenerVersionDatosAsync();
                 var ids = await svc.ListarIdsAsync(consulta);
                 // Compile the by-ids query shape now (own scope), so the first far jump does not pay for it.
                 if (ids.Count > 0) _ = await svc.ListarAsync(consulta with { Ids = [ids[0]] });
-                await InvokeAsync(() =>
-                {
-                    if (generacion == idsGeneracion) idsOrdenados = ids.ToList();
-                });
+                await InvokeAsync(() => orden.Completar(generacion, ids.ToList(), version, Reloj.GetUtcNow()));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 Logger.LogWarning(ex, "No se pudo precargar el orden de la bandeja.");
-                await InvokeAsync(() => { if (generacion == idsGeneracion) idsEnCarga = false; });
+                await InvokeAsync(() => orden.CargaFallida(generacion));
             }
         });
     }
 
+    private async Task<bool> OrdenSigueVigenteAsync()
+    {
+        var ahora = Reloj.GetUtcNow();
+        if (!orden.DebeVerificar(ahora)) return true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var version = await scope.ServiceProvider.GetRequiredService<CarpetaService>().ObtenerVersionDatosAsync();
+            return orden.Verificar(version, ahora);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Unable to verify: do not trust the cache.
+            Logger.LogWarning(ex, "No se pudo verificar el orden cacheado de la bandeja.");
+            orden.Invalidar();
+            return false;
+        }
+    }
+
     private async ValueTask<ItemsProviderResult<CarpetaResumenDto>> CargarFilasAsync(ItemsProviderRequest request)
     {
+        var caducado = !await OrdenSigueVigenteAsync();
         ListResult<CarpetaResumenDto> rango;
-        var ids = idsOrdenados;
+        var ids = orden.Ids;
         if (ids is not null && request.StartIndex < ids.Count)
         {
             var corte = ids.Skip(request.StartIndex).Take(request.Count).ToArray();
             var porIds = await Carpetas.ListarAsync(ConsultaActual() with { Ids = corte }, request.CancellationToken);
-            rango = new ListResult<CarpetaResumenDto>(porIds.Items, ids.Count);
+            if (orden.ValidarVentana(corte.Length, porIds.Items.Count))
+            {
+                rango = new ListResult<CarpetaResumenDto>(porIds.Items, ids.Count);
+            }
+            else
+            {
+                // A row of this window left the tray (moved/annulled elsewhere): read the live window and rebuild the order.
+                caducado = true;
+                rango = await Carpetas.ListarAsync(ConsultaActual(request.StartIndex, request.Count), request.CancellationToken);
+                IniciarCargaIds();
+            }
         }
         else
         {
@@ -1726,6 +1750,15 @@
         {
             total = rango.Total;
             _ = InvokeAsync(StateHasChanged);
+        }
+
+        if (caducado)
+        {
+            // Windows rendered earlier came from the stale order: re-read them (the next call finds no cached ids).
+            _ = InvokeAsync(async () =>
+            {
+                if (virtualizador is not null) await virtualizador.RefreshDataAsync();
+            });
         }
 
         return new ItemsProviderResult<CarpetaResumenDto>(rango.Items, rango.Total);

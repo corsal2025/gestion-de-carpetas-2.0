@@ -42,4 +42,22 @@ public sealed class ListarPorIdsTests : IDisposable
         Assert.Equal(3, r.Total);
         Assert.All(r.Items, i => Assert.NotNull(i.Indicadores));
     }
+
+    [Fact]
+    public async Task ObtenerVersionDatosAsync_changes_with_every_audited_mutation_and_not_without_one()
+    {
+        var vacia = await _db.NewService().ObtenerVersionDatosAsync();
+        var id = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
+            "11111111-1", "N", "A", Sede.AvArgentina, new DateOnly(2026, 5, 1), "ana"));
+        var trasRegistrar = await _db.NewService().ObtenerVersionDatosAsync();
+        var sinCambio = await _db.NewService().ObtenerVersionDatosAsync();
+
+        await _db.NewService().CambiarEstadoAsync(new CambiarEstadoCommand(id, EstadoCarpeta.PrimeraLicencia, "ana"));
+        var trasEstado = await _db.NewService().ObtenerVersionDatosAsync();
+
+        Assert.Equal(0, vacia);
+        Assert.True(trasRegistrar > vacia);
+        Assert.Equal(trasRegistrar, sinCambio);
+        Assert.True(trasEstado > trasRegistrar);
+    }
 }

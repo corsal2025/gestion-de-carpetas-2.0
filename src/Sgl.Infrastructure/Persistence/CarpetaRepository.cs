@@ -149,6 +149,9 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         return await Ordenar(query, search.Bandeja).Select(c => c.Id).ToListAsync(ct);
     }
 
+    public async Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default) =>
+        await db.Historial.AsNoTracking().MaxAsync(h => (long?)h.Id, ct) ?? 0;
+
     public async Task<IReadOnlyDictionary<Bandeja, int>> CountByBandejaAsync(CarpetaSearch search, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(search);

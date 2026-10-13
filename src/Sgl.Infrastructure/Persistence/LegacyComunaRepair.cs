@@ -10,6 +10,9 @@ namespace Sgl.Infrastructure.Persistence;
 /// </summary>
 public static class LegacyComunaRepair
 {
+    /// <summary>User shown in the import history for the automatic repair (a system job, not a person).</summary>
+    public const string UsuarioRegistro = "Sistema · Reparación de comunas";
+
     private static readonly EstadoCarpeta[] EstadosCambioDomicilio =
         Enum.GetValues<EstadoCarpeta>().Where(Carpeta.EsCambioDomicilio).ToArray();
 
@@ -50,5 +53,23 @@ public static class LegacyComunaRepair
         }
 
         return total;
+    }
+
+    /// <summary>
+    /// Repairs and leaves one summary row in <c>ImportacionLogs</c> (counts only, no personal data):
+    /// rows read = candidates, updated = repaired, errors = candidates left untouched (unrecognized value).
+    /// Writes nothing when no carpeta was repaired, so a clean database never grows log noise.
+    /// </summary>
+    public static async Task<int> RepararYRegistrarAsync(SglDbContext db, DateTime ahoraUtc, CancellationToken ct = default)
+    {
+        var candidatas = await Candidatas(db).CountAsync(ct);
+        var reparadas = await RepararAsync(db, ct);
+        if (reparadas > 0)
+        {
+            db.ImportacionLogs.Add(new ImportacionLog(ahoraUtc, UsuarioRegistro, candidatas, 0, reparadas, Math.Max(0, candidatas - reparadas)));
+            await db.SaveChangesAsync(ct);
+        }
+
+        return reparadas;
     }
 }
