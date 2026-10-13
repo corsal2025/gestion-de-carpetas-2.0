@@ -489,7 +489,7 @@
         }
         else
         {
-        @if (bandejaActiva == Bandeja.PorClasificar)
+        @if (bandejaActiva == Bandeja.PorClasificar && seleccionadas.Count > 0)
         {
             <div class="clasif-lote-bar" role="region" aria-label="Clasificación en lote">
                 <span>@seleccionadas.Count seleccionadas</span>
