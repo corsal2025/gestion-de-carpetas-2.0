@@ -1137,6 +1137,13 @@
                             <td class="col-sticky-nombre" @ondblclick:stopPropagation>
                                 <div class="nombre-wrapper-cell">
                                     <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(c.Indicadores?.DiasBuscando is { } db ? $" ({db} d, marcada por {c.Indicadores.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
+                                    @if (bandejaActiva == Bandeja.PorClasificar && MuestraAlerta(c))
+                                    {
+                                        <a class="icono-buscar-dup" href="@($"carpetas?bandeja=todas&buscar={Uri.EscapeDataString(c.Rut)}")"
+                                           title="Duplicado: ya tiene otra carpeta abierta. Buscarla en el sistema." aria-label="Buscar en el sistema las otras carpetas de este RUT">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                        </a>
+                                    }
                                     <button class="btn-obs-trigger @(!string.IsNullOrEmpty(c.IdoneidadMoral) ? "has-obs" : "")"
                                             title="@(!string.IsNullOrEmpty(c.IdoneidadMoral) ? $"Observación: {c.IdoneidadMoral}" : "Agregar observación a la carpeta")"
                                             @onclick="() => AbrirModalObs(c)" type="button">
@@ -1195,13 +1202,6 @@
                                             <button type="button" class="btn-action-caja" disabled="@clasificando"
                                                     title="Aplicar la clasificación a esta carpeta"
                                                     @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
-                                            @if (MuestraAlerta(c) && c.AlertaDuplicado is { } alDup)
-                                            {
-                                                <a class="btn-alerta-buscar" href="@($"carpetas?bandeja=todas&buscar={Uri.EscapeDataString(c.Rut)}")"
-                                                   title="@($"Duplicado: ya tiene carpeta abierta del {alDup.FechaCitacion:dd-MM-yyyy} en {Labels.Of(alDup.Sede)} ({Labels.Of(alDup.Estado)}). Buscarla en el sistema.")">
-                                                    Duplicado · Buscar en el sistema
-                                                </a>
-                                            }
                                         </div>
                                         @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id) is { } faltan)
                                         {

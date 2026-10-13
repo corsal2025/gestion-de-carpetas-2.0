@@ -528,3 +528,5 @@ html body .data-table tbody tr.fila-duplicada > td:first-child { box-shadow: ins
 @media (prefers-reduced-motion: reduce) { html body .data-table tbody tr.fila-duplicada > td { animation: none; background-color: #fecaca !important; } }
 .btn-alerta-buscar { display: inline-block; margin-top: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: #b91c1c; color: #fff !important; font-size: 0.78rem; font-weight: 700; text-decoration: none; white-space: normal; }
 .btn-alerta-buscar:hover, .btn-alerta-buscar:focus-visible { background: #7f1d1d; }
+.icono-buscar-dup { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: 1px solid #b91c1c; background: #fff; color: #b91c1c !important; flex: 0 0 auto; }
+.icono-buscar-dup:hover, .icono-buscar-dup:focus-visible { background: #b91c1c; color: #fff !important; }
