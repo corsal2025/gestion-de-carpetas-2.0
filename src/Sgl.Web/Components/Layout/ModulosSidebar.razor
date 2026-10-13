@@ -10,10 +10,7 @@
     <div class="sidebar-cabecera">
         @if (!plegado)
         {
-            <a class="sidebar-inicio" href="" title="Volver al inicio">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10" /></svg>
-                <span>Inicio</span>
-            </a>
+            <span class="sidebar-inicio sidebar-titulo">Módulos</span>
         }
         <button type="button" class="sidebar-plegar" @onclick="TogglePlegadoAsync"
                 aria-expanded="@(plegado ? "false" : "true")" title="@(plegado ? "Expandir menú" : "Plegar menú")"
