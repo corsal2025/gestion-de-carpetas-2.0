@@ -23,3 +23,14 @@ Acordado con el usuario (protocolo Fase 1, 2026-10-12/13). Alcance: llegar hasta
 ## Restricciones
 - Mismas que fase 2: TDD, hora Chile, sin datos personales en logs, sin paginación, rendimiento, a11y, contraste ≥4.5 en 4 combinaciones de tema (incluyendo estados interactivos), una sola unidad de trabajo por operación.
 - Solo escribe un constructor a la vez.
+
+## R12 Vigilante de integridad (agregado 2026-10-13)
+Revisión automática de reglas que nunca deben romperse. Corre al iniciar la app, después de cada importación y una vez al día.
+- Ninguna carpeta aparece en dos bandejas a la vez.
+- La suma de las bandejas (sin Todas) = total de Todas, sin anuladas.
+- No hay dos carpetas abiertas del mismo RUT con la misma clase.
+- Ninguna carpeta anulada aparece en módulos, contadores ni estadísticas.
+- Sin fechas imposibles: FechaSubida no anterior a FechaCitacion; FechaCierre no futura.
+- Resultado: aviso rojo en Inicio con cantidad de problemas y enlace a la lista de carpetas afectadas (sin datos personales en el aviso; el detalle se ve dentro del sistema).
+- Registrar cada corrida en ImportacionLogs-like tabla de auditoría (fecha Chile, resultado, conteo).
+- Tests de dominio para cada regla con datos sintéticos.
