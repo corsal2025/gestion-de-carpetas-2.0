@@ -1057,7 +1057,7 @@
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
-        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "HORA CITA", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
+        [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "YA TUVO TRÁMITE", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
         [Bandeja.CrearCertificado] = ColumnasPreparacion,
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
@@ -1149,7 +1149,6 @@
                             @switch (bandejaActiva)
                             {
                                 case Bandeja.PorClasificar:
-                                    <td class="date-cell">@(c.HoraCita?.ToString("HH:mm") ?? "—") · @c.FechaCitacion.ToString("dd-MM")</td>
                                     <td>
                                         @if (c.TramiteAgenda is { } ta)
                                         {
