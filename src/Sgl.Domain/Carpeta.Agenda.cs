@@ -37,6 +37,7 @@ public sealed partial class Carpeta
             Estado = EstadoCarpeta.PorClasificar,
             Decision = Decision.Pendiente,
             FechaRegistro = now,
+            FechaEstadoActual = now,
         };
         carpeta.Audit(now, usuario, "Agenda", null, $"{EstadoCarpeta.PorClasificar} ({sede})");
         return carpeta;

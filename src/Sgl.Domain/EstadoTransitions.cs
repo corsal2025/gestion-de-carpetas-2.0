@@ -20,6 +20,15 @@ public static class EstadoTransitions
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],
+            // Physical search (phase 3, R8): found -> uploaded to Conaset; not found -> F8 tray.
+            [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
+            [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
+            // A carpeta declared missing can still show up later, or be resolved by F8 / certificate / oficio.
+            [EstadoCarpeta.NoExisteCarpeta] =
+            [
+                EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado, EstadoCarpeta.SubidaConOficio,
+                EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43,
+            ],
             [EstadoCarpeta.PorClasificar] =
             [
                 EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8,

@@ -90,6 +90,9 @@ public sealed partial class Carpeta
             TipoTramite = tipoTramite,
             CajaArchivo = cajaArchivo,
             FechaRegistro = now,
+            FechaEstadoActual = now,
+            // Never invented: a closed carpeta only has a closing date when the Excel brought its upload date.
+            FechaCierre = EsEstadoCierre(estado) || decision != Decision.Pendiente ? fechaSubida : null,
         };
         carpeta.Audit(now, "Sistema Importador", "Importacion", null, $"{sede} - {tipoTramite ?? estado.ToString()}");
         return carpeta;
@@ -132,13 +135,17 @@ public sealed partial class Carpeta
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
-        var f = string.IsNullOrWhiteSpace(nuevaFecha) ? null : nuevaFecha.Trim();
+        var f = NormalizarFechaUltimaCarpeta(nuevaFecha);
         if (f != FechaUltimaCarpeta)
         {
             Audit(now, usuario, nameof(FechaUltimaCarpeta), FechaUltimaCarpeta, f);
             FechaUltimaCarpeta = f;
         }
     }
+
+    /// <summary>Recognized dates are stored as ISO (what the date inputs and sorting expect); legacy free text is kept.</summary>
+    private static string? NormalizarFechaUltimaCarpeta(string? fecha) =>
+        string.IsNullOrWhiteSpace(fecha) ? null : SectorFisico.NormalizarIso(fecha) ?? fecha.Trim();
 
     public void ModificarObservacion(string? nuevaObservacion, string autor, DateTime now)
     {
@@ -180,6 +187,7 @@ public sealed partial class Carpeta
             Decision = Decision.Pendiente,
             Clases = clases,
             FechaRegistro = now,
+            FechaEstadoActual = now,
         };
         carpeta.Audit(now, usuario, "Registro", null, $"{EstadoCarpeta.Citada} ({sede})");
         if (clases != ClaseLicencia.Ninguna)
@@ -220,26 +228,7 @@ public sealed partial class Carpeta
             throw new InvalidTransitionException(Estado, nuevo);
         }
 
-        Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
-        Estado = nuevo;
-        LimpiarPendienteBusquedaSiCorresponde(usuario, now);
-
-        var decision = EstadoTransitions.DecisionFor(nuevo);
-        if (decision != Decision)
-        {
-            Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
-            Decision = decision;
-        }
-
-        if (EsEstadoSubida(nuevo))
-        {
-            var hoy = HoraChile.Fecha(now);
-            if (FechaSubida != hoy)
-            {
-                Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
-                FechaSubida = hoy;
-            }
-        }
+        AplicarEstado(nuevo, usuario, now);
     }
 
     public static bool EsCambioDomicilio(EstadoCarpeta estado) =>
@@ -278,32 +267,14 @@ public sealed partial class Carpeta
 
     private static string SiNo(bool v) => v ? "Si" : "No";
 
+    /// <summary>Manual correction: any state, no transition check (the audit trail keeps who and when).</summary>
     public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
         if (nuevo != Estado)
         {
-            Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
-            Estado = nuevo;
-            LimpiarPendienteBusquedaSiCorresponde(usuario, now);
-
-            var decision = EstadoTransitions.DecisionFor(nuevo);
-            if (decision != Decision)
-            {
-                Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
-                Decision = decision;
-            }
-
-            if (EsEstadoSubida(nuevo))
-            {
-                var hoy = HoraChile.Fecha(now);
-                if (FechaSubida != hoy)
-                {
-                    Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
-                    FechaSubida = hoy;
-                }
-            }
+            AplicarEstado(nuevo, usuario, now);
         }
     }
 
@@ -333,6 +304,8 @@ public sealed partial class Carpeta
                 FechaSubida = HoraChile.Fecha(now);
                 Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
             }
+
+            AjustarFechaCierre(usuario, now);
         }
     }
 

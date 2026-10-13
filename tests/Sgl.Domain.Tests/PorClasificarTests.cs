@@ -65,7 +65,7 @@ public class PorClasificarTests
 
         c.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, ClaseLicencia.B, "15/03/2019", null, "javiera", Now);
 
-        Assert.Equal("15/03/2019", c.FechaUltimaCarpeta);
+        Assert.Equal("2019-03-15", c.FechaUltimaCarpeta);
         Assert.Equal(SectorFisico.Archivo, SectorFisico.Calcular(c.FechaUltimaCarpeta));
     }
 
