@@ -65,7 +65,11 @@ public static class Labels
     };
 
     /// <summary>States offered when classifying a "Por clasificar" carpeta.</summary>
-    public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion => Carpeta.DestinosClasificacion;
+    // The "uploaded" states are outcomes of the process, not something to choose when classifying.
+    public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion { get; } = Carpeta.DestinosClasificacion
+        .Where(e => e is not (EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.CambioDomSubidoConaset
+            or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio))
+        .ToList();
 
     public static string Of(Decision decision) => decision switch
     {
