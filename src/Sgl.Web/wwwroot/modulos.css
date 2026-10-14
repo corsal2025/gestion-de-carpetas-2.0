@@ -564,3 +564,6 @@ html[data-theme="dark"] .sidebar-modulo[class*=" m-"] .semaforo-punto { box-shad
 .sidebar-contador.sem-rojo { background: #fecaca; color: #7f1d1d; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
 html[data-theme="dark"] .sidebar-contador.sem-amarillo { background: #78350f; color: #fef3c7; }
 html[data-theme="dark"] .sidebar-contador.sem-rojo { background: #7f1d1d; color: #fecaca; }
+
+/* Selectores de estado de las bandejas: aire a la derecha para que el texto nunca roce la flecha */
+html body .data-table.bandeja-table .excel-select { padding-right: 34px !important; }
