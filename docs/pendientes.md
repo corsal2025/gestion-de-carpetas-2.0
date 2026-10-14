@@ -10,3 +10,14 @@ Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparac
 | F3-03 | BAJA | «Fecha de etapa» de carpetas anteriores a esta fase es la del último cambio de estado auditado o, si no hubo, la de ingreso al sistema (no la fecha real del Excel). | Informativo. |
 | F3-04 | BAJA | La verificación visual se hizo con Edge (CDP). Falta mirar en Chrome real de la oficina y con la impresión a PDF física. | Revisar el martes. |
 | Pendiente | — | «Clase pendiente» no tiene transiciones de salida en el diagrama actual. | Confirmar flujo con el departamento. |
+
+## Para retomar (2026-10-13, fin de jornada)
+- **Preguntas abiertas con el usuario**
+  - Columna «Fecha últ. carpeta» de «Por clasificar»: hoy es un selector de calendario; el usuario había dicho «eso no debe ir ahí» y no se definió si se saca (A), solo se quita el texto de ayuda (B) u otra cosa (C).
+  - Cierre por subida (R9): se mantiene la opción A (la carpeta se queda en su pestaña «Subida…» con fecha de cierre automática).
+  - 3.673 carpetas heredadas con fecha de subida anterior a la citación (vigilante de integridad; el aviso rojo se retiró de Inicio, la vista «Integridad» sigue en el menú).
+  - Si la lupa de duplicado en «Por clasificar» debe quedar o salir.
+- **Datos de CAS Chile** (el usuario los extrae por años): importar como tabla de consulta por RUT (última carpeta, lugar, clases).
+- **Pendientes de revisión visual**: probar en Chrome real las bandejas grandes (> 200 filas); el navegador de pruebas no cargaba sus filas.
+- **App**: corre como tarea de la sesión; para dejarla siempre disponible hay que instalarla como servicio de Windows.
+- **Opus**: los agentes con modelo Opus fallaban con «modelo no encontrado»; la última auditoría fue con Sonnet (aprobación provisional).
