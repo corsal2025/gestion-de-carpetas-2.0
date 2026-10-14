@@ -1471,7 +1471,7 @@
         {
             // The tray already says where the carpeta is: the select only offers where it goes next.
             <select class="excel-select" @key="@($"es2-{c.Id}-{revEdicion}")" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Mover la carpeta al siguiente módulo">
-                <option value="" selected disabled>— Mover a… —</option>
+                <option value="" selected disabled hidden>— Mover a… —</option>
                 @foreach (var e in OpcionesDeEstado(c.Estado).Where(o => o != c.Estado))
                 {
                     <option value="@e">@Labels.Of(e)</option>
