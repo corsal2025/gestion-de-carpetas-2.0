@@ -65,10 +65,11 @@ public static class Labels
     };
 
     /// <summary>States offered when classifying a "Por clasificar" carpeta.</summary>
-    // The "uploaded" states are outcomes of the process, not something to choose when classifying.
+    // Only the entry classifications are offered: the uploaded, certificate, solicited and missing states are reached later in the flow.
     public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion { get; } = Carpeta.DestinosClasificacion
         .Where(e => e is not (EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.CambioDomSubidoConaset
-            or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio))
+            or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio
+            or EstadoCarpeta.CrearCertificado or EstadoCarpeta.CambioDomicilioSolicitado or EstadoCarpeta.NoExisteCarpeta))
         .ToList();
 
     public static string Of(Decision decision) => decision switch
