@@ -1177,7 +1177,7 @@
                                                @key="@($"fc-{c.Id}-{esPrimera}")"
                                                value="@(esPrimera ? null : FechaClasif(c.Id))"
                                                disabled="@esPrimera"
-                                               @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
+                                               @onchange="(e) => FechaElegidaAsync(c.Id, e.Value?.ToString())"
                                                title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : $"Fecha de la última carpeta. Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
@@ -1212,16 +1212,6 @@
                                         @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id) is { } faltan)
                                         {
                                             <div class="clasif-sugerencia clasif-sugerencia-aviso" role="alert">@faltan</div>
-                                        }
-                                        @if (elegido is null && porFecha is { } destinoSug)
-                                        {
-                                            <div class="clasif-sugerencia" role="status">
-                                                Se aplicará <strong>Buscar carpeta física</strong>: irá a <strong>@Labels.Of(destinoSug)</strong>
-                                            </div>
-                                        }
-                                        else if (fechaIlegible)
-                                        {
-                                            <div class="clasif-sugerencia clasif-sugerencia-aviso" role="status">Fecha no válida: elíjala en el calendario</div>
                                         }
                                     </td>
                                     break;
@@ -1366,6 +1356,19 @@
         if (clasesClasif.GetValueOrDefault(id) == ClaseLicencia.Ninguna) return "Marque al menos una clase de licencia";
         if (destinoClasif.GetValueOrDefault(id) is null && DestinoPorFecha(id) is null) return "Escriba la fecha de la última carpeta o elija un estado";
         return "Clasificar";
+    }
+
+    /// <summary>
+    /// Picking the date is the automated action ("Buscar carpeta física"): when the class is already marked and no explicit
+    /// state was chosen, the carpeta is classified right away. Without a class, the notice says what is missing.
+    /// </summary>
+    private Task FechaElegidaAsync(Guid id, string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) fechaClasif.Remove(id);
+        else fechaClasif[id] = iso;
+        if (destinoClasif.GetValueOrDefault(id) is not null || string.IsNullOrWhiteSpace(iso) || clasificando)
+            return Task.CompletedTask;
+        return ClasificarUnaAsync(id);
     }
 
     private readonly HashSet<Guid> intentoAplicar = [];
