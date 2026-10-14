@@ -123,12 +123,12 @@ else
                             <tr class="dup-grupo @(abierto ? "abierto" : "")" @onclick="() => ToggleAsync(g)">
                                 <td class="dup-col-rut">@g.Rut</td>
                                 <td class="dup-col-nombre">@g.NombreCompleto</td>
-                                <td>@g.CarpetasAbiertas</td>
+                                <td class="dup-col-cant"><span class="dup-badge">@g.CarpetasAbiertas</span></td>
                                 <td class="dup-acciones" @onclick:stopPropagation>
-                                    <button type="button" class="secondary" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
+                                    <button type="button" class="secondary dup-btn-ver" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
                                         @(abierto ? "▾ Ocultar carpetas" : $"▸ Ver carpetas ({g.CarpetasAbiertas})")
                                     </button>
-                                    <button type="button" disabled="@(ocupado)" title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
+                                    <button type="button" class="dup-btn-mantener" disabled="@(ocupado)"title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
                                 </td>
                             </tr>
                         </ItemContent>

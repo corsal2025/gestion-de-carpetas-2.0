@@ -339,3 +339,58 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .doc-busqueda .c-rut, .doc-busqueda .c-fecha { white-space: nowrap; text-align: center; width: 1%; }
 .doc-busqueda th { text-align: center; }
 .doc-busqueda th.c-nombre { text-align: left; }
+
+/* Posibles duplicados: lista más limpia, cantidad como insignia y acciones jerarquizadas */
+.dup-total { font-size: 0.92rem; color: var(--text-secondary); }
+.dup-tabla { border-collapse: separate; border-spacing: 0; }
+.dup-tabla thead th {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+    padding-block: 0.6rem;
+}
+.dup-tabla tbody td { border-top: 1px solid var(--border-color); padding-block: 0.5rem; }
+.dup-grupo { transition: background-color 0.12s ease; }
+.dup-grupo:hover td, .dup-grupo.abierto td { background: var(--brand-light); }
+.dup-grupo.abierto td:first-child { box-shadow: inset 3px 0 0 var(--brand-primary); }
+.dup-col-rut { font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
+.dup-col-nombre { font-weight: 600; }
+.dup-col-cant, .dup-tabla thead th:nth-child(3) { text-align: center; }
+.dup-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background: var(--brand-light);
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.dup-acciones button {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.dup-acciones .dup-btn-ver {
+    background: transparent;
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+}
+.dup-acciones .dup-btn-ver:hover { background: var(--brand-light); }
+.dup-acciones .dup-btn-mantener {
+    background: var(--ok-fondo);
+    color: var(--ok-texto);
+    border: 1px solid var(--grupo-sistema);
+}
+.dup-acciones .dup-btn-mantener:hover:not(:disabled) { filter: brightness(0.96); }
+.dup-acciones .dup-btn-mantener:disabled { opacity: 0.55; cursor: not-allowed; }
