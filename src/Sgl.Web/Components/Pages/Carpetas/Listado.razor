@@ -1472,12 +1472,24 @@
             {
                 <option value="@c.Estado" disabled>@Labels.Of(c.Estado)</option>
             }
-            @foreach (var e in Labels.OpcionesDesplegable)
+            @foreach (var e in OpcionesDeEstado(c.Estado))
             {
                 <option value="@e">@Labels.Of(e)</option>
             }
         </select>
     };
+
+    /// <summary>
+    /// While a carpeta is being searched physically (Archivos / Of. 43) or was declared missing, only the next steps of the
+    /// flow are offered; every other state keeps the full list (legacy carpetas can be moved freely).
+    /// </summary>
+    private static IEnumerable<EstadoCarpeta> OpcionesDeEstado(EstadoCarpeta actual)
+    {
+        if (actual is not (EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta))
+            return Labels.OpcionesDesplegable;
+        var siguientes = EstadoTransitions.NextStates(actual);
+        return Labels.OpcionesDesplegable.Where(o => o == actual || siguientes.Contains(o));
+    }
 
     private RenderFragment SelectDecision(CarpetaResumenDto c) => __builder =>
     {
