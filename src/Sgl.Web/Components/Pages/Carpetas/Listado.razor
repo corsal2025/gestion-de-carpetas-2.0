@@ -1055,7 +1055,7 @@
     private const string ColumnaEtapa = "FECHA DE ETAPA";
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS", ColumnaEtapa];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
-    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "ESTADO", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
     private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
@@ -1068,7 +1068,7 @@
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO", ColumnaEtapa],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO", ColumnaEtapa],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
@@ -1467,6 +1467,18 @@
 
     private RenderFragment SelectEstado(CarpetaResumenDto c) => __builder =>
     {
+        if (EsEtapaDeMovimiento(c.Estado))
+        {
+            // The tray already says where the carpeta is: the select only offers where it goes next.
+            <select class="excel-select" @key="@($"es2-{c.Id}-{revEdicion}")" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Mover la carpeta al siguiente módulo">
+                <option value="" selected disabled>— Mover a… —</option>
+                @foreach (var e in OpcionesDeEstado(c.Estado).Where(o => o != c.Estado))
+                {
+                    <option value="@e">@Labels.Of(e)</option>
+                }
+            </select>
+            return;
+        }
         <select class="excel-select" @key="@($"es2-{c.Id}-{revEdicion}")" value="@c.Estado" @onchange="(e) => CambiarEstadoRapidoAsync(c.Id, e)" title="Cambiar estado de carpeta">
             @if (!Labels.OpcionesDesplegable.Contains(c.Estado))
             {
@@ -1483,6 +1495,9 @@
     /// While a carpeta is being searched physically (Archivos / Of. 43) or was declared missing, only the next steps of the
     /// flow are offered; every other state keeps the full list (legacy carpetas can be moved freely).
     /// </summary>
+    private static bool EsEtapaDeMovimiento(EstadoCarpeta e) =>
+        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta;
+
     private static IEnumerable<EstadoCarpeta> OpcionesDeEstado(EstadoCarpeta actual)
     {
         if (actual is not (EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta))
