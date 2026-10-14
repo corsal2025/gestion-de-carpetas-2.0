@@ -546,12 +546,12 @@ html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip;
    El semáforo (atrasos) pasa al contador: amarillo = atención, rojo = con atrasos. */
 .sidebar-modulo { --punto-excel: transparent; }
 .sidebar-modulo.m-porpreparar { --punto-excel: #FF00FF; }
-.sidebar-modulo.m-seencuentraenarchivos { --punto-excel: #6AA84F; }
-.sidebar-modulo.m-seencuentraenof43 { --punto-excel: #8E7CC3; }
-.sidebar-modulo.m-sincarpetaf8 { --punto-excel: #FF0000; }
+.sidebar-modulo.m-seencuentraenarchivos { --punto-excel: #3d7a29; }
+.sidebar-modulo.m-seencuentraenof43 { --punto-excel: #6450a6; }
+.sidebar-modulo.m-sincarpetaf8 { --punto-excel: #c80000; }
 .sidebar-modulo.m-crearcertificado { --punto-excel: #C27BA0; }
-.sidebar-modulo.m-canjelicextranjera { --punto-excel: #CBD5E1; }
-.sidebar-modulo.m-cambiodomicilio { --punto-excel: #3D85C6; }
+.sidebar-modulo.m-canjelicextranjera { --punto-excel: #E2E8F0; }
+.sidebar-modulo.m-cambiodomicilio { --punto-excel: #2c6aa3; }
 .sidebar-modulo.m-cambiodomiciliosolicitado { --punto-excel: #9FC5E8; }
 .sidebar-modulo.m-subidaconaset { --punto-excel: #1155CC; }
 .sidebar-modulo.m-subidaconf8 { --punto-excel: #BF9000; }
