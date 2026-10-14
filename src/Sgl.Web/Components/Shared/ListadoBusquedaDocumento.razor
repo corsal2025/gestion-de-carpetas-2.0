@@ -61,7 +61,7 @@
                 </div>
 
                 <div class="doc-subheader">
-                    <span>Sector @Listado.Sector · @(Listado.Sede is { } s ? Labels.Of(s) : "Todas las sedes")</span>
+                    <span>Sector @Listado.Sector</span>
                     <span>@Listado.Total carpeta(s) por buscar</span>
                 </div>
 
@@ -78,10 +78,7 @@
                                     <th class="c-num">N°</th>
                                     <th class="c-nombre">NOMBRE DE CONTRIBUYENTE</th>
                                     <th>RUT</th>
-                                    <th>SEDE</th>
                                     <th>FECHA ÚLTIMA CARPETA</th>
-                                    <th class="c-marca">ENCONTRADA</th>
-                                    <th class="c-marca">NO EXISTE</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -90,11 +87,8 @@
                                     <tr>
                                         <td class="c-num">@i.Numero</td>
                                         <td class="c-nombre">@i.NombreCompleto.ToUpperInvariant()</td>
-                                        <td>@i.Rut</td>
-                                        <td>@Labels.Of(i.Sede)</td>
-                                        <td>@i.FechaUltimaCarpeta</td>
-                                        <td class="c-marca"><span class="casilla" aria-hidden="true"></span></td>
-                                        <td class="c-marca"><span class="casilla" aria-hidden="true"></span></td>
+                                        <td class="c-rut">@i.Rut</td>
+                                        <td class="c-fecha">@i.FechaUltimaCarpeta</td>
                                     </tr>
                                 }
                             </tbody>

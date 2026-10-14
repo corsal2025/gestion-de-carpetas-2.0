@@ -530,3 +530,9 @@ html body .data-table tbody tr.fila-duplicada > td:first-child { box-shadow: ins
 .btn-alerta-buscar:hover, .btn-alerta-buscar:focus-visible { background: #7f1d1d; }
 .icono-buscar-dup { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: 1px solid #b91c1c; background: #fff; color: #b91c1c !important; flex: 0 0 auto; }
 .icono-buscar-dup:hover, .icono-buscar-dup:focus-visible { background: #b91c1c; color: #fff !important; }
+
+/* Las columnas se adaptan a su contenido: los selectores de estado/decisión/clasificar no tienen ancho máximo fijo y nunca cortan el texto */
+html body .data-table.bandeja-table .excel-select,
+html body .data-table.bandeja-table .clasif-cell .excel-select { width: auto !important; min-width: max-content !important; max-width: none !important; text-overflow: clip; }
+html body .data-table.bandeja-table .clasif-cell { max-width: none; flex-wrap: nowrap; }
+html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip; }

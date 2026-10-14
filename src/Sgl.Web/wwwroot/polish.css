@@ -332,3 +332,10 @@ html[data-theme="dark"] .clasif-sugerencia { color: #c9d3ff; }
 html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .dup-tabla td { vertical-align: middle; }
 .integridad .dup-tabla td:nth-child(2) { min-width: 18rem; }
+
+/* Documento del listado para búsqueda: la hoja crece con su contenido y se desplaza dentro del visor */
+.pdf-modal-scroll { align-items: flex-start; }
+.pdf-modal-scroll > .doc-sheet { flex: 0 0 auto; height: auto; }
+.doc-busqueda .c-rut, .doc-busqueda .c-fecha { white-space: nowrap; text-align: center; width: 1%; }
+.doc-busqueda th { text-align: center; }
+.doc-busqueda th.c-nombre { text-align: left; }
