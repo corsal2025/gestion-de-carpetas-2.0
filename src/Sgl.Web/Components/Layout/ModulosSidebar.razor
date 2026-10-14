@@ -46,7 +46,7 @@
                             var em = Estado.De(m);
                             var activo = EsActivo(m);
                             <li>
-                                <a class="sidebar-modulo @(activo ? "activo" : "")" href="@m.Href" aria-current="@(activo ? "page" : null)"
+                                <a class="sidebar-modulo @(activo ? "activo" : "") @ClaseColor(m)" href="@m.Href" aria-current="@(activo ? "page" : null)"
                                    title="@(Estado.Panel is null ? m.Nombre : $"{m.Nombre}: {em.Conteo:N0}")">
                                     @if (plegado)
                                     {
@@ -94,6 +94,9 @@
         await Estado.RefrescarAsync();
         StateHasChanged();
     }
+
+    /// <summary>Each module wears the original Excel colour of its state (see modulos.css, "m-*").</summary>
+    private static string ClaseColor(Modulo m) => m.Bandeja is { } b ? $"m-{b.ToString().ToLowerInvariant()}" : "";
 
     private bool EsActivo(Modulo m)
     {

@@ -363,8 +363,8 @@
                                 </div>
                             </td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
-                            <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                            <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                            <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
+                            <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fsub-{c.Id}-{revEdicion}")" Valor="c.FechaSubida" Titulo="Fecha de subida" ValorCambiado="v => GuardarFechaSubidaAsync(c, v)" /></td>
                             <td class="excel-cell-date" @ondblclick:stopPropagation>
                                 @if (!string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) && !EsFechaIso(c.FechaUltimaCarpeta))
                                 {
@@ -1224,7 +1224,7 @@
                                 case Bandeja.PorPreparar:
                                 case Bandeja.CrearCertificado:
                                 case Bandeja.CanjeLicExtranjera:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     <td>@(c.OtrasAbiertas is > 0 ? c.OtrasAbiertas.ToString() : "—")</td>
@@ -1241,7 +1241,7 @@
                                     <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } um ? $"{HoraChile.ALocal(um):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.SinCarpetaF8:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasSinCarpeta)</td>
                                     <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
@@ -1251,55 +1251,33 @@
                                 case Bandeja.SubidaConOficio:
                                 case Bandeja.CambioDomSubidoConaset:
                                 case Bandeja.CambioDomSubidoCorreo:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td class="date-cell">@(c.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fsub-{c.Id}-{revEdicion}")" Valor="c.FechaSubida" Titulo="Fecha de subida" ValorCambiado="v => GuardarFechaSubidaAsync(c, v)" /></td>
                                     <td>@Dias(c.Indicadores?.DiasCitacionSubida)</td>
                                     break;
                                 case Bandeja.SeEncuentraEnArchivos:
                                 case Bandeja.SeEncuentraEnOf43:
-                                    <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
-                                    <td class="date-cell">@(c.FechaUltimaCarpeta ?? "—")</td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fult-{c.Id}-{revEdicion}")" Valor="FechaUltimaComoFecha(c.FechaUltimaCarpeta)" Titulo="Fecha de la última carpeta" ValorCambiado="v => GuardarFechaUltimaAsync(c.Id, v)" /></td>
                                     <td>@(string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) ? "—" : SectorFisico.Calcular(c.FechaUltimaCarpeta))</td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasTramite)</td>
-                                    <td class="date-cell">
-                                        @if (c.FechaImpresion is { } impresa)
-                                        {
-                                            <span class="chip-impreso" title="@($"Incluida en un listado impreso el {HoraChile.ALocal(impresa):dd-MM-yyyy HH:mm}")">
-                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>
-                                                @HoraChile.ALocal(impresa).ToString("dd-MM")
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="chip-sin-imprimir" title="Aún no figura en un listado impreso">—</span>
-                                        }
-                                    </td>
+                                    <td class="date-cell"><CampoFecha Valor="@(c.FechaImpresion is { } impresa ? HoraChile.Fecha(impresa) : null)" ReadOnly="true" Titulo="Fecha de impresión del listado (automática)" /></td>
                                     break;
                                 case Bandeja.Cerradas:
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
-                                    <td class="date-cell">@(c.Indicadores?.FechaCierre?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td class="date-cell"><CampoFecha Valor="c.Indicadores?.FechaCierre" ReadOnly="true" Titulo="Fecha de cierre (automática)" /></td>
                                     <td>@Dias(c.Indicadores?.DiasTotales)</td>
                                     break;
                                 case Bandeja.Archivadas:
                                     <td><a class="btn-action-caja-ok" href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo ?? "")">@c.CajaArchivo</a></td>
-                                    <td class="date-cell">@(c.Indicadores?.FechaArchivo?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                    <td class="date-cell"><CampoFecha Valor="c.Indicadores?.FechaArchivo" ReadOnly="true" Titulo="Fecha de archivo (automática)" /></td>
                                     <td>@Labels.Of(c.Decision)</td>
                                     break;
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
-                                <td class="date-cell etapa-cell" title="Desde cuándo está en esta etapa (hora de Chile)">
-                                    @if (c.FechaEstadoActual is { } etapa)
-                                    {
-                                        <span>@HoraChile.ALocal(etapa).ToString("dd-MM-yyyy")</span>
-                                        <small>@HoraChile.ALocal(etapa).ToString("HH:mm")</small>
-                                    }
-                                    else
-                                    {
-                                        <span>—</span>
-                                    }
-                                </td>
+                                <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
@@ -2108,6 +2086,47 @@
             {
                 guardandoId = null;
             }
+        }
+    }
+
+    private static DateOnly? FechaUltimaComoFecha(string? texto) =>
+        SectorFisico.TryParseFecha(texto, out var f) ? f : null;
+
+    private Task GuardarFechaCitacionAsync(CarpetaResumenDto c, DateOnly? valor) =>
+        valor is { } nueva ? GuardarFechasAsync(c.Id, nueva, c.FechaSubida) : RestaurarFechaAsync();
+
+    private Task GuardarFechaSubidaAsync(CarpetaResumenDto c, DateOnly? valor) =>
+        GuardarFechasAsync(c.Id, c.FechaCitacion, valor);
+
+    private Task GuardarFechaUltimaAsync(Guid id, DateOnly? valor) =>
+        CambiarFechaUltimaRapidaAsync(id, new ChangeEventArgs { Value = valor?.ToString("yyyy-MM-dd") });
+
+    private Task RestaurarFechaAsync()
+    {
+        revEdicion++;
+        return Task.CompletedTask;
+    }
+
+    private async Task GuardarFechasAsync(Guid id, DateOnly citacion, DateOnly? subida)
+    {
+        guardandoId = id;
+        StateHasChanged();
+        try
+        {
+            if (AutorRequerido() is not { } autor) { revEdicion++; return; }
+            await Carpetas.GuardarFechasAsync(id, citacion, subida, autor);
+            guardadoOkId = id;
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "Error al actualizar la fecha");
+            revEdicion++;
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
         }
     }
 

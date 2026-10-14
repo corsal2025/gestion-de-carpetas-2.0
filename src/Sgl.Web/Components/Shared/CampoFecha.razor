@@ -1,0 +1,24 @@
+@* Single look for every date shown in a table: native calendar field (dd/mm/aaaa + calendar icon). Read-only when the date is automatic. *@
+<input type="date" class="date-input-inline @(ReadOnly ? "date-solo-lectura" : null)"
+       value="@Iso" disabled="@(ReadOnly || Disabled)" title="@Titulo" aria-label="@Titulo"
+       @onchange="CambioAsync" />
+
+@code {
+    [Parameter] public DateOnly? Valor { get; set; }
+
+    [Parameter] public EventCallback<DateOnly?> ValorCambiado { get; set; }
+
+    /// <summary>Automatic dates (stage, closing, archiving, printing) cannot be edited.</summary>
+    [Parameter] public bool ReadOnly { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? Titulo { get; set; }
+
+    private string? Iso => Valor?.ToString("yyyy-MM-dd");
+
+    private Task CambioAsync(ChangeEventArgs e) =>
+        ValorCambiado.InvokeAsync(
+            DateOnly.TryParseExact(e.Value?.ToString(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var d) ? d : null);
+}

@@ -593,6 +593,27 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         }
     }
 
+    /// <summary>Changes the citation and/or upload date of one carpeta from a table cell (same audited rule as the detail edit).</summary>
+    public async Task GuardarFechasAsync(Guid id, DateOnly fechaCitacion, DateOnly? fechaSubida, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.Editar(carpeta.Sede, fechaCitacion, fechaSubida, carpeta.IdoneidadMoral, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task GuardarFechaUltimaCarpetaAsync(Guid id, string? fecha, string autor, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
