@@ -1170,9 +1170,11 @@
                                         }
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
-                                        <input type="text" class="comuna-input-inline" placeholder="dd-mm-aaaa" value="@FechaClasif(c.Id)"
+                                        <input type="date" class="date-input-inline"
+                                               @key="@($"fc-{c.Id}")"
+                                               value="@FechaClasif(c.Id)"
                                                @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
-                                               title="@($"Fecha de última carpeta (opcional). Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                               title="@($"Fecha de la última carpeta. Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
@@ -1389,9 +1391,9 @@
         var sinDestino = destinoClasif.GetValueOrDefault(id) is null && DestinoPorFecha(id) is null;
         return (sinClase, sinDestino) switch
         {
-            (true, true) => "Falta marcar la clase de licencia y escribir la fecha de la última carpeta (dd-mm-aaaa) o elegir un estado.",
+            (true, true) => "Falta marcar la clase de licencia y elegir la fecha de la última carpeta (o un estado).",
             (true, false) => "Falta marcar al menos una clase de licencia (botón «Clase»).",
-            (false, true) => "Falta escribir la fecha de la última carpeta (dd-mm-aaaa) o elegir un estado.",
+            (false, true) => "Falta elegir la fecha de la última carpeta (o un estado).",
             _ => null,
         };
     }
