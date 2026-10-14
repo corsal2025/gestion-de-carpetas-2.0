@@ -394,3 +394,17 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 }
 .dup-acciones .dup-btn-mantener:hover:not(:disabled) { filter: brightness(0.96); }
 .dup-acciones .dup-btn-mantener:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Selector de clase rápido: botón para cerrar tras elegir una o varias clases */
+.clase-rapida-listo {
+    display: block;
+    margin: 0.4rem 0 0 auto;
+    padding: 0.25rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 999px;
+    background: var(--brand-primary);
+    color: #fff;
+    border: 1px solid var(--brand-primary);
+    cursor: pointer;
+}
