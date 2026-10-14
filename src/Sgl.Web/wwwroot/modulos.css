@@ -536,3 +536,8 @@ html body .data-table.bandeja-table .excel-select,
 html body .data-table.bandeja-table .clasif-cell .excel-select { width: auto !important; min-width: max-content !important; max-width: none !important; text-overflow: clip; }
 html body .data-table.bandeja-table .clasif-cell { max-width: none; flex-wrap: nowrap; }
 html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip; }
+
+/* Menú lateral: los nombres de módulo nunca se cortan; si no caben en una línea, bajan a la siguiente */
+:root { --sidebar-ancho: 280px; }
+.sidebar-modulo-nombre { overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.2; overflow-wrap: anywhere; }
+.modulos-sidebar:not(.plegado) .sidebar-modulo { align-items: center; min-height: 2rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
