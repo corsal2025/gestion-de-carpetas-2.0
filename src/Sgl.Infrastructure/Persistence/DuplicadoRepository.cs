@@ -21,13 +21,21 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
         var grupos = abiertas
             .GroupBy(c => c.CiudadanoId)
             .Where(g => g.Count() > 1)
-            .Select(g => new { CiudadanoId = g.Key, Cantidad = g.Count(), UltimoRegistro = g.Max(c => c.FechaRegistro) });
+            .Select(g => new
+            {
+                CiudadanoId = g.Key,
+                Cantidad = g.Count(),
+                UltimoRegistro = g.Max(c => c.FechaRegistro),
+                PrimeraCita = g.Min(c => c.FechaCitacion),
+                UltimaCita = g.Max(c => c.FechaCitacion),
+                MismaSede = g.Min(c => c.Sede) == g.Max(c => c.Sede),
+            });
 
         var query =
             from g in grupos
             join ci in db.Ciudadanos.AsNoTracking() on g.CiudadanoId equals ci.Id
             where !db.RevisionesDuplicado.Any(r => r.CiudadanoId == g.CiudadanoId && r.RevisadoEn >= g.UltimoRegistro)
-            select new { g.CiudadanoId, g.Cantidad, Rut = ci.Rut.Value, ci.Nombre, ci.Apellido, ci.NombreBusqueda };
+            select new { g.CiudadanoId, g.Cantidad, g.PrimeraCita, g.UltimaCita, g.MismaSede, Rut = ci.Rut.Value, ci.Nombre, ci.Apellido, ci.NombreBusqueda };
 
         if (search.Sede is { } sede)
         {
@@ -57,7 +65,7 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
             .Skip(search.Skip);
         var limited = search.Take is { } take ? ordered.Take(take) : ordered;
         var rows = await limited
-            .Select(x => new { Id = x.CiudadanoId, x.Rut, x.Nombre, x.Apellido, Abiertas = x.Cantidad })
+            .Select(x => new { Id = x.CiudadanoId, x.Rut, x.Nombre, x.Apellido, Abiertas = x.Cantidad, x.PrimeraCita, x.UltimaCita, x.MismaSede })
             .ToListAsync(ct);
 
         var items = rows
@@ -65,7 +73,8 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
                 r.Id,
                 Rut.TryParse(r.Rut, out var parsed) ? parsed!.Formatted : r.Rut,
                 $"{r.Nombre} {r.Apellido}".Trim(),
-                r.Abiertas))
+                r.Abiertas,
+                DuplicadoMotivo.Describir(Rut.TryParse(r.Rut, out _), r.PrimeraCita, r.UltimaCita, r.MismaSede)))
             .ToList();
         return (items, total);
     }

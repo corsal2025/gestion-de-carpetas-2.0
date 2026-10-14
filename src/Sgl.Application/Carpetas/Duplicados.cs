@@ -71,7 +71,7 @@ public sealed record ListarDuplicadosQuery(
 }
 
 /// <summary>One citizen with more than one open carpeta, pending review.</summary>
-public sealed record DuplicadoGrupoDto(Guid CiudadanoId, string Rut, string NombreCompleto, int CarpetasAbiertas);
+public sealed record DuplicadoGrupoDto(Guid CiudadanoId, string Rut, string NombreCompleto, int CarpetasAbiertas, string Motivo);
 
 /// <summary>Full picture of one open carpeta, used to compare a citizen's duplicates side by side.</summary>
 public sealed record CarpetaDuplicadoDetalleDto(

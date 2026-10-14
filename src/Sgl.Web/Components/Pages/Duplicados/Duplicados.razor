@@ -126,7 +126,7 @@ else
         }
         <div class="dup-scroll">
             <table class="dup-tabla">
-                <thead><tr><th class="dup-col-rut">RUT</th><th class="dup-col-nombre">Nombre</th><th>Carpetas abiertas</th><th></th></tr></thead>
+                <thead><tr><th class="dup-col-rut">RUT</th><th class="dup-col-nombre">Nombre</th><th>Carpetas abiertas</th><th class="dup-col-motivo">Motivo</th></tr></thead>
                 <tbody>
                     <Virtualize @ref="virtualizador" TItem="DuplicadoGrupoDto" Context="g" ItemsProvider="CargarFilasAsync"
                                 ItemSize="52" OverscanCount="10" SpacerElement="tr">
@@ -134,14 +134,19 @@ else
                             @{ var abierto = grupoAbierto?.CiudadanoId == g.CiudadanoId; }
                             <tr class="dup-grupo @(abierto ? "abierto" : "")" @onclick="() => ToggleAsync(g)">
                                 <td class="dup-col-rut">@g.Rut</td>
-                                <td class="dup-col-nombre">@g.NombreCompleto</td>
-                                <td class="dup-col-cant"><span class="dup-badge">@g.CarpetasAbiertas</span></td>
-                                <td class="dup-acciones" @onclick:stopPropagation>
-                                    <button type="button" class="secondary dup-btn-ver" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
-                                        @(abierto ? "▾ Ocultar carpetas" : $"▸ Ver carpetas ({g.CarpetasAbiertas})")
-                                    </button>
-                                    <button type="button" class="dup-btn-mantener" disabled="@(ocupado)"title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
+                                <td class="dup-col-nombre">
+                                    <div class="dup-nombre-celda">
+                                        <span>@g.NombreCompleto</span>
+                                        <button type="button" class="icono-buscar-dup" aria-expanded="@(abierto ? "true" : "false")"
+                                                title="@(abierto ? "Ocultar carpetas" : $"Comparar sus {g.CarpetasAbiertas} carpetas")"
+                                                aria-label="@(abierto ? "Ocultar la comparación de carpetas" : $"Comparar las {g.CarpetasAbiertas} carpetas abiertas de {g.NombreCompleto}")"
+                                                @onclick="() => ToggleAsync(g)" @onclick:stopPropagation="true">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                        </button>
+                                    </div>
                                 </td>
+                                <td class="dup-col-cant"><span class="dup-badge">@g.CarpetasAbiertas</span></td>
+                                <td class="dup-col-motivo"><span class="dup-motivo @(g.Motivo.StartsWith("RUT") ? "dup-motivo-alerta" : null)">@g.Motivo</span></td>
                             </tr>
                         </ItemContent>
                         <Placeholder>
