@@ -1190,7 +1190,7 @@
                                             <select class="excel-select @(elegido is null && porFecha is not null ? "select-sugerido" : null)" value="@(elegido?.ToString() ?? "")"
                                                     aria-label="Estado destino de la clasificación"
                                                     @onchange="(e) => SeleccionarDestino(c.Id, e)">
-                                                <option value="">— Clasificar —</option>
+                                                <option value="" hidden>— Clasificar —</option>
                                                 @foreach (var e in Labels.OpcionesClasificacion)
                                                 {
                                                     <option value="@e">@Labels.Of(e)</option>
