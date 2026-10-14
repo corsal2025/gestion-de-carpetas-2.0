@@ -1170,11 +1170,15 @@
                                         }
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
-                                        <input type="date" class="date-input-inline"
-                                               @key="@($"fc-{c.Id}")"
-                                               value="@FechaClasif(c.Id)"
+                                        @{
+                                            var esPrimera = destinoClasif.GetValueOrDefault(c.Id) == EstadoCarpeta.PrimeraLicencia;
+                                        }
+                                        <input type="date" class="date-input-inline @(esPrimera ? "date-solo-lectura" : null)"
+                                               @key="@($"fc-{c.Id}-{esPrimera}")"
+                                               value="@(esPrimera ? null : FechaClasif(c.Id))"
+                                               disabled="@esPrimera"
                                                @onchange="(e) => fechaClasif[c.Id] = e.Value?.ToString()"
-                                               title="@($"Fecha de la última carpeta. Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                               title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : $"Fecha de la última carpeta. Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
@@ -1347,8 +1351,12 @@
 
     private string? FechaClasif(Guid id) => fechaClasif.GetValueOrDefault(id);
 
-    private void SeleccionarDestino(Guid id, ChangeEventArgs e) =>
+    private void SeleccionarDestino(Guid id, ChangeEventArgs e)
+    {
         destinoClasif[id] = Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var d) ? d : null;
+        // A first license has no previous carpeta: its date is blocked and cleared.
+        if (destinoClasif[id] == EstadoCarpeta.PrimeraLicencia) fechaClasif.Remove(id);
+    }
 
     /// <summary>R6: the destination "Buscar carpeta física" proposes from the typed date (null when no readable date).</summary>
     private EstadoCarpeta? DestinoPorFecha(Guid id) => Carpeta.DestinoPorFechaUltimaCarpeta(fechaClasif.GetValueOrDefault(id));
@@ -1383,7 +1391,8 @@
         var elegido = destinoClasif.GetValueOrDefault(id);
         if (elegido is null && DestinoPorFecha(id) is null) return Task.CompletedTask;
         // No explicit state => null: the service applies the default action from the date.
-        return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id), fechaClasif.GetValueOrDefault(id),
+        return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id),
+            elegido == EstadoCarpeta.PrimeraLicencia ? null : fechaClasif.GetValueOrDefault(id),
             elegido is { } d && Carpeta.EsCambioDomicilio(d) ? comunaClasif.GetValueOrDefault(id) : null);
     }
 
