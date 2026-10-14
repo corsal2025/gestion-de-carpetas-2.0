@@ -542,23 +542,25 @@ html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip;
 .sidebar-modulo-nombre { overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.2; overflow-wrap: anywhere; }
 .modulos-sidebar:not(.plegado) .sidebar-modulo { align-items: center; min-height: 2rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
 
-/* Menú lateral: cada módulo con el color original del Excel de su estado (los de texto blanco, en el tono ya oscurecido para contraste) */
-.modulos-sidebar:not(.plegado) .sidebar-modulo[class*=" m-"] { font-weight: 700; border-radius: 8px; border-left-width: 0; }
-.sidebar-modulo.m-porpreparar { background: #FF00FF !important; color: #000 !important; }
-.sidebar-modulo.m-seencuentraenarchivos { background: #3d7a29 !important; color: #fff !important; }
-.sidebar-modulo.m-seencuentraenof43 { background: #6450a6 !important; color: #fff !important; }
-.sidebar-modulo.m-sincarpetaf8 { background: #c80000 !important; color: #fff !important; }
-.sidebar-modulo.m-crearcertificado { background: #C27BA0 !important; color: #000 !important; }
-.sidebar-modulo.m-canjelicextranjera { background: #E2E8F0 !important; color: #000 !important; }
-.sidebar-modulo.m-cambiodomicilio { background: #2c6aa3 !important; color: #fff !important; }
-.sidebar-modulo.m-cambiodomiciliosolicitado { background: #9FC5E8 !important; color: #000 !important; }
-.sidebar-modulo.m-subidaconaset { background: #1155CC !important; color: #fff !important; }
-.sidebar-modulo.m-subidaconf8 { background: #BF9000 !important; color: #000 !important; }
-.sidebar-modulo.m-subidaconoficio { background: #FFE599 !important; color: #000 !important; }
-.sidebar-modulo.m-cambiodomsubidoconaset { background: #00FFFF !important; color: #000 !important; }
-.sidebar-modulo.m-cambiodomsubidocorreo { background: #D0E0E3 !important; color: #000 !important; }
-.sidebar-modulo[class*=" m-"] .sidebar-modulo-nombre { color: inherit !important; }
-.sidebar-modulo[class*=" m-"] .sidebar-contador { background: rgb(255 255 255 / .85); color: #0f172a; border-radius: 999px; padding: 0 0.45rem; }
-.sidebar-modulo[class*=" m-"] .semaforo-punto { box-shadow: 0 0 0 2px #fff; }
-.sidebar-modulo[class*=" m-"].activo { outline: 3px solid #0f172a; outline-offset: -1px; }
-html[data-theme="dark"] .sidebar-modulo[class*=" m-"].activo { outline-color: #fff; }
+/* Menú lateral: solo el puntito de cada módulo lleva el color original del Excel de su estado.
+   El semáforo (atrasos) pasa al contador: amarillo = atención, rojo = con atrasos. */
+.sidebar-modulo { --punto-excel: transparent; }
+.sidebar-modulo.m-porpreparar { --punto-excel: #FF00FF; }
+.sidebar-modulo.m-seencuentraenarchivos { --punto-excel: #6AA84F; }
+.sidebar-modulo.m-seencuentraenof43 { --punto-excel: #8E7CC3; }
+.sidebar-modulo.m-sincarpetaf8 { --punto-excel: #FF0000; }
+.sidebar-modulo.m-crearcertificado { --punto-excel: #C27BA0; }
+.sidebar-modulo.m-canjelicextranjera { --punto-excel: #CBD5E1; }
+.sidebar-modulo.m-cambiodomicilio { --punto-excel: #3D85C6; }
+.sidebar-modulo.m-cambiodomiciliosolicitado { --punto-excel: #9FC5E8; }
+.sidebar-modulo.m-subidaconaset { --punto-excel: #1155CC; }
+.sidebar-modulo.m-subidaconf8 { --punto-excel: #BF9000; }
+.sidebar-modulo.m-subidaconoficio { --punto-excel: #FFE599; }
+.sidebar-modulo.m-cambiodomsubidoconaset { --punto-excel: #00FFFF; }
+.sidebar-modulo.m-cambiodomsubidocorreo { --punto-excel: #D0E0E3; }
+.sidebar-modulo[class*=" m-"] .semaforo-punto { background: var(--punto-excel) !important; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1.5px #475569; flex: 0 0 auto; }
+html[data-theme="dark"] .sidebar-modulo[class*=" m-"] .semaforo-punto { box-shadow: 0 0 0 1.5px #e2e8f0; }
+.sidebar-contador.sem-amarillo { background: #fef3c7; color: #78350f; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
+.sidebar-contador.sem-rojo { background: #fecaca; color: #7f1d1d; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
+html[data-theme="dark"] .sidebar-contador.sem-amarillo { background: #78350f; color: #fef3c7; }
+html[data-theme="dark"] .sidebar-contador.sem-rojo { background: #7f1d1d; color: #fecaca; }

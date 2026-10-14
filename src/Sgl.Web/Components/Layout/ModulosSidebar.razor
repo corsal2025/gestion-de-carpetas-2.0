@@ -56,7 +56,7 @@
                                     {
                                         <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
                                         <span class="sidebar-modulo-nombre">@m.Nombre</span>
-                                        <span class="sidebar-contador">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
+                                        <span class="sidebar-contador @ClaseSemaforo(em.Semaforo)">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
                                     }
                                 </a>
                             </li>
@@ -97,6 +97,8 @@
 
     /// <summary>Each module wears the original Excel colour of its state (see modulos.css, "m-*").</summary>
     private static string ClaseColor(Modulo m) => m.Bandeja is { } b ? $"m-{b.ToString().ToLowerInvariant()}" : "";
+
+    private static string ClaseSemaforo(object? semaforo) => $"sem-{(semaforo?.ToString() ?? "").ToLowerInvariant()}";
 
     private bool EsActivo(Modulo m)
     {
