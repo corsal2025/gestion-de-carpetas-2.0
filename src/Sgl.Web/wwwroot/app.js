@@ -601,3 +601,19 @@ window.printPdfDocument = function (titulo) {
     new MutationObserver(syncRowsButton).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('DOMContentLoaded', syncRowsButton);
 })();
+
+// Selector de clase de licencia (details.clase-rapida): se cierra al pinchar fuera, con Escape o al abrir otro.
+(function () {
+    function cerrarAbiertos(excepto) {
+        document.querySelectorAll('details.clase-rapida[open]').forEach(function (d) {
+            if (d !== excepto) d.removeAttribute('open');
+        });
+    }
+    document.addEventListener('click', function (e) {
+        var dentro = e.target && e.target.closest ? e.target.closest('details.clase-rapida') : null;
+        cerrarAbiertos(dentro);
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarAbiertos(null);
+    });
+})();
