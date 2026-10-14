@@ -1506,9 +1506,11 @@
     /// <summary>
     /// While a carpeta is being searched physically (Archivos / Of. 43) or was declared missing, only the next steps of the
     /// flow are offered; every other state keeps the full list (legacy carpetas can be moved freely).
+    /// 1° Licencia is also a stage whose tray already names the estado, so its select only offers where it goes next.
     /// </summary>
     private static bool EsEtapaDeMovimiento(EstadoCarpeta e) =>
-        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta;
+        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta
+            or EstadoCarpeta.PrimeraLicencia;
 
     private static IEnumerable<EstadoCarpeta> OpcionesDeEstado(EstadoCarpeta actual)
     {
