@@ -1290,7 +1290,11 @@
                                     {
                                         <span class="badge warn" title="En cola para la próxima caja">En cola</span>
                                     }
-                                    <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
+                                    @* In 1° Licencia the only actions are the decision; double-click on the row still opens the panel. *@
+                                    @if (bandejaActiva != Bandeja.PorPreparar)
+                                    {
+                                        <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
+                                    }
                                 </td>
                                 <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
                             }
