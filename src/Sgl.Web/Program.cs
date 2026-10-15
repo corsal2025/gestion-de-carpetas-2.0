@@ -9,6 +9,7 @@ using Sgl.Web.Components;
 using Sgl.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService();
 
 // Machine-specific overrides (connection strings, provider). Never committed.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
