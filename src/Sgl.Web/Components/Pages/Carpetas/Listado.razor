@@ -523,13 +523,6 @@
         @if (bandejaActiva is Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43)
         {
             <div class="busqueda-bar" role="region" aria-label="Listado para búsqueda">
-                <span class="busqueda-icono" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                </span>
-                <span class="busqueda-texto">
-                    <strong>@total carpeta(s) por buscar</strong>
-                    <small>Imprima el listado, camine los estantes y marque «encontrada» o «no existe».</small>
-                </span>
                 <button type="button" class="btn-primary" disabled="@(total is null or 0 || cargandoListado)" @onclick="() => AbrirListadoBusquedaAsync(bandejaActiva!.Value, null)">
                     @(cargandoListado ? "Preparando…" : "Generar listado para búsqueda")
                 </button>
