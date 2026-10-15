@@ -1079,7 +1079,7 @@
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO", ColumnaEtapa],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", ColumnaEtapa],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
@@ -1247,7 +1247,6 @@
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasSinCarpeta)</td>
-                                    <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.SubidaConaset:
                                 case Bandeja.SubidaConF8:
