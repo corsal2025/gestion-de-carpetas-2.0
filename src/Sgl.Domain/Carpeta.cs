@@ -3,11 +3,12 @@ using System.Globalization;
 namespace Sgl.Domain;
 
 /// <summary>A citizen's license folder. Every mutation is recorded in <see cref="Historial"/>.</summary>
-public sealed class Carpeta
+public sealed partial class Carpeta
 {
     public const int MaxUsuarioLength = 100;
     public const int MaxIdoneidadLength = 200;
     public const int MaxComunaLength = 100;
+    public const int MaxCajaLength = 50;
 
     private readonly List<HistorialCambio> _historial = [];
 
@@ -42,6 +43,15 @@ public sealed class Carpeta
     /// Archivos u Of. 43; al pasar a cualquier otro estado se limpia automáticamente.
     /// </summary>
     public bool PendienteBusqueda { get; private set; }
+
+    /// <summary>License classes requested in this carpeta (optional, may be several).</summary>
+    public ClaseLicencia Clases { get; private set; }
+
+    /// <summary>When the carpeta was registered or imported into the system.</summary>
+    public DateTime FechaRegistro { get; private set; }
+
+    /// <summary>An open carpeta has no final decision yet (neither Otorgado nor Denegado).</summary>
+    public bool EstaAbierta => Decision == Decision.Pendiente;
 
     public IReadOnlyList<HistorialCambio> Historial => _historial;
 
@@ -79,6 +89,10 @@ public sealed class Carpeta
             IdoneidadMoral = idoneidadMoral,
             TipoTramite = tipoTramite,
             CajaArchivo = cajaArchivo,
+            FechaRegistro = now,
+            FechaEstadoActual = now,
+            // Never invented: a closed carpeta only has a closing date when the Excel brought its upload date.
+            FechaCierre = EsEstadoCierre(estado) || decision != Decision.Pendiente ? fechaSubida : null,
         };
         carpeta.Audit(now, "Sistema Importador", "Importacion", null, $"{sede} - {tipoTramite ?? estado.ToString()}");
         return carpeta;
@@ -86,8 +100,13 @@ public sealed class Carpeta
 
     public void AsignarCaja(string? nuevaCaja, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var caja = string.IsNullOrWhiteSpace(nuevaCaja) ? null : nuevaCaja.Trim();
+        if (caja?.Length > MaxCajaLength)
+        {
+            throw new DomainException($"El rótulo de caja excede {MaxCajaLength} caracteres.");
+        }
         if (caja != CajaArchivo)
         {
             Audit(now, usuario, nameof(CajaArchivo), CajaArchivo, caja);
@@ -97,11 +116,13 @@ public sealed class Carpeta
 
     public void AsignarComuna(string? nuevaComuna, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
-        var com = string.IsNullOrWhiteSpace(nuevaComuna) ? null : nuevaComuna.Trim();
-        if (com?.Length > MaxComunaLength)
+        string? com = null;
+        if (!string.IsNullOrWhiteSpace(nuevaComuna))
         {
-            throw new DomainException($"La comuna excede {MaxComunaLength} caracteres.");
+            com = ComunasChile.Normalizar(nuevaComuna)
+                ?? throw new DomainException("Comuna no reconocida: elija una de las 346 comunas de Chile de la lista.");
         }
         if (com != Comuna)
         {
@@ -112,8 +133,9 @@ public sealed class Carpeta
 
     public void ModificarFechaUltimaCarpeta(string? nuevaFecha, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
-        var f = string.IsNullOrWhiteSpace(nuevaFecha) ? null : nuevaFecha.Trim();
+        var f = NormalizarFechaUltimaCarpeta(nuevaFecha);
         if (f != FechaUltimaCarpeta)
         {
             Audit(now, usuario, nameof(FechaUltimaCarpeta), FechaUltimaCarpeta, f);
@@ -121,8 +143,13 @@ public sealed class Carpeta
         }
     }
 
+    /// <summary>Recognized dates are stored as ISO (what the date inputs and sorting expect); legacy free text is kept.</summary>
+    private static string? NormalizarFechaUltimaCarpeta(string? fecha) =>
+        string.IsNullOrWhiteSpace(fecha) ? null : SectorFisico.NormalizarIso(fecha) ?? fecha.Trim();
+
     public void ModificarObservacion(string? nuevaObservacion, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         var obs = string.IsNullOrWhiteSpace(nuevaObservacion) ? null : nuevaObservacion.Trim();
         if (obs?.Length > MaxIdoneidadLength)
@@ -136,11 +163,18 @@ public sealed class Carpeta
         }
     }
 
-    public static Carpeta Registrar(Ciudadano ciudadano, Sede sede, DateOnly fechaCitacion, string autor, DateTime now)
+    public static Carpeta Registrar(
+        Ciudadano ciudadano,
+        Sede sede,
+        DateOnly fechaCitacion,
+        string autor,
+        DateTime now,
+        ClaseLicencia clases = ClaseLicencia.Ninguna)
     {
         ArgumentNullException.ThrowIfNull(ciudadano);
         var usuario = RequireAutor(autor);
         RequireSede(sede);
+        RequireClases(clases);
 
         var carpeta = new Carpeta
         {
@@ -151,46 +185,64 @@ public sealed class Carpeta
             FechaCitacion = fechaCitacion,
             Estado = EstadoCarpeta.Citada,
             Decision = Decision.Pendiente,
+            Clases = clases,
+            FechaRegistro = now,
+            FechaEstadoActual = now,
         };
         carpeta.Audit(now, usuario, "Registro", null, $"{EstadoCarpeta.Citada} ({sede})");
+        if (clases != ClaseLicencia.Ninguna)
+        {
+            carpeta.Audit(now, usuario, nameof(ClaseLicencia), null, ClasesLicencia.Format(clases));
+        }
         return carpeta;
+    }
+
+    public void AsignarClases(ClaseLicencia clases, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        RequireClases(clases);
+        if (clases != Clases)
+        {
+            Audit(now, usuario, nameof(ClaseLicencia), NullIfEmpty(ClasesLicencia.Format(Clases)), NullIfEmpty(ClasesLicencia.Format(clases)));
+            Clases = clases;
+        }
+    }
+
+    private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
+
+    private static void RequireClases(ClaseLicencia clases)
+    {
+        if (!ClasesLicencia.IsValid(clases))
+        {
+            throw new DomainException("Clase de licencia inválida.");
+        }
     }
 
     public void CambiarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (!EstadoTransitions.CanTransition(Estado, nuevo))
         {
             throw new InvalidTransitionException(Estado, nuevo);
         }
 
-        Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
-        Estado = nuevo;
-        LimpiarPendienteBusquedaSiCorresponde(usuario, now);
-
-        var decision = EstadoTransitions.DecisionFor(nuevo);
-        if (decision != Decision)
-        {
-            Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
-            Decision = decision;
-        }
-
-        if (EsEstadoSubida(nuevo))
-        {
-            var hoy = DateOnly.FromDateTime(now);
-            if (FechaSubida != hoy)
-            {
-                Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
-                FechaSubida = hoy;
-            }
-        }
+        AplicarEstado(nuevo, usuario, now);
     }
+
+    public static bool EsCambioDomicilio(EstadoCarpeta estado) =>
+        estado is EstadoCarpeta.CambioDomicilio
+            or EstadoCarpeta.CambioDomicilioSolicitado
+            or EstadoCarpeta.CambioDomSubidoConaset
+            or EstadoCarpeta.CambioDomSubidoCorreo;
 
     public static bool PermiteBusquedaPendiente(EstadoCarpeta estado) =>
         estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43;
 
     public void MarcarPendienteBusqueda(bool valor, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (valor && !PermiteBusquedaPendiente(Estado))
         {
@@ -215,31 +267,14 @@ public sealed class Carpeta
 
     private static string SiNo(bool v) => v ? "Si" : "No";
 
+    /// <summary>Manual correction: any state, no transition check (the audit trail keeps who and when).</summary>
     public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (nuevo != Estado)
         {
-            Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
-            Estado = nuevo;
-            LimpiarPendienteBusquedaSiCorresponde(usuario, now);
-
-            var decision = EstadoTransitions.DecisionFor(nuevo);
-            if (decision != Decision)
-            {
-                Audit(now, usuario, nameof(Decision), Decision.ToString(), decision.ToString());
-                Decision = decision;
-            }
-
-            if (EsEstadoSubida(nuevo))
-            {
-                var hoy = DateOnly.FromDateTime(now);
-                if (FechaSubida != hoy)
-                {
-                    Audit(now, usuario, nameof(FechaSubida), FechaSubida?.ToString("yyyy-MM-dd"), hoy.ToString("yyyy-MM-dd"));
-                    FechaSubida = hoy;
-                }
-            }
+            AplicarEstado(nuevo, usuario, now);
         }
     }
 
@@ -257,6 +292,7 @@ public sealed class Carpeta
 
     public void CambiarDecision(Decision nueva, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         if (nueva != Decision)
         {
@@ -265,14 +301,17 @@ public sealed class Carpeta
 
             if (nueva is Decision.Otorgado or Decision.Denegado && FechaSubida is null)
             {
-                FechaSubida = DateOnly.FromDateTime(now);
+                FechaSubida = HoraChile.Fecha(now);
                 Audit(now, usuario, nameof(FechaSubida), null, FechaSubida.Value.ToString("yyyy-MM-dd"));
             }
+
+            AjustarFechaCierre(usuario, now);
         }
     }
 
     public void Editar(Sede sede, DateOnly fechaCitacion, DateOnly? fechaSubida, string? idoneidadMoral, string autor, DateTime now)
     {
+        RequireActiva();
         var usuario = RequireAutor(autor);
         RequireSede(sede);
         if (fechaSubida is { } subida && subida < fechaCitacion)
@@ -313,6 +352,7 @@ public sealed class Carpeta
 
     public void ModificarRut(Rut nuevoRut, Ciudadano? ciudadanoExistente, string autor, DateTime now)
     {
+        RequireActiva();
         ArgumentNullException.ThrowIfNull(nuevoRut);
         var usuario = RequireAutor(autor);
         if (Ciudadano.Rut != nuevoRut)

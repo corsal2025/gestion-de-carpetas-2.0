@@ -1,0 +1,57 @@
+@inject TimeProvider Reloj
+
+@* Entries per day over the last 7 days as bars (oldest to today). No axes: the baseline and a tooltip with the daily
+   values carry the meaning; a module without movements says so instead of drawing a flat line. *@
+@if (Valores.Count > 0)
+{
+    @if (Valores.All(v => v == 0))
+    {
+        <span class="spark-vacio" title="@Descripcion">Sin movimientos en 7 días</span>
+    }
+    else
+    {
+        <span class="spark-resumen" title="@Descripcion"><strong>@Valores.Sum()</strong> en 7 días</span>
+        <svg class="sparkline" viewBox="0 0 @Ancho @Alto" width="@Ancho" height="@Alto" role="img" aria-label="@Descripcion">
+            <title>@Descripcion</title>
+            @for (var i = 0; i < Valores.Count; i++)
+            {
+                var h = Valores[i] == 0 ? 1 : Math.Max(3, Valores[i] * (Alto - 4) / Maximo);
+                <rect class="spark-barra @(i == Valores.Count - 1 ? "hoy" : null) @(Valores[i] == 0 ? "cero" : null)"
+                      x="@X(i)" y="@((Alto - h).ToString("0.##", Inv))" width="@AnchoBarra" height="@h.ToString("0.##", Inv)" rx="1.2" />
+            }
+        </svg>
+    }
+}
+
+@code {
+    private const double Ancho = 56;
+    private const double Alto = 22;
+    private const double Hueco = 3;
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+    private static readonly System.Globalization.CultureInfo Cl = new("es-CL");
+
+    [Parameter, EditorRequired] public IReadOnlyList<int> Valores { get; set; } = [];
+
+    [Parameter] public string Etiqueta { get; set; } = "Entradas de los últimos 7 días";
+
+    private double AnchoBarra => (Ancho - Hueco * (Valores.Count - 1)) / Valores.Count;
+
+    private int Maximo => Math.Max(1, Valores.Max());
+
+    private string X(int i) => (i * (AnchoBarra + Hueco)).ToString("0.##", Inv);
+
+    private string Descripcion
+    {
+        get
+        {
+            var hoy = DateOnly.FromDateTime(Sgl.Domain.HoraChile.ALocal(Reloj.GetUtcNow().UtcDateTime));
+            var partes = Valores.Select((v, i) =>
+            {
+                var dia = hoy.AddDays(i - (Valores.Count - 1));
+                var nombre = i == Valores.Count - 1 ? "hoy" : dia.ToString("ddd d", Cl);
+                return $"{nombre}: {v}";
+            });
+            return $"{Etiqueta} — {string.Join(" · ", partes)}";
+        }
+    }
+}

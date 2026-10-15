@@ -1,0 +1,10 @@
+@* Layout of every module page: fixed side menu on the left, the module (its table) fills the rest. *@
+@inherits LayoutComponentBase
+@layout MainLayout
+
+<div class="modulo-shell">
+    <ModulosSidebar />
+    <div class="modulo-main">
+        @Body
+    </div>
+</div>

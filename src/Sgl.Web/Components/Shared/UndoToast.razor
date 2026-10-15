@@ -1,0 +1,90 @@
+@implements IDisposable
+
+@* Non-blocking confirmation with an undo window (R11). A new <Aviso> (new Token) restarts the countdown. *@
+@if (Aviso is { } aviso)
+{
+    <div class="toast-deshacer" role="status" aria-live="polite" data-token="@aviso.Token">
+        <span class="toast-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </span>
+        <span class="toast-texto">@aviso.Mensaje</span>
+        <button type="button" class="toast-btn" @onclick="DeshacerAsync" disabled="@ocupado">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+            Deshacer
+        </button>
+        <button type="button" class="toast-cerrar" aria-label="Cerrar aviso" @onclick="CerrarAsync">✕</button>
+        <span class="toast-barra" style="animation-duration: @(Segundos)s" aria-hidden="true"></span>
+    </div>
+}
+
+@code {
+    /// <summary>What to announce; null hides the toast. A different <see cref="AvisoDeshacer.Token"/> restarts the timer.</summary>
+    [Parameter] public AvisoDeshacer? Aviso { get; set; }
+
+    [Parameter] public int Segundos { get; set; } = 10;
+
+    [Parameter] public EventCallback<AvisoDeshacer> OnDeshacer { get; set; }
+
+    /// <summary>Raised when the toast ends without undo (timeout or closed).</summary>
+    [Parameter] public EventCallback<AvisoDeshacer> OnCerrar { get; set; }
+
+    private CancellationTokenSource? cuenta;
+    private Guid? tokenVigilado;
+    private bool ocupado;
+
+    protected override void OnParametersSet()
+    {
+        if (Aviso?.Token == tokenVigilado) return;
+        cuenta?.Cancel();
+        cuenta?.Dispose();
+        cuenta = null;
+        tokenVigilado = Aviso?.Token;
+        ocupado = false;
+        if (Aviso is { } aviso)
+        {
+            cuenta = new CancellationTokenSource();
+            _ = EsperarAsync(aviso, cuenta.Token);
+        }
+    }
+
+    private async Task EsperarAsync(AvisoDeshacer aviso, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(Segundos), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            if (tokenVigilado == aviso.Token) await OnCerrar.InvokeAsync(aviso);
+        });
+    }
+
+    private async Task DeshacerAsync()
+    {
+        if (Aviso is not { } aviso || ocupado) return;
+        ocupado = true;
+        cuenta?.Cancel();
+        await OnDeshacer.InvokeAsync(aviso);
+    }
+
+    private async Task CerrarAsync()
+    {
+        if (Aviso is not { } aviso) return;
+        cuenta?.Cancel();
+        await OnCerrar.InvokeAsync(aviso);
+    }
+
+    public void Dispose()
+    {
+        cuenta?.Cancel();
+        cuenta?.Dispose();
+    }
+
+    /// <summary>One announcement; <see cref="Datos"/> carries whatever the page needs to undo it.</summary>
+    public sealed record AvisoDeshacer(Guid Token, string Mensaje, Guid CarpetaId, PuntoRestauracionEstado Punto, EstadoCarpeta EstadoNuevo);
+}

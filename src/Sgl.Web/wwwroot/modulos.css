@@ -1,0 +1,607 @@
+/* ==========================================================================
+   MÓDULOS · Inicio (tarjetas), menú lateral, meta del día, alertas de duplicado.
+   Se carga después de theme.css. Tokens por grupo para claro y oscuro.
+   ========================================================================== */
+
+html {
+    --grupo-entrada: #26388c;
+    --grupo-entrada-soft: #e6e9f6;
+    --grupo-preparacion: #0a6b6b;
+    --grupo-preparacion-soft: #dff4f3;
+    --grupo-domicilio: #7a3fb8;
+    --grupo-domicilio-soft: #efe5fa;
+    --grupo-subidas: #8f4a06;
+    --grupo-subidas-soft: #fdf0e1;
+    --grupo-cierre: #4d5578;
+    --grupo-cierre-soft: #eceef5;
+    --sem-verde: #16a34a;
+    --sem-amarillo: #d4a10b;
+    --sem-rojo: #dc2626;
+    --alerta-bg: #fef2f2;
+    --alerta-borde: #fca5a5;
+    --alerta-texto: #991b1b;
+    --sidebar-ancho: 248px;
+    --sidebar-plegado: 56px;
+}
+
+html[data-theme="dark"] {
+    --grupo-entrada: #8fa2f0;
+    --grupo-entrada-soft: #1e2756;
+    --grupo-preparacion: #4fd1c5;
+    --grupo-preparacion-soft: #12343a;
+    --grupo-domicilio: #c4a1f0;
+    --grupo-domicilio-soft: #2b1f4a;
+    --grupo-subidas: #f6b866;
+    --grupo-subidas-soft: #3a2a12;
+    --grupo-cierre: #b9c0e0;
+    --grupo-cierre-soft: #232b55;
+    --sem-verde: #4ade80;
+    --sem-amarillo: #facc15;
+    --sem-rojo: #f87171;
+    --alerta-bg: #3b1414;
+    --alerta-borde: #7f1d1d;
+    --alerta-texto: #fecaca;
+}
+
+.grupo-entrada { --grupo: var(--grupo-entrada); --grupo-soft: var(--grupo-entrada-soft); }
+.grupo-preparacion { --grupo: var(--grupo-preparacion); --grupo-soft: var(--grupo-preparacion-soft); }
+.grupo-domicilio { --grupo: var(--grupo-domicilio); --grupo-soft: var(--grupo-domicilio-soft); }
+.grupo-subidas { --grupo: var(--grupo-subidas); --grupo-soft: var(--grupo-subidas-soft); }
+.grupo-cierre { --grupo: var(--grupo-cierre); --grupo-soft: var(--grupo-cierre-soft); }
+
+/* ---------- Semáforo ------------------------------------------------------- */
+.semaforo-punto {
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px var(--surface);
+}
+.semaforo-punto.semaforo-verde { background: var(--sem-verde); }
+.semaforo-punto.semaforo-amarillo { background: var(--sem-amarillo); }
+.semaforo-punto.semaforo-rojo { background: var(--sem-rojo); }
+.numero-animado { font-variant-numeric: tabular-nums; }
+
+/* ---------- Estructura de módulo: menú lateral + tabla --------------------- */
+html .content:has(> .modulo-shell) {
+    padding: 0;
+    overflow: hidden;
+}
+html .content:has(> .modulo-shell) > .modulo-shell {
+    max-width: none;
+    margin: 0;
+    width: 100%;
+}
+.modulo-shell {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+}
+.modulo-main {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0.35rem 1rem 0.4rem;
+    box-sizing: border-box;
+}
+.modulo-main > .page-container { flex: 1; min-height: 0; }
+/* La tabla ocupa todo el alto restante del módulo (sin cálculos fijos de alto). */
+.modulo-main .table-container,
+.modulo-main .table-container.standard-table,
+.modulo-main .table-container.expanded-table,
+.modulo-main .table-container.panel-colapsado {
+    flex: 1 1 auto;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 240px !important;
+}
+.modulo-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem 0.25rem 1.5rem;
+}
+.modulo-scroll > h1 { margin: 0.25rem 0 0.35rem; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+.modulo-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0; }
+.modulo-titulo { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--text-primary); }
+.modulo-titulo .muted { font-weight: 600; font-size: 1rem; color: var(--text-muted); }
+.modulo-busqueda { display: flex; gap: 0.4rem; }
+.modulo-busqueda input { min-width: 16rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-primary); }
+html .alert.success { padding: .7rem .9rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 600; }
+html[data-theme="dark"] .alert.success { background: #0f2e1b; border-color: #166534; color: #bbf7d0; }
+
+/* ---------- Menú lateral --------------------------------------------------- */
+.modulos-sidebar {
+    width: var(--sidebar-ancho);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-right: 1px solid var(--border-color);
+    min-height: 0;
+}
+.modulos-sidebar.plegado { width: var(--sidebar-plegado); }
+.sidebar-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; padding: 0.5rem 0.5rem 0.35rem; border-bottom: 1px solid var(--border-color); }
+.modulos-sidebar.plegado .sidebar-cabecera { justify-content: center; }
+.sidebar-inicio { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-primary); font-weight: 700; text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0.45rem; border-radius: var(--radius-sm); }
+.sidebar-inicio:hover { background: var(--surface-alt); }
+.modulos-sidebar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.sidebar-plegar { border: 1px solid var(--border-color); background: var(--surface-alt); color: var(--text-secondary); border-radius: var(--radius-sm); width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.sidebar-plegar:hover { color: var(--text-primary); border-color: var(--border-hover); }
+.sidebar-grupos { flex: 1; min-height: 0; overflow-y: auto; padding: 0.35rem 0.35rem 1rem; scrollbar-width: thin; }
+.sidebar-grupo { margin-bottom: 0.25rem; }
+.sidebar-grupo ul { list-style: none; margin: 0 0 0.3rem; padding: 0; }
+.sidebar-grupo-titulo {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    color: var(--grupo);
+    font: 800 0.72rem var(--font-ui);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.45rem 0.45rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+}
+.sidebar-grupo-titulo:hover { background: var(--grupo-soft); }
+.sidebar-grupo-nombre { flex: 1; }
+.sidebar-chevron { font-size: 0.75rem; color: var(--text-muted); }
+.sidebar-modulo {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.32rem 0.5rem 0.32rem 0.65rem;
+    margin: 1px 0;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-left: 3px solid transparent;
+}
+.sidebar-modulo:hover { background: var(--surface-alt); color: var(--text-primary); }
+.sidebar-modulo.activo { background: var(--grupo-soft); color: var(--text-primary); border-left-color: var(--grupo); }
+.sidebar-modulo-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-contador { font: 700 0.75rem var(--font-mono); color: var(--text-secondary); background: var(--surface-alt); border-radius: 999px; padding: 0.05rem 0.45rem; }
+.sidebar-modulo.activo .sidebar-contador { background: var(--grupo); color: var(--surface); }
+.modulos-sidebar.plegado .sidebar-grupo-titulo { justify-content: center; position: relative; padding: 0.5rem 0; }
+.modulos-sidebar.plegado .sidebar-grupo-titulo .semaforo-punto { position: absolute; top: 4px; right: 6px; width: 0.5rem; height: 0.5rem; }
+.modulos-sidebar.plegado .sidebar-modulo { justify-content: center; padding: 0.3rem 0; border-left-width: 0; }
+.sidebar-corto { font: 800 0.66rem var(--font-mono); color: var(--grupo); }
+
+/* ---------- Inicio --------------------------------------------------------- */
+html .content:not(:has(.page-container)) > .inicio { max-width: 1440px; }
+.inicio { display: flex; flex-direction: column; gap: 1rem; }
+.inicio-cabecera { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.inicio-cabecera h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.025em; }
+.inicio-cabecera p { margin: 0.25rem 0 0; }
+.inicio-grupo h2 { display: flex; align-items: center; gap: 0.45rem; margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grupo); }
+.inicio-grupo h2 svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.inicio-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.65rem; }
+.modulo-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem 0.85rem 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-top: 4px solid var(--grupo);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.modulo-tarjeta:hover, .modulo-tarjeta:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--grupo); }
+.tarjeta-nombre { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); line-height: 1.2; min-height: 2.05em; }
+.tarjeta-fila { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.tarjeta-contador { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); }
+.sparkline { width: 100%; height: 28px; color: var(--grupo); display: block; }
+
+/* Globo de Lico (uno, silenciable) */
+.lico-globo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    max-width: 440px;
+    padding: 0.55rem 2.2rem 0.55rem 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+.lico-globo .lico-slot { width: 46px; height: 46px; flex-shrink: 0; }
+.lico-globo .lico-slot svg { width: 100%; height: 100%; }
+.lico-globo p { margin: 0; font-weight: 600; color: var(--text-primary); font-size: 0.92rem; }
+.lico-silenciar { position: absolute; top: 6px; right: 8px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0.3rem; border-radius: 6px; }
+.lico-silenciar:hover { color: var(--text-primary); background: var(--surface-alt); }
+
+/* ---------- Meta del día --------------------------------------------------- */
+.meta-dia { background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.65rem 0.9rem; box-shadow: var(--shadow-sm); }
+.meta-dia-texto { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.4rem; }
+.meta-dia-texto strong { color: var(--text-primary); }
+.meta-pct { font: 700 0.85rem var(--font-mono); color: var(--text-muted); }
+.meta-dia-barra { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; border: 1px solid var(--border-color); }
+.meta-dia-barra > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--lico-cyan), var(--lico-green)); transition: width 0.5s ease; }
+.meta-celebra { font-weight: 800; color: var(--sem-verde); animation: meta-brillo 1.6s ease-out 1; }
+.meta-completa .meta-dia-barra > span { background: var(--sem-verde); }
+.meta-completa { border-color: var(--sem-verde); }
+.meta-dia-delgada { padding: 0.3rem 0.65rem; box-shadow: none; margin-top: 0.3rem; }
+.meta-dia-delgada .meta-dia-texto { font-size: 0.8rem; margin-bottom: 0.2rem; }
+.meta-dia-delgada .meta-dia-barra { height: 5px; }
+@keyframes meta-brillo {
+    0% { opacity: 0; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+/* ---------- Por clasificar: clase obligatoria y alertas -------------------- */
+.clase-rapida { position: relative; display: inline-block; }
+.clase-rapida > summary { list-style: none; cursor: pointer; padding: 0.2rem 0.55rem; border: 1px solid var(--border-color); border-radius: 999px; font-size: 0.78rem; font-weight: 700; background: var(--surface); color: var(--text-primary); white-space: nowrap; }
+.clase-rapida > summary::-webkit-details-marker { display: none; }
+.clase-rapida.sin-clase > summary { border-style: dashed; color: var(--text-muted); }
+.clase-rapida[open] > summary { border-color: var(--ring); }
+.clase-rapida-panel { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; padding: 0.45rem; background: var(--surface-raised); border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); width: 15rem; }
+.clase-rapida-panel .clases-selector { flex-wrap: wrap; }
+.clasif-lote-bar { flex-wrap: wrap; }
+.clasif-lote-clase { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); }
+
+.td-alerta-dup { background: var(--alerta-bg) !important; }
+.alerta-dup { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.2rem 0; min-width: 15rem; white-space: normal; }
+.alerta-dup-texto { color: var(--alerta-texto); font-weight: 700; font-size: 0.78rem; line-height: 1.25; }
+.alerta-dup-texto::before { content: "⚠ "; }
+.alerta-dup-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--alerta-texto); }
+.btn-alerta, .btn-alerta-sec { border-radius: 999px; padding: 0.12rem 0.55rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; border: 1px solid var(--alerta-borde); }
+.btn-alerta { background: var(--sem-rojo); color: #fff; border-color: var(--sem-rojo); }
+.btn-alerta-sec { background: var(--surface); color: var(--alerta-texto); }
+.btn-alerta:disabled, .btn-alerta-sec:disabled { opacity: 0.55; cursor: not-allowed; }
+html[data-theme="dark"] .btn-alerta { color: #1b0a0a; }
+
+.imp-tile-alerta { border-color: var(--alerta-borde) !important; background: var(--alerta-bg) !important; }
+.imp-tile-alerta .imp-tile-num { color: var(--alerta-texto); }
+.dup-resolver { flex-wrap: wrap; border-top: 1px dashed var(--border-color); padding-top: 0.4rem; }
+.btn-peligro { background: var(--sem-rojo) !important; border-color: var(--sem-rojo) !important; color: #fff !important; }
+
+/* ---------- Foco visible (teclado) ------------------------------------------ */
+.modulo-tarjeta:focus-visible, .sidebar-modulo:focus-visible, .sidebar-grupo-titulo:focus-visible,
+.sidebar-plegar:focus-visible, .sidebar-inicio:focus-visible, .lico-silenciar:focus-visible,
+.btn-alerta:focus-visible, .btn-alerta-sec:focus-visible, .clase-rapida > summary:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* ---------- Pantallas estrechas ------------------------------------------- */
+@media (max-width: 900px) {
+    .modulos-sidebar { width: var(--sidebar-plegado); }
+    .modulos-sidebar .sidebar-modulo-nombre, .modulos-sidebar .sidebar-grupo-nombre,
+    .modulos-sidebar .sidebar-chevron, .modulos-sidebar .sidebar-contador, .modulos-sidebar .sidebar-inicio span { display: none; }
+    .modulos-sidebar .sidebar-modulo, .modulos-sidebar .sidebar-grupo-titulo { justify-content: center; }
+    .modulos-sidebar .sidebar-cabecera { flex-direction: column; }
+    .inicio-tarjetas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modulos-sidebar, .modulo-tarjeta, .meta-dia-barra > span { transition: none; }
+    .modulo-tarjeta:hover { transform: none; }
+    .meta-celebra { animation: none; }
+}
+.fieldset-limpio { border: 0; padding: 0; margin: 0; min-width: 0; } .fieldset-limpio:disabled { opacity: .6; }
+
+/* ---------- Contraste AA en filas y barras (claro/oscuro × filas suaves/Excel) ---------------- */
+/* Por clasificar no tiene color de Excel: superficie del tema con su texto. */
+html body .data-table tbody tr.estado-porclasificar td {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+}
+html body .data-table tbody tr.estado-porclasificar td.td-alerta-dup { background: var(--alerta-bg) !important; }
+html body .data-table tbody tr.estado-porclasificar td .alerta-dup-texto {
+    color: var(--alerta-texto) !important;
+    -webkit-text-fill-color: var(--alerta-texto) !important;
+}
+/* Colores del Excel con texto blanco que no llegaban a 4.5:1: mismo tono, un punto más oscuro. */
+html[data-rows="classic"] body .data-table tbody tr.estado-cambiodomicilio td { background: #2c6aa3 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenarchivos td { background: #3d7a29 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-noexistecarpeta td { background: #c80000 !important; }
+html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenoficina43 td { background: #6450a6 !important; }
+
+/* Barra de clasificación en lote */
+html body .clasif-lote-bar { background: var(--surface-alt) !important; color: var(--text-primary) !important; border-color: var(--border-color) !important; }
+html body .clasif-lote-bar > span { color: var(--text-primary) !important; }
+html body .clasif-lote-bar .clasif-lote-clase { color: var(--text-secondary) !important; }
+
+/* Botones de alerta y de acción: color explícito (las filas suaves/Excel fuerzan el color del texto) */
+html[data-rows] body .data-table tbody tr td .btn-alerta.btn-alerta,
+html body .btn-alerta { background: #b91c1c !important; border-color: #b91c1c !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-theme="dark"][data-rows] body .data-table tbody tr td .btn-alerta.btn-alerta,
+html[data-theme="dark"] body .btn-alerta { background: #fca5a5 !important; border-color: #fca5a5 !important; color: #3b0a0a !important; -webkit-text-fill-color: #3b0a0a !important; }
+html[data-rows] body .data-table tbody tr td .btn-alerta-sec.btn-alerta-sec,
+html body .btn-alerta-sec { background: var(--surface) !important; color: var(--alerta-texto) !important; -webkit-text-fill-color: var(--alerta-texto) !important; }
+/* Verde del tema un tono más oscuro: texto blanco a ≥ 4.5:1 en cualquier combinación de tema/filas. */
+html[data-rows] body .data-table tbody tr td .btn-action-caja.btn-action-caja { background: #15803d !important; box-shadow: 0 2px 6px rgb(21 128 61 / .35) !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-theme="dark"] body .badge.conaset { background: #1e3a8a !important; color: #dbeafe !important; -webkit-text-fill-color: #dbeafe !important; }
+html[data-theme="dark"] body .btn-primary { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html body .content .muted, html body .content p.muted { color: var(--text-muted) !important; }
+/* Texto secundario de la marca sobre el degradado de la barra superior y etiquetas pequeñas de Estadísticas. */
+html .topbar .brand-text { color: #eef1fc; }
+html body .est-dl dt, html body .dup-campos dt { color: var(--text-secondary); }
+/* Texto atenuado del tema claro: >= 4.5:1 también sobre el lienzo (#eef2fb), no solo sobre blanco. */
+html:not([data-theme="dark"]) { --text-muted: #556079; }
+
+/* ---------- Distintivos dentro de filas: color propio, independiente del color que fuerzan las filas ---------- */
+/* Las filas suaves/Excel imponen `color` a todo el contenido de la celda; los elementos con fondo propio
+   (badges, enlace de caja) fijan aquí fondo y texto juntos, con tokens para claro y oscuro (≥ 4.5:1). */
+html {
+    --b-def-bg: #e6e9f6; --b-def-fg: #26388c;
+    --b-ok-bg: #dcfce7; --b-ok-fg: #166534;
+    --b-bad-bg: #fee2e2; --b-bad-fg: #991b1b;
+    --b-warn-bg: #fef3c7; --b-warn-fg: #92400e;
+    --b-info-bg: #e0f2fe; --b-info-fg: #075985;
+    --b-conaset-bg: #e0f2fe; --b-conaset-fg: #075985;
+    --b-primera-bg: #f3e8ff; --b-primera-fg: #6b21a8;
+    --b-domicilio-bg: #ede9fe; --b-domicilio-fg: #4c1d95;
+    --b-muted-bg: #eef1f8; --b-muted-fg: #475069;
+    --b-caja-bg: #fef9c3; --b-caja-fg: #713f12; --b-caja-bd: #facc15;
+}
+html[data-theme="dark"] {
+    --b-def-bg: #24306b; --b-def-fg: #dfe5ff;
+    --b-ok-bg: #12351f; --b-ok-fg: #86efac;
+    --b-bad-bg: #431818; --b-bad-fg: #fca5a5;
+    --b-warn-bg: #43310c; --b-warn-fg: #fcd34d;
+    --b-info-bg: #0c3350; --b-info-fg: #bae6fd;
+    --b-conaset-bg: #0c3350; --b-conaset-fg: #bae6fd;
+    --b-primera-bg: #3b1d5c; --b-primera-fg: #e9d5ff;
+    --b-domicilio-bg: #2e1f5e; --b-domicilio-fg: #ddd6fe;
+    --b-muted-bg: #232b55; --b-muted-fg: #c3c9e6;
+    --b-caja-bg: #3d330c; --b-caja-fg: #fde68a; --b-caja-bd: #a16207;
+}
+html body .badge { --bb: var(--b-def-bg); --bf: var(--b-def-fg); }
+html body .badge.ok { --bb: var(--b-ok-bg); --bf: var(--b-ok-fg); }
+html body .badge.bad { --bb: var(--b-bad-bg); --bf: var(--b-bad-fg); }
+html body .badge.warn { --bb: var(--b-warn-bg); --bf: var(--b-warn-fg); }
+html body .badge.info { --bb: var(--b-info-bg); --bf: var(--b-info-fg); }
+html body .badge.conaset { --bb: var(--b-conaset-bg); --bf: var(--b-conaset-fg); }
+html body .badge.primera { --bb: var(--b-primera-bg); --bf: var(--b-primera-fg); }
+html body .badge.domicilio { --bb: var(--b-domicilio-bg); --bf: var(--b-domicilio-fg); }
+html body .badge.muted-badge { --bb: var(--b-muted-bg); --bf: var(--b-muted-fg); }
+html[data-rows] body .data-table tbody tr td .badge.badge,
+html body .badge.badge {
+    background: var(--bb) !important;
+    color: var(--bf) !important;
+    -webkit-text-fill-color: var(--bf) !important;
+}
+html[data-rows] body .data-table tbody tr td .btn-action-caja-ok.btn-action-caja-ok,
+html body .btn-action-caja-ok {
+    background: var(--b-caja-bg) !important;
+    border-color: var(--b-caja-bd) !important;
+    color: var(--b-caja-fg) !important;
+    -webkit-text-fill-color: var(--b-caja-fg) !important;
+}
+/* Contenido de botones dentro de filas Excel/suaves: el texto interno sigue al botón, no a la fila. */
+html[data-rows] body .data-table tbody tr td .btn-action-caja.btn-action-caja * { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail,
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail *,
+html body .btn-detail { color: var(--brand-primary) !important; -webkit-text-fill-color: var(--brand-primary) !important; }
+/* Títulos de tarjetas antiguas con color fijo de tema claro */
+html[data-theme="dark"] body .content .card h3, html[data-theme="dark"] body .content .card h4 { color: var(--text-primary) !important; }
+/* Filas seleccionadas / abiertas en el panel lateral: fondo azul claro fijo y texto oscuro en todo su contenido,
+   aunque el estado (Excel/suave) imponga otro fondo o texto blanco. Especificidad alta a propósito: debe ganar
+   también a las reglas de columnas fijas (RUT/nombre) de theme.css. */
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-selected.row-selected.row-selected td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-selected.row-selected.row-selected td[class] {
+    background: #bfdbfe !important;
+}
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-drawer-active.row-drawer-active.row-drawer-active td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr.row-drawer-active.row-drawer-active.row-drawer-active td[class] {
+    background: #dbeafe !important;
+}
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td,
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td[class],
+html[data-rows][data-theme] body .data-table.data-table.data-table tbody tr:is(.row-selected, .row-drawer-active):is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-alerta):not(.btn-alerta-sec):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja-ok):not(select):not(input) {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+html[data-rows] body .data-table tbody tr td .btn-detail.btn-detail,
+html body .btn-detail { background: var(--surface) !important; border: 1px solid var(--border-color) !important; }
+/* Contador del botón PDF por sector */
+html body .btn-pdf-pill .pdf-count-badge { background: #1e3a8a !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+html body .btn-pdf-pill .pdf-count-badge.gold { background: #78350f !important; }
+
+/* Barra superior: contraste >= 4.5:1 también sobre el extremo claro del degradado. */
+html body .topbar .user-block .autor { color: #e8ecff; }
+html body .main-nav .nav-item.active,
+html body .main-nav .nav-item.nav-carpetas.active,
+html body .main-nav .nav-item.nav-cajas.active,
+html body .main-nav .nav-item.nav-importar.active { background: rgb(8 16 58 / 0.42) !important; }
+
+/* Fila "Citada" en tema oscuro con filas Excel: fondo de superficie oscuro, texto claro (antes texto oscuro fijo, 1.29:1). */
+html[data-theme="dark"][data-rows="classic"] body .data-table tbody tr.estado-citada td,
+html[data-theme="dark"][data-rows="classic"] body .data-table tbody tr.estado-citada td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja-ok):not(select):not(input) {
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Valor heredado no válido como fecha (columna "Última carpeta" del Excel antiguo): se muestra como texto. */
+html body .legacy-ultima { display: inline-block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; vertical-align: middle; margin-right: .25rem; color: var(--text-secondary); }
+
+/* ================= Ronda 5: estados interactivos (fila marcada, panel abierto, barra de lote, placeholders) =============
+   `:not(#sgl)` sube la especificidad por encima de las reglas de estado/columnas fijas anteriores sin más !important en cascada. */
+html {
+    --ph: #566179;                 /* placeholder y lupa: >= 4.5:1 sobre blanco y sobre el lienzo claro */
+    --sel-bg: #bfdbfe; --sel-fg: #0f172a;
+    --drw-bg: #dbeafe;
+    --ctl-bg: #ffffff; --ctl-fg: #0f172a; --ctl-bd: #94a3b8;
+}
+html[data-theme="dark"] {
+    --ph: #aab4d8;
+    --sel-bg: #1e3a6e; --sel-fg: #eef2ff;
+    --drw-bg: #1a2f5c;
+    --ctl-bg: #0e1530; --ctl-fg: #eef2ff; --ctl-bd: #4a5a99;
+}
+html:not(#sgl) body input:not(.x)::placeholder,
+html:not(#sgl) body textarea:not(.x)::placeholder {
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
+}
+html:not(#sgl) body .user-block .autor input::placeholder { color: #c9d1f5 !important; -webkit-text-fill-color: #c9d1f5 !important; }
+html:not(#sgl) body .search-icon { color: var(--ph) !important; opacity: 1 !important; }
+
+/* Filas marcadas / con panel abierto: un solo fondo y un solo texto por tema, también en Por clasificar y en filas Excel. */
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td:not(.td-alerta-dup),
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-selected td[class]:not(.td-alerta-dup) { background: var(--sel-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td:not(.td-alerta-dup),
+html:not(#sgl)[data-rows] body .data-table tbody tr.row-drawer-active td[class]:not(.td-alerta-dup) { background: var(--drw-bg) !important; }
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td,
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td *:not(.badge):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(.btn-detail):not(.btn-detail *):not(.btn-alerta):not(.btn-alerta-sec):not(.sector-vacio):not(.sector-cell):not(.alerta-dup-texto):not(.alerta-dup-texto *) {
+    color: var(--sel-fg) !important; -webkit-text-fill-color: var(--sel-fg) !important;
+}
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td :is(select, input:not([type="checkbox"]), summary, .clase-chip, .clase-chip *) {
+    background: var(--ctl-bg) !important; color: var(--ctl-fg) !important; -webkit-text-fill-color: var(--ctl-fg) !important;
+    border-color: var(--ctl-bd) !important;
+}
+html:not(#sgl)[data-rows] body .data-table tbody tr:is(.row-selected, .row-drawer-active) td input::placeholder {
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
+}
+
+/* Barra de clasificación en lote y selects de tabla fuera de una fila marcada: control con fondo y texto propios. */
+html:not(#sgl) body .clasif-lote-bar select,
+html:not(#sgl) body .clasif-lote-bar input {
+    background: var(--ctl-bg) !important; color: var(--ctl-fg) !important; -webkit-text-fill-color: var(--ctl-fg) !important;
+    border: 1px solid var(--ctl-bd) !important;
+}
+html[data-theme="dark"]:not(#sgl) body select.excel-select:not([class*="x-"]) { color-scheme: dark; }
+
+/* Sector vacío: distintivo neutro con fondo propio (antes gris sobre colores de fila). */
+html:not(#sgl) body .sector-cell.sector-vacio {
+    background: var(--b-muted-bg) !important; color: var(--b-muted-fg) !important; -webkit-text-fill-color: var(--b-muted-fg) !important;
+    padding: 0 .4rem; border-radius: 6px;
+}
+/* Comuna deshabilitada: hereda el texto de la fila (que ya cumple el contraste de su fondo). */
+html:not(#sgl) body input.comuna-input-disabled {
+    color: inherit !important; -webkit-text-fill-color: currentColor !important; opacity: 1 !important;
+}
+/* Botón de anulación (peligro) con texto blanco legible en ambos temas. */
+html:not(#sgl) body .btn-peligro, html:not(#sgl) body .btn-small.btn-peligro {
+    background: #b91c1c !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; border-color: #991b1b !important;
+}
+/* Historial: texto "nuevo" en verde AA sobre blanco. */
+html:not([data-theme="dark"]):not(#sgl) body .audit-new { color: #15803d; }
+/* Acta de caja: documento impreso, texto secundario >= 4.5:1 sobre papel blanco. */
+html:not(#sgl) body .acta-signs small, html:not(#sgl) body .acta-foot, html:not(#sgl) body .acta-foot span { color: #475569 !important; -webkit-text-fill-color: #475569 !important; }
+/* Enlaces de retorno sobre el lienzo claro. */
+html:not([data-theme="dark"]):not(#sgl) body .content p > a[href="carpetas"],
+html:not([data-theme="dark"]):not(#sgl) body main p > a[href="."],
+html:not([data-theme="dark"]):not(#sgl) body main p > a[href="/"] { color: #26388c; }
+
+/* Marcadores de posición dentro de la tabla: mismo token que el resto (sin opacidad extra). */
+html:not(#sgl) body .data-table tbody tr td input::placeholder {
+    color: var(--ph) !important; -webkit-text-fill-color: var(--ph) !important; opacity: 1 !important;
+}
+
+/* Menú acordeón: los módulos del grupo abierto cuelgan de su título como un árbol con línea guía */
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul { margin-left: 18px; border-left: 1.5px solid var(--border-strong, #cbd5e1); }
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li { position: relative; padding-left: 10px; }
+.modulos-sidebar:not(.plegado) .sidebar-grupo > ul > li::before { content: ""; position: absolute; left: 0; top: 50%; width: 8px; border-top: 1.5px solid var(--border-strong, #cbd5e1); }
+
+/* Selector de clase abierto: la fila que lo contiene queda por encima de las siguientes y el panel no se corta ni se monta */
+html body .data-table tbody tr:has(.clase-rapida[open]) { position: relative; z-index: 40; }
+html body .data-table tbody td:has(.clase-rapida[open]) { position: relative; z-index: 41; overflow: visible; }
+.clase-rapida[open] { z-index: 42; }
+.clase-rapida-panel { z-index: 60; width: max-content; max-width: 19rem; }
+.clase-rapida-panel .clases-selector { gap: 0.4rem; }
+.clase-rapida-panel .clase-chip { flex: 0 0 auto; white-space: nowrap; }
+/* El aviso de lo que falta debe poder partirse en varias líneas, no cortarse */
+html body .data-table .clasif-sugerencia { white-space: normal; max-width: 300px; line-height: 1.35; overflow-wrap: anywhere; }
+
+/* Duplicado en "Por clasificar": toda la fila en rojo y parpadeando; con movimiento reducido queda fija y marcada */
+@keyframes fila-duplicada-parpadeo { 0%, 100% { background-color: #fecaca; } 50% { background-color: #ef4444; } }
+html body .data-table tbody tr.fila-duplicada > td { background-color: #fecaca !important; color: #7f1d1d !important; animation: fila-duplicada-parpadeo 1.1s ease-in-out infinite; }
+html body .data-table tbody tr.fila-duplicada > td * { color: #7f1d1d; }
+html body .data-table tbody tr.fila-duplicada > td:first-child { box-shadow: inset 4px 0 0 #b91c1c; }
+@media (prefers-reduced-motion: reduce) { html body .data-table tbody tr.fila-duplicada > td { animation: none; background-color: #fecaca !important; } }
+.btn-alerta-buscar { display: inline-block; margin-top: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: #b91c1c; color: #fff !important; font-size: 0.78rem; font-weight: 700; text-decoration: none; white-space: normal; }
+.btn-alerta-buscar:hover, .btn-alerta-buscar:focus-visible { background: #7f1d1d; }
+.icono-buscar-dup { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: 1px solid #b91c1c; background: #fff; color: #b91c1c !important; flex: 0 0 auto; }
+.icono-buscar-dup:hover, .icono-buscar-dup:focus-visible { background: #b91c1c; color: #fff !important; }
+
+/* Las columnas se adaptan a su contenido: los selectores de estado/decisión/clasificar no tienen ancho máximo fijo y nunca cortan el texto */
+html body .data-table.bandeja-table .excel-select,
+html body .data-table.bandeja-table .clasif-cell .excel-select { width: auto !important; min-width: max-content !important; max-width: none !important; text-overflow: clip; }
+html body .data-table.bandeja-table .clasif-cell { max-width: none; flex-wrap: nowrap; }
+html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip; }
+
+/* Menú lateral: los nombres de módulo nunca se cortan; si no caben en una línea, bajan a la siguiente */
+:root { --sidebar-ancho: 280px; }
+.sidebar-modulo-nombre { overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.2; overflow-wrap: anywhere; }
+.modulos-sidebar:not(.plegado) .sidebar-modulo { align-items: center; min-height: 2rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
+
+/* Menú lateral: solo el puntito de cada módulo lleva el color original del Excel de su estado.
+   El semáforo (atrasos) pasa al contador: amarillo = atención, rojo = con atrasos. */
+.sidebar-modulo { --punto-excel: transparent; }
+.sidebar-modulo.m-porpreparar { --punto-excel: #FF00FF; }
+.sidebar-modulo.m-seencuentraenarchivos { --punto-excel: #3d7a29; }
+.sidebar-modulo.m-seencuentraenof43 { --punto-excel: #6450a6; }
+.sidebar-modulo.m-sincarpetaf8 { --punto-excel: #c80000; }
+.sidebar-modulo.m-crearcertificado { --punto-excel: #C27BA0; }
+.sidebar-modulo.m-canjelicextranjera { --punto-excel: #E2E8F0; }
+.sidebar-modulo.m-cambiodomicilio { --punto-excel: #2c6aa3; }
+.sidebar-modulo.m-cambiodomiciliosolicitado { --punto-excel: #9FC5E8; }
+.sidebar-modulo.m-subidaconaset { --punto-excel: #1155CC; }
+.sidebar-modulo.m-subidaconf8 { --punto-excel: #BF9000; }
+.sidebar-modulo.m-subidaconoficio { --punto-excel: #FFE599; }
+.sidebar-modulo.m-cambiodomsubidoconaset { --punto-excel: #00FFFF; }
+.sidebar-modulo.m-cambiodomsubidocorreo { --punto-excel: #D0E0E3; }
+.sidebar-modulo[class*=" m-"] .semaforo-punto { background: var(--punto-excel) !important; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1.5px #475569; flex: 0 0 auto; }
+html[data-theme="dark"] .sidebar-modulo[class*=" m-"] .semaforo-punto { box-shadow: 0 0 0 1.5px #e2e8f0; }
+.sidebar-contador.sem-amarillo { background: #fef3c7; color: #78350f; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
+.sidebar-contador.sem-rojo { background: #fecaca; color: #7f1d1d; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
+html[data-theme="dark"] .sidebar-contador.sem-amarillo { background: #78350f; color: #fef3c7; }
+html[data-theme="dark"] .sidebar-contador.sem-rojo { background: #7f1d1d; color: #fecaca; }
+
+/* Selectores de estado de las bandejas: aire a la derecha para que el texto nunca roce la flecha */
+html body .data-table.bandeja-table .excel-select { padding-right: 34px !important; }
+
+/* Por preparar: Otorgada / Denegada cierran la carpeta. Colores fijos (verde / rojo) legibles sobre cualquier fila Excel. */
+html body .data-table tbody tr .btn-decision { display: inline-flex; align-items: center; padding: 0.32rem 0.75rem; border-radius: 999px; font: 700 0.8rem var(--font-sans, inherit); cursor: pointer; border: 1px solid rgba(0, 0, 0, 0.2) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); margin-right: 0.25rem; }
+html body .data-table tbody tr .btn-otorgada { background: #15803d !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-denegada { background: #b91c1c !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-decision:hover:not(:disabled) { filter: brightness(1.12); }
+html body .data-table tbody tr .btn-decision:disabled { opacity: 0.55; cursor: progress; }
+
+/* Archivos / Of. 43: "En proceso de búsqueda" (lupa amarilla parpadeando + días buscando). */
+html body .data-table.bandeja-table td.td-pend { white-space: nowrap; }
+html body .data-table.bandeja-table .en-busqueda-dias { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+/* Las filas con color de Excel fuerzan texto blanco: la lupa inactiva debe seguir visible sobre su fondo blanco. */
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) { color: #1b2140 !important; -webkit-text-fill-color: #1b2140 !important; }
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) svg { stroke: #1b2140 !important; }
+
+/* No existe carpeta: "Enviar a F8" / "Enviar con oficio" (azul, legible sobre la fila roja). */
+html body .data-table tbody tr .btn-enviar { background: #1d4ed8 !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+
+/* Crear certificado / oficio: fecha de la última petición junto al botón "Pedir". */
+html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+
+/* Gráficas SVG de Estadísticas (componente Grafico) */
+.grafico { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.grafico figcaption { font-weight: 700; color: var(--text-primary); }
+.grafico-svg { width: 100%; height: auto; display: block; }
+.grafico .gr-grid { stroke: var(--border-color, #e2e8f0); stroke-width: 1; }
+.grafico .gr-texto { fill: var(--text-secondary, #475569); font-size: 11px; }
+.grafico .gl-linea { fill: none; stroke-width: 2.5; }
+.grafico-leyenda { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.82rem; color: var(--text-secondary, #475569); }
+.grafico-leyenda .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.3rem; vertical-align: middle; }
+.grafico-dona { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 1rem; align-items: center; }
+.grafico-leyenda-col { flex-direction: column; }
+.est-graficas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.est-graficas .est-ancha { grid-column: 1 / -1; }
+@media (max-width: 640px) { .grafico-dona { grid-template-columns: 1fr; } }
+
+/* Lupa de duplicado y lápiz (observación) siempre juntos, a la derecha del nombre. */
+.nombre-acciones { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }

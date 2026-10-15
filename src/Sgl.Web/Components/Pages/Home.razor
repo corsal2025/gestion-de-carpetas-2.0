@@ -1,6 +1,10 @@
 @page "/"
-@inject NavigationManager Nav
+@inject NavigationManager Navegacion
+
+<PageTitle>@TituloPagina.De("Por clasificar")</PageTitle>
 
 @code {
-    protected override void OnInitialized() => Nav.NavigateTo("carpetas", replace: true);
+    // The system opens straight into the working screen (side menu + module); there is no cards landing page.
+    protected override void OnInitialized() =>
+        Navegacion.NavigateTo("carpetas?bandeja=PorClasificar", replace: true);
 }

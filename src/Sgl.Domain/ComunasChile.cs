@@ -1,4 +1,7 @@
-namespace Sgl.Web;
+﻿using System.Globalization;
+using System.Text;
+
+namespace Sgl.Domain;
 
 /// <summary>Las 346 comunas de Chile (division 2018, con region de Nuble), en mayusculas como las guarda el importador.</summary>
 public static class ComunasChile
@@ -66,6 +69,38 @@ public static class ComunasChile
         "Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos", "Antártica", "Porvenir", "Primavera",
         "Timaukel", "Natales", "Torres del Paine");
 
+    private static readonly Dictionary<string, string> PorClave =
+        Todas.GroupBy(Clave).ToDictionary(g => g.Key, g => g.First());
+
+    // Spellings seen in the legacy Excel that are not the official name.
+    private static readonly Dictionary<string, string> Alias = new()
+    {
+        ["CON CON"] = "Concón",
+        ["LA CALERA"] = "Calera",
+        ["CASA BLANCA"] = "Casablanca",
+        ["LLAY LLAY"] = "Llaillay",
+    };
+
+    /// <summary>Official spelling for a comuna typed in any case/with or without accents; null when unknown.</summary>
+    public static string? Normalizar(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        var clave = Clave(texto.Replace('-', ' '));
+        if (PorClave.TryGetValue(clave, out var oficial)) return oficial;
+        return Alias.TryGetValue(clave, out var alias) ? PorClave.GetValueOrDefault(Clave(alias)) : null;
+    }
+
+    private static string Clave(string texto)
+    {
+        var d = texto.Trim().ToUpperInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(d.Length);
+        foreach (var ch in d)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark) sb.Append(ch);
+        }
+        return string.Join(' ', sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
     private static IReadOnlyList<string> Construir(params string[] nombres) =>
-        nombres.Select(n => n.ToUpperInvariant()).Distinct().Order(StringComparer.Create(new System.Globalization.CultureInfo("es-CL"), true)).ToArray();
+        nombres.Select(n => n.ToUpperInvariant()).Distinct().Order(StringComparer.Create(new CultureInfo("es-CL"), true)).ToArray();
 }

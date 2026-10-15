@@ -3,8 +3,9 @@
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject NavigationManager Nav
+@inject DuplicadosNotifier DuplicadosNotifier
 
-<PageTitle>Nueva carpeta</PageTitle>
+<PageTitle>@TituloPagina.De("Nueva carpeta")</PageTitle>
 
 <h1>Nueva carpeta</h1>
 
@@ -34,6 +35,12 @@
     <label>Fecha de citación
         <InputDate @bind-Value="model.FechaCitacion" />
     </label>
+    <div class="field">
+        <span>Clase de licencia</span>
+        <ClasesSelector @bind-Value="model.Clases" />
+    </div>
+
+    <AvisoDuplicado Verificacion="duplicado" Ocupado="guardando" OnConfirmar="ConfirmarDuplicadoAsync" OnCancelar="() => duplicado = null" />
 
     @if (error is not null)
     {
@@ -41,7 +48,7 @@
     }
 
     <div class="actions">
-        <button type="submit">Registrar</button>
+        <button type="submit" disabled="@guardando">Registrar</button>
         <a class="button secondary" href="carpetas">Cancelar</a>
     </div>
 </EditForm>
@@ -49,25 +56,43 @@
 @code {
     private readonly FormModel model = new();
     private string? error;
+    private VerificacionDuplicadoDto? duplicado;
+    private bool guardando;
 
-    private async Task GuardarAsync()
+    private Task GuardarAsync() => RegistrarAsync(confirmarDuplicado: false);
+
+    private Task ConfirmarDuplicadoAsync() => RegistrarAsync(confirmarDuplicado: true);
+
+    private async Task RegistrarAsync(bool confirmarDuplicado)
     {
         error = null;
+        duplicado = null;
         if (!Autor.HasNombre)
         {
             error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de registrar.";
             return;
         }
 
+        guardando = true;
         try
         {
             var id = await Carpetas.RegistrarAsync(new RegistrarCarpetaCommand(
-                model.Rut, model.Nombre, model.Apellido, model.Sede, model.FechaCitacion, Autor.Nombre));
+                model.Rut, model.Nombre, model.Apellido, model.Sede, model.FechaCitacion, Autor.Nombre,
+                model.Clases, confirmarDuplicado));
+            DuplicadosNotifier.Notify();
             Nav.NavigateTo($"carpetas/{id}");
+        }
+        catch (CarpetaDuplicadaException ex)
+        {
+            duplicado = ex.Verificacion;
         }
         catch (DomainException ex)
         {
             error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
         }
     }
 
@@ -84,6 +109,8 @@
 
         public Sede Sede { get; set; } = Sede.AvArgentina;
 
-        public DateOnly FechaCitacion { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DateOnly FechaCitacion { get; set; } = HoraChile.Fecha(DateTime.UtcNow);
+
+        public ClaseLicencia Clases { get; set; }
     }
 }

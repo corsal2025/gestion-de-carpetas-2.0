@@ -11,6 +11,12 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<HistorialCambio> Historial => Set<HistorialCambio>();
 
+    public DbSet<RevisionDuplicado> RevisionesDuplicado => Set<RevisionDuplicado>();
+
+    public DbSet<ImportacionLog> ImportacionLogs => Set<ImportacionLog>();
+
+    public DbSet<IntegridadCorrida> IntegridadCorridas => Set<IntegridadCorrida>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -46,6 +52,23 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.Comuna).HasMaxLength(Carpeta.MaxComunaLength);
             b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.Property(c => c.PendienteBusqueda).HasDefaultValue(false);
+            b.Property(c => c.Clases).HasColumnName("ClasesLicencia").HasDefaultValue(ClaseLicencia.Ninguna);
+            b.Property(c => c.FechaRegistro);
+            b.Property(c => c.TramiteAgenda).HasConversion<string>().HasMaxLength(30);
+            b.Property(c => c.HoraCita);
+            b.Property(c => c.Anulada).HasDefaultValue(false);
+            b.Property(c => c.MotivoAnulacion).HasMaxLength(MotivosAnulacion.MaxLength);
+            b.Property(c => c.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
+            b.Property(c => c.AnuladaEn);
+            b.Property(c => c.FechaEstadoActual);
+            b.Property(c => c.FechaCierre);
+            b.Property(c => c.FechaImpresion);
+            b.Property(c => c.FechaPeticion);
+            // Soft delete: cancelled carpetas vanish from every query (modules, counts, statistics, duplicates).
+            // Only the "Anuladas" view, restore and import idempotency opt out with IgnoreQueryFilters().
+            b.HasQueryFilter(c => !c.Anulada);
+            b.HasIndex(c => c.Anulada);
+            b.HasIndex(c => new { c.CiudadanoId, c.Decision });
             b.HasMany(c => c.Historial).WithOne().HasForeignKey(h => h.CarpetaId).OnDelete(DeleteBehavior.Cascade);
             b.Navigation(c => c.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
             b.HasIndex(c => c.Sede);
@@ -53,6 +76,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasIndex(c => c.CajaArchivo);
             b.HasIndex(c => c.TipoTramite);
             b.HasIndex(c => c.Comuna);
+            b.HasIndex(c => new { c.FechaCitacion, c.Id });
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>
@@ -64,6 +88,33 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(h => h.Campo).HasMaxLength(50).IsRequired();
             b.Property(h => h.Anterior).HasMaxLength(250);
             b.Property(h => h.Nuevo).HasMaxLength(250);
+            b.HasIndex(h => h.Fecha);
+        });
+
+        modelBuilder.Entity<ImportacionLog>(b =>
+        {
+            b.ToTable("ImportacionLogs");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Usuario).HasMaxLength(ImportacionLog.MaxUsuarioLength).IsRequired();
+            b.HasIndex(i => i.Fecha);
+        });
+
+        modelBuilder.Entity<IntegridadCorrida>(b =>
+        {
+            b.ToTable("IntegridadCorridas");
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Origen).HasMaxLength(IntegridadCorrida.MaxOrigenLength).IsRequired();
+            b.Property(i => i.Detalle).HasMaxLength(IntegridadCorrida.MaxDetalleLength).IsRequired();
+            b.HasIndex(i => i.Fecha);
+        });
+
+        modelBuilder.Entity<RevisionDuplicado>(b =>
+        {
+            b.ToTable("RevisionesDuplicado");
+            b.HasKey(r => r.CiudadanoId);
+            b.Property(r => r.CiudadanoId).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(r => r.RevisadoPor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
+            b.HasOne<Ciudadano>().WithMany().HasForeignKey(r => r.CiudadanoId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

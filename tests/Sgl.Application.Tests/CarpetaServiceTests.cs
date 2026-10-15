@@ -47,7 +47,7 @@ public sealed class CarpetaServiceTests : IDisposable
     public async Task Registrar_reuses_existing_ciudadano_with_same_rut()
     {
         await _db.NewService().RegistrarAsync(Cmd(rut: "12345678-5"));
-        await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5", sede: Sede.Placilla));
+        await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5", sede: Sede.Placilla) with { ConfirmarDuplicado = true });
 
         await using var ctx = _db.NewContext();
         Assert.Equal(1, await ctx.Ciudadanos.CountAsync());
@@ -169,7 +169,7 @@ public sealed class CarpetaServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Listar_paginates_with_total_count()
+    public async Task Listar_returns_requested_range_with_total_count()
     {
         string[] ruts = ["11111111-1", "7654321-6", "10000013-K", "12345678-5", "22222222-2"];
         foreach (var rut in ruts)
@@ -177,24 +177,60 @@ public sealed class CarpetaServiceTests : IDisposable
             await _db.NewService().RegistrarAsync(Cmd(rut: rut));
         }
 
-        var page2 = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Page: 2, PageSize: 2));
-        var page3 = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Page: 3, PageSize: 2));
+        var rango = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Skip: 2, Take: 2));
+        var cola = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Skip: 4, Take: 2));
 
-        Assert.Equal(5, page2.Total);
-        Assert.Equal(2, page2.Items.Count);
-        Assert.Single(page3.Items);
-        Assert.Equal(3, page2.TotalPages);
+        Assert.Equal(5, rango.Total);
+        Assert.Equal(2, rango.Items.Count);
+        Assert.Single(cola.Items);
+        Assert.Equal(5, cola.Total);
     }
 
     [Fact]
-    public async Task Listar_clamps_invalid_paging_values()
+    public async Task Listar_without_take_returns_every_matching_row()
+    {
+        string[] ruts = ["11111111-1", "7654321-6", "10000013-K", "12345678-5", "22222222-2"];
+        foreach (var rut in ruts)
+        {
+            await _db.NewService().RegistrarAsync(Cmd(rut: rut));
+        }
+
+        var todo = await _db.NewService().ListarAsync(new ListarCarpetasQuery());
+
+        Assert.Equal(5, todo.Total);
+        Assert.Equal(5, todo.Items.Count);
+    }
+
+    [Fact]
+    public async Task Listar_consecutive_ranges_cover_the_full_list_without_gaps_or_repeats()
+    {
+        string[] ruts = ["11111111-1", "7654321-6", "10000013-K", "12345678-5", "22222222-2"];
+        foreach (var rut in ruts)
+        {
+            await _db.NewService().RegistrarAsync(Cmd(rut: rut));
+        }
+
+        var todo = (await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Select(i => i.Id).ToList();
+        var porRangos = new List<Guid>();
+        for (var skip = 0; skip < 5; skip += 2)
+        {
+            porRangos.AddRange((await _db.NewService().ListarAsync(new ListarCarpetasQuery(Skip: skip, Take: 2))).Items.Select(i => i.Id));
+        }
+
+        Assert.Equal(todo, porRangos);
+    }
+
+    [Fact]
+    public async Task Listar_normalizes_negative_range_values()
     {
         await _db.NewService().RegistrarAsync(Cmd());
 
-        var result = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Page: 0, PageSize: 10_000));
+        var vacio = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Skip: -5, Take: -1));
+        var desdeInicio = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Skip: -5, Take: 10));
 
-        Assert.Equal(1, result.Page);
-        Assert.Equal(ListarCarpetasQuery.MaxPageSize, result.PageSize);
+        Assert.Empty(vacio.Items);
+        Assert.Equal(1, vacio.Total);
+        Assert.Single(desdeInicio.Items);
     }
 
     [Fact]
@@ -283,5 +319,26 @@ public sealed class CarpetaServiceTests : IDisposable
 
         await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SeEncuentraEnArchivos, "ana");
         Assert.False((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().PendienteBusqueda);
+    }
+
+    [Fact]
+    public async Task GuardarComuna_outside_cambio_domicilio_throws_and_persists_nothing()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().GuardarComunaAsync(id, "Maipu", "ana"));
+
+        Assert.Null((await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
+    }
+
+    [Fact]
+    public async Task GuardarComuna_in_cambio_domicilio_persists()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.CambioDomicilio, "ana");
+
+        await _db.NewService().GuardarComunaAsync(id, "Maipu", "ana");
+
+        Assert.Equal("MAIPÚ", (await _db.NewService().ListarAsync(new ListarCarpetasQuery())).Items.Single().Comuna);
     }
 }

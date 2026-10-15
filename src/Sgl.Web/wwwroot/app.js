@@ -164,7 +164,11 @@ window.updatePdfPageSize = function (size) {
 };
 
 // Disparador de impresión del navegador para PDF
-window.printPdfDocument = function () {
+window.printPdfDocument = function (titulo) {
+    var previo = document.title;
+    if (titulo) document.title = titulo;
+    var restaurar = function () { document.title = previo; window.removeEventListener('afterprint', restaurar); };
+    window.addEventListener('afterprint', restaurar);
     window.print();
 };
 
@@ -568,8 +572,48 @@ window.printPdfDocument = function () {
             save('sgl-rows', next);
             syncRowsButton();
         },
+        // Preferencias por navegador (menú lateral, Lico silenciado). Sin almacenamiento: null / no-op.
+        leer: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        guardar: function (k, v) { save(k, v); },
+        scrollTablaArriba: function () { var t = document.querySelector('.modulo-main .table-container'); if (t) t.scrollTop = 0; },
+        // Transición suave de un contador; respeta prefers-reduced-motion.
+        animarNumero: function (el, desde, hasta) {
+            // Writes into Blazor's own text node (never replaces it), and a newer call cancels an older one,
+            // so the rendered value always ends up being the latest one.
+            var nodo = el && el.firstChild;
+            if (!nodo || nodo.nodeType !== 3) return;
+            var fmt = new Intl.NumberFormat('es-CL');
+            var token = (el.__animToken || 0) + 1; el.__animToken = token;
+            var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reducir || desde === hasta) { nodo.nodeValue = fmt.format(hasta); return; }
+            var inicio = null, dur = 450;
+            function paso(t) {
+                if (el.__animToken !== token) return;
+                if (inicio === null) inicio = t;
+                var p = Math.min(1, (t - inicio) / dur), e = 1 - Math.pow(1 - p, 3);
+                nodo.nodeValue = fmt.format(Math.round(desde + (hasta - desde) * e));
+                if (p < 1) requestAnimationFrame(paso);
+            }
+            requestAnimationFrame(paso);
+        },
     };
     // El botón se vuelve a renderizar con Blazor: sincronizar su estado al cambiar el DOM.
     new MutationObserver(syncRowsButton).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('DOMContentLoaded', syncRowsButton);
+})();
+
+// Selector de clase de licencia (details.clase-rapida): se cierra al pinchar fuera, con Escape o al abrir otro.
+(function () {
+    function cerrarAbiertos(excepto) {
+        document.querySelectorAll('details.clase-rapida[open]').forEach(function (d) {
+            if (d !== excepto) d.removeAttribute('open');
+        });
+    }
+    document.addEventListener('click', function (e) {
+        var dentro = e.target && e.target.closest ? e.target.closest('details.clase-rapida') : null;
+        cerrarAbiertos(dentro);
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') cerrarAbiertos(null);
+    });
 })();

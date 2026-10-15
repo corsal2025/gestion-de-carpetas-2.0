@@ -1,0 +1,51 @@
+@* Horizontal bar chart rendered as a semantic table: readable by screen readers and in both themes. *@
+@if (Filas.Count == 0)
+{
+    <p class="est-sin-datos">@SinDatos</p>
+}
+else
+{
+    <table class="est-barras">
+        <caption class="visually-hidden">@Titulo</caption>
+        <thead class="visually-hidden">
+            <tr><th scope="col">@ColumnaEtiqueta</th><th scope="col">@ColumnaValor</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var f in Filas)
+            {
+                <tr>
+                    <th scope="row" class="est-barra-etq">
+                        @if (f.Href is not null)
+                        {
+                            <a href="@f.Href">@f.Etiqueta</a>
+                        }
+                        else
+                        {
+                            @f.Etiqueta
+                        }
+                    </th>
+                    <td class="est-barra-celda">
+                        <span class="est-barra @Variante" style="width:@Ancho(f.Valor)" aria-hidden="true"></span>
+                        <span class="est-barra-num">@f.Texto</span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    public sealed record Fila(string Etiqueta, double Valor, string Texto, string? Href = null);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Fila> Filas { get; set; } = [];
+    [Parameter] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string ColumnaEtiqueta { get; set; } = "Categoría";
+    [Parameter] public string ColumnaValor { get; set; } = "Cantidad";
+    [Parameter] public string Variante { get; set; } = string.Empty;
+    [Parameter] public string SinDatos { get; set; } = "Sin datos para los filtros seleccionados.";
+
+    private double Max => Filas.Count == 0 ? 0 : Filas.Max(f => f.Valor);
+
+    private string Ancho(double v) =>
+        Max <= 0 ? "0%" : $"{Math.Max(1, v / Max * 100).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}%";
+}

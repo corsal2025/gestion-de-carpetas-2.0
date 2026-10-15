@@ -1,0 +1,563 @@
+@page "/estadisticas"
+@using Sgl.Application.Estadisticas
+@inject EstadisticasService Servicio
+@inject NavigationManager Nav
+@inject TimeProvider Reloj
+
+<PageTitle>@TituloPagina.De("Estadísticas")</PageTitle>
+
+<div class="est-encabezado">
+    <div>
+        <h1>Estadísticas</h1>
+        <p class="muted">Indicadores agregados de las carpetas. Cada tarjeta abre el listado con la bandeja y los filtros correspondientes. No se muestran datos personales.</p>
+    </div>
+    <a class="btn-secondary est-exportar" href="@UrlExportar" download>Exportar a Excel</a>
+</div>
+
+<form class="card est-filtros" @onsubmit="AplicarAsync" @onsubmit:preventDefault aria-label="Filtros globales">
+    <label>
+        Sede
+        <select @bind="sedeTexto">
+            <option value="">Todas</option>
+            @foreach (var s in Enum.GetValues<Sede>())
+            {
+                <option value="@s">@Labels.Of(s)</option>
+            }
+        </select>
+    </label>
+    <label>
+        Citación desde
+        <input type="date" @bind="desde" />
+    </label>
+    <label>
+        Citación hasta
+        <input type="date" @bind="hasta" />
+    </label>
+    <label>
+        Sin subir hace más de (días)
+        <input type="number" min="1" max="3650" @bind="diasSinSubir" />
+    </label>
+    <div class="est-filtros-acciones">
+        <button type="submit" class="btn-primary">Aplicar</button>
+        <button type="button" class="btn-secondary" @onclick="LimpiarAsync">Limpiar</button>
+    </div>
+    <p class="est-nota">El rango de fechas filtra carpetas por fecha de citación y los indicadores del historial (búsquedas, cajas, uso) por fecha del movimiento.</p>
+</form>
+
+@if (error is not null)
+{
+    <div class="alert-banner est-error" role="alert">@error</div>
+}
+else if (datos is null)
+{
+    <div class="loading-state" role="status"><div class="spinner"></div> Calculando estadísticas…</div>
+}
+else
+{
+    var k = datos.Kpis;
+    var a = datos.Actuales;
+    <section class="est-kpis" aria-label="Indicadores principales">
+        <a class="est-kpi" href="@Url("todas", desdeOverride: InicioMes)">
+            <span class="est-kpi-etq">Subidas este mes</span>
+            <span class="est-kpi-valor">@N(k.SubidasEsteMes)</span>
+            <span class="est-kpi-sub">desde el @InicioMes.ToString("dd-MM-yyyy")</span>
+        </a>
+        <a class="est-kpi est-kpi-rojo" href="@Url("todas")">
+            <span class="est-kpi-etq">Carpetas atrasadas</span>
+            <span class="est-kpi-valor">@N(k.CarpetasAtrasadas)</span>
+            <span class="est-kpi-sub">semáforo rojo en bandejas abiertas</span>
+        </a>
+        <a class="est-kpi" href="@Url("PorPreparar")">
+            <span class="est-kpi-etq">Búsquedas abiertas</span>
+            <span class="est-kpi-valor">@N(k.BusquedasAbiertas)</span>
+            <span class="est-kpi-sub">pendientes de búsqueda hoy</span>
+        </a>
+        <a class="est-kpi" href="@Url("todas")">
+            <span class="est-kpi-etq">Mediana citación → subida</span>
+            <span class="est-kpi-valor">@(k.MedianaDiasCitacionSubida is { } m ? $"{m:0.#} días" : "—")</span>
+            <span class="est-kpi-sub">@N(a.CitacionSubida.Muestras) carpetas subidas</span>
+        </a>
+    </section>
+
+        var gmeses = SubidasPorMesTotal();
+        var gdecMes = a.DecisionPorMes;
+        var gestados = a.EstadoPorSede.GroupBy(e => e.Clave).OrderByDescending(g => g.Sum(x => x.Cantidad)).ToList();
+        var gdecSede = a.DecisionPorSede;
+        var gcambios = a.CambiosDomicilio;
+        var gu = datos.Uso;
+        var gar = datos.Archivo;
+        var gb = datos.Busquedas;
+
+        var eMeses = gmeses.Select(x => NombreMes(x.Anio, x.Mes)).ToList();
+        var sMeses = new List<Grafico.SerieGrafico>
+        {
+            new("Conaset", gmeses.Select(x => (double)x.Conaset).ToList()),
+            new("F8", gmeses.Select(x => (double)x.F8).ToList()),
+            new("Oficio", gmeses.Select(x => (double)x.Oficio).ToList()),
+            new("Correo", gmeses.Select(x => (double)x.Correo).ToList()),
+            new("Otra", gmeses.Select(x => (double)x.Otra).ToList()),
+        };
+        var eEstados = gestados.Select(g => EtiquetaEstado(g.Key)).ToList();
+        var sEstados = new List<Grafico.SerieGrafico> { new("Carpetas", gestados.Select(g => (double)g.Sum(x => x.Cantidad)).ToList()) };
+        var eDecMes = gdecMes.Select(d => NombreMes(d.Anio, d.Mes)).ToList();
+        var sDecMes = new List<Grafico.SerieGrafico>
+        {
+            new("Otorgados", gdecMes.Select(d => (double)d.Otorgados).ToList()),
+            new("Denegados", gdecMes.Select(d => (double)d.Denegados).ToList()),
+        };
+        var eDecSede = gdecSede.Select(d => Labels.Of(d.Sede)).ToList();
+        var sDecSede = new List<Grafico.SerieGrafico>
+        {
+            new("Otorgados", gdecSede.Select(d => (double)d.Otorgados).ToList()),
+            new("Denegados", gdecSede.Select(d => (double)d.Denegados).ToList()),
+        };
+        var eCambios = gcambios.Select(c => Labels.Of(c.Sede)).ToList();
+        var sCambios = new List<Grafico.SerieGrafico>
+        {
+            new("Solicitados", gcambios.Select(c => (double)c.Solicitados).ToList()),
+            new("Subidos", gcambios.Select(c => (double)c.Subidos).ToList()),
+        };
+        var eArchivo = gar.PorMes.Select(m => NombreMes(m.Anio, m.Mes)).ToList();
+        var sArchivo = new List<Grafico.SerieGrafico>
+        {
+            new("Carpetas archivadas", gar.PorMes.Select(m => (double)m.CarpetasArchivadas).ToList()),
+            new("Cajas cerradas", gar.PorMes.Select(m => (double)m.CajasCerradas).ToList()),
+        };
+        var eBusq = new List<string> { "Encontradas en Archivo", "Encontradas en Of. 43", "No encontradas", "Abiertas" };
+        var sBusq = new List<Grafico.SerieGrafico> { new("Búsquedas", new List<double> { gb.EncontradasArchivo, gb.EncontradasOficina43, gb.NoEncontradas, gb.Abiertas }) };
+        var eDias = gu.CambiosPorDia.Select(c => FormatoDia(c.Clave)).ToList();
+        var sDias = new List<Grafico.SerieGrafico> { new("Cambios", gu.CambiosPorDia.Select(c => (double)c.Cantidad).ToList()) };
+        var eComunas = a.ComunasTop.Select(c => c.Clave).ToList();
+        var sComunas = new List<Grafico.SerieGrafico> { new("Carpetas", a.ComunasTop.Select(c => (double)c.Cantidad).ToList()) };
+        var eClase = gu.ClasePorSede.Select(c => Labels.Of(c.Sede)).ToList();
+        var sClase = new List<Grafico.SerieGrafico>
+        {
+            new("Con clase", gu.ClasePorSede.Select(c => (double)c.ConClase).ToList()),
+            new("Sin clase", gu.ClasePorSede.Select(c => (double)c.SinClase).ToList()),
+        };
+    <h2 class="est-seccion">Gráficas</h2>
+    <div class="est-graficas">
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Subidas por mes y vía" Tipo="@Grafico.GraficoTipo.BarrasApiladas" Etiquetas="@eMeses" Series="@sMeses" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Estado de las carpetas" Tipo="@Grafico.GraficoTipo.Dona" Etiquetas="@eEstados" Series="@sEstados" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Decisiones por mes (otorgados y denegados)" Tipo="@Grafico.GraficoTipo.Lineas" Etiquetas="@eDecMes" Series="@sDecMes" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Otorgados y denegados por sede" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eDecSede" Series="@sDecSede" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Cambios de domicilio: solicitados vs subidos" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eCambios" Series="@sCambios" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Archivo: carpetas archivadas y cajas cerradas por mes" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eArchivo" Series="@sArchivo" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Búsquedas físicas" Tipo="@Grafico.GraficoTipo.Dona" Etiquetas="@eBusq" Series="@sBusq" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Cambios por día" Tipo="@Grafico.GraficoTipo.Lineas" Etiquetas="@eDias" Series="@sDias" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Comunas con más carpetas" Tipo="@Grafico.GraficoTipo.BarrasHorizontales" Etiquetas="@eComunas" Series="@sComunas" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Clase de licencia por sede" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eClase" Series="@sClase" />
+        </article>
+    </div>
+
+    <h2 class="est-seccion">1° Licencia y citadas</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Citadas sin subir hace más de @a.DiasSinSubir días</h3><a href="@Url("PorPreparar", hastaOverride: Hoy.AddDays(-a.DiasSinSubir))">Ver carpetas →</a></header>
+            <BarrasTabla Titulo="Citadas sin subir por sede" ColumnaEtiqueta="Sede" Variante="rojo"
+                         Filas="@a.CitadasSinSubir.Select(s => new BarrasTabla.Fila(Labels.Of(s.Sede), s.Cantidad, N(s.Cantidad), Url("PorPreparar", sede: s.Sede, hastaOverride: Hoy.AddDays(-a.DiasSinSubir)))).ToList()" />
+        </article>
+        <article class="card est-card">
+            <header><h3>Carpetas por estado actual</h3><a href="@Url("todas")">Ver todas →</a></header>
+            <BarrasTabla Titulo="Carpetas por estado" ColumnaEtiqueta="Estado"
+                         Filas="@EstadosAgrupados().Select(e => new BarrasTabla.Fila(Labels.Of(e.Estado), e.N, N(e.N), UrlEstado(e.Estado))).ToList()" />
+            <details class="est-detalle">
+                <summary>Detalle por sede</summary>
+                <table class="est-tabla">
+                    <thead><tr><th scope="col">Sede</th><th scope="col">Estado</th><th scope="col" class="num">Carpetas</th></tr></thead>
+                    <tbody>
+                        @foreach (var e in a.EstadoPorSede)
+                        {
+                            <tr><td>@Labels.Of(e.Sede)</td><td>@EtiquetaEstado(e.Clave)</td><td class="num">@N(e.Cantidad)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        </article>
+        <article class="card est-card">
+            <header><h3>Comunas de procedencia (top 15)</h3></header>
+            <BarrasTabla Titulo="Carpetas por comuna" ColumnaEtiqueta="Comuna"
+                         Filas="@a.ComunasTop.Select(c => new BarrasTabla.Fila(c.Clave, c.Cantidad, N(c.Cantidad))).ToList()"
+                         SinDatos="Aún no hay comunas registradas." />
+        </article>
+        <article class="card est-card">
+            <header><h3>Personas con más de una carpeta abierta</h3><a href="duplicados">Revisar duplicados →</a></header>
+            <p class="est-grande">@N(a.PersonasConVariasAbiertas)</p>
+            <p class="muted">Ciudadanos con dos o más carpetas sin decisión final.</p>
+        </article>
+    </div>
+
+    <h2 class="est-seccion">Subidas</h2>
+    <div class="est-grid">
+        <article class="card est-card est-ancha">
+            <header><h3>Subidas por mes y vía</h3><span class="est-links-subida">Ver: <a href="@Url("SubidaConaset")">Conaset</a> · <a href="@Url("SubidaConF8")">F8</a> · <a href="@Url("SubidaConOficio")">Oficio</a> · <a href="@Url("CambioDomSubidoConaset")">C. dom. Conaset</a> · <a href="@Url("CambioDomSubidoCorreo")">C. dom. correo</a></span></header>
+            @if (a.SubidasPorMes.Count == 0)
+            {
+                <p class="est-sin-datos">Sin subidas para los filtros seleccionados.</p>
+            }
+            else
+            {
+                var meses = SubidasPorMesTotal();
+                var max = Math.Max(1, meses.Max(x => x.Total));
+                <ul class="est-leyenda" aria-label="Leyenda de vías">
+                    <li><span class="sw via-conaset"></span>Conaset</li><li><span class="sw via-f8"></span>F8</li>
+                    <li><span class="sw via-oficio"></span>Oficio</li><li><span class="sw via-correo"></span>Correo</li><li><span class="sw via-otra"></span>Otra</li>
+                </ul>
+                <table class="est-barras est-apiladas">
+                    <caption class="visually-hidden">Subidas por mes, apiladas por vía</caption>
+                    <thead><tr><th scope="col">Mes</th><th scope="col">Subidas por vía</th></tr></thead>
+                    <tbody>
+                        @foreach (var x in meses)
+                        {
+                            <tr>
+                                <th scope="row" class="est-barra-etq">@NombreMes(x.Anio, x.Mes)</th>
+                                <td class="est-barra-celda">
+                                    <span class="est-pila" style="width:@Pct(x.Total, max)" aria-hidden="true">
+                                        <span class="via-conaset" style="flex-grow:@x.Conaset"></span><span class="via-f8" style="flex-grow:@x.F8"></span>
+                                        <span class="via-oficio" style="flex-grow:@x.Oficio"></span><span class="via-correo" style="flex-grow:@x.Correo"></span>
+                                        <span class="via-otra" style="flex-grow:@x.Otra"></span>
+                                    </span>
+                                    <span class="est-barra-num">@N(x.Total) <small>(Conaset @N(x.Conaset) · F8 @N(x.F8) · Oficio @N(x.Oficio) · Correo @N(x.Correo) · Otra @N(x.Otra))</small></span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <details class="est-detalle">
+                    <summary>Detalle por sede</summary>
+                    <table class="est-tabla">
+                        <thead><tr><th scope="col">Mes</th><th scope="col">Sede</th><th scope="col" class="num">Conaset</th><th scope="col" class="num">F8</th><th scope="col" class="num">Oficio</th><th scope="col" class="num">Correo</th><th scope="col" class="num">Otra</th><th scope="col" class="num">Total</th></tr></thead>
+                        <tbody>
+                            @foreach (var s in a.SubidasPorMes)
+                            {
+                                <tr><td>@NombreMes(s.Anio, s.Mes)</td><td>@Labels.Of(s.Sede)</td><td class="num">@N(s.Conaset)</td><td class="num">@N(s.F8)</td><td class="num">@N(s.Oficio)</td><td class="num">@N(s.Correo)</td><td class="num">@N(s.Otra)</td><td class="num">@N(s.Total)</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </details>
+            }
+        </article>
+        <article class="card est-card">
+            <header><h3>Días entre citación y subida</h3></header>
+            <dl class="est-dl">
+                <div><dt>Promedio</dt><dd>@Dias(a.CitacionSubida.Promedio)</dd></div>
+                <div><dt>Mediana</dt><dd>@Dias(a.CitacionSubida.Mediana)</dd></div>
+                <div><dt>Máximo</dt><dd>@Dias(a.CitacionSubida.Maximo)</dd></div>
+            </dl>
+            <h4>10 más lentas</h4>
+            @if (a.MasLentas.Count == 0)
+            {
+                <p class="est-sin-datos">Sin datos.</p>
+            }
+            else
+            {
+                <table class="est-tabla">
+                    <thead><tr><th scope="col">Sede</th><th scope="col">Citación</th><th scope="col">Subida</th><th scope="col" class="num">Días</th><th scope="col"><span class="visually-hidden">Acción</span></th></tr></thead>
+                    <tbody>
+                        @foreach (var l in a.MasLentas)
+                        {
+                            <tr><td>@Labels.Of(l.Sede)</td><td>@l.FechaCitacion.ToString("dd-MM-yyyy")</td><td>@l.FechaSubida.ToString("dd-MM-yyyy")</td><td class="num">@N(l.Dias)</td><td><a href="carpetas?bandeja=todas&abrir=@l.Id">Abrir</a></td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </article>
+    </div>
+
+    <h2 class="est-seccion">Cambio de domicilio</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Solicitados vs subidos</h3><span><a href="@Url("CambioDomicilio")">Cambio de domicilio →</a> · <a href="@Url("CambioDomicilioSolicitado")">Solicitados →</a></span></header>
+            <table class="est-tabla">
+                <thead><tr><th scope="col">Sede</th><th scope="col" class="num">Solicitados (pendientes)</th><th scope="col" class="num">Subidos</th></tr></thead>
+                <tbody>
+                    @foreach (var c in a.CambiosDomicilio)
+                    {
+                        <tr><td><a href="@Url("CambioDomicilio", sede: c.Sede)">@Labels.Of(c.Sede)</a></td><td class="num">@N(c.Solicitados)</td><td class="num">@N(c.Subidos)</td></tr>
+                    }
+                    <tr class="est-total"><td>Total</td><td class="num">@N(a.CambiosDomicilio.Sum(c => c.Solicitados))</td><td class="num">@N(a.CambiosDomicilio.Sum(c => c.Subidos))</td></tr>
+                </tbody>
+            </table>
+        </article>
+    </div>
+
+    <h2 class="est-seccion">Cerradas</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Decisión final por sede</h3><a href="@Url("Cerradas")">Ver cerradas →</a></header>
+            <table class="est-tabla">
+                <thead><tr><th scope="col">Sede</th><th scope="col" class="num">Otorgados</th><th scope="col" class="num">Denegados</th><th scope="col" class="num">Tasa de otorgamiento</th></tr></thead>
+                <tbody>
+                    @foreach (var d in a.DecisionPorSede)
+                    {
+                        <tr><td><a href="@Url("Cerradas", sede: d.Sede)">@Labels.Of(d.Sede)</a></td><td class="num">@N(d.Otorgados)</td><td class="num">@N(d.Denegados)</td><td class="num">@Porc(d.TasaOtorgamiento)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </article>
+        <article class="card est-card">
+            <header><h3>Decisiones por mes</h3></header>
+            <p class="est-nota">Fecha de cierre según historial; en carpetas antiguas se usa la fecha de subida.</p>
+            <BarrasTabla Titulo="Decisiones por mes" ColumnaEtiqueta="Mes"
+                         Filas="@a.DecisionPorMes.Select(d => new BarrasTabla.Fila(NombreMes(d.Anio, d.Mes), d.Otorgados + d.Denegados, $"{N(d.Otorgados)} otorgados · {N(d.Denegados)} denegados")).ToList()" />
+        </article>
+    </div>
+
+    var b = datos.Busquedas;
+    <h2 class="est-seccion">Sin carpeta (F8) y búsqueda</h2>
+    <div class="est-grid">
+        <article class="card est-card est-ancha">
+            <header><h3>Búsquedas de carpetas</h3><a href="@Url("SinCarpetaF8")">Ver sin carpeta (F8) →</a></header>
+            @if (!b.HayDatos)
+            {
+                <p class="est-sin-datos">Sin datos aún: todavía no se han registrado marcas de «pendiente de búsqueda» en el periodo. Los indicadores aparecerán cuando el equipo comience a usarlas.</p>
+            }
+            else
+            {
+                <dl class="est-dl est-dl-5">
+                    <div><dt>Búsquedas en el periodo</dt><dd>@N(b.Iniciadas)</dd></div>
+                    <div><dt>Encontradas</dt><dd>@N(b.Encontradas)</dd></div>
+                    <div><dt>No encontradas (→ F8)</dt><dd>@N(b.NoEncontradas)</dd></div>
+                    <div><dt>Abiertas</dt><dd>@N(b.Abiertas)</dd></div>
+                    <div><dt>Abiertas &gt; @diasBusqueda día(s)</dt><dd>@N(b.AbiertasVencidas)</dd></div>
+                </dl>
+                <dl class="est-dl">
+                    <div><dt>Horas para encontrar (promedio)</dt><dd>@Horas(b.HorasParaEncontrar.Promedio)</dd></div>
+                    <div><dt>Mediana</dt><dd>@Horas(b.HorasParaEncontrar.Mediana)</dd></div>
+                    <div><dt>Máximo</dt><dd>@Horas(b.HorasParaEncontrar.Maximo)</dd></div>
+                </dl>
+                <BarrasTabla Titulo="Encontradas por sector" ColumnaEtiqueta="Sector"
+                             Filas="@(new List<BarrasTabla.Fila> { new("Archivo", b.EncontradasArchivo, N(b.EncontradasArchivo)), new("Oficina 43", b.EncontradasOficina43, N(b.EncontradasOficina43)), new("Sin fecha de última carpeta", b.EncontradasSectorDesconocido, N(b.EncontradasSectorDesconocido)) })" />
+            }
+        </article>
+    </div>
+
+    var ar = datos.Archivo;
+    <h2 class="est-seccion">Archivadas y cajas</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Cajas</h3><a href="cajas">Ir a cajas →</a></header>
+            <dl class="est-dl">
+                <div><dt>Cajas con carpetas</dt><dd>@N(ar.CajasConCarpetas)</dd></div>
+                <div><dt>Ocupación promedio</dt><dd>@(ar.OcupacionPromedio is { } o ? $"{o:0.#} carpetas" : "—")</dd></div>
+                <div><dt>Cajas reabiertas</dt><dd>@N(ar.CajasReabiertas)</dd></div>
+                <div><dt>En cola esperando caja</dt><dd><a href="carpetas?bandeja=todas&caja=@Uri.EscapeDataString(Carpeta.ColaDeCaja)">@N(ar.EnColaDeCaja)</a></dd></div>
+            </dl>
+        </article>
+        <article class="card est-card">
+            <header><h3>Archivadas por mes</h3><a href="@Url("Archivadas")">Ver archivadas →</a></header>
+            <BarrasTabla Titulo="Carpetas archivadas por mes" ColumnaEtiqueta="Mes"
+                         Filas="@ar.PorMes.Select(m => new BarrasTabla.Fila(NombreMes(m.Anio, m.Mes), m.CarpetasArchivadas, $"{N(m.CarpetasArchivadas)} carpetas · {N(m.CajasCerradas)} cajas")).ToList()"
+                         SinDatos="Sin datos aún: no hay asignaciones a cajas registradas en el historial del periodo." />
+        </article>
+    </div>
+
+    var u = datos.Uso;
+    <h2 class="est-seccion">Uso del sistema</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Cambios por funcionario (top 10)</h3></header>
+            <BarrasTabla Titulo="Cambios por funcionario" ColumnaEtiqueta="Funcionario" Variante="neutro"
+                         Filas="@u.CambiosPorFuncionario.Select(c => new BarrasTabla.Fila(c.Clave, c.Cantidad, N(c.Cantidad))).ToList()"
+                         SinDatos="Sin cambios manuales en el periodo." />
+        </article>
+        <article class="card est-card">
+            <header><h3>Días con más cambios (top 10)</h3></header>
+            <BarrasTabla Titulo="Cambios por día" ColumnaEtiqueta="Día" Variante="neutro"
+                         Filas="@u.CambiosPorDia.Select(c => new BarrasTabla.Fila(FormatoDia(c.Clave), c.Cantidad, N(c.Cantidad))).ToList()"
+                         SinDatos="Sin cambios manuales en el periodo." />
+        </article>
+        <article class="card est-card">
+            <header><h3>Origen de las carpetas</h3></header>
+            <BarrasTabla Titulo="Registradas a mano frente a importadas" ColumnaEtiqueta="Origen"
+                         Filas="@(new List<BarrasTabla.Fila> { new("Registradas a mano", u.RegistradasAMano, N(u.RegistradasAMano)), new("Importadas desde Excel", u.Importadas, N(u.Importadas)) })" />
+        </article>
+        <article class="card est-card">
+            <header><h3>Importaciones</h3><a href="importar">Cargar Excel →</a></header>
+            @if (u.ImportacionesInferidas && u.Importaciones.Count > 0)
+            {
+                <p class="est-nota">Importaciones anteriores al registro automático, reconstruidas desde el historial (solo filas creadas).</p>
+            }
+            @if (u.Importaciones.Count == 0)
+            {
+                <p class="est-sin-datos">Sin importaciones en el periodo.</p>
+            }
+            else
+            {
+                <p>@N(u.Importaciones.Count) importación(es) · @N(u.Importaciones.Sum(i => i.FilasLeidas)) filas</p>
+                <table class="est-tabla">
+                    <thead><tr><th scope="col">Fecha</th><th scope="col" class="num">Filas</th><th scope="col" class="num">Creadas</th><th scope="col" class="num">Actualizadas</th><th scope="col" class="num">Errores</th></tr></thead>
+                    <tbody>
+                        @foreach (var i in u.Importaciones)
+                        {
+                            <tr><td>@HoraChile.ALocal(i.Fecha).ToString("dd-MM-yyyy HH:mm")</td><td class="num">@N(i.FilasLeidas)</td><td class="num">@N(i.Creadas)</td><td class="num">@N(i.Actualizadas)</td><td class="num">@N(i.Errores)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </article>
+        <article class="card est-card">
+            <header><h3>Observaciones</h3></header>
+            <p><strong>@N(u.CarpetasConObservacion)</strong> carpetas con observación. Términos más frecuentes:</p>
+            <BarrasTabla Titulo="Términos más frecuentes en observaciones" ColumnaEtiqueta="Término" Variante="neutro"
+                         Filas="@u.TerminosObservacion.Select(t => new BarrasTabla.Fila(t.Clave, t.Cantidad, N(t.Cantidad))).ToList()"
+                         SinDatos="Sin observaciones registradas." />
+        </article>
+        <article class="card est-card">
+            <header><h3>Avance clase de licencia</h3></header>
+            <table class="est-tabla">
+                <thead><tr><th scope="col">Sede</th><th scope="col" class="num">Con clase</th><th scope="col" class="num">Sin clase</th><th scope="col">Avance</th></tr></thead>
+                <tbody>
+                    @foreach (var c in u.ClasePorSede)
+                    {
+                        <tr>
+                            <td>@Labels.Of(c.Sede)</td><td class="num">@N(c.ConClase)</td><td class="num">@N(c.SinClase)</td>
+                            <td><span class="est-progreso" role="img" aria-label="@Porc(c.Porcentaje) con clase"><span style="width:@Pct(c.ConClase, c.ConClase + c.SinClase)"></span></span> @Porc(c.Porcentaje)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </article>
+    </div>
+    <p class="est-nota est-pie">Calculado en @tiempoMs ms · @Reloj.GetLocalNow().ToString("dd-MM-yyyy HH:mm")</p>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cl = new("es-CL");
+
+    [SupplyParameterFromQuery(Name = "sede")] public string? QuerySede { get; set; }
+    [SupplyParameterFromQuery(Name = "desde")] public string? QueryDesde { get; set; }
+    [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
+    [SupplyParameterFromQuery(Name = "dias")] public int? QueryDias { get; set; }
+
+    private string sedeTexto = string.Empty;
+    private DateOnly? desde;
+    private DateOnly? hasta;
+    private int diasSinSubir = 30;
+    private readonly int diasBusqueda = 1;
+    private EstadisticasDto? datos;
+    private string? error;
+    private long tiempoMs;
+
+    private DateOnly Hoy => Reloj.HoyChile();
+    private DateOnly InicioMes => new(Hoy.Year, Hoy.Month, 1);
+    private Sede? SedeSeleccionada => Enum.TryParse<Sede>(sedeTexto, out var s) && Enum.IsDefined(s) ? s : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Enum.TryParse<Sede>(QuerySede, true, out var s) && Enum.IsDefined(s)) sedeTexto = s.ToString();
+        if (DateOnly.TryParseExact(QueryDesde, "yyyy-MM-dd", out var d)) desde = d;
+        if (DateOnly.TryParseExact(QueryHasta, "yyyy-MM-dd", out var h)) hasta = h;
+        if (QueryDias is > 0) diasSinSubir = QueryDias.Value;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        error = null;
+        try
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            datos = await Servicio.ObtenerAsync(new FiltroEstadisticas(SedeSeleccionada, desde, hasta, diasSinSubir, diasBusqueda));
+            tiempoMs = sw.ElapsedMilliseconds;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            datos = null;
+            error = "No fue posible calcular las estadísticas. Intente nuevamente.";
+        }
+    }
+
+    private async Task AplicarAsync()
+    {
+        if (desde is { } d && hasta is { } h && d > h) (desde, hasta) = (hasta, desde);
+        Nav.NavigateTo(UrlPagina, replace: true);
+        await CargarAsync();
+    }
+
+    private async Task LimpiarAsync()
+    {
+        sedeTexto = string.Empty;
+        desde = null;
+        hasta = null;
+        diasSinSubir = 30;
+        Nav.NavigateTo("estadisticas", replace: true);
+        await CargarAsync();
+    }
+
+    private string FiltrosQuery(bool incluirDias)
+    {
+        var p = new List<string>();
+        if (SedeSeleccionada is { } s) p.Add($"sede={s}");
+        if (desde is { } d) p.Add($"desde={d:yyyy-MM-dd}");
+        if (hasta is { } h) p.Add($"hasta={h:yyyy-MM-dd}");
+        if (incluirDias) p.Add($"dias={diasSinSubir}");
+        return string.Join("&", p);
+    }
+
+    private string UrlPagina => "estadisticas?" + FiltrosQuery(true);
+    private string UrlExportar => "estadisticas/exportar?" + FiltrosQuery(true);
+
+    /// <summary>Link to the listing with a tray and the current global filters preselected.</summary>
+    private string Url(string bandeja, Sede? sede = null, DateOnly? desdeOverride = null, DateOnly? hastaOverride = null, EstadoCarpeta? estado = null)
+    {
+        var p = new List<string> { $"bandeja={bandeja}" };
+        if ((sede ?? SedeSeleccionada) is { } s) p.Add($"sede={s}");
+        if ((desdeOverride ?? desde) is { } d) p.Add($"desde={d:yyyy-MM-dd}");
+        var hh = hastaOverride is { } ho && hasta is { } hf ? (ho < hf ? ho : hf) : hastaOverride ?? hasta;
+        if (hh is { } h) p.Add($"hasta={h:yyyy-MM-dd}");
+        if (estado is { } e) p.Add($"estado={e}");
+        return "carpetas?" + string.Join("&", p);
+    }
+
+    private string UrlEstado(EstadoCarpeta estado) => Url("todas", estado: estado);
+
+    private IEnumerable<(EstadoCarpeta Estado, int N)> EstadosAgrupados() =>
+        datos!.Actuales.EstadoPorSede
+            .GroupBy(e => e.Clave)
+            .Select(g => (Enum.Parse<EstadoCarpeta>(g.Key), g.Sum(x => x.Cantidad)))
+            .OrderByDescending(x => x.Item2);
+
+    private IReadOnlyList<SubidasMesDto> SubidasPorMesTotal() =>
+        datos!.Actuales.SubidasPorMes
+            .GroupBy(s => (s.Anio, s.Mes))
+            .Select(g => new SubidasMesDto(g.Key.Anio, g.Key.Mes, g.First().Sede,
+                g.Sum(x => x.Conaset), g.Sum(x => x.F8), g.Sum(x => x.Oficio), g.Sum(x => x.Correo), g.Sum(x => x.Otra)))
+            .ToList();
+
+    private static string EtiquetaEstado(string clave) =>
+        Enum.TryParse<EstadoCarpeta>(clave, out var e) ? Labels.Of(e) : clave;
+
+    private static string N(int n) => n.ToString("N0", Cl);
+    private static string Dias(double? v) => v is { } d ? $"{d.ToString("0.#", Cl)} días" : "—";
+    private static string Horas(double? v) => v is { } d ? $"{d.ToString("0.#", Cl)} h" : "—";
+    private static string Porc(double? v) => v is { } d ? d.ToString("P1", Cl) : "—";
+
+    private static string Pct(int v, int max) =>
+        max <= 0 ? "0%" : $"{((double)v / max * 100).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}%";
+
+    private static string NombreMes(int anio, int mes) =>
+        new DateTime(anio, mes, 1).ToString("MMM yyyy", Cl);
+
+    private static string FormatoDia(string iso) =>
+        DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? d.ToString("ddd dd-MM-yyyy", Cl) : iso;
+}

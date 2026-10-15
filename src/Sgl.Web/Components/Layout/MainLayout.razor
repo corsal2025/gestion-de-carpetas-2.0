@@ -1,19 +1,20 @@
 @inherits LayoutComponentBase
 @inject AutorState Autor
+@inject IJSRuntime JS
 
 <header class="topbar">
     <div class="brand-group">
-        <a class="brand" href="carpetas">
-            <span class="brand-mark" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <a class="brand" href="carpetas?bandeja=PorClasificar" title="Ir a Por clasificar">
+            <span class="brand-mark brand-logo">
+                <img src="images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" />
             </span>
-            <span class="brand-text"><strong>Gestión de Carpetas 2.0</strong>Licencias de Conducir</span>
+            <span class="brand-text"><strong>Gestión de Carpetas 2.0</strong> <span class="brand-sub">Licencias de Conducir</span></span>
         </a>
     </div>
     <nav class="main-nav" aria-label="Principal">
-        <NavLink href="carpetas" Match="NavLinkMatch.Prefix" class="nav-item nav-carpetas">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-            Gestión de Carpetas
+        <NavLink href="" Match="NavLinkMatch.All" class="nav-item nav-inicio" title="Ir al panel de inicio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+            Inicio
         </NavLink>
         <NavLink href="cajas" class="nav-item nav-cajas">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
@@ -22,6 +23,10 @@
         <NavLink href="importar" class="nav-item nav-importar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
             Cargar Excel Masivo
+        </NavLink>
+        <NavLink href="estadisticas" class="nav-item nav-estadisticas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            Estadísticas
         </NavLink>
         <button id="btn-guia-global" class="btn-guia-accion" type="button" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
             <span class="guia-avatar lico-slot" data-lico="explica" aria-hidden="true"></span>
@@ -43,8 +48,8 @@
     </div>
     <div class="user-block">
         <label class="autor">
-            Funcionario
-            <input @bind="Autor.Nombre" @bind:event="oninput" placeholder="Su nombre" maxlength="100" />
+            <span class="autor-etq">Funcionario</span>
+            <input @bind="Autor.Ingresado" @bind:event="oninput" @bind:after="GuardarNombreAsync" placeholder="Su nombre" aria-label="Funcionario: su nombre" title="Funcionario: su nombre queda en el historial de cada cambio" maxlength="100" />
         </label>
     </div>
 </header>
@@ -60,3 +65,29 @@
     <a href="." class="reload">Recargar</a>
     <span class="dismiss">✕</span>
 </div>
+
+@code {
+    private const string ClaveNombre = "sgl.funcionario";
+
+    // The official's name survives reloads (per browser); storage failures are ignored.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Autor.HasIngresado) return;
+        try
+        {
+            var guardado = await JS.InvokeAsync<string?>("sglUi.leer", ClaveNombre);
+            if (!string.IsNullOrWhiteSpace(guardado))
+            {
+                Autor.Nombre = guardado.Trim();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
+    }
+
+    private async Task GuardarNombreAsync()
+    {
+        try { await JS.InvokeVoidAsync("sglUi.guardar", ClaveNombre, Autor.Ingresado); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
+    }
+}

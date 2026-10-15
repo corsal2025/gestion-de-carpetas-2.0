@@ -60,7 +60,7 @@ html {
 }
 
 html[data-theme="dark"] {
-    --btn-grad: linear-gradient(135deg, #3a55cf, #5570e6);
+    --btn-grad: linear-gradient(135deg, #3a55cf, #4863d6);
     --btn-grad-hover: linear-gradient(135deg, #2f49bd, #3a55cf);
     --head-grad: linear-gradient(120deg, #131a4a, #1d2c75 55%, #2a3fa8);
     --dots: rgb(143 162 240 / 0.06);
@@ -607,6 +607,8 @@ html[data-rows="classic"] body .data-table tbody td .btn-action-caja,
 html[data-rows="classic"] body .data-table tbody td .btn-detail {
     color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; background: #ffffff !important;
 }
+html[data-rows="classic"] body .data-table tbody td .btn-obs-trigger svg { stroke: #0f172a !important; }
+html[data-rows="classic"] body .data-table tbody td .btn-obs-trigger.has-obs svg { stroke: #2457e6 !important; }
 
 /* ---------- 10. Pantallas simples: Nueva carpeta y Detalle ----------------- */
 /* Blazor enfoca el <h1> al navegar: sin recuadro */
@@ -1459,3 +1461,146 @@ html body .data-table .nombre-wrapper-cell { gap: .75rem; }
 @media (max-width: 850px) {
     html body .data-table .col-sticky-nombre .name-cell { max-width: none !important; }
 }
+
+/* Bandejas: columnas compactas; la columna Persona absorbe el espacio sobrante */
+html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { width: 1% !important; min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .9rem; padding-right: .9rem; }
+html body .data-table.bandeja-table { width: 100% !important; table-layout: auto !important; }
+html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: 1% !important; white-space: nowrap; }
+/* El espacio sobrante va al final de la fila, no al nombre */
+html body .data-table.bandeja-table th:last-child, html body .data-table.bandeja-table td:last-child { width: auto !important; }
+/* Every cell must stay a table-cell or headers and cells drift apart */
+html body .data-table.bandeja-table td.action-cell { display: table-cell !important; white-space: nowrap; }
+html body .data-table.bandeja-table td.action-cell > * { display: inline-flex; vertical-align: middle; margin-right: .25rem; }
+html body .data-table.bandeja-table .nombre-wrapper-cell { width: auto !important; min-width: 0 !important; max-width: none !important; justify-content: space-between !important; }
+html body .data-table.bandeja-table .name-cell { white-space: nowrap !important; min-width: 0 !important; }
+html body .data-table.bandeja-table thead th { white-space: normal !important; word-break: keep-all; hyphens: none; vertical-align: bottom; }
+html body .data-table.bandeja-table thead th:first-child, html body .data-table.bandeja-table thead th:last-child { white-space: nowrap !important; }
+html body .data-table.bandeja-table .excel-select { width: auto !important; min-width: 0 !important; max-width: 210px; }
+html body .data-table.bandeja-table .comuna-input-inline { width: 120px !important; min-width: 0 !important; }
+html body .data-table.bandeja-table .clasif-cell { flex-wrap: wrap; max-width: 230px; }
+html body .data-table.bandeja-table .clasif-cell .excel-select { max-width: 170px; }
+html body .data-table.bandeja-table td .badge.info { white-space: normal; display: inline-block; max-width: 150px; }
+html body .data-table.bandeja-table td:has(.clasif-cell), html body .data-table.bandeja-table td:has(.badge.info) { white-space: normal; }
+html body .data-table.bandeja-table td .comuna-input-inline[placeholder="dd-mm-aaaa"] { width: 96px !important; }
+
+/* Listado "Todas": RUT con ancho fijo real (contenido + botón) y Nombre anclado justo después (36 + 136) */
+html body .data-table th.col-sticky-rut, html body .data-table td.col-sticky-rut { width: 136px !important; min-width: 136px !important; max-width: 136px !important; }
+html body .data-table th.col-sticky-nombre, html body .data-table td.col-sticky-nombre { left: 172px !important; }
+
+/* Duplicados: columnas ajustadas al contenido; Nombre absorbe el sobrante */
+html body .dup-tabla th, html body .dup-tabla td { width: 1%; white-space: nowrap; }
+html body .dup-tabla th:nth-child(2), html body .dup-tabla td:nth-child(2) { width: auto; white-space: normal; min-width: 200px; }
+@media (max-width: 640px) { html body .dup-tabla th, html body .dup-tabla td { width: 100%; white-space: normal; } }
+
+/* Listado "Todas": cabecera Pendiente búsqueda en 2 líneas centradas, sin cortes de palabra */
+html body .data-table thead th.th-pend { word-break: keep-all; hyphens: none; }
+
+/* Detalle de carpeta (historial): columnas ajustadas, "Nuevo" absorbe el sobrante */
+html body .content > .card > table:not([class]) th, html body .content > .card > table:not([class]) td { width: 1%; white-space: nowrap; }
+html body .content > .card > table:not([class]) th:last-child, html body .content > .card > table:not([class]) td:last-child { width: auto; white-space: normal; }
+
+/* ---------- Listados: la tabla es protagonista ----------
+   Controles superiores compactos; la tabla nunca colapsa: si no cabe, la página hace scroll. */
+html .page-container:has(> .table-container) { overflow-y: auto; }
+html .page-container > .table-container,
+html .page-container > .table-container.standard-table,
+html .page-container > .table-container.panel-colapsado,
+html .page-container > .table-container.expanded-table { min-height: max(280px, calc(100vh - 300px)) !important; }
+html .sticky-controls-panel { gap: 0.3rem; padding: 0.15rem 0 0.3rem; }
+html .bandeja-tabs { padding: 0.2rem 0 0.15rem; gap: 0.25rem; }
+html .bandeja-tab { padding: 0.18rem 0.65rem; font-size: 0.8rem; }
+html .clasif-lote-bar { flex-wrap: nowrap; margin: 0.2rem 0; padding: 0.25rem 0.6rem; flex-shrink: 0; }
+html .clasif-lote-bar .excel-select { max-width: 240px; }
+html body .data-table.bandeja-table .clasif-cell { flex-wrap: nowrap; max-width: none; }
+html .clasif-lote-bar .btn-primary, html .clasif-lote-bar .excel-select { padding-top: 0.2rem; padding-bottom: 0.2rem; min-height: 0; height: auto; font-size: 0.82rem; }
+html body .data-table.bandeja-table td:has(.clasif-cell) { white-space: nowrap; }
+html body .data-table.bandeja-table td .badge.info { white-space: nowrap; max-width: none; }
+html body .data-table.bandeja-table td:has(.badge.info) { white-space: nowrap; }
+
+/* ---------- Duplicados / Cajas: la lista es protagonista ----------
+   Encabezado y filtros compactos; la lista nunca colapsa: si no cabe, la página hace scroll. */
+html .content:has(.dup-filtros) { gap: 0.5rem; padding-top: 1rem; }
+html .content:has(.dup-filtros) > h1 { font-size: 1.45rem; }
+html .content:has(.dup-filtros) > p.muted { margin: 0; font-size: 0.82rem; line-height: 1.3; }
+html .dup-filtros { flex-wrap: wrap; gap: 0.6rem; align-items: center; padding: 0.45rem 0.75rem; }
+html .dup-filtros label { flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.85rem; }
+html .dup-filtros .actions { margin: 0; }
+html .content:has(.dup-filtros) section.card { padding: 0.6rem 0.75rem; }
+html .dup-total { margin: 0 0 0.35rem; font-size: 0.85rem; }
+html .dup-scroll { max-height: none; height: max(280px, calc(100vh - 290px)); min-height: 280px; }
+html body .dup-tabla th, html body .dup-tabla td { padding-top: 0.3rem; padding-bottom: 0.3rem; vertical-align: middle; }
+html body .dup-tabla td.dup-acciones { display: table-cell !important; white-space: nowrap; width: 1%; }
+html body .dup-tabla td.dup-acciones > button { display: inline-flex; margin-right: 0.3rem; padding-top: 0.2rem; padding-bottom: 0.2rem; }
+html .cajas-table-wrapper { max-height: none; min-height: max(280px, calc(100vh - 340px)); }
+html body .dup-tabla tbody td { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
+html body .dup-tabla thead th { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+html body .dup-filtros.card { padding: 0.4rem 0.75rem !important; }
+html body .dup-filtros input, html body .dup-filtros select, html body .dup-filtros button { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; min-height: 0 !important; }
+html .content:has(.dup-filtros) > h1 { margin: 0 !important; }
+
+/* Bandejas: encabezados y celdas centrados en su columna, con separadores verticales */
+html body .data-table.bandeja-table thead th,
+html body .data-table.bandeja-table tbody td { text-align: center !important; vertical-align: middle; }
+html body .data-table.bandeja-table thead th + th { border-left: 1px solid rgb(255 255 255 / .25) !important; }
+html body .data-table.bandeja-table tbody td + td { border-left: 1px solid rgb(15 23 42 / .12) !important; }
+html body .data-table.bandeja-table tbody td:nth-child(2) { text-align: left !important; }
+html body .data-table.bandeja-table td.action-cell { text-align: center !important; }
+
+/* Todos los módulos: columnas centradas y separadas (nombres y textos largos a la izquierda) */
+html body .data-table:not(.bandeja-table) thead th, html body .data-table:not(.bandeja-table) tbody td,
+html body .dup-tabla th, html body .dup-tabla td,
+html body .est-tabla th, html body .est-tabla td,
+html body .aviso-tabla th, html body .aviso-tabla td,
+html .content > .card table th, html .content > .card table td { text-align: center !important; vertical-align: middle; }
+html body .data-table:not(.bandeja-table) thead th + th, html body .dup-tabla thead th + th, html body .est-tabla thead th + th { border-left: 1px solid rgb(255 255 255 / .25) !important; }
+html body .data-table:not(.bandeja-table) tbody td + td, html body .dup-tabla tbody td + td, html body .est-tabla tbody td + td,
+html body .aviso-tabla td + td, html body .aviso-tabla th + th,
+html .content > .card table td + td, html .content > .card table th + th { border-left: 1px solid rgb(15 23 42 / .12) !important; }
+html body .data-table td.col-sticky-nombre, html body .dup-tabla td:nth-child(2),
+html body .est-tabla td:first-child, html .content > .card table td:last-child { text-align: left !important; }
+
+html body .dup-tabla td:last-child, html body .data-table td:last-child, html body .est-tabla td:last-child { text-align: center !important; }
+html body .dup-tabla td.dup-acciones { justify-content: center !important; }
+
+/* ===== Duplicados: RUT + Nombre congelados al desplazar horizontalmente ===== */
+html body .dup-scroll { overflow-x: auto; }
+html body .dup-tabla .dup-col-rut,
+html body .dup-tabla .dup-col-nombre { position: sticky; z-index: 2; background: var(--surface); }
+html body .dup-tabla .dup-col-rut { left: 0; width: 8.5rem; min-width: 8.5rem; max-width: 8.5rem; box-sizing: border-box; }
+html body .dup-tabla .dup-col-nombre { left: 8.5rem; min-width: 260px; white-space: nowrap; box-shadow: 4px 0 8px -4px rgba(0,0,0,.18); }
+html body .dup-tabla thead th.dup-col-rut,
+html body .dup-tabla thead th.dup-col-nombre { z-index: 3; }
+html body .dup-tabla tr.dup-grupo:hover > td.dup-col-rut, html body .dup-tabla tr.dup-grupo:hover > td.dup-col-nombre,
+html body .dup-tabla tr.dup-grupo.abierto > td.dup-col-rut, html body .dup-tabla tr.dup-grupo.abierto > td.dup-col-nombre { background: var(--surface-alt); }
+
+/* ===== Botón de observación: idéntico en todas las bandejas/pestañas y temas ===== */
+html body .btn-obs-trigger,
+html body .data-table tbody td .btn-obs-trigger,
+html[data-rows] body .data-table tbody td .btn-obs-trigger {
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    width: 30px !important; height: 30px !important; min-width: 30px !important; padding: 0 !important;
+    border: 1px solid #cbd5e1 !important; border-radius: 8px !important;
+    background: #ffffff !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a !important;
+    opacity: 1 !important; box-shadow: 0 1px 2px rgba(15,23,42,.08) !important; flex-shrink: 0;
+}
+html body .btn-obs-trigger svg,
+html[data-rows] body .data-table tbody td .btn-obs-trigger svg { stroke: #0f172a !important; opacity: 1 !important; }
+html body .btn-obs-trigger.has-obs,
+html[data-rows] body .data-table tbody td .btn-obs-trigger.has-obs { border-color: #2457e6 !important; color: #2457e6 !important; -webkit-text-fill-color: #2457e6 !important; }
+html body .btn-obs-trigger.has-obs svg,
+html[data-rows] body .data-table tbody td .btn-obs-trigger.has-obs svg { stroke: #2457e6 !important; }
+html body .btn-obs-trigger:hover { background: #f1f5f9 !important; }
+
+/* ---------- Funcionario: ancho fluido (ARB6-04) -------------------------- */
+/* El bloque nunca fuerza el desborde de la barra: el campo se encoge y, en pantallas medianas,
+   la etiqueta visible cede su lugar (el nombre accesible sigue en aria-label). */
+html .user-block { flex: 0 1 auto; min-width: 0; }
+html .user-block .autor { min-width: 0; }
+html .user-block .autor input { width: clamp(120px, 11vw, 180px); min-width: 0; }
+@media (max-width: 1560px) {
+    html .user-block .autor .autor-etq { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Logo municipal en la barra superior: sobre un recuadro blanco para que se lea en el fondo azul */
+html .brand-mark.brand-logo { width: auto; height: 50px; padding: 3px 8px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgb(10 16 60 / .35); display: inline-flex; align-items: center; justify-content: center; }
+html .brand-mark.brand-logo img { height: 100%; width: auto; max-width: 70px; object-fit: contain; display: block; }

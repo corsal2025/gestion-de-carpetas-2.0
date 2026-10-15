@@ -44,6 +44,56 @@ public sealed class Ciudadano
         Rut = nuevoRut ?? throw new DomainException("El RUT es obligatorio.");
     }
 
+    public const string SinNombre = "SIN NOMBRE";
+    public const string SinApellido = "SIN APELLIDO";
+
+    /// <summary>Surname placeholder written by the first Excel importer when only a full-name column existed.</summary>
+    private const string ApellidoVecino = "VECINO";
+
+    /// <summary>Splits a full name in uppercase: the last two words are the surnames.</summary>
+    public static (string Nombre, string Apellido) Separar(string? completo)
+    {
+        var partes = (completo ?? "").Trim().ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length switch
+        {
+            0 => (SinNombre, SinApellido),
+            1 => (partes[0], SinApellido),
+            2 => (partes[0], partes[1]),
+            _ => (string.Join(' ', partes[..^2]), string.Join(' ', partes[^2..])),
+        };
+    }
+
+    /// <summary>
+    /// Brings a stored name to the current rule: uppercase, and the legacy "Vecino" surname placeholder replaced by
+    /// the surnames found at the end of the name.
+    /// </summary>
+    /// <returns>True when something changed.</returns>
+    public bool NormalizarNombre()
+    {
+        var (nombre, apellido) = string.Equals(Apellido.Trim(), ApellidoVecino, StringComparison.OrdinalIgnoreCase)
+            ? Separar(Nombre)
+            : (Nombre.Trim().ToUpperInvariant(), Apellido.Trim().ToUpperInvariant());
+        if (nombre.Length > MaxNameLength) nombre = nombre[..MaxNameLength];
+        if (apellido.Length > MaxNameLength) apellido = apellido[..MaxNameLength];
+
+        var busqueda = NormalizeForSearch($"{nombre} {apellido}");
+        if (nombre == Nombre && apellido == Apellido && busqueda == NombreBusqueda)
+        {
+            return false;
+        }
+
+        Nombre = nombre;
+        Apellido = apellido;
+        NombreBusqueda = busqueda;
+        return true;
+    }
+
+    /// <summary>True when <see cref="NormalizarNombre"/> would change this name.</summary>
+    public static bool RequiereNormalizar(string nombre, string apellido) =>
+        nombre != nombre.Trim().ToUpperInvariant()
+        || apellido != apellido.Trim().ToUpperInvariant()
+        || string.Equals(apellido.Trim(), ApellidoVecino, StringComparison.OrdinalIgnoreCase);
+
     private static string RequireName(string value, string field)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -51,7 +101,8 @@ public sealed class Ciudadano
             throw new DomainException($"El {field} es obligatorio.");
         }
 
-        var trimmed = value.Trim();
+        // Names are always stored in uppercase (accents kept: "MARÍA PEÑA").
+        var trimmed = value.Trim().ToUpperInvariant();
         return trimmed.Length > MaxNameLength
             ? throw new DomainException($"El {field} excede {MaxNameLength} caracteres.")
             : trimmed;

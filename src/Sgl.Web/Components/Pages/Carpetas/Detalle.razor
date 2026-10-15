@@ -1,9 +1,10 @@
 @page "/carpetas/{Id:guid}"
 @inject CarpetaService Carpetas
 @inject AutorState Autor
+@inject ILogger<Detalle> Logger
 @inject IJSRuntime JS
 
-<PageTitle>Gestión de Carpetas 2.0 · Detalle</PageTitle>
+<PageTitle>@TituloPagina.De("Detalle de carpeta")</PageTitle>
 
 @if (notFound)
 {
@@ -17,6 +18,10 @@ else if (carpeta is null)
 else
 {
     <h1>@carpeta.Nombre @carpeta.Apellido <small class="muted">@carpeta.Rut</small></h1>
+    @if (carpeta.Anulada)
+    {
+        <p class="error banner-anulada" role="status"><span>Carpeta <strong>ANULADA</strong> — restaurar desde «Anuladas». (motivo: @carpeta.MotivoAnulacion). No aparece en módulos ni estadísticas; puede restaurarse desde <a href="anuladas">Anuladas</a>.</span></p>
+    }
 
     @if (error is not null)
     {
@@ -27,6 +32,7 @@ else
         <p class="ok-msg" role="status"><span class="lico-slot lico-msg" data-lico="celebra" aria-hidden="true"></span><span>@mensaje</span></p>
     }
 
+    <fieldset class="fieldset-limpio" disabled="@carpeta.Anulada" aria-disabled="@(carpeta.Anulada ? "true" : "false")">
     <div class="grid">
         <section class="card">
             <h2>Estado</h2>
@@ -72,8 +78,21 @@ else
                 </label>
                 <label>Fecha de citación <input type="date" @bind="edit.FechaCitacion" /></label>
                 <label>Fecha de subida <input type="date" @bind="edit.FechaSubida" /></label>
-                <label>Caja / Archivo físico <input @bind="editCaja" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
+                <div class="field">
+                    <span>Clase de licencia</span>
+                    <ClasesSelector @bind-Value="editClases" />
+                </div>
+                <label>Caja / Archivo físico <input @bind="editCaja" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
                 <div class="info-block">
+                    <p>En esta etapa desde: <strong>@(carpeta.FechaEstadoActual is { } etapa ? HoraChile.ALocal(etapa).ToString("dd-MM-yyyy HH:mm") : "—")</strong></p>
+                    @if (carpeta.FechaCierre is { } cierre)
+                    {
+                        <p>Proceso cerrado el: <strong>@cierre.ToString("dd-MM-yyyy")</strong></p>
+                    }
+                    @if (carpeta.FechaImpresion is { } impresa)
+                    {
+                        <p>Incluida en un listado impreso el: <strong>@HoraChile.ALocal(impresa).ToString("dd-MM-yyyy HH:mm")</strong></p>
+                    }
                     <p>Trámite / Tipo: <strong>@(string.IsNullOrEmpty(carpeta.TipoTramite) ? "—" : carpeta.TipoTramite)</strong></p>
                     <p>Última carpeta / Comuna: <strong>@(string.IsNullOrEmpty(carpeta.FechaUltimaCarpeta) ? "—" : carpeta.FechaUltimaCarpeta)</strong></p>
                 </div>
@@ -81,16 +100,17 @@ else
             </div>
         </section>
     </div>
+    </fieldset>
 
     <section class="card">
         <h2>Historial de cambios</h2>
         <table>
-            <thead><tr><th>Fecha (UTC)</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
             <tbody>
                 @foreach (var h in carpeta.Historial)
                 {
                     <tr>
-                        <td>@h.Fecha.ToString("dd-MM-yyyy HH:mm")</td>
+                        <td>@Sgl.Domain.HoraChile.ALocal(h.Fecha).ToString("dd-MM-yyyy HH:mm")</td>
                         <td>@h.Usuario</td>
                         <td>@Labels.Campo(h.Campo)</td>
                         <td>@h.Anterior</td>
@@ -104,6 +124,8 @@ else
     <p><a href="carpetas">‹ Volver al listado</a></p>
 }
 
+<UndoToast Aviso="toast" OnDeshacer="DeshacerAsync" OnCerrar="CerrarToast" />
+
 @code {
     [Parameter]
     public Guid Id { get; set; }
@@ -113,9 +135,24 @@ else
     private EditModel edit = new();
     private string editRut = "";
     private string editCaja = "";
+    private ClaseLicencia editClases;
     private bool notFound;
     private string? error;
     private string? mensaje;
+    private UndoToast.AvisoDeshacer? toast;
+
+    private void CerrarToast(UndoToast.AvisoDeshacer aviso)
+    {
+        if (toast?.Token == aviso.Token) toast = null;
+    }
+
+    private async Task DeshacerAsync(UndoToast.AvisoDeshacer aviso)
+    {
+        toast = null;
+        await EjecutarAsync(
+            () => Carpetas.DeshacerEstadoAsync(aviso.CarpetaId, aviso.Punto, aviso.EstadoNuevo, Autor.Nombre),
+            "Cambio de estado deshecho.");
+    }
 
     protected override Task OnParametersSetAsync() => CargarAsync();
 
@@ -127,6 +164,7 @@ else
             nuevoEstado = null;
             editRut = carpeta.Rut;
             editCaja = carpeta.CajaArchivo ?? "";
+            editClases = carpeta.Clases;
             edit = new EditModel
             {
                 Sede = carpeta.Sede,
@@ -143,18 +181,27 @@ else
 
     private Task CambiarEstadoAsync() =>
         nuevoEstado is { } estado
-            ? EjecutarAsync(() => Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre)), "Estado actualizado.")
+            ? EjecutarAsync(async () =>
+            {
+                var punto = await Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre));
+                var bandeja = Carpeta.ClasificarBandeja(estado, EstadoTransitions.DecisionFor(estado), carpeta?.CajaArchivo);
+                var modulo = ModulosCatalogo.DeBandeja(bandeja);
+                toast = new UndoToast.AvisoDeshacer(
+                    Guid.NewGuid(),
+                    modulo is not null ? $"Pasó a {modulo.Nombre}" : $"Estado cambiado a {Labels.Of(estado)}",
+                    Id, punto, estado);
+            }, "Estado actualizado.")
             : Task.CompletedTask;
 
     private Task GuardarAsync() =>
         EjecutarAsync(async () =>
         {
+            // One command, one save: the form is applied completely or not at all.
             await Carpetas.EditarAsync(new EditarCarpetaCommand(
-                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut));
-            if (editCaja != (carpeta?.CajaArchivo ?? ""))
-            {
-                await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(Id, editCaja, Autor.Nombre));
-            }
+                Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut,
+                Caja: editCaja,
+                CambiarCaja: editCaja != (carpeta?.CajaArchivo ?? ""),
+                Clases: editClases != carpeta?.Clases ? editClases : null));
         }, "Cambios guardados.");
 
     private async Task CopiarRutCasChileAsync(string? rut)
@@ -178,9 +225,14 @@ else
             await action();
             mensaje = ok;
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is DomainException or NotFoundException or CarpetaDuplicadaException)
         {
             error = ex.Message;
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            Logger.LogError(ex, "No se pudo guardar la carpeta desde el detalle.");
+            error = "No se pudieron guardar los cambios (conflicto al guardar). Recargue e intente nuevamente.";
         }
 
         await CargarAsync();

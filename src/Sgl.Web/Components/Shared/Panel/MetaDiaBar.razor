@@ -1,0 +1,61 @@
+@* Today's goal. Full variant on the home panel (label, motivating message, link), thin variant in "Por clasificar". *@
+@using Sgl.Application.Panel
+
+<div class="meta-dia @(Delgada ? "meta-dia-delgada" : "") @(Meta.Completa ? "meta-completa" : "") @(Meta.Total == 0 ? "meta-vacia" : "") @(Meta.Clasificadas == 0 && Meta.Pendientes > 0 ? "meta-sin-empezar" : "")"
+     role="group" aria-label="Meta del día">
+    @if (!Delgada)
+    {
+        <span class="meta-etiqueta">Meta de hoy</span>
+    }
+    <div class="meta-dia-texto">
+        <span>
+            <strong><NumeroAnimado Valor="Meta.Clasificadas" /></strong> de <strong><NumeroAnimado Valor="Meta.Total" /></strong> carpetas @Accion
+            @if (PorHacer is not null && !Meta.Completa)
+            {
+                <span class="meta-pendientes"> · quedan <strong><NumeroAnimado Valor="Meta.Pendientes" /></strong> por @PorHacer</span>
+            }
+        </span>
+        @if (Meta.Completa)
+        {
+            <span class="meta-celebra" role="status">¡Al día! <span aria-hidden="true">✓</span></span>
+        }
+        else
+        {
+            <span class="meta-pct">@Meta.Porcentaje%</span>
+        }
+    </div>
+    <div class="meta-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Meta.Porcentaje" aria-label="Avance de la meta de hoy">
+        <span style="width: @(Meta.Porcentaje)%"></span>
+    </div>
+    @if (!Delgada)
+    {
+        <p class="meta-mensaje">
+            @Mensaje
+            @if (Meta.Pendientes > 0)
+            {
+                <a href="carpetas?bandeja=PorClasificar">Ir a Por clasificar →</a>
+            }
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MetaDelDiaDto Meta { get; set; } = new(0, 0);
+
+    [Parameter] public bool Delgada { get; set; }
+
+    /// <summary>What the done count means ("clasificadas", or "revisadas hoy" in the location trays).</summary>
+    [Parameter] public string Accion { get; set; } = "clasificadas";
+
+    /// <summary>When set, the thin bar also says how many are left ("quedan N por revisar").</summary>
+    [Parameter] public string? PorHacer { get; set; }
+
+    private string Mensaje => Meta switch
+    {
+        { Total: 0 } => "Hoy no hay carpetas por clasificar. Cuando llegue la agenda del día, aparecerá aquí.",
+        { Completa: true } => "¡Excelente! No queda nada por clasificar.",
+        { Clasificadas: 0 } => $"El día recién empieza: quedan {Meta.Pendientes} por clasificar. ¡A por la primera!",
+        { Porcentaje: < 50 } => $"¡Buen comienzo! Faltan {Meta.Pendientes} por clasificar.",
+        _ => $"Ya casi: faltan {Meta.Pendientes} por clasificar.",
+    };
+}

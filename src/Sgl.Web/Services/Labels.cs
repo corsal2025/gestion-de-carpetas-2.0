@@ -41,9 +41,10 @@ public static class Labels
         EstadoCarpeta.CambioDomicilioSolicitado => "CAMBIO DE DOMICILIO SOLICITADO",
         EstadoCarpeta.CambioDomicilio => "CAMBIO DE DOMICILIO",
         EstadoCarpeta.NoExisteCarpeta => "NO EXISTE CARPETA",
-        EstadoCarpeta.CrearCertificado => "CREAR CERTIFICADO",
+        EstadoCarpeta.CrearCertificado => "CREAR CERTIFICADO / OFICIO",
         EstadoCarpeta.CanjeLicExtranjera => "CANJE LIC. EXTRANJERA",
 
+        EstadoCarpeta.PorClasificar => "POR CLASIFICAR",
         EstadoCarpeta.Citada => "CITADA",
         EstadoCarpeta.Revision => "REVISIÓN",
         EstadoCarpeta.Alertada => "ALERTADA",
@@ -55,6 +56,21 @@ public static class Labels
         EstadoCarpeta.Denegado => "DENEGADO",
         _ => estado.ToString().ToUpperInvariant(),
     };
+
+    public static string Of(TramiteAgenda tramite) => tramite switch
+    {
+        TramiteAgenda.PrimeraVezExtension => "1° VEZ / EXTENSIÓN",
+        TramiteAgenda.Renovacion => "RENOVACIÓN",
+        _ => tramite.ToString().ToUpperInvariant(),
+    };
+
+    /// <summary>States offered when classifying a "Por clasificar" carpeta.</summary>
+    // Only the entry classifications are offered: the uploaded, certificate, solicited and missing states are reached later in the flow.
+    public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion { get; } = Carpeta.DestinosClasificacion
+        .Where(e => e is not (EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.CambioDomSubidoConaset
+            or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio
+            or EstadoCarpeta.CrearCertificado or EstadoCarpeta.CambioDomicilioSolicitado or EstadoCarpeta.NoExisteCarpeta))
+        .ToList();
 
     public static string Of(Decision decision) => decision switch
     {
@@ -90,8 +106,16 @@ public static class Labels
         "FechaCitacion" => "FECHA DE CITACIÓN",
         "FechaSubida" => "FECHA DE SUBIDA",
         "IdoneidadMoral" => "IDONEIDAD MORAL",
+        "ClaseLicencia" => "CLASE DE LICENCIA",
+        "FechaCierre" => "FECHA DE CIERRE",
+        "FechaImpresion" => "IMPRESIÓN DEL LISTADO",
+        "PendienteBusqueda" => "PENDIENTE DE BÚSQUEDA",
+        "Deshacer" => "CAMBIO DESHECHO",
         _ => campo.ToUpperInvariant(),
     };
+
+    public static string Of(ClaseLicencia clases) =>
+        clases == ClaseLicencia.Ninguna ? "SIN CLASE" : ClasesLicencia.Format(clases);
 
     public static string Css(EstadoCarpeta estado) => estado switch
     {

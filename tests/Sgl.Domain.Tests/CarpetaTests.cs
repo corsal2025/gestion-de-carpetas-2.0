@@ -122,4 +122,15 @@ public class CarpetaTests
     {
         Assert.Throws<DomainException>(() => new Ciudadano(Rut.Parse("12345678-5"), nombre, apellido));
     }
+
+    [Fact]
+    public void CambiarDecision_sets_FechaSubida_to_chile_date_late_at_night()
+    {
+        var carpeta = CarpetaFactory.New();
+        var nocheChile = new DateTime(2026, 3, 11, 2, 30, 0, DateTimeKind.Utc); // 2026-03-10 23:30 Chile (UTC-3)
+
+        carpeta.CambiarDecision(Decision.Otorgado, "ana", nocheChile);
+
+        Assert.Equal(new DateOnly(2026, 3, 10), carpeta.FechaSubida);
+    }
 }

@@ -3,10 +3,15 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject AutorState Autor
+@inject ILogger<Cajas> Logger
 
-<PageTitle>@(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada} · SGL 2026" : "Cajas de Ordenamiento y Archivo · SGL 2026")</PageTitle>
+<PageTitle>@TituloPagina.De(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada}" : "Cajas de archivo")</PageTitle>
 
 <div class="page-container">
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert error" role="alert">@mensajeError <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensajeError = null">✕</button></div>
+    }
     @if (!string.IsNullOrEmpty(cajaSeleccionada))
     {
         <!-- VISTA DE ACTA Y DETALLE IMPRIMIBLE DE LA CAJA (ESTILO F8 Y CAMBIO DE DOMICILIO) -->
@@ -51,7 +56,7 @@
                 </div>
                 <div>
                     <span class="k">Fecha de Cierre / Emisión</span>
-                    <span class="v">@DateTime.Now.ToString("dd-MM-yyyy HH:mm")</span>
+                    <span class="v">@Sgl.Domain.HoraChile.ALocal(DateTime.UtcNow).ToString("dd-MM-yyyy HH:mm")</span>
                 </div>
                 <div>
                     <span class="k">Total de Carpetas</span>
@@ -76,7 +81,7 @@
                     <thead>
                         <tr>
                             <th style="width: 42px;">N°</th>
-                            <th style="text-align: left;">Nombre Completo del Ciudadano</th>
+                            <th style="text-align: left;">Nombre de contribuyente</th>
                             <th>RUT</th>
                             <th>Sede</th>
                             <th>Trámite / Tipo</th>
@@ -121,7 +126,7 @@
 
             <div class="acta-foot">
                 <span>Municipalidad de Valparaíso · Licencias de Conducir</span>
-                <span>Emitido: @DateTime.Now.ToString("dd-MM-yyyy HH:mm") por @(Autor.HasNombre ? Autor.Nombre : "Funcionario")</span>
+                <span>Emitido: @Sgl.Domain.HoraChile.ALocal(DateTime.UtcNow).ToString("dd-MM-yyyy HH:mm") por @(Autor.HasNombre ? Autor.Nombre : "Funcionario")</span>
             </div>
         </div>
     }
@@ -220,7 +225,7 @@
                                 <tr>
                                     <td>
                                         <div class="caja-title-cell">
-                                            <span class="caja-badge-icon">📦</span>
+                                            <span class="caja-badge-icon" aria-hidden="true"><svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></span>
                                             <strong>@c.Caja</strong>
                                         </div>
                                     </td>
@@ -290,7 +295,7 @@
                                     </th>
                                     <th>N°</th>
                                     <th>RUT</th>
-                                    <th>Nombre Completo del Ciudadano</th>
+                                    <th>Nombre de contribuyente</th>
                                     <th>Sede</th>
                                     <th>Trámite</th>
                                     <th>Fecha Citación</th>
@@ -298,10 +303,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @{ var nro = 0; }
-                                @foreach (var c in carpetasCola)
-                                {
-                                    nro++;
+                                <Virtualize TItem="FilaCola" Context="fila" Items="filasCola" ItemSize="44" OverscanCount="15" SpacerElement="tr">
+                                @{
+                                    var c = fila.Carpeta;
+                                    var nro = fila.Numero;
                                     var sel = colaSeleccionadas.Contains(c.Id);
                                     <tr class="@(sel ? "row-selected" : "")">
                                         <td class="td-check">
@@ -314,12 +319,14 @@
                                         <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
                                         <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                         <td>
-                                            <button class="btn-action-caja" @onclick="() => AsignarIndividualColaAsync(c)">
-                                                📦 Guardar en Caja
+                                            <button class="btn-action-caja" title="Guardar esta carpeta en una caja física" @onclick="() => AbrirModalCaja(c)">
+                                                <svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                                                <span>Caja</span>
                                             </button>
                                         </td>
                                     </tr>
                                 }
+                                </Virtualize>
                             </tbody>
                         </table>
                     </div>
@@ -328,6 +335,35 @@
         }
     }
 </div>
+
+@if (mostrarModalCaja && carpetaModal is not null)
+{
+    <div class="modal-overlay" @onclick="CerrarModalCaja">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h3>📦 Almacenamiento en Caja Física</h3>
+            <p>Carpeta: <strong>@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
+            <div class="modal-form">
+                <label>Código / Identificador de la Caja o Estante:
+                    <input @bind="nuevaCajaModal" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
+                </label>
+                @if (cajas is { Count: > 0 })
+                {
+                    <div class="cajas-sugeridas">
+                        <span class="sugeridas-label">Cajas activas existentes:</span>
+                        @foreach (var caja in cajas.Take(6))
+                        {
+                            <button type="button" class="btn-sug" @onclick="() => nuevaCajaModal = caja.Caja">@caja.Caja (@caja.TotalCarpetas)</button>
+                        }
+                    </div>
+                }
+                <div class="modal-actions">
+                    <button class="btn-primary" @onclick="GuardarCajaModalAsync" disabled="@string.IsNullOrWhiteSpace(nuevaCajaModal)">Confirmar almacenamiento</button>
+                    <button class="btn-secondary" @onclick="CerrarModalCaja">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     [SupplyParameterFromQuery(Name = "caja")]
@@ -338,11 +374,48 @@
     private string filtroCajaTexto = "";
     private string nuevoRotuloCaja = "";
     private string? mensajeExito;
+    private string? mensajeError;
+    private bool ocupado;
+
+    /// <summary>Runs a box mutation once at a time, requiring the official's name, with a visible error on failure.</summary>
+    private async Task EjecutarCajaAsync(Func<string, Task> accion)
+    {
+        if (ocupado) return;
+        mensajeError = null;
+        if (!Autor.HasNombre)
+        {
+            mensajeError = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar cajas.";
+            return;
+        }
+
+        ocupado = true;
+        try
+        {
+            await accion(Autor.Nombre);
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            mensajeError = ex.Message;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Fallo una operación de cajas.");
+            mensajeError = "No se pudo completar la operación. Intente nuevamente.";
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
     private bool cargandoDetalle;
 
     private IReadOnlyList<CajaResumenDto>? cajas;
     private IReadOnlyList<CarpetaResumenDto>? carpetasDeCaja;
     private IReadOnlyList<CarpetaResumenDto>? carpetasCola;
+    private List<FilaCola> filasCola = [];
+
+    /// <summary>Fila de la cola con su correlativo, para la lista continua virtualizada.</summary>
+    private sealed record FilaCola(int Numero, CarpetaResumenDto Carpeta);
     private int totalSinCaja;
     private readonly HashSet<Guid> colaSeleccionadas = [];
 
@@ -352,7 +425,7 @@
             : (cajas ?? []).Where(c => c.Caja.Contains(filtroCajaTexto, StringComparison.OrdinalIgnoreCase)).ToList();
 
     private bool TodosColaSeleccionados =>
-        carpetasCola is not null && carpetasCola.Count > 0 && carpetasCola.All(c => colaSeleccionadas.Contains(c.Id));
+        carpetasCola is not null && carpetasCola.Count > 0 && colaSeleccionadas.Count >= carpetasCola.Count;
 
     protected override async Task OnInitializedAsync()
     {
@@ -368,18 +441,20 @@
         cajas = await Carpetas.ObtenerCajasAsync();
 
         // Primero las enviadas explícitamente a cola de caja, luego las que no tienen caja
-        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja", PageSize: 100));
-        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true, PageSize: 100));
+        // Sin paginación: se cargan todas y la tabla las virtualiza.
+        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja"));
+        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true));
 
-        var listaCombinada = new List<CarpetaResumenDto>();
-        listaCombinada.AddRange(resEnCola.Items);
-        foreach (var item in resSinCaja.Items)
+        var vistos = new HashSet<Guid>();
+        var listaCombinada = new List<CarpetaResumenDto>(resEnCola.Items.Count + resSinCaja.Items.Count);
+        foreach (var item in resEnCola.Items.Concat(resSinCaja.Items))
         {
-            if (!listaCombinada.Any(x => x.Id == item.Id))
+            if (vistos.Add(item.Id))
                 listaCombinada.Add(item);
         }
 
         carpetasCola = listaCombinada;
+        filasCola = listaCombinada.Select((c, i) => new FilaCola(i + 1, c)).ToList();
         totalSinCaja = resEnCola.Total + resSinCaja.Total;
 
         if (string.IsNullOrWhiteSpace(nuevoRotuloCaja))
@@ -415,12 +490,14 @@
     {
         if (string.IsNullOrWhiteSpace(cajaSeleccionada)) return;
         var rotulo = cajaSeleccionada;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
-        await Carpetas.ReabrirCajaAsync(rotulo, autor);
-        mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
-        cajaSeleccionada = null;
-        pestanaActiva = "cola";
-        await CargarDatosAsync();
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.ReabrirCajaAsync(rotulo, autor);
+            mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
+            cajaSeleccionada = null;
+            pestanaActiva = "cola";
+            await CargarDatosAsync();
+        });
     }
 
     private async Task ImprimirActa()
@@ -452,24 +529,46 @@
     private async Task AsignarCajaColaAsync()
     {
         if (colaSeleccionadas.Count == 0 || string.IsNullOrWhiteSpace(nuevoRotuloCaja)) return;
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
         var rotulo = nuevoRotuloCaja.Trim();
-
-        await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
-        colaSeleccionadas.Clear();
-        mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
-
-        await CargarDatosAsync();
-        await AbrirDetalleCaja(rotulo);
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
+            colaSeleccionadas.Clear();
+            mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
+            await CargarDatosAsync();
+            await AbrirDetalleCaja(rotulo);
+        });
     }
 
-    private async Task AsignarIndividualColaAsync(CarpetaResumenDto c)
-    {
-        var rotulo = string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "CAJA-01" : nuevoRotuloCaja.Trim();
-        var autor = Autor.HasNombre ? Autor.Nombre! : "Funcionario";
+    // Mismo mecanismo que Cambio de domicilio: cuadro «Almacenamiento en Caja Física» con cajas activas como sugerencia.
+    private bool mostrarModalCaja;
+    private CarpetaResumenDto? carpetaModal;
+    private string nuevaCajaModal = "";
 
-        await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
-        mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
-        await CargarDatosAsync();
+    private void AbrirModalCaja(CarpetaResumenDto c)
+    {
+        carpetaModal = c;
+        nuevaCajaModal = "";
+        mostrarModalCaja = true;
+    }
+
+    private void CerrarModalCaja()
+    {
+        mostrarModalCaja = false;
+        carpetaModal = null;
+    }
+
+    private async Task GuardarCajaModalAsync()
+    {
+        if (carpetaModal is null || string.IsNullOrWhiteSpace(nuevaCajaModal)) return;
+        var c = carpetaModal;
+        var rotulo = nuevaCajaModal.Trim();
+        CerrarModalCaja();
+        await EjecutarCajaAsync(async autor =>
+        {
+            await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
+            mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
+            await CargarDatosAsync();
+        });
     }
 }

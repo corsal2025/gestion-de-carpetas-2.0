@@ -18,8 +18,33 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ClasePendiente),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.EsperaExamen),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.ParaDenegar),
         (EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado),
         (EstadoCarpeta.Alertada, EstadoCarpeta.ParaDenegar),
+        // Manual classification of agenda-imported carpetas.
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.PrimeraLicencia),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConaset),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomSubidoConaset),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomSubidoCorreo),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SubidaConOficio),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SeEncuentraEnArchivos),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.SeEncuentraEnOf43),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomicilioSolicitado),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CambioDomicilio),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.NoExisteCarpeta),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
+        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8.
+        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConaset),
+        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
+        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConaset),
+        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.NoExisteCarpeta),
+        // A missing carpeta is uploaded with F8 or with an oficio; it never goes back to the shelves.
+        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
     ];
 
     public static TheoryData<EstadoCarpeta, EstadoCarpeta> ValidPairs()
@@ -98,5 +123,13 @@ public class EstadoTransitionsTests
         Assert.Equal(
             [EstadoCarpeta.Revision, EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.CambioDomicilio],
             EstadoTransitions.NextStates(EstadoCarpeta.Citada));
+    }
+
+    [Fact]
+    public void NextStates_of_ClasePendiente_can_resume_or_terminate()
+    {
+        Assert.Equal(
+            [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
+            EstadoTransitions.NextStates(EstadoCarpeta.ClasePendiente));
     }
 }

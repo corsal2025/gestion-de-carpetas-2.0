@@ -89,6 +89,9 @@ stateDiagram-v2
   Citada --> CambioDomicilio
   CambioDomicilio --> SubidaCONASET
   EsperaExamen --> ClasePendiente
+  ClasePendiente --> EsperaExamen
+  ClasePendiente --> Otorgado
+  ClasePendiente --> ParaDenegar
   EsperaExamen --> Otorgado
   EsperaExamen --> ParaDenegar
   ParaDenegar --> Denegado
