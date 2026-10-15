@@ -1179,7 +1179,8 @@
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         @{
-                                            var esPrimera = destinoClasif.GetValueOrDefault(c.Id) == EstadoCarpeta.PrimeraLicencia;
+                                            var elegido = DestinoElegido(c.Id, c.TramiteAgenda);
+                                            var esPrimera = elegido == EstadoCarpeta.PrimeraLicencia;
                                         }
                                         <input type="date" class="date-input-inline @(esPrimera ? "date-solo-lectura" : null)"
                                                @key="@($"fc-{c.Id}-{esPrimera}")"
@@ -1194,7 +1195,6 @@
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         @{
                                             var porFecha = DestinoPorFecha(c.Id);
-                                            var elegido = destinoClasif.GetValueOrDefault(c.Id);
                                             var textoFecha = FechaClasif(c.Id);
                                             var fechaIlegible = elegido is null && !string.IsNullOrWhiteSpace(textoFecha) && porFecha is null;
                                         }
@@ -1208,16 +1208,16 @@
                                                     <option value="@e">@Labels.Of(e)</option>
                                                 }
                                             </select>
-                                            @if (destinoClasif.GetValueOrDefault(c.Id) is { } dSel && Carpeta.EsCambioDomicilio(dSel))
+                                            @if (elegido is { } dSel && Carpeta.EsCambioDomicilio(dSel))
                                             {
                                                 <input type="text" class="comuna-input-inline" list="lista-comunas-chile" placeholder="Comuna"
                                                        value="@comunaClasif.GetValueOrDefault(c.Id)" @onchange="(e) => comunaClasif[c.Id] = e.Value?.ToString()" />
                                             }
                                             <button type="button" class="btn-action-caja" disabled="@clasificando"
                                                     title="Aplicar la clasificación a esta carpeta"
-                                                    @onclick="() => ClasificarUnaAsync(c.Id)">Aplicar</button>
+                                                    @onclick="() => ClasificarUnaAsync(c.Id, c.TramiteAgenda)">Aplicar</button>
                                         </div>
-                                        @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id) is { } faltan)
+                                        @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id, c.TramiteAgenda) is { } faltan)
                                         {
                                             <div class="clasif-sugerencia clasif-sugerencia-aviso" role="alert">@faltan</div>
                                         }
@@ -1415,13 +1415,17 @@
         return ClasificarUnaAsync(id);
     }
 
+    private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite) =>
+        destinoClasif.TryGetValue(id, out var e) ? e : (tramite == TramiteAgenda.PrimeraLicencia ? EstadoCarpeta.PrimeraLicencia : null);
+
     private readonly HashSet<Guid> intentoAplicar = [];
 
     /// <summary>What is still missing before a row can be classified (null when it is ready). Shown after the first click.</summary>
-    private string? Faltantes(Guid id)
+    private string? Faltantes(Guid id, TramiteAgenda? tramite = null)
     {
         var sinClase = clasesClasif.GetValueOrDefault(id) == ClaseLicencia.Ninguna;
-        var sinDestino = destinoClasif.GetValueOrDefault(id) is null && DestinoPorFecha(id) is null;
+        var elegido = DestinoElegido(id, tramite);
+        var sinDestino = elegido is null && DestinoPorFecha(id) is null;
         return (sinClase, sinDestino) switch
         {
             (true, true) => "Falta marcar la clase de licencia y elegir la fecha de la última carpeta (o un estado).",
@@ -1431,11 +1435,11 @@
         };
     }
 
-    private Task ClasificarUnaAsync(Guid id)
+    private Task ClasificarUnaAsync(Guid id, TramiteAgenda? tramite = null)
     {
         intentoAplicar.Add(id);
-        if (Faltantes(id) is not null) return Task.CompletedTask;
-        var elegido = destinoClasif.GetValueOrDefault(id);
+        if (Faltantes(id, tramite) is not null) return Task.CompletedTask;
+        var elegido = DestinoElegido(id, tramite);
         if (elegido is null && DestinoPorFecha(id) is null) return Task.CompletedTask;
         // No explicit state => null: the service applies the default action from the date.
         return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id),

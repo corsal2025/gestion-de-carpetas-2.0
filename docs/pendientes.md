@@ -12,11 +12,12 @@ Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparac
 | Pendiente | RESUELTO | «Clase pendiente» transita a EsperaExamen, Otorgado y ParaDenegar. | Resuelto en EstadoTransitions y tests unitarios. |
 
 ## Para retomar (2026-10-15)
-- **Preguntas abiertas con el usuario**
-  - Columna «Fecha últ. carpeta» de «Por clasificar»: hoy es un selector de calendario; el usuario había dicho «eso no debe ir ahí» y no se definió si se saca (A), solo se quita el texto de ayuda (B) u otra cosa (C).
+- **Mejoras UX resueltas**
+  - Columna «Fecha últ. carpeta» de «Por clasificar»: ajustado para que cuando el trámite de agenda es Primera Licencia, se bloquee el calendario (no lleva fecha anterior) y se preseleccione «Primera Licencia» en el destino automáticamente.
+  - Lupa de duplicado en «Por clasificar»: se mantiene visible en filas con alerta para navegación directa con un click a las demás carpetas del RUT.
+- **Pendientes de datos heredados**
   - Cierre por subida (R9): se mantiene la opción A (la carpeta se queda en su pestaña «Subida…» con fecha de cierre automática).
   - 3.673 carpetas heredadas con fecha de subida anterior a la citación (vigilante de integridad; el aviso rojo se retiró de Inicio, la vista «Integridad» sigue en el menú).
-  - Si la lupa de duplicado en «Por clasificar» debe quedar o salir.
 - **Datos de CAS Chile** (el usuario los extrae por años): importar como tabla de consulta por RUT (última carpeta, lugar, clases).
 - **Pendientes de revisión visual**: probar en Chrome real las bandejas grandes (> 200 filas); el navegador de pruebas no cargaba sus filas.
 - **App**: Soporte de Servicio de Windows integrado (`builder.Host.UseWindowsService()`, `scripts/install_windows_service.ps1`, `scripts/uninstall_windows_service.ps1`).
