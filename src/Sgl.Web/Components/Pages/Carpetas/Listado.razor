@@ -1054,6 +1054,8 @@
     // Every tray ends with "FECHA DE ETAPA": the automatic date the carpeta entered its current stage (Chile time).
     private const string ColumnaEtapa = "FECHA DE ETAPA";
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS", ColumnaEtapa];
+    // 1° Licencia never moves on from this tray, so it has no ESTADO column (the tray already is the estado).
+    private static readonly string[] ColumnasPrimeraLicencia = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
     private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
     private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa];
@@ -1061,7 +1063,7 @@
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
         [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
-        [Bandeja.PorPreparar] = ColumnasPreparacion,
+        [Bandeja.PorPreparar] = ColumnasPrimeraLicencia,
         [Bandeja.CrearCertificado] = ColumnasPreparacion,
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
         [Bandeja.SeEncuentraEnArchivos] = ColumnasUbicacion,
@@ -1216,6 +1218,9 @@
                                     </td>
                                     break;
                                 case Bandeja.PorPreparar:
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    break;
                                 case Bandeja.CrearCertificado:
                                 case Bandeja.CanjeLicExtranjera:
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
@@ -1276,19 +1281,30 @@
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
                                 <td class="action-cell" @ondblclick:stopPropagation>
-                                    @if (c.PendienteBusqueda)
+                                    @if (bandejaActiva == Bandeja.PorPreparar)
                                     {
-                                        <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                        @* 1° Licencia has no physical carpetas: only the resolution, nothing to box or open. *@
+                                        <button class="btn-decision btn-decision-otorgada" type="button" disabled="@(guardandoId == c.Id)"
+                                                title="Marcar como otorgada: cierra el trámite" @onclick="() => ResolverDecisionAsync(c, Decision.Otorgado)">Otorgada</button>
+                                        <button class="btn-decision btn-decision-denegada" type="button" disabled="@(guardandoId == c.Id)"
+                                                title="Marcar como denegada: cierra el trámite" @onclick="() => ResolverDecisionAsync(c, Decision.Denegado)">Denegada</button>
                                     }
-                                    else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
+                                    else
                                     {
-                                        <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                        @if (c.PendienteBusqueda)
+                                        {
+                                            <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                        }
+                                        else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
+                                        {
+                                            <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                        }
+                                        else if (c.CajaArchivo == Carpeta.ColaDeCaja)
+                                        {
+                                            <span class="badge warn" title="En cola para la próxima caja">En cola</span>
+                                        }
+                                        <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                     }
-                                    else if (c.CajaArchivo == Carpeta.ColaDeCaja)
-                                    {
-                                        <span class="badge warn" title="En cola para la próxima caja">En cola</span>
-                                    }
-                                    <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                 </td>
                             }
                         </tr>;
@@ -1506,11 +1522,9 @@
     /// <summary>
     /// While a carpeta is being searched physically (Archivos / Of. 43) or was declared missing, only the next steps of the
     /// flow are offered; every other state keeps the full list (legacy carpetas can be moved freely).
-    /// 1° Licencia is also a stage whose tray already names the estado, so its select only offers where it goes next.
     /// </summary>
     private static bool EsEtapaDeMovimiento(EstadoCarpeta e) =>
-        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta
-            or EstadoCarpeta.PrimeraLicencia;
+        e is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta;
 
     private static IEnumerable<EstadoCarpeta> OpcionesDeEstado(EstadoCarpeta actual)
     {
@@ -2090,6 +2104,24 @@
                 guardandoId = null;
             }
         }
+    }
+
+    /// <summary>Closes a 1° Licencia carpeta as granted or denied (asks first: a misclick would close the trámite).</summary>
+    private async Task ResolverDecisionAsync(CarpetaResumenDto c, Decision decision)
+    {
+        var verbo = decision == Decision.Otorgado ? "OTORGADA" : "DENEGADA";
+        bool confirmado;
+        try
+        {
+            confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Marcar la licencia de {c.NombreCompleto} ({c.Rut}) como {verbo}? El trámite se cierra.");
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            return;
+        }
+
+        if (!confirmado) return;
+        await CambiarDecisionRapidaAsync(c.Id, new ChangeEventArgs { Value = decision.ToString() });
     }
 
     private async Task CambiarDecisionRapidaAsync(Guid id, ChangeEventArgs e)

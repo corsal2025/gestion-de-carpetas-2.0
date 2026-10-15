@@ -455,3 +455,17 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .dup-nombre-celda { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .dup-nombre-celda .icono-buscar-dup { cursor: pointer; padding: 0; }
 .dup-tabla .dup-col-motivo { white-space: nowrap; }
+
+/* 1° Licencia: cierre del trámite como otorgada o denegada */
+.btn-decision {
+    margin: 0 0.25rem 0 0;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+.btn-decision:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-decision-otorgada { background: var(--ok-fondo); color: var(--ok-texto); border-color: var(--grupo-sistema); }
+.btn-decision-denegada { background: var(--aviso-bg); color: var(--aviso-texto); border-color: var(--aviso-borde); }
