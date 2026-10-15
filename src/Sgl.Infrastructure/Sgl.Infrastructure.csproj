@@ -12,6 +12,8 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    <!-- Pinned over the 9.0.11 that Microsoft.Data.SqlClient pulls in: CVE-2026-70162 / CVE-2026-84008 (fixed in 10.0.13). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <PropertyGroup>
