@@ -587,3 +587,18 @@ html body .data-table tbody tr .btn-enviar { background: #1d4ed8 !important; col
 
 /* Crear certificado / oficio: fecha de la última petición junto al botón "Pedir". */
 html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+
+/* Gráficas SVG de Estadísticas (componente Grafico) */
+.grafico { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.grafico figcaption { font-weight: 700; color: var(--text-primary); }
+.grafico-svg { width: 100%; height: auto; display: block; }
+.grafico .gr-grid { stroke: var(--border-color, #e2e8f0); stroke-width: 1; }
+.grafico .gr-texto { fill: var(--text-secondary, #475569); font-size: 11px; }
+.grafico .gl-linea { fill: none; stroke-width: 2.5; }
+.grafico-leyenda { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.82rem; color: var(--text-secondary, #475569); }
+.grafico-leyenda .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.3rem; vertical-align: middle; }
+.grafico-dona { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 1rem; align-items: center; }
+.grafico-leyenda-col { flex-direction: column; }
+.est-graficas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.est-graficas .est-ancha { grid-column: 1 / -1; }
+@media (max-width: 640px) { .grafico-dona { grid-template-columns: 1fr; } }

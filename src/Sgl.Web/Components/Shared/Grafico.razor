@@ -1,0 +1,191 @@
+@using System.Globalization
+
+@* Chart in plain SVG (no external library, works offline): bars, stacked bars, lines, donut and horizontal bars. *@
+<figure class="grafico">
+    @if (!string.IsNullOrEmpty(Titulo))
+    {
+        <figcaption>@Titulo</figcaption>
+    }
+    @if (!HayDatos)
+    {
+        <p class="est-sin-datos">Sin datos para los filtros seleccionados.</p>
+    }
+    else if (Tipo == GraficoTipo.Dona)
+    {
+        <div class="grafico-dona">
+            <svg viewBox="0 0 300 300" role="img" aria-label="@Titulo" class="grafico-svg">
+                @foreach (var (inicio, fin, i) in Porciones())
+                {
+                    if (fin - inicio >= 2 * Math.PI - 0.0001)
+                    {
+                        <circle cx="150" cy="150" r="120" fill="@Color(i)"><title>@Etiquetas[i]: @N(Series[0].Valores[i])</title></circle>
+                        <circle cx="150" cy="150" r="70" fill="var(--surface, #ffffff)" />
+                    }
+                    else
+                    {
+                        <path d="@Trazo(inicio, fin)" fill="@Color(i)"><title>@Etiquetas[i]: @N(Series[0].Valores[i])</title></path>
+                    }
+                }
+            </svg>
+            <ul class="grafico-leyenda grafico-leyenda-col">
+                @for (var i = 0; i < Etiquetas.Count; i++)
+                {
+                    <li><span class="sw" style="background:@Color(i)"></span>@Etiquetas[i] <strong>@N(Series[0].Valores[i])</strong></li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        var techo = Techo(Maximo);
+        var n = Etiquetas.Count;
+        var horizontal = Tipo == GraficoTipo.BarrasHorizontales;
+        var alto = horizontal ? Math.Max(H, n * 28 + MT + MB) : H;
+        <svg viewBox="0 0 @F(W) @F(alto)" role="img" aria-label="@Titulo" class="grafico-svg">
+            @if (horizontal)
+            {
+                var anchoBarras = W - MLH - MR - 48;
+                var filaAlto = (alto - MT - MB) / n;
+                @for (var i = 0; i < n; i++)
+                {
+                    var v = Valor(Series[0], i);
+                    var y = MT + i * filaAlto;
+                    var largo = anchoBarras * v / techo;
+                    <svg:text x="@F(MLH - 6)" y="@F(y + filaAlto * 0.6 + 4)" text-anchor="end" class="gr-texto">@Etiquetas[i]</svg:text>
+                    <rect x="@F(MLH)" y="@F(y + filaAlto * 0.2)" width="@F(largo)" height="@F(filaAlto * 0.6)" fill="@Color(0)"><title>@Etiquetas[i]: @N(v)</title></rect>
+                    <svg:text x="@F(MLH + largo + 6)" y="@F(y + filaAlto * 0.6 + 4)" class="gr-texto">@N(v)</svg:text>
+                }
+            }
+            else
+            {
+                var area = H - MT - MB;
+                var banda = (W - ML - MR) / n;
+                @for (var g = 0; g <= 4; g++)
+                {
+                    var yg = MT + area * (1 - g / 4.0);
+                    <line x1="@F(ML)" x2="@F(W - MR)" y1="@F(yg)" y2="@F(yg)" class="gr-grid" />
+                    <svg:text x="@F(ML - 6)" y="@F(yg + 4)" text-anchor="end" class="gr-texto">@N(techo * g / 4)</svg:text>
+                }
+                @if (Tipo == GraficoTipo.Lineas)
+                {
+                    @for (var s = 0; s < Series.Count; s++)
+                    {
+                        var puntos = string.Join(" ", Enumerable.Range(0, n).Select(i => $"{F(XCentro(i, banda))},{F(MT + area * (1 - Valor(Series[s], i) / techo))}"));
+                        <polyline points="@puntos" class="gl-linea" stroke="@Color(s)" />
+                        @for (var i = 0; i < n; i++)
+                        {
+                            <circle cx="@F(XCentro(i, banda))" cy="@F(MT + area * (1 - Valor(Series[s], i) / techo))" r="3.5" fill="@Color(s)">
+                                <title>@Series[s].Nombre · @Etiquetas[i]: @N(Valor(Series[s], i))</title>
+                            </circle>
+                        }
+                    }
+                }
+                else
+                {
+                    @for (var i = 0; i < n; i++)
+                    {
+                        var x0 = ML + i * banda;
+                        if (Tipo == GraficoTipo.BarrasApiladas)
+                        {
+                            var bw = banda * 0.6;
+                            var bx = x0 + (banda - bw) / 2;
+                            var acumulado = 0.0;
+                            @for (var s = 0; s < Series.Count; s++)
+                            {
+                                var v = Valor(Series[s], i);
+                                var h = area * v / techo;
+                                <rect x="@F(bx)" y="@F(MT + area - acumulado - h)" width="@F(bw)" height="@F(h)" fill="@Color(s)"><title>@Series[s].Nombre · @Etiquetas[i]: @N(v)</title></rect>
+                                acumulado += h;
+                            }
+                        }
+                        else
+                        {
+                            var grupo = banda * 0.7;
+                            var barra = grupo / Series.Count;
+                            var gx = x0 + (banda - grupo) / 2;
+                            @for (var s = 0; s < Series.Count; s++)
+                            {
+                                var v = Valor(Series[s], i);
+                                var h = area * v / techo;
+                                <rect x="@F(gx + s * barra)" y="@F(MT + area - h)" width="@F(barra - 2)" height="@F(h)" fill="@Color(s)"><title>@Series[s].Nombre · @Etiquetas[i]: @N(v)</title></rect>
+                            }
+                        }
+                        <svg:text transform="translate(@F(x0 + banda / 2),@F(H - MB + 14)) rotate(@(n > 6 ? -30 : 0))" text-anchor="@(n > 6 ? "end" : "middle")" class="gr-texto">@Etiquetas[i]</svg:text>
+                    }
+                }
+            }
+        </svg>
+        @if (Series.Count > 1 || horizontal)
+        {
+            <ul class="grafico-leyenda">
+                @for (var s = 0; s < (horizontal ? 1 : Series.Count); s++)
+                {
+                    <li><span class="sw" style="background:@Color(s)"></span>@(horizontal ? Series[0].Nombre : Series[s].Nombre)</li>
+                }
+            </ul>
+        }
+    }
+</figure>
+
+@code {
+    public enum GraficoTipo { Barras, BarrasApiladas, Lineas, Dona, BarrasHorizontales }
+
+    /// <summary>One data series. Values line up with <see cref="Etiquetas"/> by position.</summary>
+    public sealed record SerieGrafico(string Nombre, IReadOnlyList<double> Valores);
+
+    [Parameter] public GraficoTipo Tipo { get; set; } = GraficoTipo.Barras;
+    [Parameter, EditorRequired] public IReadOnlyList<string> Etiquetas { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<SerieGrafico> Series { get; set; } = [];
+    [Parameter] public string? Titulo { get; set; }
+
+    private const double W = 640, H = 300, ML = 56, MR = 12, MT = 12, MB = 64, MLH = 170;
+    private static readonly CultureInfo Cl = new("es-CL");
+    private static readonly string[] Paleta = ["#3b5bdb", "#0ca678", "#f59f00", "#e64980", "#7950f2", "#15aabf", "#868e96", "#d6336c"];
+
+    private static string Color(int i) => Paleta[i % Paleta.Length];
+    private static string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+    private static string N(double v) => v.ToString("N0", Cl);
+
+    private double Valor(SerieGrafico s, int i) => i < s.Valores.Count ? s.Valores[i] : 0;
+
+    private bool HayDatos => Etiquetas.Count > 0 && Series.Count > 0 && (Tipo == GraficoTipo.Dona ? Series[0].Valores.Sum() > 0 : Maximo > 0);
+
+    private double Maximo => Tipo == GraficoTipo.BarrasApiladas
+        ? Enumerable.Range(0, Etiquetas.Count).Select(i => Series.Sum(s => Valor(s, i))).DefaultIfEmpty(0).Max()
+        : Series.SelectMany(s => s.Valores).DefaultIfEmpty(0).Max();
+
+    /// <summary>Round the maximum up to a readable axis top (e.g. 47 → 50, 1230 → 1300).</summary>
+    private static double Techo(double v)
+    {
+        if (v <= 0) return 1;
+        var paso = Math.Pow(10, Math.Floor(Math.Log10(v)));
+        return Math.Ceiling(v / paso) * paso;
+    }
+
+    private static double XCentro(int i, double banda) => ML + banda * (i + 0.5);
+
+    private IEnumerable<(double Inicio, double Fin, int Indice)> Porciones()
+    {
+        var total = Series[0].Valores.Sum();
+        var angulo = -Math.PI / 2;
+        for (var i = 0; i < Etiquetas.Count; i++)
+        {
+            var v = Valor(Series[0], i);
+            if (v <= 0) continue;
+            var fin = angulo + 2 * Math.PI * v / total;
+            yield return (angulo, fin, i);
+            angulo = fin;
+        }
+    }
+
+    private static string Trazo(double inicio, double fin)
+    {
+        const double R = 120, r = 70, cx = 150, cy = 150;
+        var grande = fin - inicio > Math.PI ? 1 : 0;
+        var (x1, y1) = (cx + R * Math.Cos(inicio), cy + R * Math.Sin(inicio));
+        var (x2, y2) = (cx + R * Math.Cos(fin), cy + R * Math.Sin(fin));
+        var (x3, y3) = (cx + r * Math.Cos(fin), cy + r * Math.Sin(fin));
+        var (x4, y4) = (cx + r * Math.Cos(inicio), cy + r * Math.Sin(inicio));
+        return $"M{F(x1)},{F(y1)} A{R},{R} 0 {grande} 1 {F(x2)},{F(y2)} L{F(x3)},{F(y3)} A{r},{r} 0 {grande} 0 {F(x4)},{F(y4)} Z";
+    }
+}

@@ -79,6 +79,96 @@ else
         </a>
     </section>
 
+        var gmeses = SubidasPorMesTotal();
+        var gdecMes = a.DecisionPorMes;
+        var gestados = a.EstadoPorSede.GroupBy(e => e.Clave).OrderByDescending(g => g.Sum(x => x.Cantidad)).ToList();
+        var gdecSede = a.DecisionPorSede;
+        var gcambios = a.CambiosDomicilio;
+        var gu = datos.Uso;
+        var gar = datos.Archivo;
+        var gb = datos.Busquedas;
+
+        var eMeses = gmeses.Select(x => NombreMes(x.Anio, x.Mes)).ToList();
+        var sMeses = new List<Grafico.SerieGrafico>
+        {
+            new("Conaset", gmeses.Select(x => (double)x.Conaset).ToList()),
+            new("F8", gmeses.Select(x => (double)x.F8).ToList()),
+            new("Oficio", gmeses.Select(x => (double)x.Oficio).ToList()),
+            new("Correo", gmeses.Select(x => (double)x.Correo).ToList()),
+            new("Otra", gmeses.Select(x => (double)x.Otra).ToList()),
+        };
+        var eEstados = gestados.Select(g => EtiquetaEstado(g.Key)).ToList();
+        var sEstados = new List<Grafico.SerieGrafico> { new("Carpetas", gestados.Select(g => (double)g.Sum(x => x.Cantidad)).ToList()) };
+        var eDecMes = gdecMes.Select(d => NombreMes(d.Anio, d.Mes)).ToList();
+        var sDecMes = new List<Grafico.SerieGrafico>
+        {
+            new("Otorgados", gdecMes.Select(d => (double)d.Otorgados).ToList()),
+            new("Denegados", gdecMes.Select(d => (double)d.Denegados).ToList()),
+        };
+        var eDecSede = gdecSede.Select(d => Labels.Of(d.Sede)).ToList();
+        var sDecSede = new List<Grafico.SerieGrafico>
+        {
+            new("Otorgados", gdecSede.Select(d => (double)d.Otorgados).ToList()),
+            new("Denegados", gdecSede.Select(d => (double)d.Denegados).ToList()),
+        };
+        var eCambios = gcambios.Select(c => Labels.Of(c.Sede)).ToList();
+        var sCambios = new List<Grafico.SerieGrafico>
+        {
+            new("Solicitados", gcambios.Select(c => (double)c.Solicitados).ToList()),
+            new("Subidos", gcambios.Select(c => (double)c.Subidos).ToList()),
+        };
+        var eArchivo = gar.PorMes.Select(m => NombreMes(m.Anio, m.Mes)).ToList();
+        var sArchivo = new List<Grafico.SerieGrafico>
+        {
+            new("Carpetas archivadas", gar.PorMes.Select(m => (double)m.CarpetasArchivadas).ToList()),
+            new("Cajas cerradas", gar.PorMes.Select(m => (double)m.CajasCerradas).ToList()),
+        };
+        var eBusq = new List<string> { "Encontradas en Archivo", "Encontradas en Of. 43", "No encontradas", "Abiertas" };
+        var sBusq = new List<Grafico.SerieGrafico> { new("Búsquedas", new List<double> { gb.EncontradasArchivo, gb.EncontradasOficina43, gb.NoEncontradas, gb.Abiertas }) };
+        var eDias = gu.CambiosPorDia.Select(c => FormatoDia(c.Clave)).ToList();
+        var sDias = new List<Grafico.SerieGrafico> { new("Cambios", gu.CambiosPorDia.Select(c => (double)c.Cantidad).ToList()) };
+        var eComunas = a.ComunasTop.Select(c => c.Clave).ToList();
+        var sComunas = new List<Grafico.SerieGrafico> { new("Carpetas", a.ComunasTop.Select(c => (double)c.Cantidad).ToList()) };
+        var eClase = gu.ClasePorSede.Select(c => Labels.Of(c.Sede)).ToList();
+        var sClase = new List<Grafico.SerieGrafico>
+        {
+            new("Con clase", gu.ClasePorSede.Select(c => (double)c.ConClase).ToList()),
+            new("Sin clase", gu.ClasePorSede.Select(c => (double)c.SinClase).ToList()),
+        };
+    <h2 class="est-seccion">Gráficas</h2>
+    <div class="est-graficas">
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Subidas por mes y vía" Tipo="@Grafico.GraficoTipo.BarrasApiladas" Etiquetas="@eMeses" Series="@sMeses" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Estado de las carpetas" Tipo="@Grafico.GraficoTipo.Dona" Etiquetas="@eEstados" Series="@sEstados" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Decisiones por mes (otorgados y denegados)" Tipo="@Grafico.GraficoTipo.Lineas" Etiquetas="@eDecMes" Series="@sDecMes" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Otorgados y denegados por sede" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eDecSede" Series="@sDecSede" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Cambios de domicilio: solicitados vs subidos" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eCambios" Series="@sCambios" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Archivo: carpetas archivadas y cajas cerradas por mes" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eArchivo" Series="@sArchivo" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Búsquedas físicas" Tipo="@Grafico.GraficoTipo.Dona" Etiquetas="@eBusq" Series="@sBusq" />
+        </article>
+        <article class="card est-card est-ancha">
+            <Grafico Titulo="Cambios por día" Tipo="@Grafico.GraficoTipo.Lineas" Etiquetas="@eDias" Series="@sDias" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Comunas con más carpetas" Tipo="@Grafico.GraficoTipo.BarrasHorizontales" Etiquetas="@eComunas" Series="@sComunas" />
+        </article>
+        <article class="card est-card">
+            <Grafico Titulo="Clase de licencia por sede" Tipo="@Grafico.GraficoTipo.Barras" Etiquetas="@eClase" Series="@sClase" />
+        </article>
+    </div>
+
     <h2 class="est-seccion">1° Licencia y citadas</h2>
     <div class="est-grid">
         <article class="card est-card">
