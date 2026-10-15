@@ -16,25 +16,10 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
         ArgumentNullException.ThrowIfNull(search);
         var abiertas = db.Carpetas.AsNoTracking().Where(c => c.Decision == Decision.Pendiente);
 
-        // Single GROUP BY CiudadanoId HAVING COUNT(*) > 1 over open carpetas; per-citizen lookups
-        // afterwards use IX_Carpetas_CiudadanoId_Decision.
-        var grupos = abiertas
-            .GroupBy(c => c.CiudadanoId)
-            .Where(g => g.Count() > 1)
-            .Select(g => new
-            {
-                CiudadanoId = g.Key,
-                Cantidad = g.Count(),
-                UltimoRegistro = g.Max(c => c.FechaRegistro),
-                PrimeraCita = g.Min(c => c.FechaCitacion),
-                UltimaCita = g.Max(c => c.FechaCitacion),
-                MismaSede = g.Min(c => c.Sede) == g.Max(c => c.Sede),
-            });
-
+        // Shared predicate with the trays (DuplicadosPendientes) so list and trays never disagree.
         var query =
-            from g in grupos
+            from g in DuplicadosPendientes.Grupos(db)
             join ci in db.Ciudadanos.AsNoTracking() on g.CiudadanoId equals ci.Id
-            where !db.RevisionesDuplicado.Any(r => r.CiudadanoId == g.CiudadanoId && r.RevisadoEn >= g.UltimoRegistro)
             select new { g.CiudadanoId, g.Cantidad, g.PrimeraCita, g.UltimaCita, g.MismaSede, Rut = ci.Rut.Value, ci.Nombre, ci.Apellido, ci.NombreBusqueda };
 
         if (search.Sede is { } sede)

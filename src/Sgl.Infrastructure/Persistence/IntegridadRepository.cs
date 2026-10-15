@@ -43,8 +43,19 @@ public sealed class IntegridadRepository(SglDbContext db, IPanelQuery panel) : I
         var total = await db.Carpetas.AsNoTracking().CountAsync(ct);
 
         var panelGrupos = await panel.GruposAsync(ct);
+        // The panel leaves possible duplicates pending review out of the trays; they are added back here so the
+        // reconciliation against the raw per-tray totals above still verifies the panel's own arithmetic.
+        var pendientes = DuplicadosPendientes.CiudadanoIds(db);
+        var enDuplicados = await db.Carpetas.AsNoTracking()
+            .Where(c => pendientes.Contains(c.CiudadanoId))
+            .GroupBy(Carpeta.BandejaExpresion)
+            .Select(g => new { g.Key, Total = g.Count() })
+            .ToListAsync(ct);
         var conteoPanel = Enum.GetValues<Bandeja>()
-            .ToDictionary(b => b, b => panelGrupos.Where(g => g.Bandeja == b).Sum(g => g.Cantidad));
+            .ToDictionary(
+                b => b,
+                b => panelGrupos.Where(g => g.Bandeja == b).Sum(g => g.Cantidad)
+                    + (enDuplicados.FirstOrDefault(g => g.Key == b)?.Total ?? 0));
 
         var revisiones = await db.RevisionesDuplicado.AsNoTracking()
             .ToDictionaryAsync(r => r.CiudadanoId, r => r.RevisadoEn, ct);

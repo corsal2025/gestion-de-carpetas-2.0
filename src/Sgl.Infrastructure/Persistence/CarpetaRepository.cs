@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
@@ -48,7 +49,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var query = Filtrar(search);
         if (search.Bandeja is { } bandeja)
         {
-            query = query.Where(Carpeta.EnBandeja(bandeja));
+            query = query.Where(Carpeta.EnBandeja(bandeja)).Where(FueraDeDuplicados());
         }
 
         if (search.Ids is { } ids)
@@ -149,7 +150,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var query = Filtrar(search);
         if (search.Bandeja is { } bandeja)
         {
-            query = query.Where(Carpeta.EnBandeja(bandeja));
+            query = query.Where(Carpeta.EnBandeja(bandeja)).Where(FueraDeDuplicados());
         }
 
         return await Ordenar(query, search.Bandeja).Select(c => c.Id).ToListAsync(ct);
@@ -162,6 +163,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
     {
         ArgumentNullException.ThrowIfNull(search);
         var grupos = await Filtrar(search)
+            .Where(FueraDeDuplicados())
             .GroupBy(Carpeta.BandejaExpresion)
             .Select(g => new { g.Key, Total = g.Count() })
             .ToListAsync(ct);
@@ -304,6 +306,13 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.AnuladaEn ?? DateTime.MinValue,
                 r.AnuladaPor ?? ""))
             .ToList();
+    }
+
+    // Possible duplicates pending review live only in their own module, never in a tray or its counter.
+    private Expression<Func<Carpeta, bool>> FueraDeDuplicados()
+    {
+        var pendientes = DuplicadosPendientes.CiudadanoIds(db);
+        return c => !pendientes.Contains(c.CiudadanoId);
     }
 
     private IQueryable<Carpeta> Filtrar(CarpetaSearch search)
