@@ -5,7 +5,6 @@ namespace Sgl.Domain.Tests;
 public class BandejaTests
 {
     [Theory]
-    [InlineData(EstadoCarpeta.Citada, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.PrimeraLicencia, Bandeja.PorPreparar)]
     [InlineData(EstadoCarpeta.CanjeLicExtranjera, Bandeja.CanjeLicExtranjera)]
     [InlineData(EstadoCarpeta.CrearCertificado, Bandeja.CrearCertificado)]
@@ -20,6 +19,7 @@ public class BandejaTests
     [InlineData(EstadoCarpeta.SeEncuentraEnArchivos, Bandeja.SeEncuentraEnArchivos)]
     [InlineData(EstadoCarpeta.SeEncuentraEnOf43, Bandeja.SeEncuentraEnOf43)]
     [InlineData(EstadoCarpeta.NoExisteCarpeta, Bandeja.SinCarpetaF8)]
+    [InlineData(EstadoCarpeta.Citada, Bandeja.ParaRevision)]
     public void Open_folder_without_caja_is_classified_by_estado(EstadoCarpeta estado, Bandeja esperada)
     {
         Assert.Equal(esperada, Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null));
@@ -103,7 +103,7 @@ public class BandejaTests
     public void Folder_moves_bandeja_automatically_when_estado_changes()
     {
         var c = CarpetaFactory.New();
-        Assert.Equal(Bandeja.PorPreparar, c.Bandeja);
+        Assert.Equal(Bandeja.ParaRevision, c.Bandeja);
         c.ForzarEstado(EstadoCarpeta.SubidaConaset, "u", CarpetaFactory.Now);
         Assert.Equal(Bandeja.SubidaConaset, c.Bandeja);
     }

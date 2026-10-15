@@ -142,7 +142,7 @@ public sealed class BandejasTests : IDisposable
         Assert.Equal(b, Assert.Single(subidas.Items).Id);
 
         var conteos = await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery());
-        Assert.Equal(1, conteos[Bandeja.PorPreparar]);
+        Assert.Equal(1, conteos[Bandeja.ParaRevision]);
         Assert.Equal(1, conteos[Bandeja.SubidaConaset]);
         Assert.Equal(1, conteos[Bandeja.Archivadas]);
         Assert.Equal(0, conteos[Bandeja.Cerradas]);

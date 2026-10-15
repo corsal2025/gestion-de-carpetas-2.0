@@ -25,7 +25,7 @@ public sealed class PanelCalculoTests
 
     [Theory]
     [InlineData("Agenda", null, "PorClasificar (AvArgentina)", Bandeja.PorClasificar)]
-    [InlineData("Registro", null, "Citada (AvArgentina)", Bandeja.PorPreparar)]
+    [InlineData("Registro", null, "Citada (AvArgentina)", Bandeja.ParaRevision)]
     [InlineData("Estado", "PorClasificar", "SubidaConaset", Bandeja.SubidaConaset)]
     [InlineData("Estado", "PorClasificar", "CambioDomicilio", Bandeja.CambioDomicilio)]
     [InlineData("Estado", "EsperaExamen", "Otorgado", Bandeja.Cerradas)]

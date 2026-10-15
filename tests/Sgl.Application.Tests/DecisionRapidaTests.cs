@@ -10,8 +10,13 @@ public sealed class DecisionRapidaTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 
-    private Task<Guid> RegistrarAsync() =>
-        _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand("12345678-5", "JUAN", "PEREZ", Sede.AvArgentina, new DateOnly(2026, 5, 4), "ana"));
+    // Registered carpetas start in "Para revisión"; the classification moves them to 1° Licencia.
+    private async Task<Guid> RegistrarAsync()
+    {
+        var id = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand("12345678-5", "JUAN", "PEREZ", Sede.AvArgentina, new DateOnly(2026, 5, 4), "ana"));
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.PrimeraLicencia, "ana");
+        return id;
+    }
 
     [Theory]
     [InlineData(Decision.Otorgado)]

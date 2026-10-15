@@ -1070,13 +1070,14 @@
     {
         [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
+        [Bandeja.ParaRevision] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa],
         [Bandeja.CrearCertificado] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", ColumnaEtapa],
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
         [Bandeja.SeEncuentraEnArchivos] = ColumnasUbicacion,
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", ColumnaEtapa],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", ColumnaEtapa],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
@@ -1231,6 +1232,10 @@
                                 case Bandeja.CrearCertificado:
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     break;
+                                case Bandeja.ParaRevision:
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    break;
                                 case Bandeja.CambioDomicilio:
                                 case Bandeja.CambioDomicilioSolicitado:
                                     <td class="excel-cell-comuna" @ondblclick:stopPropagation>
@@ -1244,7 +1249,6 @@
                                     break;
                                 case Bandeja.SinCarpetaF8:
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasSinCarpeta)</td>
                                     break;
                                 case Bandeja.SubidaConaset:
@@ -1319,7 +1323,7 @@
                                         <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con F8»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConF8)">Enviar a F8</button>
                                         <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con oficio»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConOficio)">Enviar con oficio</button>
                                     }
-                                    else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
+                                    else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar or Bandeja.ParaRevision) && string.IsNullOrEmpty(c.CajaArchivo))
                                     {
                                         <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
                                     }
@@ -1416,7 +1420,7 @@
     }
 
     private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite) =>
-        destinoClasif.TryGetValue(id, out var e) ? e : (tramite == TramiteAgenda.PrimeraLicencia ? EstadoCarpeta.PrimeraLicencia : null);
+        destinoClasif.TryGetValue(id, out var e) ? e : null;
 
     private readonly HashSet<Guid> intentoAplicar = [];
 

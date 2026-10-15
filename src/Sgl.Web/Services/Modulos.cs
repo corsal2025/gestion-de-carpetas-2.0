@@ -34,6 +34,7 @@ public static class ModulosCatalogo
     public static readonly IReadOnlyList<Modulo> Todos =
     [
         Tray(Entrada, Bandeja.PorClasificar, "Por clasificar", "PC"),
+        Tray(Entrada, Bandeja.ParaRevision, "Para revisión", "PR"),
         new(ClaveDuplicados, Entrada, "Posibles duplicados", "PD", "duplicados"),
         Tray(Preparacion, Bandeja.PorPreparar, "1° Licencia", "1L"),
         Tray(Preparacion, Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos", "AR"),
