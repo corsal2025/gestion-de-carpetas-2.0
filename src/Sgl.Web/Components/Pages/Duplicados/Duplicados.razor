@@ -113,27 +113,35 @@ else
             </div>
         }
         <div class="dup-scroll">
-            <table class="dup-tabla">
-                <thead><tr><th class="dup-col-rut">RUT</th><th class="dup-col-nombre">Nombre</th><th>Carpetas abiertas</th><th></th></tr></thead>
+            @* Same look as the "Por clasificar" tray table (bandeja-table, theme surface rows). *@
+            <table class="data-table bandeja-table dup-bandeja">
+                <thead>
+                    <tr>
+                        <th>RUT</th>
+                        <th class="th-wrap">NOMBRE DE CONTRIBUYENTE</th>
+                        <th>CARPETAS ABIERTAS</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
                 <tbody>
                     <Virtualize @ref="virtualizador" TItem="DuplicadoGrupoDto" Context="g" ItemsProvider="CargarFilasAsync"
                                 ItemSize="52" OverscanCount="10" SpacerElement="tr">
                         <ItemContent>
                             @{ var abierto = grupoAbierto?.CiudadanoId == g.CiudadanoId; }
-                            <tr class="dup-grupo @(abierto ? "abierto" : "")" @onclick="() => ToggleAsync(g)">
-                                <td class="dup-col-rut">@g.Rut</td>
-                                <td class="dup-col-nombre">@g.NombreCompleto</td>
+                            <tr class="estado-porclasificar dup-grupo @(abierto ? "abierto row-drawer-active" : "")" @onclick="() => ToggleAsync(g)">
+                                <td class="date-cell">@g.Rut</td>
+                                <td><span class="name-cell">@g.NombreCompleto</span></td>
                                 <td>@g.CarpetasAbiertas</td>
-                                <td class="dup-acciones" @onclick:stopPropagation>
-                                    <button type="button" class="secondary" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
+                                <td class="action-cell" @onclick:stopPropagation>
+                                    <button type="button" class="btn-action-caja" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => ToggleAsync(g)">
                                         @(abierto ? "▾ Ocultar carpetas" : $"▸ Ver carpetas ({g.CarpetasAbiertas})")
                                     </button>
-                                    <button type="button" disabled="@(ocupado)" title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
+                                    <button type="button" class="btn-action-caja" disabled="@(ocupado)" title="Crear nueva: mantener ambas carpetas" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">Mantener ambas (revisado)</button>
                                 </td>
                             </tr>
                         </ItemContent>
                         <Placeholder>
-                            <tr class="dup-grupo"><td colspan="4">&nbsp;</td></tr>
+                            <tr class="estado-porclasificar dup-grupo"><td colspan="4">&nbsp;</td></tr>
                         </Placeholder>
                     </Virtualize>
                 </tbody>
