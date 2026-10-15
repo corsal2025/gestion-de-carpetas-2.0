@@ -67,6 +67,20 @@ if (string.Equals(builder.Configuration[DependencyInjection.ProviderKey], Databa
         var reparadas = await LegacyComunaRepair.RepararYRegistrarAsync(db, DateTime.UtcNow);
         app.Logger.LogInformation("Reparación de datos heredados: {Count} carpeta(s) con comuna movida desde 'última carpeta'.", reparadas);
     }
+
+    // Names are always uppercase; legacy rows also lose the "Vecino" surname placeholder. Backup first, idempotent.
+    if (await NombresMayusculaRepair.PendientesAsync(db) > 0)
+    {
+        var file = db.Database.GetDbConnection().DataSource;
+        if (!string.IsNullOrEmpty(file) && File.Exists(file))
+        {
+            var copia = $"{file}.backup-{DateTime.Now:yyyyMMdd-HHmmss}-prenombres";
+            db.Database.ExecuteSqlRaw("VACUUM INTO {0}", copia);
+        }
+
+        var nombres = await NombresMayusculaRepair.RepararAsync(db);
+        app.Logger.LogInformation("Nombres pasados a mayúscula: {Count} ciudadano(s).", nombres);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
