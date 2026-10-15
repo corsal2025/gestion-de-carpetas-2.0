@@ -31,9 +31,19 @@ public sealed record ListadoBusquedaDto(
     /// <summary>Chile local emission time, as printed.</summary>
     public DateTime EmitidoChile => HoraChile.ALocal(EmitidoUtc);
 
-    public string EmitidoTexto => EmitidoChile.ToString("dd-MM-yyyy HH:mm", CultureInfo.InvariantCulture);
+    public string EmitidoTexto =>
+        $"{FechaImpresa.De(DateOnly.FromDateTime(EmitidoChile))} {EmitidoChile.ToString("HH:mm", CultureInfo.InvariantCulture)}";
 
     public IReadOnlyList<Guid> Ids => Items.Select(i => i.Id).ToList();
+}
+
+/// <summary>Printed dates as number/letters/number ("02/FEB/2019"): day and month can never be read swapped.</summary>
+public static class FechaImpresa
+{
+    private static readonly string[] Meses = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+    public static string De(DateOnly fecha) =>
+        $"{fecha.Day:00}/{Meses[fecha.Month - 1]}/{fecha.Year.ToString(CultureInfo.InvariantCulture)}";
 }
 
 public static class ListadoBusquedaBuilder
@@ -61,7 +71,7 @@ public static class ListadoBusquedaBuilder
                 x.Carpeta.NombreCompleto,
                 x.Carpeta.Sede,
                 x.Carpeta.Comuna,
-                x.Fecha is { } f ? f.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture) : "—",
+                x.Fecha is { } f ? FechaImpresa.De(f) : "—",
                 x.Carpeta.FechaImpresion))
             .ToList();
 

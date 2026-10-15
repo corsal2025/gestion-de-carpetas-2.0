@@ -171,7 +171,10 @@ public sealed class Fase3ServicioTests : IDisposable
         Assert.Equal(3, l.Total);
         Assert.Equal([1, 2, 3], l.Items.Select(i => i.Numero).ToArray());
         Assert.Equal("Archivo-20260504-0600", l.Folio); // 10:00 UTC is 06:00 in Chile in May (UTC-4, winter time)
-        Assert.Equal("02-02-2019", l.Items[0].FechaUltimaCarpeta);
+        // Printed dates read number/letters/number so day and month can never be swapped.
+        Assert.Equal("02/FEB/2019", l.Items[0].FechaUltimaCarpeta);
+        Assert.Equal("01/JUN/2023", l.Items[2].FechaUltimaCarpeta);
+        Assert.Equal("04/MAY/2026 06:00", l.EmitidoTexto);
     }
 
     private async Task EnOf43Async()

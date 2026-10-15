@@ -747,7 +747,7 @@
                         </div>
                         <div class="doc-meta">
                             <div>Folio: <strong>@(EsSectorArchivo ? "Archivo" : "Oficina43")-@HoraChile.ALocal(DateTime.UtcNow).ToString("yyyyMMdd-HHmm")</strong></div>
-                            <div>Generado: <strong>@HoraChile.ALocal(DateTime.UtcNow).ToString("dd-MM-yyyy HH:mm")</strong></div>
+                            <div>Generado: <strong>@FechaImpresa.De(DateOnly.FromDateTime(HoraChile.ALocal(DateTime.UtcNow))) @HoraChile.ALocal(DateTime.UtcNow).ToString("HH:mm")</strong></div>
                         </div>
                     </div>
 
@@ -2638,12 +2638,6 @@
     // REGLA DE NEGOCIO: CÁLCULO DE SECTOR E IMPRESIÓN OFICIAL PDF
     // ==========================================================================
     private static readonly DateOnly CutoffSectorJulio2023 = new(2023, 7, 1);
-    private static readonly string[] SpanishMonthNames =
-    [
-        "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-    ];
-
     private static string CalcularSector(string? fechaStr) => SectorFisico.Calcular(fechaStr);
 
     private static string FormatearFechaFormal(string? fechaStr)
@@ -2655,7 +2649,7 @@
             || DateOnly.TryParse(fechaStr, out d)
             || SpanishDateTryParse(fechaStr, out d))
         {
-            return $"{d.Day} {SpanishMonthNames[d.Month - 1].ToUpperInvariant()} {d.Year}";
+            return FechaImpresa.De(d);
         }
 
         return fechaStr.ToUpperInvariant();
