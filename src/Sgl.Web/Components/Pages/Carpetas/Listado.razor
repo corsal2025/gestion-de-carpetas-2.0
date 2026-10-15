@@ -266,6 +266,10 @@
         {
             <MetaDiaBar Meta="panelMeta.Meta" Delgada="true" />
         }
+        else if (EsBandejaDeUbicacion(bandejaActiva) && Modulos.Panel?.ActividadHoy.GetValueOrDefault(bandejaActiva!.Value) is { } actividad)
+        {
+            <MetaDiaBar Meta="actividad" Delgada="true" Accion="revisadas hoy" PorHacer="revisar" />
+        }
     </div>
 
     <!-- Grilla de resultados con máxima legibilidad -->
@@ -567,7 +571,7 @@
                         {
                             <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap col-sticky-nombre" : col == "RUT" ? "col-sticky-rut" : null)">@col</th>
                         }
-                        @if (bandejaActiva != Bandeja.PorClasificar)
+                        @if (ConAccionYEtapa)
                         {
                             <th>ACCIÓN</th>
                             @* The stage date always closes the row, after the actions. *@
@@ -1055,6 +1059,11 @@
 
     // Every tray ends with "FECHA DE ETAPA": the automatic date the carpeta entered its current stage (Chile time).
     private const string ColumnaEtapa = "FECHA DE ETAPA";
+    /// <summary>Location trays (Archivos / Of. 43) are worked down to empty: no action nor stage date, an activity bar instead.</summary>
+    private static bool EsBandejaDeUbicacion(Bandeja? b) => b is Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43;
+
+    private bool ConAccionYEtapa => bandejaActiva != Bandeja.PorClasificar && !EsBandejaDeUbicacion(bandejaActiva);
+
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
     private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
@@ -1269,7 +1278,7 @@
                                     <td>@Labels.Of(c.Decision)</td>
                                     break;
                             }
-                            @if (bandejaActiva != Bandeja.PorClasificar)
+                            @if (ConAccionYEtapa)
                             {
                                 <td class="action-cell" @ondblclick:stopPropagation>
                                     @if (c.PendienteBusqueda)
@@ -1625,10 +1634,10 @@
         if (!string.IsNullOrWhiteSpace(QueryCaja)) filtroCaja = QueryCaja.Trim();
     }
 
-    // Only the goal bar of "Por clasificar" depends on the panel figures: avoid re-rendering the table otherwise.
+    // Only the goal / activity bars ("Por clasificar", Archivos, Of. 43) depend on the panel figures: avoid re-rendering the table otherwise.
     private void OnModulosChanged()
     {
-        if (bandejaActiva == Bandeja.PorClasificar) _ = InvokeAsync(StateHasChanged);
+        if (bandejaActiva == Bandeja.PorClasificar || EsBandejaDeUbicacion(bandejaActiva)) _ = InvokeAsync(StateHasChanged);
     }
 
     public void Dispose() => Modulos.Changed -= OnModulosChanged;

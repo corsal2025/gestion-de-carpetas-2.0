@@ -27,7 +27,8 @@ public sealed record PanelDto(
     int AlertasDuplicado,
     int Anuladas,
     IReadOnlyList<int> SerieAnuladas,
-    string MensajeLico);
+    string MensajeLico,
+    IReadOnlyDictionary<Bandeja, MetaDelDiaDto> ActividadHoy);
 
 /// <summary>Carpetas grouped by the raw columns that decide their tray, plus appointment date.</summary>
 public sealed record GrupoBandejaDto(EstadoCarpeta Estado, Decision Decision, bool EnCajaReal, DateOnly FechaCitacion, int Cantidad)
