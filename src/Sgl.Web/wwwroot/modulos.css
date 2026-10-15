@@ -574,3 +574,10 @@ html body .data-table tbody tr .btn-otorgada { background: #15803d !important; c
 html body .data-table tbody tr .btn-denegada { background: #b91c1c !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
 html body .data-table tbody tr .btn-decision:hover:not(:disabled) { filter: brightness(1.12); }
 html body .data-table tbody tr .btn-decision:disabled { opacity: 0.55; cursor: progress; }
+
+/* Archivos / Of. 43: "En proceso de búsqueda" (lupa amarilla parpadeando + días buscando). */
+html body .data-table.bandeja-table td.td-pend { white-space: nowrap; }
+html body .data-table.bandeja-table .en-busqueda-dias { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+/* Las filas con color de Excel fuerzan texto blanco: la lupa inactiva debe seguir visible sobre su fondo blanco. */
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) { color: #1b2140 !important; -webkit-text-fill-color: #1b2140 !important; }
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) svg { stroke: #1b2140 !important; }

@@ -1066,7 +1066,7 @@
 
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
-    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "EN PROCESO DE BÚSQUEDA", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
     private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
@@ -1263,6 +1263,21 @@
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fult-{c.Id}-{revEdicion}")" Valor="FechaUltimaComoFecha(c.FechaUltimaCarpeta)" Titulo="Fecha de la última carpeta" ValorCambiado="v => GuardarFechaUltimaAsync(c.Id, v)" /></td>
                                     <td>@(string.IsNullOrWhiteSpace(c.FechaUltimaCarpeta) ? "—" : SectorFisico.Calcular(c.FechaUltimaCarpeta))</td>
+                                    <td class="td-pend" @ondblclick:stopPropagation>
+                                        @* "En proceso de búsqueda": someone is walking the shelves for it; moving the carpeta clears the mark. *@
+                                        <button type="button"
+                                                class="btn-pend-busqueda @(c.PendienteBusqueda ? "activo parpadeo" : "")"
+                                                aria-pressed="@(c.PendienteBusqueda ? "true" : "false")"
+                                                aria-label="En proceso de búsqueda"
+                                                title="@(c.PendienteBusqueda ? "Quitar: ya no está en proceso de búsqueda" : "Marcar: en proceso de búsqueda")"
+                                                @onclick="() => TogglePendienteBusquedaAsync(c)">
+                                            <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                                        </button>
+                                        @if (c.PendienteBusqueda)
+                                        {
+                                            <small class="en-busqueda-dias">@(c.Indicadores?.DiasBuscando is { } dbu and > 0 ? $"{dbu} d" : "hoy")</small>
+                                        }
+                                    </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     <td class="date-cell"><CampoFecha Valor="@(c.FechaImpresion is { } impresa ? HoraChile.Fecha(impresa) : null)" ReadOnly="true" Titulo="Fecha de impresión del listado (automática)" /></td>
