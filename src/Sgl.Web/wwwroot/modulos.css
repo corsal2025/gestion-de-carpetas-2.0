@@ -602,3 +602,6 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .est-graficas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .est-graficas .est-ancha { grid-column: 1 / -1; }
 @media (max-width: 640px) { .grafico-dona { grid-template-columns: 1fr; } }
+
+/* Lupa de duplicado y lápiz (observación) siempre juntos, a la derecha del nombre. */
+.nombre-acciones { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }

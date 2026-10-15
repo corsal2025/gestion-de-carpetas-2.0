@@ -1146,6 +1146,7 @@
                             <td class="col-sticky-nombre" @ondblclick:stopPropagation>
                                 <div class="nombre-wrapper-cell">
                                     <span class="name-cell @(c.PendienteBusqueda ? "nombre-pend-parpadeo" : "")" title="@(c.PendienteBusqueda ? $"{c.NombreCompleto} · Pendiente de búsqueda{(c.Indicadores?.DiasBuscando is { } db ? $" ({db} d, marcada por {c.Indicadores.MarcadaPor})" : "")}" : c.NombreCompleto)">@c.NombreCompleto</span>
+                                    <span class="nombre-acciones">
                                     @if (bandejaActiva == Bandeja.PorClasificar && MuestraAlerta(c))
                                     {
                                         <a class="icono-buscar-dup" href="@($"carpetas?bandeja=todas&buscar={Uri.EscapeDataString(c.Rut)}")"
@@ -1162,6 +1163,7 @@
                                             <span class="obs-badge-indicator"></span>
                                         }
                                     </button>
+                                    </span>
                                 </div>
                             </td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
