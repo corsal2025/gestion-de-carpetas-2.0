@@ -257,6 +257,10 @@
             </div>
         }
 
+        @if (avisoPeticion is not null)
+        {
+            <div class="alert success" role="status">@avisoPeticion <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => avisoPeticion = null">✕</button></div>
+        }
         @if (errorEdicion is not null)
         {
             <div class="alert error" role="alert">@errorEdicion <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => errorEdicion = null">✕</button></div>
@@ -1073,7 +1077,7 @@
     {
         [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
-        [Bandeja.CrearCertificado] = ColumnasPreparacion,
+        [Bandeja.CrearCertificado] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", ColumnaEtapa],
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
         [Bandeja.SeEncuentraEnArchivos] = ColumnasUbicacion,
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
@@ -1227,10 +1231,12 @@
                                     </td>
                                     break;
                                 case Bandeja.PorPreparar:
-                                case Bandeja.CrearCertificado:
                                 case Bandeja.CanjeLicExtranjera:
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td>@Dias(c.Indicadores?.DiasTramite)</td>
+                                    break;
+                                case Bandeja.CrearCertificado:
+                                    <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     break;
                                 case Bandeja.CambioDomicilio:
                                 case Bandeja.CambioDomicilioSolicitado:
@@ -1303,6 +1309,17 @@
                                         <button class="btn-decision btn-otorgada" disabled="@(guardandoId == c.Id)" title="Otorgada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Otorgado)">Otorgada</button>
                                         <button class="btn-decision btn-denegada" disabled="@(guardandoId == c.Id)" title="Denegada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Denegado)">Denegada</button>
                                     }
+                                    else if (bandejaActiva == Bandeja.CrearCertificado)
+                                    {
+                                        @* "Pedir": request mail to Dirección and Secretaría (automatic once the mail is configured). *@
+                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)"
+                                                title="@(c.FechaPeticion is { } fp ? $"Pedido el {FechaImpresa.De(HoraChile.Fecha(fp))}. Pedir de nuevo envía un recordatorio." : "Pedir a Dirección y Secretaría")"
+                                                @onclick="() => PedirAsync(c)">Pedir</button>
+                                        @if (c.FechaPeticion is { } pedida)
+                                        {
+                                            <small class="pedido-fecha">Pedido @FechaImpresa.De(HoraChile.Fecha(pedida))</small>
+                                        }
+                                    }
                                     else if (bandejaActiva == Bandeja.SinCarpetaF8)
                                     {
                                         @* A missing carpeta is sent to one of its two upload trays. *@
@@ -1317,8 +1334,8 @@
                                     {
                                         <span class="badge warn" title="En cola para la próxima caja">En cola</span>
                                     }
-                                    @* In 1° Licencia and No existe the only actions are their own buttons; double-click on the row still opens the panel. *@
-                                    @if (bandejaActiva is not (Bandeja.PorPreparar or Bandeja.SinCarpetaF8))
+                                    @* In 1° Licencia, No existe and Crear certificado the only actions are their own buttons; double-click on the row still opens the panel. *@
+                                    @if (bandejaActiva is not (Bandeja.PorPreparar or Bandeja.SinCarpetaF8 or Bandeja.CrearCertificado))
                                     {
                                         <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                     }
@@ -2129,6 +2146,31 @@
             guardandoId = null;
         }
     }
+
+    /// <summary>"Crear certificado / oficio": stores the request and sends the mail when it is configured.</summary>
+    private async Task PedirAsync(CarpetaResumenDto c)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        guardandoId = c.Id;
+        try
+        {
+            var enviado = await Carpetas.PedirAsync(c.Id, autor);
+            avisoPeticion = enviado
+                ? $"Petición enviada por correo a Dirección y Secretaría ({c.NombreCompleto})."
+                : $"Petición registrada para {c.NombreCompleto}. El correo automático se activará cuando se configure.";
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "No se pudo registrar la petición");
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
+
+    private string? avisoPeticion;
 
     /// <summary>"Por preparar" end of process: Otorgada / Denegada closes the carpeta (moves to Cerradas, closing date = today) with undo.</summary>
     private async Task DecidirAsync(CarpetaResumenDto c, Decision decision)

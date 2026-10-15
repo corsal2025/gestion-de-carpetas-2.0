@@ -75,6 +75,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("FechaImpresion")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("FechaPeticion")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("TEXT");
 

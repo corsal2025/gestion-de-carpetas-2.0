@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<ICarpetaRepository, CarpetaRepository>();
         services.AddScoped<IDuplicadoRepository, DuplicadoRepository>();
         services.AddScoped<CarpetaService>();
+        // "Pedir" mail to Dirección / Secretaría: no mail until the real adapter is configured.
+        services.AddSingleton<INotificadorPeticion, PeticionSinCorreo>();
         services.AddScoped<DuplicadosService>();
         services.AddScoped<IPanelQuery, PanelQuery>();
         services.AddScoped<PanelService>();

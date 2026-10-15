@@ -584,3 +584,6 @@ html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.
 
 /* No existe carpeta: "Enviar a F8" / "Enviar con oficio" (azul, legible sobre la fila roja). */
 html body .data-table tbody tr .btn-enviar { background: #1d4ed8 !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+
+/* Crear certificado / oficio: fecha de la última petición junto al botón "Pedir". */
+html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }

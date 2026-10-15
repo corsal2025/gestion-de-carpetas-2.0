@@ -135,6 +135,9 @@ public sealed record CarpetaResumenDto(
     /// <summary>When the physical-search listing including it was marked as printed (UTC).</summary>
     public DateTime? FechaImpresion { get; init; }
 
+    /// <summary>When the certificate / oficio was last requested with "Pedir" (UTC).</summary>
+    public DateTime? FechaPeticion { get; init; }
+
     /// <summary>When the carpeta was registered or imported (only filled by ranged listings).</summary>
     public DateTime? FechaRegistro { get; init; }
 
@@ -187,6 +190,8 @@ public sealed record CarpetaDetalleDto(
     public DateOnly? FechaCierre { get; init; }
 
     public DateTime? FechaImpresion { get; init; }
+
+    public DateTime? FechaPeticion { get; init; }
 }
 
 /// <summary>A contiguous range of a filtered list plus the total count of the whole filtered set.</summary>
