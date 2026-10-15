@@ -1066,7 +1066,7 @@
 
     private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa];
     private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
-    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "EN PROCESO DE BÚSQUEDA", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "EN PROCESO DE BÚSQUEDA", "MOVER A", ColumnaEtapa];
     private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
@@ -1279,8 +1279,6 @@
                                         }
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
-                                    <td class="date-cell"><CampoFecha Valor="@(c.FechaImpresion is { } impresa ? HoraChile.Fecha(impresa) : null)" ReadOnly="true" Titulo="Fecha de impresión del listado (automática)" /></td>
                                     break;
                                 case Bandeja.Cerradas:
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
