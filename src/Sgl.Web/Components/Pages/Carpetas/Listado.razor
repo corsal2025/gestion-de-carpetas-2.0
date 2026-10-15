@@ -1303,6 +1303,12 @@
                                         <button class="btn-decision btn-otorgada" disabled="@(guardandoId == c.Id)" title="Otorgada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Otorgado)">Otorgada</button>
                                         <button class="btn-decision btn-denegada" disabled="@(guardandoId == c.Id)" title="Denegada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Denegado)">Denegada</button>
                                     }
+                                    else if (bandejaActiva == Bandeja.SinCarpetaF8)
+                                    {
+                                        @* A missing carpeta is sent to one of its two upload trays. *@
+                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con F8»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConF8)">Enviar a F8</button>
+                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con oficio»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConOficio)">Enviar con oficio</button>
+                                    }
                                     else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
                                     {
                                         <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
@@ -1311,8 +1317,8 @@
                                     {
                                         <span class="badge warn" title="En cola para la próxima caja">En cola</span>
                                     }
-                                    @* In 1° Licencia the only actions are the decision; double-click on the row still opens the panel. *@
-                                    @if (bandejaActiva != Bandeja.PorPreparar)
+                                    @* In 1° Licencia and No existe the only actions are their own buttons; double-click on the row still opens the panel. *@
+                                    @if (bandejaActiva is not (Bandeja.PorPreparar or Bandeja.SinCarpetaF8))
                                     {
                                         <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                     }
@@ -2083,38 +2089,44 @@
     {
         if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
         {
-            guardandoId = id;
-            StateHasChanged();
+            await MoverAAsync(id, nuevoEstado);
+        }
+    }
 
-            try
+    /// <summary>Moves a carpeta to another state (its tray follows) with the "Pasó a…" notice and undo.</summary>
+    private async Task MoverAAsync(Guid id, EstadoCarpeta nuevoEstado)
+    {
+        guardandoId = id;
+        StateHasChanged();
+
+        try
+        {
+            if (AutorRequerido() is not { } autor) { revEdicion++; return; }
+            var punto = await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
+            guardadoOkId = id;
+            await AnunciarCambioDeEstadoAsync(id, nuevoEstado, punto);
+            await CargarMetricasAsync();
+            await CargarAsync();
+
+            _ = Task.Run(async () =>
             {
-                if (AutorRequerido() is not { } autor) { revEdicion++; return; }
-                var punto = await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
-                guardadoOkId = id;
-                await AnunciarCambioDeEstadoAsync(id, nuevoEstado, punto);
-                await CargarMetricasAsync();
-                await CargarAsync();
-
-                _ = Task.Run(async () =>
+                await Task.Delay(1800);
+                if (guardadoOkId == id)
                 {
-                    await Task.Delay(1800);
-                    if (guardadoOkId == id)
-                    {
-                        guardadoOkId = null;
-                        await InvokeAsync(StateHasChanged);
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                MostrarErrorEdicion(ex, "Error al cambiar estado rápido");
-                revEdicion++;
-                await CargarAsync();
-            }
-            finally
-            {
-                guardandoId = null;
-            }
+                    guardadoOkId = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "Error al cambiar estado rápido");
+            revEdicion++;
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
         }
     }
 
