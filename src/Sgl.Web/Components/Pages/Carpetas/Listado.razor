@@ -1053,12 +1053,14 @@
 
     // Every tray ends with "FECHA DE ETAPA": the automatic date the carpeta entered its current stage (Chile time).
     private const string ColumnaEtapa = "FECHA DE ETAPA";
-    private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS", ColumnaEtapa];
+    // Last data column of every tray: the automatic closing date ("—" while the carpeta is open).
+    private const string ColumnaCierre = "FECHA DE CIERRE";
+    private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "ESTADO", "DÍAS DE TRÁMITE", "OTRAS ABIERTAS", ColumnaEtapa, ColumnaCierre];
     // 1° Licencia never moves on from this tray, so it has no ESTADO column (the tray already is the estado).
-    private static readonly string[] ColumnasPrimeraLicencia = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa];
-    private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", ColumnaEtapa];
-    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa];
-    private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa];
+    private static readonly string[] ColumnasPrimeraLicencia = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre];
+    private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "MOVER A", "DÍAS DE TRÁMITE", "IMPRESO", ColumnaEtapa, ColumnaCierre];
+    private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa, ColumnaCierre];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
@@ -1070,14 +1072,14 @@
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", "ÚLTIMO MOVIMIENTO", ColumnaEtapa],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "MOVER A", "DÍAS SIN ENCONTRAR", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa, ColumnaCierre],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
         [Bandeja.CambioDomSubidoConaset] = ColumnasSubida,
         [Bandeja.CambioDomSubidoCorreo] = ColumnasSubida,
-        [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "FECHA CIERRE", "DÍAS TOTALES", ColumnaEtapa],
-        [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN", ColumnaEtapa],
+        [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "DÍAS TOTALES", ColumnaEtapa, ColumnaCierre],
+        [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre],
     };
 
     private IReadOnlyList<string> ColumnasBandeja =>
@@ -1243,6 +1245,7 @@
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
                                     <td>@Dias(c.Indicadores?.DiasSinCarpeta)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } umF ? $"{HoraChile.ALocal(umF):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
                                     break;
                                 case Bandeja.SubidaConaset:
@@ -1253,6 +1256,7 @@
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fsub-{c.Id}-{revEdicion}")" Valor="c.FechaSubida" Titulo="Fecha de subida" ValorCambiado="v => GuardarFechaSubidaAsync(c, v)" /></td>
                                     <td>@Dias(c.Indicadores?.DiasCitacionSubida)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     break;
                                 case Bandeja.SeEncuentraEnArchivos:
                                 case Bandeja.SeEncuentraEnOf43:
@@ -1265,18 +1269,19 @@
                                     break;
                                 case Bandeja.Cerradas:
                                     <td class="excel-cell" @ondblclick:stopPropagation>@SelectDecision(c)</td>
-                                    <td class="date-cell"><CampoFecha Valor="c.Indicadores?.FechaCierre" ReadOnly="true" Titulo="Fecha de cierre (automática)" /></td>
                                     <td>@Dias(c.Indicadores?.DiasTotales)</td>
                                     break;
                                 case Bandeja.Archivadas:
                                     <td><a class="btn-action-caja-ok" href="cajas?caja=@Uri.EscapeDataString(c.CajaArchivo ?? "")">@c.CajaArchivo</a></td>
                                     <td class="date-cell"><CampoFecha Valor="c.Indicadores?.FechaArchivo" ReadOnly="true" Titulo="Fecha de archivo (automática)" /></td>
                                     <td>@Labels.Of(c.Decision)</td>
+                                    <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     break;
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
                                 <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
+                                <td class="date-cell"><CampoFecha Valor="c.Indicadores?.FechaCierre" ReadOnly="true" Titulo="Fecha de cierre: se completa sola al otorgar o denegar (automática)" /></td>
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {

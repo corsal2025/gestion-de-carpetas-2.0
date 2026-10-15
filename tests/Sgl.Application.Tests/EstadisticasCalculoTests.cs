@@ -107,3 +107,52 @@ public sealed class EstadisticasCalculoTests
         Assert.Equal(1, reabiertas);
     }
 }
+
+public sealed class TiempoEntregaTests
+{
+    private static CarpetaCerrada Cerrada(Bandeja modulo, int citacionDia, int cierreDia) =>
+        new(modulo, new DateOnly(2026, 4, 1).AddDays(citacionDia), new DateOnly(2026, 4, 1).AddDays(cierreDia));
+
+    [Fact]
+    public void Averages_closing_minus_citacion_overall_and_per_module()
+    {
+        var r = EstadisticasCalculo.TiempoEntrega([
+            Cerrada(Bandeja.PorPreparar, 0, 10),
+            Cerrada(Bandeja.PorPreparar, 5, 20),
+            Cerrada(Bandeja.SubidaConaset, 0, 2),
+        ]);
+
+        Assert.Equal(3, r.General.Muestras);
+        Assert.Equal(9, r.General.Promedio);
+        Assert.Equal(10, r.General.Mediana);
+        Assert.Equal(15, r.General.Maximo);
+
+        var primera = r.PorModulo.Single(m => m.Modulo == Bandeja.PorPreparar).Tiempos;
+        Assert.Equal(2, primera.Muestras);
+        Assert.Equal(12.5, primera.Promedio);
+        Assert.Equal(2, r.PorModulo.Single(m => m.Modulo == Bandeja.SubidaConaset).Tiempos.Promedio);
+        Assert.Equal([Bandeja.PorPreparar, Bandeja.SubidaConaset], r.PorModulo.Select(m => m.Modulo));
+    }
+
+    [Fact]
+    public void Same_day_closing_counts_as_zero_and_inconsistent_rows_are_skipped()
+    {
+        var r = EstadisticasCalculo.TiempoEntrega([
+            Cerrada(Bandeja.PorPreparar, 3, 3),
+            Cerrada(Bandeja.PorPreparar, 8, 2),
+        ]);
+
+        Assert.Equal(1, r.General.Muestras);
+        Assert.Equal(0, r.General.Promedio);
+    }
+
+    [Fact]
+    public void Empty_input_has_no_samples_and_no_modules()
+    {
+        var r = EstadisticasCalculo.TiempoEntrega([]);
+
+        Assert.Equal(0, r.General.Muestras);
+        Assert.Null(r.General.Promedio);
+        Assert.Empty(r.PorModulo);
+    }
+}

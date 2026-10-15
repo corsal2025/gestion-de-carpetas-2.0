@@ -13,6 +13,9 @@ public sealed record MarcaNoExiste(Guid CarpetaId, DateTime Fecha);
 /// <summary>Audit entry of a caja assignment change.</summary>
 public sealed record MovimientoCaja(Guid CarpetaId, DateTime Fecha, string? Anterior, string? Nuevo);
 
+/// <summary>A closed carpeta reduced to what the delivery-time metric needs.</summary>
+public sealed record CarpetaCerrada(Bandeja Modulo, DateOnly FechaCitacion, DateOnly FechaCierre);
+
 /// <summary>Pure aggregation rules used by the statistics query; kept here so they are unit-testable.</summary>
 public static class EstadisticasCalculo
 {
@@ -41,6 +44,27 @@ public static class EstadisticasCalculo
         var mitad = orden.Length / 2;
         var mediana = orden.Length % 2 == 1 ? orden[mitad] : (orden[mitad - 1] + orden[mitad]) / 2;
         return new TiemposDto(orden.Length, Math.Round(orden.Average(), 1), mediana, orden[^1]);
+    }
+
+    /// <summary>
+    /// Delivery time = closing date minus citación, in days, over closed carpetas; overall and per module (only
+    /// modules with samples, in tray order). Rows whose closing date precedes the citación are inconsistent and skipped.
+    /// </summary>
+    public static TiempoEntregaDto TiempoEntrega(IEnumerable<CarpetaCerrada> cerradas)
+    {
+        ArgumentNullException.ThrowIfNull(cerradas);
+        var validas = cerradas
+            .Where(c => c.FechaCierre >= c.FechaCitacion)
+            .Select(c => (c.Modulo, Dias: (double)(c.FechaCierre.DayNumber - c.FechaCitacion.DayNumber)))
+            .ToList();
+
+        return new TiempoEntregaDto(
+            Tiempos(validas.Select(v => v.Dias).ToList()),
+            validas
+                .GroupBy(v => v.Modulo)
+                .OrderBy(g => g.Key)
+                .Select(g => new TiempoEntregaModuloDto(g.Key, Tiempos(g.Select(v => v.Dias).ToList())))
+                .ToList());
     }
 
     public static string ViaDeSubida(EstadoCarpeta estado) => estado switch

@@ -87,6 +87,32 @@ else
                          Filas="@a.CitadasSinSubir.Select(s => new BarrasTabla.Fila(Labels.Of(s.Sede), s.Cantidad, N(s.Cantidad), Url("PorPreparar", sede: s.Sede, hastaOverride: Hoy.AddDays(-a.DiasSinSubir)))).ToList()" />
         </article>
         <article class="card est-card">
+            <header><h3>Tiempo de entrega: citación → cierre</h3></header>
+            <dl class="est-dl">
+                <div><dt>Carpetas cerradas</dt><dd>@N(a.TiempoEntrega.General.Muestras)</dd></div>
+                <div><dt>Promedio</dt><dd>@Dias(a.TiempoEntrega.General.Promedio)</dd></div>
+                <div><dt>Mediana</dt><dd>@Dias(a.TiempoEntrega.General.Mediana)</dd></div>
+                <div><dt>Máximo</dt><dd>@Dias(a.TiempoEntrega.General.Maximo)</dd></div>
+            </dl>
+            <h4>Por módulo</h4>
+            @if (a.TiempoEntrega.PorModulo.Count == 0)
+            {
+                <p class="est-sin-datos">Sin datos.</p>
+            }
+            else
+            {
+                <table class="est-tabla">
+                    <thead><tr><th scope="col">Módulo</th><th scope="col" class="num">Cerradas</th><th scope="col" class="num">Promedio</th><th scope="col" class="num">Mediana</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in a.TiempoEntrega.PorModulo)
+                        {
+                            <tr><td>@(Sgl.Web.Services.ModulosCatalogo.DeBandeja(t.Modulo)?.Nombre ?? t.Modulo.ToString())</td><td class="num">@N(t.Tiempos.Muestras)</td><td class="num">@Dias(t.Tiempos.Promedio)</td><td class="num">@Dias(t.Tiempos.Mediana)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </article>
+        <article class="card est-card">
             <header><h3>Carpetas por estado actual</h3><a href="@Url("todas")">Ver todas →</a></header>
             <BarrasTabla Titulo="Carpetas por estado" ColumnaEtiqueta="Estado"
                          Filas="@EstadosAgrupados().Select(e => new BarrasTabla.Fila(Labels.Of(e.Estado), e.N, N(e.N), UrlEstado(e.Estado))).ToList()" />

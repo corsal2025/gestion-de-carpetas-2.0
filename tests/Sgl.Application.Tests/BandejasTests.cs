@@ -82,6 +82,38 @@ public sealed class BandejasTests : IDisposable
     }
 
     [Fact]
+    public void DiasTramite_stops_counting_at_closure_and_stays_frozen_as_time_passes()
+    {
+        var cerrada = Resumen(citacion: new DateOnly(2026, 4, 1), decision: Decision.Otorgado) with { FechaCierre = new DateOnly(2026, 4, 11) };
+
+        var hoy = IndicadoresCalculator.Calcular(cerrada, [], Hoy);
+        var meses = IndicadoresCalculator.Calcular(cerrada, [], Hoy.AddDays(90));
+
+        Assert.Equal(10, hoy.DiasTramite);
+        Assert.Equal(10, meses.DiasTramite);
+        Assert.Equal(10, hoy.DiasTotales);
+    }
+
+    [Fact]
+    public void DiasTramite_of_an_open_carpeta_keeps_growing_until_it_closes()
+    {
+        var abierta = Resumen(citacion: new DateOnly(2026, 4, 1));
+
+        Assert.Equal(33, IndicadoresCalculator.Calcular(abierta, [], Hoy).DiasTramite);
+        Assert.Equal(34, IndicadoresCalculator.Calcular(abierta, [], Hoy.AddDays(1)).DiasTramite);
+    }
+
+    [Fact]
+    public void DiasTramite_closed_on_the_citation_day_is_zero_and_future_citation_stays_null()
+    {
+        var mismoDia = Resumen(citacion: Hoy, decision: Decision.Denegado) with { FechaCierre = Hoy };
+        var futura = Resumen(citacion: Hoy.AddDays(5));
+
+        Assert.Equal(0, IndicadoresCalculator.Calcular(mismoDia, [], Hoy).DiasTramite);
+        Assert.Null(IndicadoresCalculator.Calcular(futura, [], Hoy).DiasTramite);
+    }
+
+    [Fact]
     public void FechaCierre_uses_last_final_decision_else_subida_and_DiasTotales_from_citacion()
     {
         var conHist = IndicadoresCalculator.Calcular(Resumen(decision: Decision.Otorgado), [

@@ -46,7 +46,8 @@ public static class IndicadoresCalculator
         var archivo = movs.LastOrDefault(m => m.Campo == CampoCaja && !string.IsNullOrWhiteSpace(m.Nuevo) && m.Nuevo != Carpeta.ColaDeCaja);
 
         return new IndicadoresCarpeta(
-            DiasTramite: c.FechaCitacion > hoy ? null : Dias(c.FechaCitacion, hoy),
+            // Automatic: counts from the citación and freezes on the closing date; a future citación has no days yet.
+            DiasTramite: c.FechaCitacion > hoy ? null : Dias(c.FechaCitacion, fechaCierre ?? hoy),
             DiasSinCarpeta: Dias(inicioSinCarpeta, hoy),
             DiasBuscando: marca is null ? null : Dias(HoraChile.Fecha(marca.Fecha), hoy),
             MarcadaPor: marca?.Usuario,

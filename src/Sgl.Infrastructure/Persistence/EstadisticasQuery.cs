@@ -105,6 +105,7 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
             .ToList();
 
         var (tiempos, lentas) = await TiemposCitacionSubidaAsync(f, ct);
+        var entrega = await TiempoEntregaAsync(f, ct);
 
         var corte = hoy.AddDays(-f.DiasSinSubir);
         var sinSubir = await Carpetas(f)
@@ -143,6 +144,7 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
             subidas,
             estadoPorSede,
             tiempos,
+            entrega,
             lentas,
             sinSubir.OrderBy(s => s.Sede).Select(s => new ConteoSedeDto(s.Sede, string.Empty, s.N)).ToList(),
             decisionSede,
@@ -194,6 +196,22 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
             .Select(x => new CarpetaLentaDto(x.p.Id, x.p.Sede, x.p.FechaCitacion, x.p.FechaSubida, x.Dias))
             .ToList();
         return (tiempos, lentas);
+    }
+
+    /// <summary>
+    /// Delivery time of closed carpetas (closing date minus citación). Legacy rows that were decided before the
+    /// closing date existed fall back to their upload date, like the tray indicators do.
+    /// </summary>
+    private async Task<TiempoEntregaDto> TiempoEntregaAsync(FiltroEstadisticas f, CancellationToken ct)
+    {
+        var filas = await Carpetas(f)
+            .Where(c => c.FechaCierre != null || (c.Decision != Decision.Pendiente && c.FechaSubida != null))
+            .Select(c => new { c.Estado, c.FechaCitacion, Cierre = c.FechaCierre ?? c.FechaSubida })
+            .ToListAsync(ct);
+
+        return EstadisticasCalculo.TiempoEntrega(filas
+            .Where(x => x.Cierre is { } cierre && cierre >= FechaMinimaValida)
+            .Select(x => new CarpetaCerrada(Carpeta.BandejaDeOrigen(x.Estado), x.FechaCitacion, x.Cierre!.Value)));
     }
 
     /// <summary>Closing date = last audit change to Otorgado/Denegado; legacy rows fall back to FechaSubida.</summary>

@@ -23,6 +23,13 @@ public sealed partial class Carpeta
         return BandejaPorEstado(estado);
     }
 
+    /// <summary>
+    /// Module a carpeta was worked in, by its estado alone (ignores decision and caja, which only move it to
+    /// Cerradas/Archivadas). Used to attribute closed carpetas to the module that processed them.
+    /// </summary>
+    public static Bandeja BandejaDeOrigen(EstadoCarpeta estado) =>
+        estado == EstadoCarpeta.PorClasificar ? Bandeja.PorClasificar : BandejaPorEstado(estado);
+
     private static Bandeja BandejaPorEstado(EstadoCarpeta estado) => estado switch
     {
         EstadoCarpeta.NoExisteCarpeta => Bandeja.SinCarpetaF8,

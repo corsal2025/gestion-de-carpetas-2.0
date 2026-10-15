@@ -54,6 +54,24 @@ public sealed class EstadisticasQueryTests : IDisposable
     }
 
     [Fact]
+    public async Task TiempoEntrega_averages_closed_carpetas_overall_and_by_origin_module()
+    {
+        Guardar(
+            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 11), EstadoCarpeta.Citada, Decision.Otorgado),
+            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 21), EstadoCarpeta.Citada, Decision.Denegado),
+            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 5), EstadoCarpeta.SubidaConaset),
+            Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada));
+
+        var r = await Obtener();
+
+        Assert.Equal(3, r.Actuales.TiempoEntrega.General.Muestras);
+        Assert.Equal(11.3, r.Actuales.TiempoEntrega.General.Promedio);
+        var primera = r.Actuales.TiempoEntrega.PorModulo.Single(m => m.Modulo == Bandeja.PorPreparar).Tiempos;
+        Assert.Equal(2, primera.Muestras);
+        Assert.Equal(15, primera.Promedio);
+    }
+
+    [Fact]
     public async Task Filters_by_sede_and_citacion_range()
     {
         Guardar(

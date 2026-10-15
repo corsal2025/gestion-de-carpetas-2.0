@@ -36,6 +36,7 @@ public sealed record DatosActualesDto(
     IReadOnlyList<SubidasMesDto> SubidasPorMes,
     IReadOnlyList<ConteoSedeDto> EstadoPorSede,
     TiemposDto CitacionSubida,
+    TiempoEntregaDto TiempoEntrega,
     IReadOnlyList<CarpetaLentaDto> MasLentas,
     IReadOnlyList<ConteoSedeDto> CitadasSinSubir,
     IReadOnlyList<DecisionSedeDto> DecisionPorSede,
@@ -56,6 +57,11 @@ public sealed record ConteoSedeDto(Sede Sede, string Clave, int Cantidad);
 public sealed record ConteoDto(string Clave, int Cantidad);
 
 public sealed record TiemposDto(int Muestras, double? Promedio, double? Mediana, double? Maximo);
+
+/// <summary>Days from citación to closing date for closed carpetas, overall and per module that processed them.</summary>
+public sealed record TiempoEntregaDto(TiemposDto General, IReadOnlyList<TiempoEntregaModuloDto> PorModulo);
+
+public sealed record TiempoEntregaModuloDto(Bandeja Modulo, TiemposDto Tiempos);
 
 /// <summary>Slow carpeta reference without personal data (only id for navigation).</summary>
 public sealed record CarpetaLentaDto(Guid Id, Sede Sede, DateOnly FechaCitacion, DateOnly FechaSubida, int Dias);
