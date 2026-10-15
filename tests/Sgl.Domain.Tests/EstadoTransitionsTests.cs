@@ -34,16 +34,15 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
-        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8; a carpeta not found may appear later.
+        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8.
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.NoExisteCarpeta),
+        // A missing carpeta is resolved by F8, certificate or oficio; it never goes back to the shelves.
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SeEncuentraEnArchivos),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SeEncuentraEnOf43),
     ];
 
     public static TheoryData<EstadoCarpeta, EstadoCarpeta> ValidPairs()
