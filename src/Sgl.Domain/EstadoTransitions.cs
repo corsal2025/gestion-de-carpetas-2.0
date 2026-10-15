@@ -16,7 +16,7 @@ public static class EstadoTransitions
             [EstadoCarpeta.PrimeraLicencia] = [EstadoCarpeta.EsperaExamen],
             [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset],
             [EstadoCarpeta.EsperaExamen] = [EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
-            [EstadoCarpeta.ClasePendiente] = [],
+            [EstadoCarpeta.ClasePendiente] = [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],

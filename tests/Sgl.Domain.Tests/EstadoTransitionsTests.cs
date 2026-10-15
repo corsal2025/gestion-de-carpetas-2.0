@@ -18,6 +18,9 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ClasePendiente),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.EsperaExamen),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.ParaDenegar),
         (EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado),
         (EstadoCarpeta.Alertada, EstadoCarpeta.ParaDenegar),
         // Manual classification of agenda-imported carpetas.
@@ -120,5 +123,13 @@ public class EstadoTransitionsTests
         Assert.Equal(
             [EstadoCarpeta.Revision, EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.CambioDomicilio],
             EstadoTransitions.NextStates(EstadoCarpeta.Citada));
+    }
+
+    [Fact]
+    public void NextStates_of_ClasePendiente_can_resume_or_terminate()
+    {
+        Assert.Equal(
+            [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
+            EstadoTransitions.NextStates(EstadoCarpeta.ClasePendiente));
     }
 }
