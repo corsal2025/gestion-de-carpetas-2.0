@@ -567,3 +567,10 @@ html[data-theme="dark"] .sidebar-contador.sem-rojo { background: #7f1d1d; color:
 
 /* Selectores de estado de las bandejas: aire a la derecha para que el texto nunca roce la flecha */
 html body .data-table.bandeja-table .excel-select { padding-right: 34px !important; }
+
+/* Por preparar: Otorgada / Denegada cierran la carpeta. Colores fijos (verde / rojo) legibles sobre cualquier fila Excel. */
+html body .data-table tbody tr .btn-decision { display: inline-flex; align-items: center; padding: 0.32rem 0.75rem; border-radius: 999px; font: 700 0.8rem var(--font-sans, inherit); cursor: pointer; border: 1px solid rgba(0, 0, 0, 0.2) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); margin-right: 0.25rem; }
+html body .data-table tbody tr .btn-otorgada { background: #15803d !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-denegada { background: #b91c1c !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-decision:hover:not(:disabled) { filter: brightness(1.12); }
+html body .data-table tbody tr .btn-decision:disabled { opacity: 0.55; cursor: progress; }

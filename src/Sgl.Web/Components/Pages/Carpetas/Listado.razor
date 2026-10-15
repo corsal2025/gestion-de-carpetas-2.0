@@ -563,13 +563,15 @@
                         <th class="th-check col-sticky-check">
                             <input type="checkbox" checked="@TodosSeleccionados" disabled="@seleccionandoTodas" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta bandeja" />
                         </th>
-                        @foreach (var col in ColumnasBandeja)
+                        @foreach (var col in ColumnasBandeja.Where(c => c != ColumnaEtapa))
                         {
                             <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap col-sticky-nombre" : col == "RUT" ? "col-sticky-rut" : null)">@col</th>
                         }
                         @if (bandejaActiva != Bandeja.PorClasificar)
                         {
                             <th>ACCIÓN</th>
+                            @* The stage date always closes the row, after the actions. *@
+                            <th>@ColumnaEtapa</th>
                         }
                     </tr>
                 </thead>
@@ -1269,14 +1271,16 @@
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
-                                <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
-                            }
-                            @if (bandejaActiva != Bandeja.PorClasificar)
-                            {
                                 <td class="action-cell" @ondblclick:stopPropagation>
                                     @if (c.PendienteBusqueda)
                                     {
                                         <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                    }
+                                    else if (bandejaActiva == Bandeja.PorPreparar)
+                                    {
+                                        @* End of the process: the decision closes the carpeta (it moves to Cerradas with today's date). *@
+                                        <button class="btn-decision btn-otorgada" disabled="@(guardandoId == c.Id)" title="Otorgada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Otorgado)">Otorgada</button>
+                                        <button class="btn-decision btn-denegada" disabled="@(guardandoId == c.Id)" title="Denegada: cierra la carpeta con la fecha de hoy" @onclick="() => DecidirAsync(c, Decision.Denegado)">Denegada</button>
                                     }
                                     else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar) && string.IsNullOrEmpty(c.CajaArchivo))
                                     {
@@ -1288,6 +1292,7 @@
                                     }
                                     <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                 </td>
+                                <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
                             }
                         </tr>;
 
@@ -2085,6 +2090,29 @@
             {
                 guardandoId = null;
             }
+        }
+    }
+
+    /// <summary>"Por preparar" end of process: Otorgada / Denegada closes the carpeta (moves to Cerradas, closing date = today) with undo.</summary>
+    private async Task DecidirAsync(CarpetaResumenDto c, Decision decision)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        guardandoId = c.Id;
+        try
+        {
+            var punto = await Carpetas.CambiarDecisionAsync(c.Id, decision, autor);
+            toast = new UndoToast.AvisoDeshacer(Guid.NewGuid(), $"{Labels.Of(decision)} · pasó a Cerradas", c.Id, punto, punto.Estado);
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "No se pudo registrar la decisión");
+            await CargarAsync();
+        }
+        finally
+        {
+            guardandoId = null;
         }
     }
 

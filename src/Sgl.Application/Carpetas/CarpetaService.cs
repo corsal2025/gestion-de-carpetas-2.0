@@ -526,14 +526,17 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         }
     }
 
-    public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
+    /// <returns>The values before the decision, to undo it with <see cref="DeshacerEstadoAsync"/>.</returns>
+    public async Task<PuntoRestauracionEstado> CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
+            var punto = carpeta.PuntoRestauracion();
             carpeta.CambiarDecision(nuevaDecision, autor, Now);
             await repository.SaveChangesAsync(ct);
+            return punto;
         }
         catch
         {
