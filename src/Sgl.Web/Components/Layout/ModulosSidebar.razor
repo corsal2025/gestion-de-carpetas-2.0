@@ -96,7 +96,10 @@
     }
 
     /// <summary>Each module wears the original Excel colour of its state (see modulos.css, "m-*").</summary>
-    private static string ClaseColor(Modulo m) => m.Bandeja is { } b ? $"m-{b.ToString().ToLowerInvariant()}" : "";
+    // "Posibles duplicados" has no Excel colour: it takes the same neutral ring dot as "Por clasificar".
+    private static string ClaseColor(Modulo m) => m.Bandeja is { } b
+        ? $"m-{b.ToString().ToLowerInvariant()}"
+        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados" : "";
 
     private static string ClaseSemaforo(object? semaforo) => $"sem-{(semaforo?.ToString() ?? "").ToLowerInvariant()}";
 
