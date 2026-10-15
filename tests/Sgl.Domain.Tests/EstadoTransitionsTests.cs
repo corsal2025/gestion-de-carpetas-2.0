@@ -39,9 +39,8 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.NoExisteCarpeta),
-        // A missing carpeta is resolved by F8, certificate or oficio; it never goes back to the shelves.
+        // A missing carpeta is uploaded with F8 or with an oficio; it never goes back to the shelves.
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
     ];
 
