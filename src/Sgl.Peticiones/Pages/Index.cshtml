@@ -210,7 +210,15 @@
                 }
             </td>
             <td class="dato num">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
-            <td class="dato">@p.NombreCompleto</td>
+            <td class="dato">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <span>@p.NombreCompleto</span>
+                    <a class="icono-buscar-dup icono-buscar-dup--neutro" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
+                       title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    </a>
+                </div>
+            </td>
             <td class="text-muted" title="@p.Origen" style="cursor:help; font-size:.78rem;">@p.Oficina</td>
             <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
             <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>

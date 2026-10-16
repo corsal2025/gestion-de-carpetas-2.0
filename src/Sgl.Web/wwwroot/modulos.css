@@ -620,3 +620,12 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .sidebar-modulo.m-peticiones-comunas { --punto-excel: #bef264; }
 .sidebar-modulo.m-peticiones-estadisticas { --punto-excel: #d946ef; }
 .sidebar-modulo.m-peticiones-configuracion { --punto-excel: #4ade80; }
+
+/* Lupa "buscar repetidos": red when the carpeta really is a duplicate, neutral everywhere else. */
+.icono-buscar-dup.icono-buscar-dup--neutro { border-color: #64748b; color: #334155 !important; }
+.icono-buscar-dup.icono-buscar-dup--neutro:hover, .icono-buscar-dup.icono-buscar-dup--neutro:focus-visible { background: #334155; color: #fff !important; }
+html[data-theme="dark"] .icono-buscar-dup.icono-buscar-dup--neutro { background: #1e293b; border-color: #94a3b8; color: #e2e8f0 !important; }
+/* Same size and look as the pencil next to it, also over the Excel-coloured rows. */
+.icono-buscar-dup.icono-buscar-dup--neutro { width: 30px; height: 30px; }
+html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro svg { stroke: #0f172a !important; }
