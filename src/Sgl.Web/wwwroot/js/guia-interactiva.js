@@ -157,9 +157,9 @@
       pagina: '/',
       target: '#tabla-peticiones thead',
       fallbackTarget: '#tabla-peticiones',
-      titulo: 'Columnas: Nombre, RUT, Comuna y F. solicitud',
+      titulo: 'Columnas: Nombre, RUT, Comuna y Fecha de solicitud',
       icono: '📋',
-      descripcion: '<b>Nombre</b> y <b>RUT</b> de la persona (un ⚠ junto al RUT indica que no pudo validarse). <b>Comuna</b> de destino. <b>F. solicitud</b> es la fecha en que se pidió la carpeta a la comuna; dice «sin pedir» hasta que se envía el correo.'
+      descripcion: '<b>Nombre</b> y <b>RUT</b> de la persona (un ⚠ junto al RUT indica que no pudo validarse). <b>Comuna</b> de destino. <b>Fecha de solicitud</b> es la fecha en que se pidió la carpeta a la comuna; dice «sin pedir» hasta que se envía el correo.'
     },
     {
       pagina: '/',
