@@ -220,42 +220,6 @@
                 </div>
             </div>
         }
-        else if (FiltrosActivosCount > 0)
-        {
-            <!-- Resumen compacto de filtros activos cuando el panel está plegado -->
-            <div class="active-filters-summary">
-                <span class="summary-label">Filtros aplicados:</span>
-                @if (!string.IsNullOrWhiteSpace(texto))
-                {
-                    <span class="active-filter-chip">Búsqueda: "@texto" <button type="button" @onclick="LimpiarBusqueda">✕</button></span>
-                }
-                @if (filtroEstado is not null)
-                {
-                    <span class="active-filter-chip">Estado: @Labels.Of(filtroEstado.Value) <button type="button" @onclick="() => { filtroEstado = null; BuscarAsync(); }">✕</button></span>
-                }
-                @if (!string.IsNullOrWhiteSpace(filtroTramite))
-                {
-                    <span class="active-filter-chip">Trámite: @filtroTramite <button type="button" @onclick="() => SeleccionarTramite(null)">✕</button></span>
-                }
-                @if (filtroSinCaja is true)
-                {
-                    <span class="active-filter-chip">Por Guardar / Sin Caja <button type="button" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">✕</button></span>
-                }
-                @if (filtroSinCaja is false)
-                {
-                    <span class="active-filter-chip">Archivadas en Caja <button type="button" @onclick="() => SeleccionarFiltroAlmacenamiento(null)">✕</button></span>
-                }
-                @if (!string.IsNullOrWhiteSpace(filtroCaja))
-                {
-                    <span class="active-filter-chip">Caja: @filtroCaja <button type="button" @onclick="() => { filtroCaja = null; BuscarAsync(); }">✕</button></span>
-                }
-                @if (filtroDesde is not null || filtroHasta is not null)
-                {
-                    <span class="active-filter-chip">Citación: @(filtroDesde?.ToString("dd-MM-yyyy") ?? "…") → @(filtroHasta?.ToString("dd-MM-yyyy") ?? "…") <button type="button" @onclick="() => { filtroDesde = null; filtroHasta = null; BuscarAsync(); }">✕</button></span>
-                }
-                <button type="button" class="btn-clear-all-compact" @onclick="ResetFiltros">Limpiar todos</button>
-            </div>
-        }
 
         @if (avisoPeticion is not null)
         {
