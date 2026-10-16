@@ -21,3 +21,28 @@ Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparac
 - **Pendientes de revisión visual**: probar en Chrome real las bandejas grandes (> 200 filas); el navegador de pruebas no cargaba sus filas.
 - **App**: corre como tarea de la sesión; para dejarla siempre disponible hay que instalarla como servicio de Windows.
 - **Opus**: los agentes con modelo Opus fallaban con «modelo no encontrado»; la última auditoría fue con Sonnet (aprobación provisional).
+
+## Duplicados en Por clasificar (2026-10-14)
+
+Decision: el modulo "Posibles duplicados" se elimino; los duplicados se muestran y resuelven en Por clasificar.
+
+Cambios
+- Revertido 1b85d19: los ciudadanos con duplicado pendiente vuelven a aparecer en bandejas y contadores (como antes).
+- Eliminados: pagina `/duplicados`, entrada de menu lateral, tarjeta/contador del panel asociado, CSS `nav-duplicados`. El enlace de Estadisticas ahora lleva a Por clasificar.
+- Por clasificar: en cada fila roja, boton "Revisar" (junto a la lupa) abre un panel con motivo en lenguaje claro, tabla de las otras carpetas abiertas del RUT (sede, citacion, estado, subida) y acciones Reagendar, Anular duplicada / Anular la otra, Mantener ambas y enlace a todas las carpetas del RUT.
+- "Mantener ambas" ahora oculta la alerta en la bandeja hasta que se registre otra carpeta abierta posterior a la revision (misma regla que usaba el modulo).
+- El mensaje de Lico del panel ahora dice "...por revisar en Por clasificar".
+
+- Vista "Por arreglar (N)" en Por clasificar (chip, `?bandeja=PorClasificar&porArreglar=1`): lista los casos pendientes aunque todas sus carpetas esten en otras bandejas (RUT, nombre + lupa, carpetas abiertas, motivo), con comparacion y acciones (Conservar, Reagendar, Anular, Mantener ambas). No altera el contador de Por clasificar.
+
+Por revisar / decidir
+- `PanelDto.DuplicadosPendientes` y `DuplicadosService.ContarPendientesAsync` siguen existiendo (alimentan el mensaje de Lico); decidir si se retiran.
+- Duplicados cuya otra carpeta esta en otra bandeja (p. ej. Archivos): la fila roja solo aparece mientras haya una fila en Por clasificar; si ambas estan fuera, el caso queda visible solo en Integridad.
+- RUT invalido que el parser acepta (p. ej. 586.466.165-5): el motivo dice "RUT invalido"; no hay accion de corregir RUT en el panel.
+- Filas con cita futura: se tratan igual que las demas (no hay regla especial); decidir si Reagendar debe permitirse hacia fecha futura.
+- "Mantener ambas" y nueva importacion: si la agenda trae otra carpeta abierta del mismo RUT despues de la revision, la alerta vuelve a aparecer (esperado).
+- Contadores de bandejas y panel incluyen duplicados otra vez (antes de 1b85d19); no se descuentan.
+- "Reagendar" desde el panel conserva la otra carpeta y anula la fila actual; no hay variante "conservar esta y anular la otra con su fecha" (usar "Anular la otra").
+- La UI no fue verificada en navegador por el agente.
+
+- **Duplicados en Por clasificar (2026-10-14)**: los casos "por arreglar" (RUT con más de una carpeta abierta sin revisar) ya van dentro de la misma tabla de Por clasificar, ARRIBA de las carpetas normales: fila separadora "POR ARREGLAR · N casos", una fila roja por caso (orden apellido/nombre, de a 100 con "Mostrar más"), luego separador "POR CLASIFICAR · M carpetas" y las filas normales. Botón "Resolver" abre la comparación (Conservar / mantener ambas / Reagendar / Anular). Se omiten los ciudadanos que ya tienen fila propia en la bandeja. El chip "Por arreglar (N)" ahora salta a la sección; el contador del menú lateral no cambia. Pendiente: si Por clasificar está vacía (o el filtro no deja carpetas) se muestra el estado vacío y no los casos.

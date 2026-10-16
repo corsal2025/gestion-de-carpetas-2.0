@@ -60,6 +60,9 @@ public sealed record AlertaDuplicadoDto(Guid CarpetaId, DateOnly FechaCitacion, 
     /// <summary>How many other open carpetas the RUT has (two rows of the same RUT in "Por clasificar" alert each other).</summary>
     public int Total { get; init; } = 1;
 
+    /// <summary>The citizen the alert belongs to (needed to mark the case as reviewed).</summary>
+    public Guid CiudadanoId { get; init; }
+
     /// <summary>All of them, most recent first.</summary>
     public IReadOnlyList<CarpetaAbiertaDto> Todas { get; init; } = [];
 }

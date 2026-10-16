@@ -2,7 +2,7 @@ using Sgl.Domain;
 
 namespace Sgl.Application.Carpetas;
 
-/// <summary>Use cases for the "Posibles Duplicados" queue: citizens with more than one open carpeta.</summary>
+/// <summary>Use cases for resolving duplicates from the Por clasificar tray: citizens with more than one open carpeta.</summary>
 public sealed class DuplicadosService(IDuplicadoRepository repository, TimeProvider clock)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
@@ -12,7 +12,7 @@ public sealed class DuplicadosService(IDuplicadoRepository repository, TimeProvi
         ArgumentNullException.ThrowIfNull(query);
         var q = query.Normalized();
         var (rutFragment, nameFragment) = TextoBusqueda.Parse(q.Texto);
-        var search = new DuplicadoSearch(rutFragment, nameFragment, q.Sede, q.Skip, q.Take);
+        var search = new DuplicadoSearch(rutFragment, nameFragment, q.Sede, q.Skip, q.Take, q.SinCarpetaPorClasificar);
         var (items, total) = await repository.SearchAsync(search, ct);
         return new ListResult<DuplicadoGrupoDto>(items, total);
     }

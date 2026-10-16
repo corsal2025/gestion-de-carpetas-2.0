@@ -13,17 +13,10 @@ public sealed class PanelQuery(SglDbContext db) : IPanelQuery
     private static readonly string[] CamposEntrada =
         ["Agenda", "Registro", nameof(Carpeta.Estado), nameof(Carpeta.CajaArchivo)];
 
-    // Possible duplicates pending review live only in their own module: they never count in a tray, light or series.
-    private IQueryable<Carpeta> FueraDeDuplicados(IQueryable<Carpeta> carpetas)
-    {
-        var pendientes = DuplicadosPendientes.CiudadanoIds(db);
-        return carpetas.Where(c => !pendientes.Contains(c.CiudadanoId));
-    }
-
     public async Task<IReadOnlyList<GrupoBandejaDto>> GruposAsync(CancellationToken ct = default)
     {
         // One GROUP BY over the columns that decide the tray; the tray itself is derived in memory.
-        var filas = await FueraDeDuplicados(db.Carpetas.AsNoTracking())
+        var filas = await db.Carpetas.AsNoTracking()
             .GroupBy(c => new
             {
                 c.Estado,
@@ -40,17 +33,17 @@ public sealed class PanelQuery(SglDbContext db) : IPanelQuery
     public async Task<IReadOnlyList<MovimientoPanelDto>> MovimientosDesdeAsync(DateTime desdeUtc, CancellationToken ct = default) =>
         await db.Historial.AsNoTracking()
             .Where(h => h.Fecha >= desdeUtc && CamposEntrada.Contains(h.Campo))
-            .Where(h => FueraDeDuplicados(db.Carpetas).Any(c => c.Id == h.CarpetaId))
+            .Where(h => db.Carpetas.Any(c => c.Id == h.CarpetaId))
             .Select(h => new MovimientoPanelDto(h.Fecha, h.Campo, h.Anterior, h.Nuevo))
             .ToListAsync(ct);
 
     public Task<int> PendientesPorClasificarAsync(CancellationToken ct = default) =>
-        FueraDeDuplicados(db.Carpetas.AsNoTracking()).CountAsync(c => c.Estado == EstadoCarpeta.PorClasificar, ct);
+        db.Carpetas.AsNoTracking().CountAsync(c => c.Estado == EstadoCarpeta.PorClasificar, ct);
 
     public Task<int> AlertasDuplicadoAsync(CancellationToken ct = default)
     {
         var abiertas = db.Carpetas.AsNoTracking().Where(Carpeta.AbiertaSinArchivarExpresion);
-        return FueraDeDuplicados(db.Carpetas.AsNoTracking())
+        return db.Carpetas.AsNoTracking()
             .Where(c => c.Estado == EstadoCarpeta.PorClasificar)
             .CountAsync(c => abiertas.Any(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id), ct);
     }

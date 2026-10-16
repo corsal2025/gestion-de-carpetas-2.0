@@ -567,3 +567,14 @@ html[data-theme="dark"] .sidebar-contador.sem-rojo { background: #7f1d1d; color:
 
 /* Selectores de estado de las bandejas: aire a la derecha para que el texto nunca roce la flecha */
 html body .data-table.bandeja-table .excel-select { padding-right: 34px !important; }
+
+/* Duplicate review panel inside the Por clasificar tray */
+.dup-revision { margin: 0.5rem 0; padding: 0.6rem 0.8rem; border: 1px solid #ef4444; border-left-width: 4px; border-radius: 8px; background: var(--alerta-bg, rgba(220, 38, 38, 0.08)); }
+.dup-revision-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.dup-revision-motivo { margin: 0.35rem 0; font-weight: 700; color: var(--alerta-texto, #b91c1c); }
+.dup-revision-tabla { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.dup-revision-tabla th, .dup-revision-tabla td { padding: 0.3rem 0.5rem; text-align: left; border-top: 1px solid var(--border-color); }
+.dup-revision-esta { font-weight: 700; }
+.dup-revision-acciones { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.dup-revision-pie { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.btn-revisar-dup { margin-left: 0.25rem; }

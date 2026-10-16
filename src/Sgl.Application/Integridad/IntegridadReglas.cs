@@ -136,7 +136,7 @@ public static class ReglasIntegridad
         {
             var lista = grupo.ToList();
             if (lista.Count < 2) continue;
-            // A citizen reviewed in "Posibles duplicados" stays accepted until a newer carpeta shows up.
+            // A citizen marked "Mantener ambas" in Por clasificar stays accepted until a newer carpeta shows up.
             if (e.RevisionesDuplicado.TryGetValue(grupo.Key, out var revisadoEn) && lista.All(c => c.FechaRegistro <= revisadoEn))
             {
                 continue;

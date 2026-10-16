@@ -104,8 +104,8 @@ public sealed class PanelCalculoTests
     public void MensajeLico_prioritizes_duplicate_alerts_then_review_queue_then_pending()
     {
         Assert.Equal("Tienes 2 filas con alerta de duplicado en Por clasificar.", MensajeLico.Elegir(2, 5, new MetaDelDiaDto(0, 9)));
-        Assert.Equal("Tienes 5 duplicados por revisar.", MensajeLico.Elegir(0, 5, new MetaDelDiaDto(0, 9)));
-        Assert.Equal("Tienes 1 duplicado por revisar.", MensajeLico.Elegir(0, 1, new MetaDelDiaDto(0, 9)));
+        Assert.Equal("Tienes 5 duplicados por revisar en Por clasificar.", MensajeLico.Elegir(0, 5, new MetaDelDiaDto(0, 9)));
+        Assert.Equal("Tienes 1 duplicado por revisar en Por clasificar.", MensajeLico.Elegir(0, 1, new MetaDelDiaDto(0, 9)));
         Assert.Equal("Te quedan 9 por clasificar hoy. ¡Vamos!", MensajeLico.Elegir(0, 0, new MetaDelDiaDto(1, 9)));
         Assert.Equal("¡Por clasificar al día!", MensajeLico.Elegir(0, 0, new MetaDelDiaDto(4, 0)));
     }

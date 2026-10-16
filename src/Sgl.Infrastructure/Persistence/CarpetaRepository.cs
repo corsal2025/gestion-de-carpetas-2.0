@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
@@ -49,7 +48,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var query = Filtrar(search);
         if (search.Bandeja is { } bandeja)
         {
-            query = query.Where(Carpeta.EnBandeja(bandeja)).Where(FueraDeDuplicados());
+            query = query.Where(Carpeta.EnBandeja(bandeja));
         }
 
         if (search.Ids is { } ids)
@@ -150,7 +149,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var query = Filtrar(search);
         if (search.Bandeja is { } bandeja)
         {
-            query = query.Where(Carpeta.EnBandeja(bandeja)).Where(FueraDeDuplicados());
+            query = query.Where(Carpeta.EnBandeja(bandeja));
         }
 
         return await Ordenar(query, search.Bandeja).Select(c => c.Id).ToListAsync(ct);
@@ -163,7 +162,6 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
     {
         ArgumentNullException.ThrowIfNull(search);
         var grupos = await Filtrar(search)
-            .Where(FueraDeDuplicados())
             .GroupBy(Carpeta.BandejaExpresion)
             .Select(g => new { g.Key, Total = g.Count() })
             .ToListAsync(ct);
@@ -233,8 +231,11 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         var abiertas = await db.Carpetas.AsNoTracking()
             .Where(c => ciudadanoIds.Contains(c.CiudadanoId))
             .Where(Carpeta.AbiertaSinArchivarExpresion)
-            .Select(c => new { c.Id, c.CiudadanoId, c.FechaCitacion, c.Sede, c.Estado, c.Clases })
+            .Select(c => new { c.Id, c.CiudadanoId, c.FechaCitacion, c.FechaSubida, c.FechaRegistro, c.Sede, c.Estado, c.Clases })
             .ToListAsync(ct);
+        var revisiones = await db.RevisionesDuplicado.AsNoTracking()
+            .Where(r => ciudadanoIds.Contains(r.CiudadanoId))
+            .ToDictionaryAsync(r => r.CiudadanoId, r => r.RevisadoEn, ct);
 
         var resultado = new Dictionary<Guid, AlertaDuplicadoDto>();
         foreach (var p in pares)
@@ -245,11 +246,19 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 .ToList();
             if (otras.Count > 0)
             {
+                // "Mantener ambas": a review hides the alert until a carpeta is registered after it.
+                if (revisiones.TryGetValue(p.CiudadanoId, out var revisadoEn)
+                    && abiertas.Where(o => o.CiudadanoId == p.CiudadanoId).Max(o => o.FechaRegistro) <= revisadoEn)
+                {
+                    continue;
+                }
+
                 var otra = otras[0];
                 resultado[p.Id] = new AlertaDuplicadoDto(otra.Id, otra.FechaCitacion, otra.Sede, otra.Estado)
                 {
+                    CiudadanoId = p.CiudadanoId,
                     Total = otras.Count,
-                    Todas = otras.Select(o => new CarpetaAbiertaDto(o.Id, o.Sede, o.FechaCitacion, o.Estado, o.Clases)).ToList(),
+                    Todas = otras.Select(o => new CarpetaAbiertaDto(o.Id, o.Sede, o.FechaCitacion, o.Estado, o.Clases) { FechaSubida = o.FechaSubida }).ToList(),
                 };
             }
         }
@@ -306,13 +315,6 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.AnuladaEn ?? DateTime.MinValue,
                 r.AnuladaPor ?? ""))
             .ToList();
-    }
-
-    // Possible duplicates pending review live only in their own module, never in a tray or its counter.
-    private Expression<Func<Carpeta, bool>> FueraDeDuplicados()
-    {
-        var pendientes = DuplicadosPendientes.CiudadanoIds(db);
-        return c => !pendientes.Contains(c.CiudadanoId);
     }
 
     private IQueryable<Carpeta> Filtrar(CarpetaSearch search)

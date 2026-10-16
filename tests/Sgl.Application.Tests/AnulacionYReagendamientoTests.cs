@@ -29,16 +29,6 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
         return (existente.Id, nueva.Id, otra.Id);
     }
 
-    /// <summary>Resolves every possible duplicate as "keep both" so the rows show in the trays again.</summary>
-    private async Task MantenerAmbasEnTodos()
-    {
-        var pendientes = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery());
-        foreach (var d in pendientes.Items)
-        {
-            await _db.NewDuplicadosService().MarcarRevisadoAsync(d.CiudadanoId, "javiera");
-        }
-    }
-
     [Fact]
     public async Task Clasificar_without_clase_is_rejected()
     {
@@ -86,7 +76,6 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
                 Carpeta.CrearDesdeAgenda(pedro, Sede.AvArgentina, new DateOnly(2026, 5, 5), null, null, "imp", Antes));
             ctx.SaveChanges();
         }
-        await MantenerAmbasEnTodos();
         var ids = (await _db.NewService().ListarAsync(new ListarCarpetasQuery(Texto: "22222222", Bandeja: Bandeja.PorClasificar)))
             .Items.Select(i => i.Id).ToList();
 
@@ -98,7 +87,6 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
     public async Task Listar_PorClasificar_flags_row_whose_rut_has_an_open_carpeta()
     {
         var (existente, nueva, otra) = Seed();
-        await MantenerAmbasEnTodos();
 
         var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
 
@@ -112,11 +100,49 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
     }
 
     [Fact]
+    public async Task Listar_alert_exposes_the_citizen_and_every_other_open_carpeta_in_one_batch()
+    {
+        var (existente, nueva, _) = Seed();
+
+        var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
+
+        var alerta = res.Items.Single(i => i.Id == nueva).AlertaDuplicado!;
+        Assert.NotEqual(Guid.Empty, alerta.CiudadanoId);
+        var otra = Assert.Single(alerta.Todas);
+        Assert.Equal(existente, otra.Id);
+        Assert.Null(otra.FechaSubida);
+    }
+
+    [Fact]
+    public async Task MarcarRevisado_clears_the_alert_until_a_newer_open_carpeta_is_registered()
+    {
+        var (_, nueva, _) = Seed();
+        var alerta = (await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50)))
+            .Items.Single(i => i.Id == nueva).AlertaDuplicado!;
+
+        _db.AdvanceClock(TimeSpan.FromDays(40));
+        await _db.NewDuplicadosService().MarcarRevisadoAsync(alerta.CiudadanoId, "javiera");
+
+        var tras = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
+        Assert.Null(tras.Items.Single(i => i.Id == nueva).AlertaDuplicado);
+
+        _db.AdvanceClock(TimeSpan.FromMinutes(5));
+        using (var ctx = _db.NewContext())
+        {
+            var juan = ctx.Ciudadanos.Single(c => c.Id == alerta.CiudadanoId);
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(juan, Sede.AvArgentina, new DateOnly(2026, 6, 1), null, null, "imp", _db.Clock.GetUtcNow().UtcDateTime));
+            ctx.SaveChanges();
+        }
+
+        var final = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
+        Assert.NotNull(final.Items.Single(i => i.Id == nueva).AlertaDuplicado);
+    }
+
+    [Fact]
     public async Task Listar_does_not_flag_when_the_other_carpeta_is_archived_closed_or_cancelled()
     {
         var (existente, nueva, _) = Seed();
         await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "CAJA 7", "javiera"));
-        await MantenerAmbasEnTodos();
 
         var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
 
@@ -173,7 +199,6 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
         Assert.Equal("javiera", a.AnuladaPor);
 
         await _db.NewService().RestaurarAsync(nueva, "raul");
-        await MantenerAmbasEnTodos();
 
         Assert.Empty(await _db.NewService().ListarAnuladasAsync());
         Assert.Equal(3, (await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery())).Values.Sum());
@@ -242,7 +267,6 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
             ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(juan, Sede.Placilla, new DateOnly(2026, 3, 1), null, null, "imp", Antes));
             ctx.SaveChanges();
         }
-        await MantenerAmbasEnTodos();
 
         var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
 

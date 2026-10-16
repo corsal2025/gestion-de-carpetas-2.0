@@ -61,6 +61,55 @@ public sealed class DuplicadosServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Listar_can_skip_citizens_that_already_have_a_carpeta_in_por_clasificar()
+    {
+        var antes = new DateTime(2026, 4, 1, 12, 0, 0, DateTimeKind.Utc);
+        using (var ctx = _db.NewContext())
+        {
+            // Open agenda carpeta (Por clasificar) + a classified one: the citizen has a red row in the tray.
+            var ana = new Ciudadano(Rut.Parse(RutA), "ANA", "SOTO");
+            var anaClasificada = Carpeta.CrearDesdeAgenda(ana, Sede.Placilla, new DateOnly(2026, 4, 2), null, TramiteAgenda.Renovacion, "imp", antes);
+            anaClasificada.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, ClaseLicencia.B, null, null, "javiera", antes);
+            var anaAgenda = Carpeta.CrearDesdeAgenda(ana, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", antes);
+            // Both carpetas already classified: only reachable from the cases section.
+            var beto = new Ciudadano(Rut.Parse(RutB), "BETO", "TORO");
+            var b1 = Carpeta.CrearDesdeAgenda(beto, Sede.Placilla, new DateOnly(2026, 4, 2), null, TramiteAgenda.Renovacion, "imp", antes);
+            var b2 = Carpeta.CrearDesdeAgenda(beto, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", antes);
+            b1.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, ClaseLicencia.B, null, null, "javiera", antes);
+            b2.Clasificar(EstadoCarpeta.SeEncuentraEnArchivos, ClaseLicencia.B, null, null, "javiera", antes);
+            ctx.Carpetas.AddRange(anaClasificada, anaAgenda, b1, b2);
+            ctx.SaveChanges();
+        }
+
+        var svc = _db.NewDuplicadosService();
+        Assert.Equal(2, (await svc.ListarAsync(new ListarDuplicadosQuery())).Total);
+
+        var fuera = await svc.ListarAsync(new ListarDuplicadosQuery(SinCarpetaPorClasificar: true));
+
+        var row = Assert.Single(fuera.Items);
+        Assert.Equal(1, fuera.Total);
+        Assert.Equal("11.111.111-1", row.Rut);
+    }
+
+    [Fact]
+    public async Task Listar_orders_by_apellido_then_nombre()
+    {
+        var z = _db.NewService();
+        foreach (var (apellido, nombre, rut) in new[] { ("Zapata", "Luis", RutA), ("Aguilar", "Rosa", RutB) })
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                await z.RegistrarAsync(new RegistrarCarpetaCommand(
+                    rut, nombre, apellido, Sede.AvArgentina, new DateOnly(2026, 5, 4), "ana", ClaseLicencia.Ninguna, ConfirmarDuplicado: true));
+            }
+        }
+
+        var result = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery());
+
+        Assert.Equal(["Rosa Aguilar", "Luis Zapata"], result.Items.Select(i => i.NombreCompleto));
+    }
+
+    [Fact]
     public async Task Listar_returns_requested_range_server_side()
     {
         await Registrar(RutA);

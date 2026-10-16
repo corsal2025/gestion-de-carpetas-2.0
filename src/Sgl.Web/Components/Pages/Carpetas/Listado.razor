@@ -8,6 +8,7 @@
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
+@inject DuplicadosService Duplicados
 
 <PageTitle>@TituloPagina.De(TituloModuloPdf)</PageTitle>
 
@@ -260,6 +261,62 @@
         @if (errorEdicion is not null)
         {
             <div class="alert error" role="alert">@errorEdicion <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => errorEdicion = null">✕</button></div>
+        }
+        @if (bandejaActiva == Bandeja.PorClasificar && dupRevisando is { AlertaDuplicado: { } alertaDup } filaDup)
+        {
+            <section class="dup-revision" aria-live="polite" aria-label="Revisión de duplicado">
+                <header class="dup-revision-head">
+                    <strong>Duplicado · @filaDup.NombreCompleto · @filaDup.Rut</strong>
+                    <button type="button" class="btn-small secondary" @onclick="CerrarRevisionDup">Cerrar ✕</button>
+                </header>
+                <p class="dup-revision-motivo @(RutDuplicadoValido(filaDup) ? null : "dup-motivo-alerta")">@MotivoDuplicado(filaDup, alertaDup)</p>
+                @if (mensajeDup is not null)
+                {
+                    <p class="error" role="alert">@mensajeDup</p>
+                }
+                <table class="dup-revision-tabla">
+                    <thead><tr><th>Carpeta</th><th>Sede</th><th>Citación</th><th>Estado</th><th>Subida</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        <tr class="dup-revision-esta">
+                            <td>Esta fila</td>
+                            <td>@Labels.Of(filaDup.Sede)</td>
+                            <td>@filaDup.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            <td>@Labels.Of(filaDup.Estado)</td>
+                            <td>@(filaDup.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                            <td><button type="button" class="btn-small btn-peligro" disabled="@resolviendoDup" @onclick="() => AnularDuplicadaAsync(filaDup)">Anular duplicada</button></td>
+                        </tr>
+                        @foreach (var otra in alertaDup.Todas)
+                        {
+                            <tr>
+                                <td>Otra abierta</td>
+                                <td>@Labels.Of(otra.Sede)</td>
+                                <td>@otra.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                                <td>@Labels.Of(otra.Estado)</td>
+                                <td>@(otra.FechaSubida?.ToString("dd-MM-yyyy") ?? "—")</td>
+                                <td class="dup-revision-acciones">
+                                    <button type="button" class="btn-small" disabled="@resolviendoDup"
+                                            title="Conserva la otra carpeta con la fecha y sede de esta fila; esta fila se anula (Reagendamiento)"
+                                            @onclick="() => ReagendarDuplicadaAsync(filaDup, otra)">Reagendar</button>
+                                    <button type="button" class="btn-small btn-peligro" disabled="@resolviendoDup" @onclick="() => AnularOtraAsync(otra)">Anular la otra</button>
+                                    <a class="btn-small" href="carpetas/@otra.Id">Abrir</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <footer class="dup-revision-pie">
+                    <button type="button" class="dup-btn-mantener btn-small" disabled="@resolviendoDup" @onclick="() => MantenerAmbasAsync(alertaDup)">No es duplicada: mantener ambas</button>
+                    <a class="btn-small" href="@($"carpetas?bandeja=todas&buscar={Uri.EscapeDataString(filaDup.Rut)}")">Ver todas las carpetas de este RUT</a>
+                </footer>
+            </section>
+        }
+        @if (bandejaActiva == Bandeja.PorClasificar)
+        {
+            <div class="por-arreglar-toggle">
+                <a class="chip-por-arreglar"
+                   href="#dup-seccion" @onclick="IrASeccionPorArreglarAsync" @onclick:preventDefault
+                   title="Casos de RUT con más de una carpeta abierta, estén en la bandeja que estén: van arriba de la tabla">Por arreglar (@(totalPorArreglar?.ToString("N0", CultureInfo.GetCultureInfo("es-CL")) ?? "…"))</a>
+            </div>
         }
         <!-- Navegación entre módulos: menú lateral (ModulosSidebar). Aquí solo la barra de meta en Por clasificar. -->
         @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelMeta)
@@ -574,6 +631,11 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @if (bandejaActiva == Bandeja.PorClasificar)
+                    {
+                        <DuplicadosFilasTabla Columnas="@(ColumnasBandeja.Count + 1)" Texto="@texto" Sede="@filtroSede"
+                                              CantidadPorClasificar="@(total ?? 0)" OnCambio="AlCambiarPorArreglarAsync" />
+                    }
                     @if (filasDirectas is { } directas)
                     {
                         @* Small trays (the daily agenda): rendered at once, no Virtualize warm-up. *@
@@ -1331,6 +1393,88 @@
 
     private bool MuestraAlerta(CarpetaResumenDto c) => c.AlertaDuplicado is not null && !alertasDescartadas.Contains(c.Id);
 
+    private CarpetaResumenDto? dupRevisando;
+    private bool resolviendoDup;
+    private string? mensajeDup;
+
+    private static bool RutDuplicadoValido(CarpetaResumenDto c) => Rut.TryParse(c.Rut, out _);
+
+    /// <summary>Plain-language reason, computed over this row plus the other open carpetas of the same RUT.</summary>
+    private static string MotivoDuplicado(CarpetaResumenDto c, AlertaDuplicadoDto alerta)
+    {
+        var fechas = alerta.Todas.Select(o => o.FechaCitacion).Append(c.FechaCitacion).ToList();
+        var mismaSede = alerta.Todas.All(o => o.Sede == c.Sede);
+        return DuplicadoMotivo.Describir(RutDuplicadoValido(c), fechas.Min(), fechas.Max(), mismaSede);
+    }
+
+    private void AbrirRevisionDup(CarpetaResumenDto c)
+    {
+        mensajeDup = null;
+        dupRevisando = dupRevisando?.Id == c.Id ? null : c;
+    }
+
+    private void CerrarRevisionDup()
+    {
+        dupRevisando = null;
+        mensajeDup = null;
+    }
+
+    private async Task ResolverDuplicadoAsync(string confirmacion, Func<string, Task> accion)
+    {
+        if (resolviendoDup) return;
+        mensajeDup = null;
+        if (!Autor.HasNombre)
+        {
+            mensajeDup = MensajeSinNombre;
+            return;
+        }
+
+        resolviendoDup = true;
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", confirmacion)) return;
+            await accion(Autor.Nombre);
+            dupRevisando = null;
+            DuplicadosNotifier.Notify();
+            await CargarTotalPorArreglarAsync();
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException or CarpetaDuplicadaException)
+        {
+            mensajeDup = ex.Message;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "No se pudo resolver el duplicado en Por clasificar.");
+            mensajeDup = "No se pudo resolver el duplicado. Intente nuevamente.";
+        }
+        finally
+        {
+            resolviendoDup = false;
+        }
+    }
+
+    private Task AnularDuplicadaAsync(CarpetaResumenDto c) =>
+        ResolverDuplicadoAsync(
+            $"¿Anular por duplicado la carpeta del {c.FechaCitacion:dd-MM-yyyy} ({Labels.Of(c.Sede)})? Podrá restaurarse desde «Anuladas».",
+            autor => Carpetas.AnularAsync(c.Id, MotivosAnulacion.Duplicado, autor));
+
+    private Task AnularOtraAsync(CarpetaAbiertaDto otra) =>
+        ResolverDuplicadoAsync(
+            $"¿Anular por duplicado la otra carpeta del {otra.FechaCitacion:dd-MM-yyyy} ({Labels.Of(otra.Sede)})? Podrá restaurarse desde «Anuladas».",
+            autor => Carpetas.AnularAsync(otra.Id, MotivosAnulacion.Duplicado, autor));
+
+    private Task ReagendarDuplicadaAsync(CarpetaResumenDto c, CarpetaAbiertaDto otra) =>
+        ResolverDuplicadoAsync(
+            $"¿Conservar la carpeta de {Labels.Of(otra.Sede)} y moverla al {c.FechaCitacion:dd-MM-yyyy} ({Labels.Of(c.Sede)})? Esta fila se anulará (Reagendamiento).",
+            autor => Carpetas.ReagendarAsync(c.Id, otra.Id, autor));
+
+    private Task MantenerAmbasAsync(AlertaDuplicadoDto alerta) =>
+        ResolverDuplicadoAsync(
+            "¿Mantener ambas carpetas? Quedará marcado como revisado hasta que se registre otra carpeta abierta de este RUT.",
+            autor => Duplicados.MarcarRevisadoAsync(alerta.CiudadanoId, autor));
+
     // ---- Errores de edición en línea: siempre registrados (sin datos personales) y visibles ----
     private string? errorEdicion;
 
@@ -1474,7 +1618,7 @@
         catch (CarpetaDuplicadaException ex)
         {
             errorClasif = ex.Bloqueante
-                ? "Bloqueado: este RUT ya tiene una carpeta abierta con la misma clase. Búsquela en el sistema y resuélvala en «Posibles duplicados»."
+                ? "Bloqueado: este RUT ya tiene una carpeta abierta con la misma clase. Revise la fila en rojo (lupa) y resuélvala con Reagendar, Anular duplicada o Mantener ambas."
                 : ex.Message;
         }
         catch (Exception ex) when (ex is DomainException or NotFoundException)
@@ -1582,7 +1726,7 @@
         }
     }
 
-    /// <summary>Permite enlazar desde otros módulos (p. ej. Posibles Duplicados) a una carpeta concreta.</summary>
+    /// <summary>Permite enlazar desde otros módulos (p. ej. Estadísticas) a una carpeta concreta.</summary>
     [SupplyParameterFromQuery(Name = "abrir")]
     public Guid? AbrirCarpetaId { get; set; }
 
@@ -1594,6 +1738,25 @@
     [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
     [SupplyParameterFromQuery(Name = "caja")] public string? QueryCaja { get; set; }
     [SupplyParameterFromQuery(Name = "buscar")] public string? QueryBuscar { get; set; }
+    [SupplyParameterFromQuery(Name = "porArreglar")] public string? QueryPorArreglar { get; set; }
+
+    // "Por arreglar" view of Por clasificar: possible duplicates whose carpetas live in any tray.
+    private bool porArreglar;
+    private int? totalPorArreglar;
+
+    private async Task AlCambiarPorArreglarAsync() => await CargarTotalPorArreglarAsync();
+
+    private async Task IrASeccionPorArreglarAsync() =>
+        await JS.InvokeVoidAsync("eval", "document.getElementById('dup-seccion')?.scrollIntoView({block:'start'})");
+
+    private async Task CargarTotalPorArreglarAsync()
+    {
+        try { totalPorArreglar = await Duplicados.ContarPendientesAsync(); }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "No se pudo contar los casos por arreglar.");
+        }
+    }
 
     private string? queryBandejaAplicada;
     private string? queryBuscarAplicada;
@@ -1602,6 +1765,12 @@
     protected override async Task OnParametersSetAsync()
     {
         if (total is null) return;
+        var pedirPorArreglar = QueryPorArreglar == "1";
+        if (pedirPorArreglar != porArreglar)
+        {
+            porArreglar = pedirPorArreglar;
+            if (porArreglar) await IrASeccionPorArreglarAsync();
+        }
         var cambioBuscar = QueryBuscar != queryBuscarAplicada;
         var cambioBandeja = QueryBandeja != queryBandejaAplicada;
         if (!cambioBuscar && !cambioBandeja) return;
@@ -1626,6 +1795,7 @@
     {
         queryBandejaAplicada = QueryBandeja;
         queryBuscarAplicada = QueryBuscar;
+        porArreglar = QueryPorArreglar == "1";
         if (!string.IsNullOrWhiteSpace(QueryBuscar)) texto = QueryBuscar.Trim();
         if (QueryBandeja is { } b)
         {
@@ -1668,6 +1838,7 @@
         }
 
         await CargarAsync(refrescarPanel: false);
+        await CargarTotalPorArreglarAsync();
         if (abrir)
         {
             await AbrirDrawerAsync(AbrirCarpetaId!.Value);

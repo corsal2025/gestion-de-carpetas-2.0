@@ -28,16 +28,6 @@ public sealed class ClasificacionTests : IDisposable
         return (a.Id, b.Id);
     }
 
-    /// <summary>Resolves every possible duplicate as "keep both" so the rows show in the trays again.</summary>
-    private async Task MantenerAmbasEnTodos()
-    {
-        var pendientes = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery());
-        foreach (var d in pendientes.Items)
-        {
-            await _db.NewDuplicadosService().MarcarRevisadoAsync(d.CiudadanoId, "javiera");
-        }
-    }
-
     [Fact]
     public async Task ClasificarAsync_batch_moves_all_out_of_PorClasificar()
     {
@@ -81,7 +71,6 @@ public sealed class ClasificacionTests : IDisposable
     public async Task ListarAsync_PorClasificar_returns_agenda_fields_and_previous_tramite_hint()
     {
         SeedAgenda(conHistorialPrevio: true);
-        await MantenerAmbasEnTodos();
 
         var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorClasificar, Take: 50));
 

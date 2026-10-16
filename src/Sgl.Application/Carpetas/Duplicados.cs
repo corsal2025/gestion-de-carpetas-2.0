@@ -19,7 +19,11 @@ public sealed record CarpetaAbiertaDto(
     Sede Sede,
     DateOnly FechaCitacion,
     EstadoCarpeta Estado,
-    ClaseLicencia Clases);
+    ClaseLicencia Clases)
+{
+    /// <summary>Upload date, when the carpeta already has one (only filled for the Por clasificar alert).</summary>
+    public DateOnly? FechaSubida { get; init; }
+}
 
 /// <summary>Result of checking a new registration against the citizen's open carpetas.</summary>
 public sealed record VerificacionDuplicadoDto(
@@ -60,7 +64,8 @@ public sealed record ListarDuplicadosQuery(
     string? Texto = null,
     Sede? Sede = null,
     int Skip = 0,
-    int? Take = null)
+    int? Take = null,
+    bool SinCarpetaPorClasificar = false)
 {
     public ListarDuplicadosQuery Normalized() => this with
     {
@@ -92,7 +97,8 @@ public sealed record CarpetaDuplicadoDetalleDto(
     DateTime? UltimoMovimientoFecha,
     string? UltimoMovimientoPor);
 
-public sealed record DuplicadoSearch(string? RutFragment, string? NameFragment, Sede? Sede, int Skip, int? Take);
+/// <param name="SinCarpetaPorClasificar">Skips citizens that already have an open carpeta in Por clasificar (they show their own red row there).</param>
+public sealed record DuplicadoSearch(string? RutFragment, string? NameFragment, Sede? Sede, int Skip, int? Take, bool SinCarpetaPorClasificar = false);
 
 /// <summary>Persistence port for the duplicate review queue.</summary>
 public interface IDuplicadoRepository

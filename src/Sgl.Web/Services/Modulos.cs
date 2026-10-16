@@ -9,13 +9,12 @@ namespace Sgl.Web.Services;
 /// <summary>Work-flow group of modules; drives the group color in the home panel and the side menu.</summary>
 public sealed record GrupoModulo(string Clave, string Nombre, string Css, string Icono);
 
-/// <summary>One navigable module: a tray of /carpetas, or a dedicated page (duplicates, cancelled, all).</summary>
+/// <summary>One navigable module: a tray of /carpetas, or a dedicated page (cancelled, all).</summary>
 public sealed record Modulo(string Clave, GrupoModulo Grupo, string Nombre, string Corto, string Href, Bandeja? Bandeja = null);
 
 /// <summary>Single catalog of modules shared by the home panel and the side menu (R4: one source of truth).</summary>
 public static class ModulosCatalogo
 {
-    public const string ClaveDuplicados = "duplicados";
     public const string ClaveAnuladas = "anuladas";
     public const string ClaveTodas = "todas";
     public const string ClaveIntegridad = "integridad";
@@ -34,7 +33,6 @@ public static class ModulosCatalogo
     public static readonly IReadOnlyList<Modulo> Todos =
     [
         Tray(Entrada, Bandeja.PorClasificar, "Por clasificar", "PC"),
-        new(ClaveDuplicados, Entrada, "Posibles duplicados", "PD", "duplicados"),
         Tray(Preparacion, Bandeja.PorPreparar, "1° Licencia", "1L"),
         Tray(Preparacion, Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos", "AR"),
         Tray(Preparacion, Bandeja.SeEncuentraEnOf43, "Se encuentra en Of. 43", "43"),
@@ -94,8 +92,6 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
 
         return modulo.Clave switch
         {
-            ModulosCatalogo.ClaveDuplicados => new EstadoModulo(
-                p.DuplicadosPendientes, p.DuplicadosPendientes > 0 ? Semaforo.Amarillo : Semaforo.Verde, p.DuplicadosPendientes, SinSerie),
             ModulosCatalogo.ClaveAnuladas => new EstadoModulo(p.Anuladas, null, 0, p.SerieAnuladas),
             ModulosCatalogo.ClaveIntegridad => new EstadoModulo(
                 Integridad?.Problemas ?? 0,

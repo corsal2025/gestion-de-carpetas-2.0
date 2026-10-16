@@ -41,20 +41,6 @@ public sealed class IntegridadServicioTests : IDisposable
     }
 
     [Fact]
-    public async Task Pending_duplicates_hidden_from_the_panel_do_not_raise_a_counter_mismatch()
-    {
-        // Two open carpetas with disjoint classes: possible duplicate pending review, so the panel leaves them out.
-        await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
-            "11111111-1", "JUAN", "PEREZ", Sede.AvArgentina, new DateOnly(2026, 5, 1), "ana", ClaseLicencia.B));
-        await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
-            "11111111-1", "JUAN", "PEREZ", Sede.Placilla, new DateOnly(2026, 5, 2), "ana", ClaseLicencia.C, ConfirmarDuplicado: true));
-
-        var r = await NewService().EjecutarAsync(OrigenIntegridad.Manual);
-
-        Assert.Equal(0, r.PorRegla.GetValueOrDefault(ReglaIntegridad.SumaBandejas));
-    }
-
-    [Fact]
     public async Task Cancelled_carpetas_never_count_as_a_problem_nor_appear_in_trays()
     {
         var id = await RegistrarAsync("11111111-1");

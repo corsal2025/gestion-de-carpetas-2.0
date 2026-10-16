@@ -4017,22 +4017,7 @@ table.cases.doc-table td:first-child {
     background: #059669;
 }
 
-/* ===== Clase de licencia y Posibles Duplicados ===== */
-.nav-item.nav-duplicados {
-    color: #fecaca;
-    background: rgba(220, 38, 38, 0.16);
-    border-color: rgba(239, 68, 68, 0.35);
-}
-.nav-item.nav-duplicados:hover {
-    background: rgba(220, 38, 38, 0.32);
-    color: #ffffff;
-    border-color: #ef4444;
-}
-.nav-item.nav-duplicados.active {
-    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
-    color: #ffffff !important;
-    border-color: #f87171 !important;
-}
+/* ===== Clase de licencia y duplicados (Por clasificar) ===== */
 .nav-badge {
     min-width: 1.25rem;
     height: 1.25rem;

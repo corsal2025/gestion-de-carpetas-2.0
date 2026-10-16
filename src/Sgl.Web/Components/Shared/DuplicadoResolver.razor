@@ -1,36 +1,11 @@
-@page "/duplicados"
-@layout ModuloLayout
+@* Comparison panel + resolution actions for one possible-duplicate case (citizen with >1 open carpeta).
+   Single implementation used by the "Por arreglar" rows of the Por clasificar table. *@
 @inject DuplicadosService Revision
 @inject IJSRuntime JS
-@inject ILogger<Duplicados> Logger
+@inject ILogger<DuplicadoResolver> Logger
 @inject CarpetaService Carpetas
 @inject AutorState Autor
 @inject DuplicadosNotifier Notifier
-
-<PageTitle>@TituloPagina.De("Posibles duplicados")</PageTitle>
-
-<div class="modulo-scroll">
-<h1>Posibles Duplicados</h1>
-<p class="muted">Ciudadanos con más de una carpeta abierta (mismo RUT, distintas fechas). Para cada caso: <strong>Reagendar</strong> (conservar una y moverla a la fecha de la otra, que se anula), <strong>Anular duplicada</strong> o <strong>mantener ambas</strong> (marcar como revisado).</p>
-
-<form class="card dup-filtros" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
-    <label>Buscar por RUT o nombre
-        <input @bind="texto" placeholder="12.345.678-5 o nombre" maxlength="100" />
-    </label>
-    <label>Sede
-        <select @bind="sedeTexto">
-            <option value="">Todas</option>
-            @foreach (var s in Enum.GetValues<Sede>())
-            {
-                <option value="@s">@Labels.Of(s)</option>
-            }
-        </select>
-    </label>
-    <div class="actions">
-        <button type="submit">Buscar</button>
-        <button type="button" class="secondary" @onclick="LimpiarAsync">Limpiar</button>
-    </div>
-</form>
 
 @if (error is not null)
 {
@@ -40,27 +15,13 @@
 {
     <p class="ok-msg" role="status"><span>@mensaje</span></p>
 }
-
-@if (total is null)
-{
-    <p>Cargando…</p>
-}
-else if (total == 0)
-{
-    <p class="muted">No hay casos pendientes de revisión.</p>
-}
-else
-{
-    <section class="card">
-        <p class="dup-total"><strong>@total.Value.ToString("N0", CulturaCl)</strong> @(total == 1 ? "caso" : "casos") pendientes · haga clic en una fila para comparar sus carpetas</p>
-        @if (grupoAbierto is { } g)
-        {
+@{ var g = Grupo; }
             <div class="dup-comparacion" aria-live="polite">
                 <header class="dup-comparacion-head">
                     <strong>Carpetas abiertas de @g.NombreCompleto · @g.Rut</strong>
-                    <span class="dup-head-acciones"><button type="button" class="dup-btn-mantener btn-small" disabled="@ocupado" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">No es duplicada: mantener ambas</button><button type="button" class="secondary btn-small" @onclick="() => ToggleAsync(g)">Cerrar ✕</button></span>
+                    <span class="dup-head-acciones"><button type="button" class="dup-btn-mantener btn-small" disabled="@ocupado" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">No es duplicada: mantener ambas</button><button type="button" class="secondary btn-small" @onclick="() => OnCerrar.InvokeAsync()">Cerrar ✕</button></span>
                 </header>
-                                        @if (expandidos[g.CiudadanoId] is not { } carpetas)
+                                        @if (detalle is not { } carpetas)
                                         {
                                             <p class="muted">Cargando carpetas…</p>
                                         }
@@ -97,15 +58,6 @@ else
                                                                     </div>
                                                                 }
                                                             </dl>
-                                                            <div class="dup-clase">
-                                                                <span>Asignar clase:</span>
-                                                                <ClasesSelector Value="ClaseEditada(c)" ValueChanged="v => clasesEditadas[c.Id] = v"
-                                                                                AriaLabel="@($"Clase de licencia de la carpeta de {Labels.Of(c.Sede)}")" Disabled="ocupado" />
-                                                                @if (ClaseEditada(c) != c.Clases)
-                                                                {
-                                                                    <button type="button" class="btn-small" disabled="@ocupado" @onclick="() => GuardarClaseAsync(g.CiudadanoId, c)">Guardar clase</button>
-                                                                }
-                                                            </div>
                                                             <footer class="dup-card-acciones dup-resolver">
                                                                 <a class="btn-small" href="carpetas/@c.Id">Abrir carpeta</a>
                                                                 @foreach (var otra in carpetas.Where(o => o.Id != c.Id))
@@ -123,45 +75,15 @@ else
                                             <p class="muted dup-leyenda">Resaltado = difiere entre las carpetas. «Conservar esta carpeta» anula las demás por duplicado (se pueden restaurar desde «Anuladas»).</p>
                                         }
             </div>
-        }
-        <div class="dup-scroll">
-            <table class="dup-tabla">
-                <thead><tr><th class="dup-col-rut">RUT</th><th class="dup-col-nombre">Nombre</th><th>Carpetas abiertas</th><th class="dup-col-motivo">Motivo</th></tr></thead>
-                <tbody>
-                    <Virtualize @ref="virtualizador" TItem="DuplicadoGrupoDto" Context="g" ItemsProvider="CargarFilasAsync"
-                                ItemSize="52" OverscanCount="10" SpacerElement="tr">
-                        <ItemContent>
-                            @{ var abierto = grupoAbierto?.CiudadanoId == g.CiudadanoId; }
-                            <tr class="dup-grupo @(abierto ? "abierto" : "")" @onclick="() => ToggleAsync(g)">
-                                <td class="dup-col-rut">@g.Rut</td>
-                                <td class="dup-col-nombre">
-                                    <div class="dup-nombre-celda">
-                                        <span>@g.NombreCompleto</span>
-                                        <button type="button" class="icono-buscar-dup" aria-expanded="@(abierto ? "true" : "false")"
-                                                title="@(abierto ? "Ocultar carpetas" : $"Comparar sus {g.CarpetasAbiertas} carpetas")"
-                                                aria-label="@(abierto ? "Ocultar la comparación de carpetas" : $"Comparar las {g.CarpetasAbiertas} carpetas abiertas de {g.NombreCompleto}")"
-                                                @onclick="() => ToggleAsync(g)" @onclick:stopPropagation="true">
-                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="dup-col-cant"><span class="dup-badge">@g.CarpetasAbiertas</span></td>
-                                <td class="dup-col-motivo"><span class="dup-motivo @(g.Motivo.StartsWith("RUT") ? "dup-motivo-alerta" : null)">@g.Motivo</span></td>
-                            </tr>
-                        </ItemContent>
-                        <Placeholder>
-                            <tr class="dup-grupo"><td colspan="4">&nbsp;</td></tr>
-                        </Placeholder>
-                    </Virtualize>
-                </tbody>
-            </table>
-        </div>
-    </section>
-}
-</div>
 
 @code {
-    private static readonly System.Globalization.CultureInfo CulturaCl = new("es-CL");
+    [Parameter, EditorRequired] public DuplicadoGrupoDto Grupo { get; set; } = default!;
+
+    /// <summary>The user closed the panel.</summary>
+    [Parameter] public EventCallback OnCerrar { get; set; }
+
+    /// <summary>The case changed (resolved or marked as reviewed): the owner must reload its list.</summary>
+    [Parameter] public EventCallback OnResuelto { get; set; }
 
     private sealed record Campo(string Etiqueta, Func<CarpetaDuplicadoDetalleDto, string> Valor, bool Clave = false);
 
@@ -200,118 +122,19 @@ else
     private static bool Difiere(IReadOnlyList<CarpetaDuplicadoDetalleDto> carpetas, Func<CarpetaDuplicadoDetalleDto, string> valor) =>
         carpetas.Select(valor).Distinct(StringComparer.OrdinalIgnoreCase).Skip(1).Any();
 
-    private int? total;
-    private Virtualize<DuplicadoGrupoDto>? virtualizador;
-    // Una sola comparación abierta, mostrada fuera de la lista virtualizada (alturas de fila uniformes).
-    private DuplicadoGrupoDto? grupoAbierto;
-    private readonly Dictionary<Guid, IReadOnlyList<CarpetaDuplicadoDetalleDto>?> expandidos = [];
-    private readonly Dictionary<Guid, ClaseLicencia> clasesEditadas = [];
-    private string texto = "";
-    private string sedeTexto = "";
+    private IReadOnlyList<CarpetaDuplicadoDetalleDto>? detalle;
     private bool ocupado;
     private string? error;
     private string? mensaje;
 
-    protected override Task OnInitializedAsync() => CargarAsync();
-
-    private Sede? SedeFiltro => Enum.TryParse<Sede>(sedeTexto, out var s) ? s : null;
-
-    private ClaseLicencia ClaseEditada(CarpetaDuplicadoDetalleDto c) =>
-        clasesEditadas.TryGetValue(c.Id, out var v) ? v : c.Clases;
-
-    private ListarDuplicadosQuery Consulta(int skip = 0, int? take = null) => new(texto, SedeFiltro, skip, take);
-
-    /// <summary>Recalcula el total y refresca las filas visibles (lista continua virtualizada).</summary>
-    private async Task CargarAsync()
-    {
-        try
-        {
-            var antes = total;
-            total = (await Revision.ListarAsync(Consulta(take: 0))).Total;
-            if (virtualizador is not null && antes is > 0 && total > 0)
-            {
-                await virtualizador.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            Logger.LogError(ex, "No se pudo cargar la lista de posibles duplicados.");
-            error = "No se pudo cargar la lista de posibles duplicados.";
-            total ??= 0;
-        }
-    }
-
-    private async ValueTask<ItemsProviderResult<DuplicadoGrupoDto>> CargarFilasAsync(ItemsProviderRequest request)
-    {
-        var rango = await Revision.ListarAsync(Consulta(request.StartIndex, request.Count), request.CancellationToken);
-        if (total != rango.Total)
-        {
-            total = rango.Total;
-            _ = InvokeAsync(StateHasChanged);
-        }
-
-        return new ItemsProviderResult<DuplicadoGrupoDto>(rango.Items, rango.Total);
-    }
-
-    private Task BuscarAsync()
-    {
-        grupoAbierto = null;
-        expandidos.Clear();
-        return CargarAsync();
-    }
-
-    private Task LimpiarAsync()
-    {
-        texto = "";
-        sedeTexto = "";
-        return BuscarAsync();
-    }
-
-    private async Task ToggleAsync(DuplicadoGrupoDto grupo)
-    {
-        var cerrar = grupoAbierto?.CiudadanoId == grupo.CiudadanoId;
-        expandidos.Clear();
-        grupoAbierto = null;
-        if (cerrar) return;
-
-        grupoAbierto = grupo;
-        expandidos[grupo.CiudadanoId] = null;
-        await CargarCarpetasAsync(grupo.CiudadanoId);
-    }
-
-    private async Task CargarCarpetasAsync(Guid ciudadanoId)
-    {
-        var carpetas = await Revision.ObtenerDetalleCarpetasAsync(ciudadanoId);
-        if (expandidos.ContainsKey(ciudadanoId))
-        {
-            expandidos[ciudadanoId] = carpetas;
-        }
-
-        foreach (var c in carpetas)
-        {
-            clasesEditadas.Remove(c.Id);
-        }
-    }
-
-    private Task GuardarClaseAsync(Guid ciudadanoId, CarpetaDuplicadoDetalleDto carpeta) =>
-        EjecutarAsync(async () =>
-        {
-            await Carpetas.AsignarClasesAsync(carpeta.Id, ClaseEditada(carpeta), Autor.Nombre);
-            await CargarCarpetasAsync(ciudadanoId);
-        }, "Clase de licencia actualizada.");
+    protected override async Task OnInitializedAsync() => detalle = await Revision.ObtenerDetalleCarpetasAsync(Grupo.CiudadanoId);
 
     private Task MarcarRevisadoAsync(Guid ciudadanoId) =>
         EjecutarAsync(async () =>
         {
             await Revision.MarcarRevisadoAsync(ciudadanoId, Autor.Nombre);
-            if (grupoAbierto?.CiudadanoId == ciudadanoId)
-            {
-                grupoAbierto = null;
-                expandidos.Clear();
-            }
-
-            await CargarAsync();
             Notifier.Notify();
+            await OnResuelto.InvokeAsync();
         }, "Caso marcado como revisado (se mantienen ambas).");
 
     private async Task ReagendarAsync(DuplicadoGrupoDto g, CarpetaDuplicadoDetalleDto origen, CarpetaDuplicadoDetalleDto destino)
@@ -383,22 +206,13 @@ else
         }, "Carpeta anulada por duplicado.");
     }
 
-    /// <summary>Reloads the compared carpetas; closes the case when it no longer has duplicates.</summary>
+    /// <summary>Reloads the compared carpetas; the owner closes the case when it no longer has duplicates.</summary>
     private async Task TrasResolverAsync(DuplicadoGrupoDto g)
     {
         var restantes = await Revision.ObtenerDetalleCarpetasAsync(g.CiudadanoId);
-        if (restantes.Count < 2)
-        {
-            grupoAbierto = null;
-            expandidos.Clear();
-        }
-        else if (expandidos.ContainsKey(g.CiudadanoId))
-        {
-            expandidos[g.CiudadanoId] = restantes;
-        }
-
-        await CargarAsync();
+        detalle = restantes;
         Notifier.Notify();
+        await OnResuelto.InvokeAsync();
     }
 
     private async Task EjecutarAsync(Func<Task> action, string ok)

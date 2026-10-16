@@ -469,3 +469,25 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .btn-decision:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-decision-otorgada { background: var(--ok-fondo); color: var(--ok-texto); border-color: var(--grupo-sistema); }
 .btn-decision-denegada { background: var(--aviso-bg); color: var(--aviso-texto); border-color: var(--aviso-borde); }
+
+/* "Por arreglar" chip + view inside Por clasificar */
+.por-arreglar-toggle { margin: 0.35rem 0; }
+.chip-por-arreglar { display: inline-flex; align-items: center; padding: 0.3rem 0.8rem; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface); color: var(--text-primary); font-weight: 700; font-size: 0.88rem; text-decoration: none; }
+.chip-por-arreglar:hover { background: var(--brand-light); }
+.chip-por-arreglar.activo { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; }
+.dup-por-arreglar { padding: 0.5rem 0.75rem; }
+
+/* Nombre + lupa + lápiz: el nombre ocupa el espacio libre, así la lupa queda siempre pegada al lápiz y todas alineadas */
+html body .data-table .nombre-wrapper-cell { display: flex; align-items: center; gap: 0.4rem; width: 100%; }
+html body .data-table .nombre-wrapper-cell .name-cell { flex: 1 1 auto; min-width: 0; max-width: none; }
+html body .data-table .nombre-wrapper-cell .icono-buscar-dup { flex: 0 0 26px; margin-left: auto; }
+html body .data-table .nombre-wrapper-cell .btn-obs-trigger { flex: 0 0 30px; }
+
+/* Por clasificar: "Por arreglar" case rows live inside the tray table, above the normal carpeta rows. */
+html body .data-table tbody tr.dup-seccion-cab > td { background: #7f1d1d; color: #fff; padding: 0.35rem 0.75rem; }
+html body .data-table tbody tr.dup-seccion-cab-normal > td { background: var(--brand-primary, #1e3a8a); }
+.dup-seccion-cab-fila { display: flex; gap: 0.9rem; align-items: center; position: sticky; left: 0; width: max-content; max-width: 100vw; }
+.dup-seccion-ir { color: #fff; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.dup-caso-resumen { display: flex; gap: 0.75rem; align-items: center; }
+.dup-seccion-mas > td { text-align: center; padding: 0.5rem; }
+html body .data-table tbody tr.dup-caso-detalle > td { background: var(--surface-alt); padding: 0.5rem 0.75rem; white-space: normal; }

@@ -102,7 +102,7 @@ public static class MensajeLico
         }
         if (duplicadosPendientes > 0)
         {
-            return $"Tienes {duplicadosPendientes} {(duplicadosPendientes == 1 ? "duplicado" : "duplicados")} por revisar.";
+            return $"Tienes {duplicadosPendientes} {(duplicadosPendientes == 1 ? "duplicado" : "duplicados")} por revisar en Por clasificar.";
         }
         return meta.Pendientes > 0
             ? $"Te quedan {meta.Pendientes} por clasificar hoy. ¡Vamos!"
