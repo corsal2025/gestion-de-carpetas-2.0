@@ -28,21 +28,6 @@
     </div>
 }
 
-@if (!Model.MailListo || !Model.ExcelConfigurado)
-{
-    <div class="d-flex flex-wrap gap-2 mb-3" style="font-size:.75rem;">
-        @if (!Model.MailListo)
-        {
-            <span class="badge bg-warning">Correo EWS sin configurar</span>
-        }
-        @if (!Model.ExcelConfigurado)
-        {
-            <span class="badge bg-warning">Excel sin configurar</span>
-        }
-        <span class="badge bg-secondary">@Model.ComunasEnDirectorio comunas en directorio</span>
-    </div>
-}
-
 <div class="toolbar mb-2">
     <form method="post">
         <button asp-page-handler="Importar" id="btn-importar" class="btn btn-sm btn-primary"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Cargar cambios de domicilio</span></button>
