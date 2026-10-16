@@ -167,12 +167,6 @@
     </form>
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-2">
-    <input type="search" id="buscador" class="form-control form-control-sm" style="max-width:340px;"
-           placeholder="Buscar por RUT o nombre…" autocomplete="off" aria-label="Buscar por RUT o nombre" />
-    <span id="buscador-info" class="text-muted" style="font-size:.75rem;"></span>
-</div>
-
 <div class="table-responsive" id="tabla-peticiones">
 <table class="table table-hover align-middle">
     <thead>
@@ -515,34 +509,6 @@
                 }
             });
         });
-    }
-
-    // Buscador por RUT o nombre: filtra la tabla en el navegador, sin recargar.
-    // Nombre: sin mayúsculas ni tildes, todas las palabras deben aparecer (en cualquier orden).
-    // RUT: se ignoran puntos, guion y espacios ("12.345.678-9" = "123456789").
-    var buscador = document.getElementById("buscador");
-    if (buscador) {
-        var filas = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-nombre]"));
-        var info = document.getElementById("buscador-info");
-        var plegar = function (s) {
-            return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-        };
-        var filtrar = function () {
-            var q = plegar(buscador.value);
-            var palabras = q.split(/\s+/).filter(Boolean);
-            var rutQ = q.replace(/[^0-9k]/g, "");
-            var esRut = /\d/.test(q);
-            var visibles = 0;
-            filas.forEach(function (tr) {
-                var ok = palabras.length === 0
-                    || (esRut && rutQ.length > 0 && tr.dataset.rut.indexOf(rutQ) !== -1)
-                    || palabras.every(function (w) { return tr.dataset.nombre.indexOf(w) !== -1; });
-                tr.hidden = !ok;
-                if (ok) visibles++;
-            });
-            info.textContent = palabras.length === 0 ? "" : visibles + " de " + filas.length;
-        };
-        buscador.addEventListener("input", filtrar);
     }
 
     // Selección de celda individual: al hacer clic en cualquier celda de dato se resalta en amarillo
