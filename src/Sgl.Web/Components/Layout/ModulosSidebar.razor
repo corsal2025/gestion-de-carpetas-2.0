@@ -54,9 +54,20 @@
                                     }
                                     else
                                     {
-                                        <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
+                                        @if (em.Semaforo is null)
+                                        {
+                                            @* No traffic light: the circle still shows, with the module's own colour. *@
+                                            <span class="semaforo-punto" aria-hidden="true"></span>
+                                        }
+                                        else
+                                        {
+                                            <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
+                                        }
                                         <span class="sidebar-modulo-nombre">@m.Nombre</span>
-                                        <span class="sidebar-contador @ClaseSemaforo(em.Semaforo)">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
+                                        @if (!m.Clave.StartsWith("peticiones", StringComparison.Ordinal))
+                                        {
+                                            <span class="sidebar-contador @ClaseSemaforo(em.Semaforo)">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
+                                        }
                                     }
                                 </a>
                             </li>
@@ -97,9 +108,7 @@
 
     /// <summary>Each module wears the original Excel colour of its state (see modulos.css, "m-*").</summary>
     // "Posibles duplicados" has no Excel colour: it takes the same neutral ring dot as "Por clasificar".
-    private static string ClaseColor(Modulo m) => m.Bandeja is { } b
-        ? $"m-{b.ToString().ToLowerInvariant()}"
-        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados" : "";
+    private static string ClaseColor(Modulo m) => ModulosCatalogo.ClaseColor(m);
 
     private static string ClaseSemaforo(object? semaforo) => $"sem-{(semaforo?.ToString() ?? "").ToLowerInvariant()}";
 

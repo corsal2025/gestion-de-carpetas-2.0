@@ -9,22 +9,6 @@
     var vencidas = Model.Peticiones.Count(p => PlazoInfo.Para(p).Vencido);
 }
 
-<div class="page-head">
-    <button type="button" id="btn-lico-saludo" class="head-lico" data-lico="saluda" aria-label="Lico: haz clic para ver una gracia">
-        <span class="head-lico-burbuja">¡Hola! Me llamo Lico</span>
-    </button>
-    <div style="flex:1 1 280px">
-        <h1 class="h3">Peticiones de cambio de domicilio</h1>
-        <div class="sub">Flujo saliente · Decreto 170, art. 14 · plazo legal 15 días hábiles</div>
-    </div>
-    <div class="stat-row">
-        <div class="stat-chip"><b class="num">@total</b><span>Total</span></div>
-        <div class="stat-chip stat-chip--soft"><b class="num">@pendientes</b><span>Pendientes</span></div>
-        <div class="stat-chip stat-chip--ok"><b class="num">@enviadas</b><span>Enviadas</span></div>
-        <div class="stat-chip stat-chip--bad"><b class="num">@vencidas</b><span>Vencidas</span></div>
-    </div>
-</div>
-
 @if (Model.ModoPruebaEmail is not null)
 {
     <div class="alert alert-danger">
@@ -41,21 +25,6 @@
         @string.Join(", ", Model.ComunasSinCorreo).
         Esas peticiones quedan en espera. Cargá el correo en
         <a asp-page="/Comunas">Comunas</a> y volvé a enviar — se retoman solas.
-    </div>
-}
-
-@if (!Model.MailListo || !Model.ExcelConfigurado)
-{
-    <div class="d-flex flex-wrap gap-2 mb-3" style="font-size:.75rem;">
-        @if (!Model.MailListo)
-        {
-            <span class="badge bg-warning">Correo EWS sin configurar</span>
-        }
-        @if (!Model.ExcelConfigurado)
-        {
-            <span class="badge bg-warning">Excel sin configurar</span>
-        }
-        <span class="badge bg-secondary">@Model.ComunasEnDirectorio comunas en directorio</span>
     </div>
 }
 
@@ -167,29 +136,19 @@
     </form>
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-2">
-    <input type="search" id="buscador" class="form-control form-control-sm" style="max-width:340px;"
-           placeholder="Buscar por RUT o nombre…" autocomplete="off" aria-label="Buscar por RUT o nombre" />
-    <span id="buscador-info" class="text-muted" style="font-size:.75rem;"></span>
-</div>
-
 <div class="table-responsive" id="tabla-peticiones">
-<table class="table table-hover align-middle">
+<table class="table data-table table-hover align-middle">
     <thead>
         <tr>
-            <th class="text-center" style="width:1%">
-                <input type="checkbox" id="chk-marcar-todas" title="Marcar / desmarcar todas las pendientes"
-                       checked="@(pendientes > 0 && Model.MarcadasPendientes == pendientes ? "checked" : null)" />
-            </th>
-            <th>Nombre</th>
+            <th class="text-center" style="width:1%"></th>
             <th>RUT</th>
+            <th>Nombre de contribuyente</th>
+            <th>Sede</th>
             <th class="text-center">Comuna</th>
-            <th>F. solicitud</th>
+            <th>Fecha de solicitud</th>
             <th>Envío</th>
             <th>Plazo · 15 d. háb.</th>
-            <th>Estado carpeta</th>
-            <th>Origen</th>
-            <th style="width:1%"></th>
+            <th>Acción</th>
         </tr>
     </thead>
     <tbody>
@@ -250,8 +209,17 @@
                     </form>
                 }
             </td>
-            <td class="dato">@p.NombreCompleto</td>
             <td class="dato num">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
+            <td class="dato">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <span>@p.NombreCompleto</span>
+                    <a class="icono-buscar-dup icono-buscar-dup--neutro" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
+                       title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    </a>
+                </div>
+            </td>
+            <td class="text-muted" title="@p.Origen" style="cursor:help; font-size:.78rem;">@p.Oficina</td>
             <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
             <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
             <td>
@@ -298,44 +266,8 @@
                     </div>
                 }
             </td>
-            <td>
-                @{
-                    var opcionActual = EstadoCarpetaCatalog.OpcionDashboard(p.EstadoCarpeta);
-                    string EtiquetaCarpeta(string v) => v switch
-                    {
-                        EstadoCarpetaCatalog.SubidaConaset => "Subida a CONASET",
-                        EstadoCarpetaCatalog.SubidaCorreo => "Subida con correo",
-                        _ => "— sin subir —",
-                    };
-                }
-                <form method="post" asp-page-handler="EstadoCarpeta" class="carpeta-form d-inline js-carpeta-form" data-id="@p.Id">
-                    <input type="hidden" name="id" value="@p.Id" />
-                    <select name="estado" class="carpeta-select js-carpeta-select" title="Estado de la carpeta">
-                        @foreach (var v in EstadoCarpetaCatalog.OpcionesDashboard)
-                        {
-                            <option value="@v" selected="@(opcionActual == v ? "selected" : null)">@EtiquetaCarpeta(v)</option>
-                        }
-                    </select>
-                </form>
-                @if (p.SubidaEn is not null)
-                {
-                    <div class="carpeta-fecha num">subida @p.SubidaEn.Value.ToString("dd-MM-yyyy")</div>
-                }
-            </td>
-            <td class="text-muted" title="@p.Origen" style="cursor:help; font-size:.78rem;">@p.Oficina</td>
             <td class="col-acciones">
-                @if (finalizada)
-                {
-                    @* Rectificar: reabre el caso como petición nueva (mismo RUT + comuna = se reinicia). *@
-                    <button type="button" class="btn btn-sm btn-outline-secondary js-nueva-peticion"
-                            data-nombre="@p.NombreCompleto" data-rut="@p.Rut" data-comuna="@p.Comuna"
-                            title="Caso terminado: ingresar otra petición para rectificar">↻ Nueva petición</button>
-                }
-                @if (esEnviada)
-                {
-                    <span class="pill pill--ok">✓ Enviada</span>
-                }
-                else if (pendientesComuna > 0)
+                @if (!esEnviada && pendientesComuna > 0)
                 {
                     var rutDudoso = Model.Peticiones.Any(x =>
                         x.Comuna.Equals(p.Comuna, System.StringComparison.OrdinalIgnoreCase)
@@ -515,34 +447,6 @@
                 }
             });
         });
-    }
-
-    // Buscador por RUT o nombre: filtra la tabla en el navegador, sin recargar.
-    // Nombre: sin mayúsculas ni tildes, todas las palabras deben aparecer (en cualquier orden).
-    // RUT: se ignoran puntos, guion y espacios ("12.345.678-9" = "123456789").
-    var buscador = document.getElementById("buscador");
-    if (buscador) {
-        var filas = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-nombre]"));
-        var info = document.getElementById("buscador-info");
-        var plegar = function (s) {
-            return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-        };
-        var filtrar = function () {
-            var q = plegar(buscador.value);
-            var palabras = q.split(/\s+/).filter(Boolean);
-            var rutQ = q.replace(/[^0-9k]/g, "");
-            var esRut = /\d/.test(q);
-            var visibles = 0;
-            filas.forEach(function (tr) {
-                var ok = palabras.length === 0
-                    || (esRut && rutQ.length > 0 && tr.dataset.rut.indexOf(rutQ) !== -1)
-                    || palabras.every(function (w) { return tr.dataset.nombre.indexOf(w) !== -1; });
-                tr.hidden = !ok;
-                if (ok) visibles++;
-            });
-            info.textContent = palabras.length === 0 ? "" : visibles + " de " + filas.length;
-        };
-        buscador.addEventListener("input", filtrar);
     }
 
     // Selección de celda individual: al hacer clic en cualquier celda de dato se resalta en amarillo

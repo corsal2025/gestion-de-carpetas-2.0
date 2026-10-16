@@ -1244,5 +1244,63 @@ body {
 #tabla-peticiones .table > tbody > tr > td { padding-left: .45rem; padding-right: .45rem; }
 /* Nombre y origen pueden partir en dos líneas en vez de empujar la tabla. */
 #tabla-peticiones .table > tbody > tr > td.dato:not(.num),
-#tabla-peticiones .table > tbody > tr > td:nth-child(9) { white-space: normal; min-width: 140px; }
+#tabla-peticiones .table > tbody > tr > td:nth-child(4) { white-space: normal; min-width: 110px; }
 #tabla-peticiones .table > tbody > tr > td.col-acciones { padding-right: .7rem; }
+
+/* ---------- Ajuste a la pantalla (módulo dentro del marco del sistema) ----------
+   La tabla ocupa el ancho disponible junto al menú lateral: celdas compactas, texto que baja de línea y
+   controles más angostos. Si aun así no cabe (pantalla pequeña) se desplaza en horizontal en vez de cortarse. */
+#tabla-peticiones.table-responsive { overflow-x: auto; }
+#tabla-peticiones .table { width: 100%; }
+#tabla-peticiones .table > thead > tr > th,
+#tabla-peticiones .table > tbody > tr > td { padding: .45rem .35rem; white-space: normal; }
+#tabla-peticiones .table > thead > tr > th { font-size: .78rem; line-height: 1.15; }
+#tabla-peticiones .table > tbody > tr > td { font-size: .82rem; }
+#tabla-peticiones .table > tbody > tr > td:first-child,
+#tabla-peticiones .table > thead > tr > th:first-child { padding-left: .5rem; padding-right: .25rem; }
+#tabla-peticiones .table select,
+#tabla-peticiones .table .form-select { max-width: 8.5rem; font-size: .78rem; }
+#tabla-peticiones .table .plazo { max-width: 6.5rem; }
+#tabla-peticiones .table > tbody > tr > td.col-acciones { white-space: normal; padding-right: .5rem; }
+#tabla-peticiones .table > tbody > tr > td.col-acciones .btn { margin: .1rem 0; }
+/* RUT, fecha y hora de envío en una sola línea; el resto del texto sí baja de línea. */
+#tabla-peticiones .table > tbody > tr > td.num,
+#tabla-peticiones .table > tbody > tr > td .pill { white-space: nowrap; }
+#tabla-peticiones .table > tbody > tr > td:nth-child(7) > span:not(.pill) { white-space: nowrap; }
+/* Pantallas medianas (laptops): un paso más compacto para que la tabla quepa junto al menú lateral. */
+@media (max-width: 1500px) {
+  #tabla-peticiones .table > thead > tr > th,
+  #tabla-peticiones .table > tbody > tr > td { padding: .4rem .25rem; font-size: .76rem; }
+  #tabla-peticiones .table > thead > tr > th { font-size: .72rem; }
+  #tabla-peticiones .table select,
+  #tabla-peticiones .table .form-select { max-width: 6.6rem; font-size: .72rem; }
+  #tabla-peticiones .table .plazo { max-width: 5rem; }
+  #tabla-peticiones .table > tbody > tr > td:nth-child(10) { white-space: normal; }
+}
+/* Columnas en la modalidad del sistema: RUT, Nombre de contribuyente, Sede, Comuna, Estado. */
+#tabla-peticiones .table > tbody > tr > td:nth-child(2) { text-align: center; font-weight: 600; color: inherit; }
+#tabla-peticiones .table > tbody > tr > td:nth-child(3) { text-align: left; font-weight: 700; }
+#tabla-peticiones .table > thead > tr > th:nth-child(3) { text-align: left; }
+
+/* Same look as the system trays (class data-table: uppercase header and cells, centred), but sized to the screen:
+   the tray's fixed per-column widths do not apply here because the columns differ. */
+#tabla-peticiones .data-table { width: 100% !important; min-width: 0 !important; table-layout: auto !important; }
+#tabla-peticiones .data-table th,
+#tabla-peticiones .data-table td { width: auto !important; min-width: 0 !important; white-space: normal !important; text-align: center !important; }
+#tabla-peticiones .data-table th:nth-child(1),
+#tabla-peticiones .data-table td:nth-child(1) { width: 36px !important; }
+#tabla-peticiones .data-table th:nth-child(2),
+#tabla-peticiones .data-table td:nth-child(2) { min-width: 105px !important; white-space: nowrap !important; }
+#tabla-peticiones .data-table th:nth-child(3),
+#tabla-peticiones .data-table td:nth-child(3) { text-align: left !important; min-width: 200px !important; }
+#tabla-peticiones .data-table th:nth-child(4),
+#tabla-peticiones .data-table td:nth-child(4) { white-space: nowrap !important; }
+
+/* The page frame never scrolls (the system fixes it to the window), so the module area scrolls itself:
+   vertical and horizontal bars appear here, and the table header stays pinned while scrolling. */
+.modulo-main { overflow: auto; min-height: 0; min-width: 0; }
+#tabla-peticiones.table-responsive { overflow: visible; }
+/* Every header is centred, including "Nombre de contribuyente" (its cells stay left-aligned). */
+#tabla-peticiones .data-table th,
+#tabla-peticiones .data-table th:nth-child(3),
+#tabla-peticiones .table > thead > tr > th:nth-child(3) { text-align: center !important; vertical-align: middle !important; }

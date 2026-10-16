@@ -53,6 +53,7 @@ public static class PeticionesModulo
         builder.Services.AddSingleton<IMailSender, EwsMailSender>();
         builder.Services.AddSingleton<ExcelPeticionImporter>();
         builder.Services.AddSingleton<PeticionSender>();
+        builder.Services.AddSingleton<Sgl.Peticiones.IMenuSistema, MenuSistemaCatalogo>();
 
         // Las páginas originales viven bajo /peticiones.
         builder.Services.AddRazorPages()

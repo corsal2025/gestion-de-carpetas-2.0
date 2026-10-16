@@ -56,7 +56,17 @@
                     <Virtualize Items="items" Context="a" ItemSize="44" OverscanCount="15" SpacerElement="tr">
                         <tr>
                             <td class="date-cell col-sticky-rut">@a.Rut</td>
-                            <td class="col-sticky-nombre"><span class="name-cell">@a.NombreCompleto</span></td>
+                            <td class="col-sticky-nombre">
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell">@a.NombreCompleto</span>
+                                    <span class="nombre-acciones">
+                                        <a class="icono-buscar-dup icono-buscar-dup--neutro" href="@($"/carpetas?bandeja=todas&buscar={Uri.EscapeDataString(a.Rut)}")"
+                                           title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                        </a>
+                                    </span>
+                                </div>
+                            </td>
                             <td><span class="sede-tag">@Labels.Of(a.Sede)</span></td>
                             <td class="date-cell">@a.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             <td>@Labels.Of(a.Estado)</td>

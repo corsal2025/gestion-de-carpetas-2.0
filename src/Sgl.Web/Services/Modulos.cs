@@ -21,6 +21,14 @@ public static class ModulosCatalogo
     public const string ClaveIntegridad = "integridad";
     public const string ClavePeticiones = "peticiones";
 
+    /// <summary>
+    /// CSS class of a module's menu circle ("m-..."): every module has its own colour (see modulos.css) and all
+    /// circles share one size. Trays use their tray name; the other pages use their key.
+    /// </summary>
+    public static string ClaseColor(Modulo m) => m.Bandeja is { } b
+        ? $"m-{b.ToString().ToLowerInvariant()}"
+        : $"m-{m.Clave}";
+
     // Simple 24x24 stroke icons (paths only).
     public static readonly GrupoModulo Entrada = new("entrada", "Entrada", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
     public static readonly GrupoModulo Preparacion = new("preparacion", "Preparación", "grupo-preparacion", "M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z");
@@ -45,7 +53,10 @@ public static class ModulosCatalogo
         Tray(Preparacion, Bandeja.CanjeLicExtranjera, "Canje lic. extranjera", "CJ"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambio de domicilio", "CD"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado", "CS"),
-        new(ClavePeticiones, CambioDomicilio, "Peticiones de cambio de domicilio", "PE", "peticiones"),
+        new(ClavePeticiones, CambioDomicilio, "Peticiones", "PE", "peticiones"),
+        new("peticiones-comunas", Sistema, "Comunas y correos", "CO", "peticiones/Comunas"),
+        new("peticiones-estadisticas", Sistema, "Estadísticas de peticiones", "EP", "peticiones/Estadisticas"),
+        new("peticiones-configuracion", Sistema, "Configuración de correo", "CC", "peticiones/Configuracion"),
         Tray(Subidas, Bandeja.SubidaConaset, "Subida a Conaset", "SC"),
         Tray(Subidas, Bandeja.SubidaConF8, "Subida con F8", "S8"),
         Tray(Subidas, Bandeja.SubidaConOficio, "Subida con oficio", "SO"),

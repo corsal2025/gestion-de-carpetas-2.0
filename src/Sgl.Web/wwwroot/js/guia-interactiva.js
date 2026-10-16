@@ -147,13 +147,6 @@
     },
     {
       pagina: '/',
-      target: '#chk-marcar-todas',
-      titulo: 'Marcar o desmarcar todas',
-      icono: '☑️',
-      descripcion: 'La casilla del encabezado marca o desmarca <b>todas las pendientes</b> de una vez. Las marcadas alimentan los botones <b>Enviar marcadas</b>, <b>Marcar como enviadas</b> e <b>Imprimir marcadas</b>.'
-    },
-    {
-      pagina: '/',
       target: '.js-marcar-btn',
       fallbackTarget: '#tabla-peticiones',
       titulo: 'Casilla de cada persona',
@@ -164,9 +157,9 @@
       pagina: '/',
       target: '#tabla-peticiones thead',
       fallbackTarget: '#tabla-peticiones',
-      titulo: 'Columnas: Nombre, RUT, Comuna y F. solicitud',
+      titulo: 'Columnas: Nombre, RUT, Comuna y Fecha de solicitud',
       icono: '📋',
-      descripcion: '<b>Nombre</b> y <b>RUT</b> de la persona (un ⚠ junto al RUT indica que no pudo validarse). <b>Comuna</b> de destino. <b>F. solicitud</b> es la fecha en que se pidió la carpeta a la comuna; dice «sin pedir» hasta que se envía el correo.'
+      descripcion: '<b>Nombre</b> y <b>RUT</b> de la persona (un ⚠ junto al RUT indica que no pudo validarse). <b>Comuna</b> de destino. <b>Fecha de solicitud</b> es la fecha en que se pidió la carpeta a la comuna; dice «sin pedir» hasta que se envía el correo.'
     },
     {
       pagina: '/',
@@ -186,14 +179,6 @@
     },
     {
       pagina: '/',
-      target: '.js-carpeta-select',
-      fallbackTarget: '#tabla-peticiones',
-      titulo: 'Estado de la carpeta',
-      icono: '🗂️',
-      descripcion: 'Selector por persona: <b>— sin subir —</b>, <b>Subida a CONASET</b> o <b>Subida con correo</b>. Se guarda al cambiarlo y, si corresponde, muestra la fecha de subida. La fila cerrada se pinta de azul.'
-    },
-    {
-      pagina: '/',
       target: '#tabla-peticiones tbody tr td:nth-child(9)',
       fallbackTarget: '#tabla-peticiones',
       titulo: 'Columna Origen',
@@ -206,7 +191,7 @@
       fallbackTarget: '.col-acciones',
       titulo: 'Enviar comuna (N)',
       icono: '📤',
-      descripcion: 'Despacha de golpe <b>un correo con todas las personas pendientes de esa comuna</b>; el número N es cuántas son. Si alguna tiene RUT sin validar, te lo advierte antes de confirmar. Cuando ya se envió, la fila muestra «✓ Enviada».'
+      descripcion: 'Despacha de golpe <b>un correo con todas las personas pendientes de esa comuna</b>; el número N es cuántas son. Si alguna tiene RUT sin validar, te lo advierte antes de confirmar.'
     },
     {
       pagina: '/', pose: 'alerta',
