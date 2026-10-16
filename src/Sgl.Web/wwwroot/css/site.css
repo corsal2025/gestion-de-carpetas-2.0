@@ -1246,3 +1246,34 @@ body {
 #tabla-peticiones .table > tbody > tr > td.dato:not(.num),
 #tabla-peticiones .table > tbody > tr > td:nth-child(9) { white-space: normal; min-width: 140px; }
 #tabla-peticiones .table > tbody > tr > td.col-acciones { padding-right: .7rem; }
+
+/* ---------- Ajuste a la pantalla (módulo dentro del marco del sistema) ----------
+   La tabla ocupa el ancho disponible junto al menú lateral: celdas compactas, texto que baja de línea y
+   controles más angostos. Si aun así no cabe (pantalla pequeña) se desplaza en horizontal en vez de cortarse. */
+#tabla-peticiones.table-responsive { overflow-x: auto; }
+#tabla-peticiones .table { width: 100%; }
+#tabla-peticiones .table > thead > tr > th,
+#tabla-peticiones .table > tbody > tr > td { padding: .45rem .35rem; white-space: normal; }
+#tabla-peticiones .table > thead > tr > th { font-size: .78rem; line-height: 1.15; }
+#tabla-peticiones .table > tbody > tr > td { font-size: .82rem; }
+#tabla-peticiones .table > tbody > tr > td:first-child,
+#tabla-peticiones .table > thead > tr > th:first-child { padding-left: .5rem; padding-right: .25rem; }
+#tabla-peticiones .table select,
+#tabla-peticiones .table .form-select { max-width: 8.5rem; font-size: .78rem; }
+#tabla-peticiones .table .plazo { max-width: 6.5rem; }
+#tabla-peticiones .table > tbody > tr > td.col-acciones { white-space: normal; padding-right: .5rem; }
+#tabla-peticiones .table > tbody > tr > td.col-acciones .btn { margin: .1rem 0; }
+/* RUT, fecha y hora de envío en una sola línea; el resto del texto sí baja de línea. */
+#tabla-peticiones .table > tbody > tr > td.num,
+#tabla-peticiones .table > tbody > tr > td .pill { white-space: nowrap; }
+#tabla-peticiones .table > tbody > tr > td:nth-child(6) > span:not(.pill) { white-space: nowrap; }
+/* Pantallas medianas (laptops): un paso más compacto para que la tabla quepa junto al menú lateral. */
+@media (max-width: 1500px) {
+  #tabla-peticiones .table > thead > tr > th,
+  #tabla-peticiones .table > tbody > tr > td { padding: .4rem .25rem; font-size: .76rem; }
+  #tabla-peticiones .table > thead > tr > th { font-size: .72rem; }
+  #tabla-peticiones .table select,
+  #tabla-peticiones .table .form-select { max-width: 6.6rem; font-size: .72rem; }
+  #tabla-peticiones .table .plazo { max-width: 5rem; }
+  #tabla-peticiones .table > tbody > tr > td:nth-child(10) { white-space: normal; }
+}
