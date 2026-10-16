@@ -1433,7 +1433,7 @@
     }
 
     private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite) =>
-        destinoClasif.TryGetValue(id, out var e) ? e : null;
+        destinoClasif.TryGetValue(id, out var e) ? e : (tramite == TramiteAgenda.PrimeraVezExtension ? EstadoCarpeta.PrimeraLicencia : null);
 
     private readonly HashSet<Guid> intentoAplicar = [];
 
