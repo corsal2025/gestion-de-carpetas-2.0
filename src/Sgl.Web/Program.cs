@@ -1,3 +1,4 @@
+using Sgl.Web.Peticiones;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Estadisticas;
@@ -18,6 +19,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSglInfrastructure(builder.Configuration);
+
+// Módulo Peticiones de cambio de domicilio (proyecto PeticionCambioDomicilio integrado tal cual).
+builder.AddPeticiones();
 builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.SectionName).Get<BandejasOptions>() ?? new BandejasOptions());
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
@@ -106,6 +110,9 @@ app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, st
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         $"estadisticas-{Sgl.Domain.HoraChile.ALocal(DateTime.UtcNow):yyyyMMdd-HHmm}.xlsx");
 });
+
+// Páginas del módulo Peticiones: antes que Blazor para que no las capture el fallback de "no encontrado".
+app.MapRazorPages();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

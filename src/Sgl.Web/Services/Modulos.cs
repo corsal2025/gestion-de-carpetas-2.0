@@ -19,6 +19,7 @@ public static class ModulosCatalogo
     public const string ClaveAnuladas = "anuladas";
     public const string ClaveTodas = "todas";
     public const string ClaveIntegridad = "integridad";
+    public const string ClavePeticiones = "peticiones";
 
     // Simple 24x24 stroke icons (paths only).
     public static readonly GrupoModulo Entrada = new("entrada", "Entrada", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
@@ -44,6 +45,7 @@ public static class ModulosCatalogo
         Tray(Preparacion, Bandeja.CanjeLicExtranjera, "Canje lic. extranjera", "CJ"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambio de domicilio", "CD"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado", "CS"),
+        new(ClavePeticiones, CambioDomicilio, "Peticiones de cambio de domicilio", "PE", "peticiones"),
         Tray(Subidas, Bandeja.SubidaConaset, "Subida a Conaset", "SC"),
         Tray(Subidas, Bandeja.SubidaConF8, "Subida con F8", "S8"),
         Tray(Subidas, Bandeja.SubidaConOficio, "Subida con oficio", "SO"),

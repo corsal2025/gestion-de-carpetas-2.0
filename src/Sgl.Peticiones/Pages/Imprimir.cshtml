@@ -1,0 +1,92 @@
+@page "/peticiones/Imprimir"
+@model PeticionCambioDomicilio.Pages.ImprimirModel
+@using PeticionCambioDomicilio.Domain
+@{
+    Layout = null;
+    ViewData["Title"] = "Imprimir";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>@Model.Titulo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: "Segoe UI", Arial, sans-serif; color: #000; margin: 24px; font-size: 12px; }
+        .barra { margin-bottom: 16px; }
+        .barra button { padding: 6px 14px; font-size: 13px; cursor: pointer; }
+        h1 { font-size: 16px; margin: 0 0 2px; }
+        .sub { color: #444; font-size: 11px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #333; padding: 6px 8px; text-align: left; vertical-align: top; }
+        th { background: #eee; font-size: 11px; text-transform: uppercase; }
+        td.rut, td.fecha { white-space: nowrap; }
+        .n { width: 32px; text-align: center; }
+        .firma { margin-top: 60px; display: flex; gap: 80px; }
+        .firma div { border-top: 1px solid #333; padding-top: 4px; width: 220px; text-align: center; font-size: 11px; }
+        .encabezado { display: flex; align-items: center; gap: 14px; margin-bottom: 2px; }
+        .encabezado img { height: 48px; }
+        @@media print {
+            .barra { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="barra">
+        <button onclick="window.print()">Imprimir</button>
+        <button onclick="window.close()">Cerrar</button>
+    </div>
+
+    <div class="encabezado">
+        <img src="/img/logo-municipal.png" alt="Municipalidad de Valparaíso" />
+        <h1>Municipalidad de Valparaíso — Departamento de Licencias de Conducir</h1>
+    </div>
+    <h1>@Model.Titulo</h1>
+    <div class="sub">
+        Solicitudes de carpeta a otras comunas conforme al artículo 14 del Decreto N.º 170 (MTT).
+        Generado el @Model.Ahora.ToString("dd-MM-yyyy HH:mm") · @Model.Filas.Count registro(s).
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="n">N.º</th>
+                <th>Nombre completo</th>
+                <th>RUT</th>
+                <th>Comuna</th>
+                <th>Fecha de solicitud</th>
+                <th>Enviado el</th>
+                <th>Estado carpeta</th>
+            </tr>
+        </thead>
+        <tbody>
+        @{ var i = 0; }
+        @foreach (var p in Model.Filas)
+        {
+            i++;
+            <tr>
+                <td class="n">@i</td>
+                <td>@p.NombreCompleto</td>
+                <td class="rut">@p.Rut</td>
+                <td>@p.Comuna</td>
+                <td class="fecha">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
+                <td class="fecha">@(p.EnviadaEn is not null ? p.EnviadaEn.Value.ToString("dd-MM-yyyy HH:mm") : "— sin enviar")</td>
+                <td>@p.EstadoCarpeta</td>
+            </tr>
+        }
+        @if (Model.Filas.Count == 0)
+        {
+            <tr><td colspan="7" style="text-align:center;padding:20px;">Sin registros para imprimir.</td></tr>
+        }
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <div>Funcionario que solicita</div>
+        <div>V.º B.º Jefatura</div>
+    </div>
+
+    <script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });</script>
+</body>
+</html>
