@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- Módulo Peticiones de cambio de domicilio: páginas Razor del proyecto PeticionCambioDomicilio, tal cual. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sgl.Infrastructure\Sgl.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

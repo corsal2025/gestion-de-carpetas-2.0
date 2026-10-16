@@ -18,6 +18,9 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ClasePendiente),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado),
         (EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.EsperaExamen),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado),
+        (EstadoCarpeta.ClasePendiente, EstadoCarpeta.ParaDenegar),
         (EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado),
         (EstadoCarpeta.Alertada, EstadoCarpeta.ParaDenegar),
         // Manual classification of agenda-imported carpetas.
@@ -34,16 +37,16 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
-        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8; a carpeta not found may appear later.
+        // "Dejar para revisión": a carpeta without resolution goes back to Citada (Para revisión).
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.Citada),
+        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8.
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.NoExisteCarpeta),
+        // A missing carpeta is uploaded with F8 or with an oficio; it never goes back to the shelves.
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SeEncuentraEnArchivos),
-        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SeEncuentraEnOf43),
     ];
 
     public static TheoryData<EstadoCarpeta, EstadoCarpeta> ValidPairs()
@@ -122,5 +125,13 @@ public class EstadoTransitionsTests
         Assert.Equal(
             [EstadoCarpeta.Revision, EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.CambioDomicilio],
             EstadoTransitions.NextStates(EstadoCarpeta.Citada));
+    }
+
+    [Fact]
+    public void NextStates_of_ClasePendiente_can_resume_or_terminate()
+    {
+        Assert.Equal(
+            [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
+            EstadoTransitions.NextStates(EstadoCarpeta.ClasePendiente));
     }
 }

@@ -1,4 +1,5 @@
 @inject IJSRuntime JS
+@inject IConfiguration Config
 
 @* R10: printable "listado para búsqueda" of a physical-search module. Print = browser print dialog ("Guardar como PDF"). *@
 <div class="pdf-modal-overlay" role="dialog" aria-modal="true" aria-label="@Listado.Titulo">
@@ -94,9 +95,9 @@
                             </tbody>
                         </table>
                         <p class="doc-count">Total: @Listado.Total carpeta(s)</p>
+                        @* Only the person who requests the search signs (configurable: ListadoBusqueda:Solicitante). *@
                         <div class="doc-signoff">
-                            <div><div class="sig-line"></div>Quien busca</div>
-                            <div><div class="sig-line"></div>Fecha y hora de término</div>
+                            <div><div class="sig-line"></div><strong>@Solicitante</strong><br />Solicitado por</div>
                         </div>
                     }
                 </div>
@@ -119,6 +120,8 @@
     [Parameter] public Func<IReadOnlyList<Guid>, Task<string?>>? OnMarcarImpreso { get; set; }
 
     private string? errorMarca;
+
+    private string Solicitante => Config["ListadoBusqueda:Solicitante"] is { Length: > 0 } nombre ? nombre.Trim().ToUpperInvariant() : "SOLICITANTE";
 
     private string pageSize = "A4";
     private bool impreso;

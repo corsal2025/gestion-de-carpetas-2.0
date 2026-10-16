@@ -9,7 +9,7 @@ public static class EntradasModulo
     public static Bandeja? Bandeja(string campo, string? anterior, string? nuevo) => campo switch
     {
         "Agenda" => Domain.Bandeja.PorClasificar,
-        "Registro" => Domain.Bandeja.PorPreparar,
+        "Registro" => Domain.Bandeja.ParaRevision,
         nameof(Carpeta.Estado) when Enum.TryParse<EstadoCarpeta>(nuevo, out var estado) && Enum.IsDefined(estado) =>
             Carpeta.ClasificarBandeja(estado, EstadoTransitions.DecisionFor(estado), null),
         nameof(Carpeta.CajaArchivo) when !string.IsNullOrWhiteSpace(nuevo) && nuevo != Carpeta.ColaDeCaja =>

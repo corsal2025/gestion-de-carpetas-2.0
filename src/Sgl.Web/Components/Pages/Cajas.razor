@@ -225,7 +225,7 @@
                                 <tr>
                                     <td>
                                         <div class="caja-title-cell">
-                                            <span class="caja-badge-icon">📦</span>
+                                            <span class="caja-badge-icon" aria-hidden="true"><svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></span>
                                             <strong>@c.Caja</strong>
                                         </div>
                                     </td>
@@ -319,8 +319,9 @@
                                         <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
                                         <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                         <td>
-                                            <button class="btn-action-caja" @onclick="() => AsignarIndividualColaAsync(c)">
-                                                📦 Guardar en Caja
+                                            <button class="btn-action-caja" title="Guardar esta carpeta en una caja física" @onclick="() => AbrirModalCaja(c)">
+                                                <svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                                                <span>Caja</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -334,6 +335,35 @@
         }
     }
 </div>
+
+@if (mostrarModalCaja && carpetaModal is not null)
+{
+    <div class="modal-overlay" @onclick="CerrarModalCaja">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h3>📦 Almacenamiento en Caja Física</h3>
+            <p>Carpeta: <strong>@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
+            <div class="modal-form">
+                <label>Código / Identificador de la Caja o Estante:
+                    <input @bind="nuevaCajaModal" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
+                </label>
+                @if (cajas is { Count: > 0 })
+                {
+                    <div class="cajas-sugeridas">
+                        <span class="sugeridas-label">Cajas activas existentes:</span>
+                        @foreach (var caja in cajas.Take(6))
+                        {
+                            <button type="button" class="btn-sug" @onclick="() => nuevaCajaModal = caja.Caja">@caja.Caja (@caja.TotalCarpetas)</button>
+                        }
+                    </div>
+                }
+                <div class="modal-actions">
+                    <button class="btn-primary" @onclick="GuardarCajaModalAsync" disabled="@string.IsNullOrWhiteSpace(nuevaCajaModal)">Confirmar almacenamiento</button>
+                    <button class="btn-secondary" @onclick="CerrarModalCaja">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     [SupplyParameterFromQuery(Name = "caja")]
@@ -510,9 +540,30 @@
         });
     }
 
-    private async Task AsignarIndividualColaAsync(CarpetaResumenDto c)
+    // Mismo mecanismo que Cambio de domicilio: cuadro «Almacenamiento en Caja Física» con cajas activas como sugerencia.
+    private bool mostrarModalCaja;
+    private CarpetaResumenDto? carpetaModal;
+    private string nuevaCajaModal = "";
+
+    private void AbrirModalCaja(CarpetaResumenDto c)
     {
-        var rotulo = string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "CAJA-01" : nuevoRotuloCaja.Trim();
+        carpetaModal = c;
+        nuevaCajaModal = "";
+        mostrarModalCaja = true;
+    }
+
+    private void CerrarModalCaja()
+    {
+        mostrarModalCaja = false;
+        carpetaModal = null;
+    }
+
+    private async Task GuardarCajaModalAsync()
+    {
+        if (carpetaModal is null || string.IsNullOrWhiteSpace(nuevaCajaModal)) return;
+        var c = carpetaModal;
+        var rotulo = nuevaCajaModal.Trim();
+        CerrarModalCaja();
         await EjecutarCajaAsync(async autor =>
         {
             await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));

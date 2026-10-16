@@ -16,26 +16,22 @@ public static class EstadoTransitions
             [EstadoCarpeta.PrimeraLicencia] = [EstadoCarpeta.EsperaExamen],
             [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset],
             [EstadoCarpeta.EsperaExamen] = [EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
-            [EstadoCarpeta.ClasePendiente] = [],
+            [EstadoCarpeta.ClasePendiente] = [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],
             // Physical search (phase 3, R8): found -> uploaded to Conaset; not found -> F8 tray.
             [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
             [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
-            // A carpeta declared missing can still show up later, or be resolved by F8 / certificate / oficio.
-            [EstadoCarpeta.NoExisteCarpeta] =
-            [
-                EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado, EstadoCarpeta.SubidaConOficio,
-                EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43,
-            ],
+            // A carpeta declared missing is uploaded with F8 or with an oficio; it never goes back to the shelves.
+            [EstadoCarpeta.NoExisteCarpeta] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio],
             [EstadoCarpeta.PorClasificar] =
             [
                 EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8,
                 EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.CambioDomSubidoCorreo, EstadoCarpeta.SubidaConOficio,
                 EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CambioDomicilioSolicitado,
                 EstadoCarpeta.CambioDomicilio, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado,
-                EstadoCarpeta.CanjeLicExtranjera,
+                EstadoCarpeta.CanjeLicExtranjera, EstadoCarpeta.Citada,
             ],
         };
 

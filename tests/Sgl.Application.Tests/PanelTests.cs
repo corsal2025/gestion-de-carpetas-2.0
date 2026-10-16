@@ -25,7 +25,7 @@ public sealed class PanelCalculoTests
 
     [Theory]
     [InlineData("Agenda", null, "PorClasificar (AvArgentina)", Bandeja.PorClasificar)]
-    [InlineData("Registro", null, "Citada (AvArgentina)", Bandeja.PorPreparar)]
+    [InlineData("Registro", null, "Citada (AvArgentina)", Bandeja.ParaRevision)]
     [InlineData("Estado", "PorClasificar", "SubidaConaset", Bandeja.SubidaConaset)]
     [InlineData("Estado", "PorClasificar", "CambioDomicilio", Bandeja.CambioDomicilio)]
     [InlineData("Estado", "EsperaExamen", "Otorgado", Bandeja.Cerradas)]
@@ -161,6 +161,32 @@ public sealed class PanelServiceTests : IDisposable
         Assert.Equal(7, porClasificar.Serie.Count);
         Assert.False(string.IsNullOrWhiteSpace(panel.MensajeLico));
         _ = hoy;
+    }
+
+    [Fact]
+    public async Task ActividadHoy_counts_carpetas_that_left_the_location_tray_today_and_the_ones_still_waiting()
+    {
+        var ayer = new DateTime(2026, 5, 3, 15, 0, 0, DateTimeKind.Utc);
+        Guid movida, queda;
+        using (var ctx = _db.NewContext())
+        {
+            var a = Carpeta.CrearDesdeAgenda(new Ciudadano(Rut.Parse("12345678-5"), "JUAN", "PEREZ"), Sede.AvArgentina, new DateOnly(2026, 5, 4), null, null, "imp", ayer);
+            var b = Carpeta.CrearDesdeAgenda(new Ciudadano(Rut.Parse("11111111-1"), "ANA", "SOTO"), Sede.AvArgentina, new DateOnly(2026, 5, 4), null, null, "imp", ayer);
+            ctx.Carpetas.AddRange(a, b);
+            ctx.SaveChanges();
+            movida = a.Id;
+            queda = b.Id;
+        }
+
+        await _db.NewService().ClasificarAsync(new ClasificarCommand([movida, queda], null, ClaseLicencia.B, "2019-01-01", null, "javiera"));
+        await _db.NewService().ForzarEstadoAsync(movida, EstadoCarpeta.SubidaConaset, "javiera");
+
+        var panel = await NewPanel().ObtenerAsync();
+
+        var archivos = panel.ActividadHoy[Bandeja.SeEncuentraEnArchivos];
+        Assert.Equal(1, archivos.Clasificadas);
+        Assert.Equal(1, archivos.Pendientes);
+        Assert.Equal(new MetaDelDiaDto(0, 0), panel.ActividadHoy[Bandeja.SeEncuentraEnOf43]);
     }
 
     [Fact]

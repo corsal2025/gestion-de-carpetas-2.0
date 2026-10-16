@@ -12,9 +12,14 @@ public sealed class CierreAutomaticoTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 
-    private Task<Guid> Registrar() =>
-        _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
+    // A fresh registration lands in "Para revisión" (Citada); the 1° Licencia tray holds PrimeraLicencia carpetas.
+    private async Task<Guid> Registrar()
+    {
+        var id = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
             "12.345.678-5", "Juan", "Pérez", Sede.AvArgentina, Citacion, "ana", ConfirmarDuplicado: true));
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.PrimeraLicencia, "ana");
+        return id;
+    }
 
     private async Task<CarpetaResumenDto> Fila(Guid id) =>
         (await _db.NewService().ListarAsync(new ListarCarpetasQuery(Take: 10))).Items.Single(i => i.Id == id);

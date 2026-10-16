@@ -24,4 +24,6 @@ public enum Bandeja
     SeEncuentraEnOf43 = 15,
     CrearCertificado = 16,
     CanjeLicExtranjera = 17,
+    /// <summary>Carpetas left in Citada after the initial classification: no resolution yet (automatic).</summary>
+    ParaRevision = 18,
 }

@@ -39,6 +39,10 @@ public sealed class PanelService(IPanelQuery query, IDuplicadoRepository duplica
             .ToList();
 
         var meta = new MetaDelDiaDto(ClasificadasHoy(movimientos, hoy), porBandeja[Bandeja.PorClasificar].Sum(g => g.Cantidad));
+        // Location trays are worked down to empty: activity = carpetas moved out today, pending = still waiting.
+        var actividad = BandejasDeUbicacion.ToDictionary(
+            b => b.Bandeja,
+            b => new MetaDelDiaDto(SalidasHoy(movimientos, b.Estado, hoy), porBandeja[b.Bandeja].Sum(g => g.Cantidad)));
         return new PanelDto(
             modulos,
             meta,
@@ -46,8 +50,18 @@ public sealed class PanelService(IPanelQuery query, IDuplicadoRepository duplica
             alertas,
             anuladas,
             SerieSieteDias.Contar(fechasAnulacion.Select(HoraChile.Fecha), hoy),
-            MensajeLico.Elegir(alertas, duplicadosPendientes, meta));
+            MensajeLico.Elegir(alertas, duplicadosPendientes, meta),
+            actividad);
     }
+
+    private static readonly (Bandeja Bandeja, string Estado)[] BandejasDeUbicacion =
+    [
+        (Bandeja.SeEncuentraEnArchivos, nameof(EstadoCarpeta.SeEncuentraEnArchivos)),
+        (Bandeja.SeEncuentraEnOf43, nameof(EstadoCarpeta.SeEncuentraEnOf43)),
+    ];
+
+    private static int SalidasHoy(IEnumerable<MovimientoPanelDto> movimientos, string estado, DateOnly hoy) =>
+        movimientos.Count(m => m.Campo == CampoEstado && m.Anterior == estado && HoraChile.Fecha(m.Fecha) == hoy);
 
     /// <summary>Only today's goal (used by the thin bar in "Por clasificar").</summary>
     public async Task<MetaDelDiaDto> ObtenerMetaAsync(CancellationToken ct = default)
@@ -59,5 +73,5 @@ public sealed class PanelService(IPanelQuery query, IDuplicadoRepository duplica
     }
 
     private static int ClasificadasHoy(IEnumerable<MovimientoPanelDto> movimientos, DateOnly hoy) =>
-        movimientos.Count(m => m.Campo == CampoEstado && m.Anterior == PorClasificar && HoraChile.Fecha(m.Fecha) == hoy);
+        SalidasHoy(movimientos, PorClasificar, hoy);
 }

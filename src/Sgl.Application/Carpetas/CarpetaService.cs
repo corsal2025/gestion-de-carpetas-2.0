@@ -3,7 +3,11 @@ using Sgl.Domain;
 namespace Sgl.Application.Carpetas;
 
 /// <summary>Use cases for carpetas: RegistrarCarpeta, CambiarEstado, EditarCarpeta, ListarCarpetas, ObtenerCarpeta.</summary>
-public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider clock, LicenciasOptions? options = null)
+public sealed class CarpetaService(
+    ICarpetaRepository repository,
+    TimeProvider clock,
+    LicenciasOptions? options = null,
+    INotificadorPeticion? notificador = null)
 {
     private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
@@ -461,6 +465,43 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         }
     }
 
+    /// <summary>
+    /// "Pedir" (Crear certificado / oficio): stores and audits the request, then hands it to the mail port.
+    /// The request is kept even when no mail is configured or the mail fails.
+    /// </summary>
+    /// <returns>True when the request mail was sent.</returns>
+    public async Task<bool> PedirAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        PeticionCertificado peticion;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            var now = Now;
+            carpeta.RegistrarPeticion(autor, now);
+            await repository.SaveChangesAsync(ct);
+            peticion = new PeticionCertificado(
+                carpeta.Id,
+                carpeta.Ciudadano.Rut.Formatted,
+                carpeta.Ciudadano.NombreCompleto,
+                carpeta.Sede,
+                carpeta.FechaCitacion,
+                autor.Trim(),
+                now);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        return notificador is not null && await notificador.EnviarAsync(peticion, ct);
+    }
+
     /// <summary>Marks the given carpetas as printed in a search listing; all or nothing.</summary>
     public async Task MarcarImpresasAsync(IReadOnlyList<Guid> ids, string autor, CancellationToken ct = default)
     {
@@ -526,14 +567,38 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
         }
     }
 
-    public async Task CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
+    /// <returns>The values before the decision, to undo it with <see cref="DeshacerEstadoAsync"/>.</returns>
+    /// <summary>"Dejar para revisión": a carpeta from Por clasificar without resolution goes to Para revisión (Citada).</summary>
+    public async Task DejarParaRevisionAsync(Guid id, string autor, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.DejarParaRevision(autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<PuntoRestauracionEstado> CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            var punto = carpeta.PuntoRestauracion();
             carpeta.CambiarDecision(nuevaDecision, autor, Now);
             await repository.SaveChangesAsync(ct);
+            return punto;
         }
         catch
         {
@@ -693,6 +758,7 @@ public sealed class CarpetaService(ICarpetaRepository repository, TimeProvider c
             FechaEstadoActual = c.FechaEstadoActual,
             FechaCierre = c.FechaCierre,
             FechaImpresion = c.FechaImpresion,
+            FechaPeticion = c.FechaPeticion,
         };
     }
 

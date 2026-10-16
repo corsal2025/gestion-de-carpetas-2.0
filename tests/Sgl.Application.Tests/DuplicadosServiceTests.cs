@@ -106,7 +106,7 @@ public sealed class DuplicadosServiceTests : IDisposable
 
         var result = await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery());
 
-        Assert.Equal(["Rosa Aguilar", "Luis Zapata"], result.Items.Select(i => i.NombreCompleto));
+        Assert.Equal(["ROSA AGUILAR", "LUIS ZAPATA"], result.Items.Select(i => i.NombreCompleto));
     }
 
     [Fact]

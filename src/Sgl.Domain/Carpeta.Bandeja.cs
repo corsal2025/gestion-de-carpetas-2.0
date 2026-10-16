@@ -33,6 +33,7 @@ public sealed partial class Carpeta
     private static Bandeja BandejaPorEstado(EstadoCarpeta estado) => estado switch
     {
         EstadoCarpeta.NoExisteCarpeta => Bandeja.SinCarpetaF8,
+        EstadoCarpeta.Citada => Bandeja.ParaRevision,
         EstadoCarpeta.SubidaConaset => Bandeja.SubidaConaset,
         EstadoCarpeta.SubidaConF8 => Bandeja.SubidaConF8,
         EstadoCarpeta.SubidaConOficio => Bandeja.SubidaConOficio,
@@ -53,6 +54,7 @@ public sealed partial class Carpeta
         : c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != ColaDeCaja ? Bandeja.Archivadas
         : c.Decision == Decision.Otorgado || c.Decision == Decision.Denegado ? Bandeja.Cerradas
         : c.Estado == EstadoCarpeta.NoExisteCarpeta ? Bandeja.SinCarpetaF8
+        : c.Estado == EstadoCarpeta.Citada ? Bandeja.ParaRevision
         : c.Estado == EstadoCarpeta.SubidaConaset ? Bandeja.SubidaConaset
         : c.Estado == EstadoCarpeta.SubidaConF8 ? Bandeja.SubidaConF8
         : c.Estado == EstadoCarpeta.SubidaConOficio ? Bandeja.SubidaConOficio

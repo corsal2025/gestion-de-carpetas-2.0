@@ -578,3 +578,63 @@ html body .data-table.bandeja-table .excel-select { padding-right: 34px !importa
 .dup-revision-acciones { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .dup-revision-pie { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
 .btn-revisar-dup { margin-left: 0.25rem; }
+/* Por preparar: Otorgada / Denegada cierran la carpeta. Colores fijos (verde / rojo) legibles sobre cualquier fila Excel. */
+html body .data-table tbody tr .btn-decision { display: inline-flex; align-items: center; padding: 0.32rem 0.75rem; border-radius: 999px; font: 700 0.8rem var(--font-sans, inherit); cursor: pointer; border: 1px solid rgba(0, 0, 0, 0.2) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); margin-right: 0.25rem; }
+html body .data-table tbody tr .btn-otorgada { background: #15803d !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-denegada { background: #b91c1c !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html body .data-table tbody tr .btn-decision:hover:not(:disabled) { filter: brightness(1.12); }
+html body .data-table tbody tr .btn-decision:disabled { opacity: 0.55; cursor: progress; }
+
+/* Archivos / Of. 43: "En proceso de búsqueda" (lupa amarilla parpadeando + días buscando). */
+html body .data-table.bandeja-table td.td-pend { white-space: nowrap; }
+html body .data-table.bandeja-table .en-busqueda-dias { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+/* Las filas con color de Excel fuerzan texto blanco: la lupa inactiva debe seguir visible sobre su fondo blanco. */
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) { color: #1b2140 !important; -webkit-text-fill-color: #1b2140 !important; }
+html body .data-table.bandeja-table tbody tr td.td-pend .btn-pend-busqueda:not(.activo) svg { stroke: #1b2140 !important; }
+
+/* No existe carpeta: "Enviar a F8" / "Enviar con oficio" (azul, legible sobre la fila roja). */
+html body .data-table tbody tr .btn-enviar { background: #1d4ed8 !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+
+/* Crear certificado / oficio: fecha de la última petición junto al botón "Pedir". */
+html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-weight: 700; font-size: 0.75rem; }
+
+/* Gráficas SVG de Estadísticas (componente Grafico) */
+.grafico { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.grafico figcaption { font-weight: 700; color: var(--text-primary); }
+.grafico-svg { width: 100%; height: auto; display: block; }
+.grafico .gr-grid { stroke: var(--border-color, #e2e8f0); stroke-width: 1; }
+.grafico .gr-texto { fill: var(--text-secondary, #475569); font-size: 11px; }
+.grafico .gl-linea { fill: none; stroke-width: 2.5; }
+.grafico-leyenda { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.82rem; color: var(--text-secondary, #475569); }
+.grafico-leyenda .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.3rem; vertical-align: middle; }
+.grafico-dona { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 1rem; align-items: center; }
+.grafico-leyenda-col { flex-direction: column; }
+.est-graficas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.est-graficas .est-ancha { grid-column: 1 / -1; }
+@media (max-width: 640px) { .grafico-dona { grid-template-columns: 1fr; } }
+
+/* Lupa de duplicado y lápiz (observación) siempre juntos, a la derecha del nombre. */
+.nombre-acciones { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }
+
+/* Módulo Peticiones de cambio de domicilio: círculo con su color característico (verde azulado). */
+.sidebar-modulo.m-peticiones { --punto-excel: #ff2d95; }
+/* Every module has its own circle colour; all circles share the 12px size set above. */
+.sidebar-modulo.m-porclasificar { --punto-excel: #111827; }
+.sidebar-modulo.m-pararevision { --punto-excel: #84cc16; }
+.sidebar-modulo.m-cerradas { --punto-excel: #0d9488; }
+.sidebar-modulo.m-archivadas { --punto-excel: #92400e; }
+.sidebar-modulo.m-anuladas { --punto-excel: #a8a29e; }
+.sidebar-modulo.m-todas { --punto-excel: #38bdf8; }
+.sidebar-modulo.m-integridad { --punto-excel: #e11d48; }
+.sidebar-modulo.m-peticiones-comunas { --punto-excel: #bef264; }
+.sidebar-modulo.m-peticiones-estadisticas { --punto-excel: #d946ef; }
+.sidebar-modulo.m-peticiones-configuracion { --punto-excel: #4ade80; }
+
+/* Lupa "buscar repetidos": red when the carpeta really is a duplicate, neutral everywhere else. */
+.icono-buscar-dup.icono-buscar-dup--neutro { border-color: #64748b; color: #334155 !important; }
+.icono-buscar-dup.icono-buscar-dup--neutro:hover, .icono-buscar-dup.icono-buscar-dup--neutro:focus-visible { background: #334155; color: #fff !important; }
+html[data-theme="dark"] .icono-buscar-dup.icono-buscar-dup--neutro { background: #1e293b; border-color: #94a3b8; color: #e2e8f0 !important; }
+/* Same size and look as the pencil next to it, also over the Excel-coloured rows. */
+.icono-buscar-dup.icono-buscar-dup--neutro { width: 30px; height: 30px; }
+html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro svg { stroke: #0f172a !important; }

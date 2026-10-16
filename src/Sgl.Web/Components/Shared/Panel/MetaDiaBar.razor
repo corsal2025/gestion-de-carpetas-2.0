@@ -9,7 +9,11 @@
     }
     <div class="meta-dia-texto">
         <span>
-            <strong><NumeroAnimado Valor="Meta.Clasificadas" /></strong> de <strong><NumeroAnimado Valor="Meta.Total" /></strong> carpetas clasificadas
+            <strong><NumeroAnimado Valor="Meta.Clasificadas" /></strong> de <strong><NumeroAnimado Valor="Meta.Total" /></strong> carpetas @Accion
+            @if (PorHacer is not null && !Meta.Completa)
+            {
+                <span class="meta-pendientes"> · quedan <strong><NumeroAnimado Valor="Meta.Pendientes" /></strong> por @PorHacer</span>
+            }
         </span>
         @if (Meta.Completa)
         {
@@ -39,6 +43,12 @@
     [Parameter, EditorRequired] public MetaDelDiaDto Meta { get; set; } = new(0, 0);
 
     [Parameter] public bool Delgada { get; set; }
+
+    /// <summary>What the done count means ("clasificadas", or "revisadas hoy" in the location trays).</summary>
+    [Parameter] public string Accion { get; set; } = "clasificadas";
+
+    /// <summary>When set, the thin bar also says how many are left ("quedan N por revisar").</summary>
+    [Parameter] public string? PorHacer { get; set; }
 
     private string Mensaje => Meta switch
     {

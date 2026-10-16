@@ -57,8 +57,8 @@ public sealed class EstadisticasQueryTests : IDisposable
     public async Task TiempoEntrega_averages_closed_carpetas_overall_and_by_origin_module()
     {
         Guardar(
-            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 11), EstadoCarpeta.Citada, Decision.Otorgado),
-            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 21), EstadoCarpeta.Citada, Decision.Denegado),
+            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 11), EstadoCarpeta.PrimeraLicencia, Decision.Otorgado),
+            Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 21), EstadoCarpeta.PrimeraLicencia, Decision.Denegado),
             Importada(Sede.Placilla, new(2026, 4, 1), new(2026, 4, 5), EstadoCarpeta.SubidaConaset),
             Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada));
 

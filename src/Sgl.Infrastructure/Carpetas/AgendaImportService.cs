@@ -32,7 +32,6 @@ public sealed class AgendaImportService(
     SglDbContext db, TimeProvider clock, ILogger<AgendaImportService> logger, IntegridadSolicitudes? integridad = null)
 {
     private const int MaxFilasEncabezado = 5;
-    private const string SinApellido = "SIN APELLIDO";
 
     private sealed record Columnas(int Fecha, int Hora, int Rut, int Nombre, int Tramite, int Ubicacion, int? Estado, int? Motivo);
 
@@ -234,14 +233,7 @@ public sealed class AgendaImportService(
     /// <summary>Best effort: last two words are surnames. The full name stays searchable via NombreBusqueda.</summary>
     internal static (string Nombre, string Apellido) SepararNombre(string? completo)
     {
-        var partes = (completo ?? "").Trim().ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var (nombre, apellido) = partes.Length switch
-        {
-            0 => ("SIN NOMBRE", SinApellido),
-            1 => (partes[0], SinApellido),
-            2 => (partes[0], partes[1]),
-            _ => (string.Join(' ', partes[..^2]), string.Join(' ', partes[^2..])),
-        };
+        var (nombre, apellido) = Ciudadano.Separar(completo);
         return (Recortar(nombre), Recortar(apellido));
     }
 

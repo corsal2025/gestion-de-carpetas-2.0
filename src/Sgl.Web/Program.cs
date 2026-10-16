@@ -1,3 +1,4 @@
+using Sgl.Web.Peticiones;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Estadisticas;
@@ -9,6 +10,7 @@ using Sgl.Web.Components;
 using Sgl.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService();
 
 // Machine-specific overrides (connection strings, provider). Never committed.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
@@ -17,6 +19,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSglInfrastructure(builder.Configuration);
+
+// Módulo Peticiones de cambio de domicilio (proyecto PeticionCambioDomicilio integrado tal cual).
+builder.AddPeticiones();
 builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.SectionName).Get<BandejasOptions>() ?? new BandejasOptions());
 builder.Services.AddScoped<AutorState>();
 builder.Services.AddScoped<DuplicadosNotifier>();
@@ -67,6 +72,20 @@ if (string.Equals(builder.Configuration[DependencyInjection.ProviderKey], Databa
         var reparadas = await LegacyComunaRepair.RepararYRegistrarAsync(db, DateTime.UtcNow);
         app.Logger.LogInformation("Reparación de datos heredados: {Count} carpeta(s) con comuna movida desde 'última carpeta'.", reparadas);
     }
+
+    // Names are always uppercase; legacy rows also lose the "Vecino" surname placeholder. Backup first, idempotent.
+    if (await NombresMayusculaRepair.PendientesAsync(db) > 0)
+    {
+        var file = db.Database.GetDbConnection().DataSource;
+        if (!string.IsNullOrEmpty(file) && File.Exists(file))
+        {
+            var copia = $"{file}.backup-{DateTime.Now:yyyyMMdd-HHmmss}-prenombres";
+            db.Database.ExecuteSqlRaw("VACUUM INTO {0}", copia);
+        }
+
+        var nombres = await NombresMayusculaRepair.RepararAsync(db);
+        app.Logger.LogInformation("Nombres pasados a mayúscula: {Count} ciudadano(s).", nombres);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
@@ -91,6 +110,9 @@ app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, st
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         $"estadisticas-{Sgl.Domain.HoraChile.ALocal(DateTime.UtcNow):yyyyMMdd-HHmm}.xlsx");
 });
+
+// Páginas del módulo Peticiones: antes que Blazor para que no las capture el fallback de "no encontrado".
+app.MapRazorPages();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

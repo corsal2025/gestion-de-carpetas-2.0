@@ -3,10 +3,12 @@
     <Project Path="src/Sgl.Application/Sgl.Application.csproj" />
     <Project Path="src/Sgl.Domain/Sgl.Domain.csproj" />
     <Project Path="src/Sgl.Infrastructure/Sgl.Infrastructure.csproj" />
+    <Project Path="src/Sgl.Peticiones/Sgl.Peticiones.csproj" />
     <Project Path="src/Sgl.Web/Sgl.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Sgl.Application.Tests/Sgl.Application.Tests.csproj" />
     <Project Path="tests/Sgl.Domain.Tests/Sgl.Domain.Tests.csproj" />
+    <Project Path="tests/Sgl.Peticiones.Tests/Sgl.Peticiones.Tests.csproj" />
   </Folder>
 </Solution>

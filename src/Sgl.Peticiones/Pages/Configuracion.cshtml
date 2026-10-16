@@ -1,0 +1,157 @@
+@page "/peticiones/Configuracion"
+@model PeticionCambioDomicilio.Pages.ConfiguracionModel
+@{
+    ViewData["Title"] = "Configuración";
+}
+
+<h1 class="h3 mb-3">Configuración</h1>
+
+<div class="card mb-4" id="cfg-verificacion">
+    <div class="card-body">
+        <h2 class="h5 mb-3">
+            Verificación del sistema
+            @if (Model.TodoListo)
+            {
+                <span class="badge bg-success ms-2">LISTO PARA USAR</span>
+            }
+            else
+            {
+                <span class="badge bg-danger ms-2">FALTAN COSAS</span>
+            }
+        </h2>
+
+        <table class="table table-sm mb-3">
+            <tbody>
+            @foreach (var c in Model.Chequeos)
+            {
+                <tr>
+                    <td style="width:1%">
+                        @if (c.Ok)
+                        {
+                            <span class="text-success fs-5">&#x2714;</span>
+                        }
+                        else if (c.Bloqueante)
+                        {
+                            <span class="text-danger fs-5">&#x2716;</span>
+                        }
+                        else
+                        {
+                            <span class="text-warning fs-5">&#x26A0;</span>
+                        }
+                    </td>
+                    <td style="width:26%"><strong>@c.Nombre</strong></td>
+                    <td class="text-muted">@c.Detalle</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        <form method="post">
+            <button asp-page-handler="ProbarCorreo" id="btn-probar-correo" class="btn btn-primary">
+                Enviarme este correo de prueba
+            </button>
+            <span class="small text-muted ms-2">
+                Manda el correo de abajo, tal cual, a
+                <code>@(Model.ModoPruebaEmail ?? Model.Options.MailboxAddress)</code> (con <code>[PRUEBA]</code> adelante).
+            </span>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-4" id="cfg-vista">
+    <div class="card-body">
+        <h2 class="h5 mb-2">Correo que recibe la comuna</h2>
+        <p class="small text-muted mb-2">
+            Esto es exactamente lo que se envía por cada petición — datos de
+            <strong>@Model.VistaPreviaComuna</strong>@(Model.VistaPreviaDestino is null ? "" : $" → {Model.VistaPreviaDestino}").
+            Solo cambian el nombre y el RUT.
+        </p>
+        <div class="border rounded p-3 bg-light">
+            <div class="mb-2"><strong>Asunto:</strong> @Model.VistaPreviaAsunto</div>
+            <pre class="mb-0" style="white-space:pre-wrap;font-family:inherit;">@Model.VistaPreviaCuerpo</pre>
+        </div>
+    </div>
+</div>
+
+<p class="text-muted">
+    Todo se edita en <code>appsettings.Local.json</code> (junto al ejecutable, no viaja en git).
+    Después reiniciá la app.
+</p>
+
+<table class="table" id="cfg-tabla">
+    <tr>
+        <th style="width: 30%">Correo EWS</th>
+        <td>
+            @if (Model.MailListo)
+            {
+                <span class="badge bg-success">Configurado</span> <text>@Model.Options.Ews?.Url</text>
+                <div class="small text-muted">Usuario: <code>@Model.Options.Ews?.Username</code></div>
+                @if (!string.IsNullOrWhiteSpace(Model.Options.Ews?.SendAsAddress))
+                {
+                    <div class="small text-muted">Envia como: <code>@Model.Options.Ews?.SendAsAddress</code> (requiere permiso Send As)</div>
+                }
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark">Falta</span>
+                <div>Sección <code>Peticion:Ews</code> con <code>Url</code>, <code>Username</code>, <code>Password</code>.</div>
+                <div>Url típica: <code>https://mail.munivalpo.cl/EWS/Exchange.asmx</code></div>
+            }
+        </td>
+    </tr>
+    <tr>
+        <th>Modo prueba</th>
+        <td>
+            @if (Model.ModoPruebaEmail is not null)
+            {
+                <span class="badge bg-danger">ACTIVO</span>
+                <div>Todo se desvia a <code>@Model.ModoPruebaEmail</code>. Nada llega a las municipalidades.</div>
+            }
+            else
+            {
+                <span class="badge bg-success">Apagado - envio real</span>
+                <div class="small text-muted">Para probar sin riesgo, poner <code>Peticion:TestModeEmail</code> con tu correo.</div>
+            }
+        </td>
+    </tr>
+    <tr>
+        <th>Buzón remitente</th>
+        <td>@Model.Options.MailboxAddress</td>
+    </tr>
+    <tr>
+        <th>Excel de solicitudes</th>
+        <td>
+            @if (Model.ExcelExiste)
+            {
+                <span class="badge bg-success">OK</span> <code>@Model.Options.ExcelPath</code>
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark">Falta o no existe</span>
+                <div><code>Peticion:ExcelPath</code> — ruta absoluta al .xlsx.</div>
+            }
+            <div class="small text-muted mt-1">Se leen todas las hojas de agenda mensual (Av. Argentina, Placilla, Merc. Puerto). Se ignoran: @string.Join(", ", Model.Options.HojasIgnoradas)</div>
+        </td>
+    </tr>
+    <tr>
+        <th>Orden que dispara</th>
+        <td>Columna <code>@Model.Options.Columns.EstadoCarpeta</code> == "<strong>@Model.Options.EstadoCambioDomicilio</strong>"</td>
+    </tr>
+    <tr>
+        <th>Mapeo de columnas</th>
+        <td>
+            <ul class="mb-0">
+                <li>Nombre: <code>@Model.Options.Columns.NombreCompleto</code></li>
+                <li>RUT: <code>@Model.Options.Columns.Rut</code></li>
+                <li>Estado de la carpeta: <code>@Model.Options.Columns.EstadoCarpeta</code></li>
+                <li>Comuna de origen: <code>@Model.Options.Columns.ComunaOrigen</code> (cuando trae texto, no fecha)</li>
+                <li>Fecha solicitud: <code>@Model.Options.Columns.FechaSolicitud</code></li>
+            </ul>
+            <div class="small text-muted">Encabezados sin distinguir mayúsculas ni tildes; fila de encabezado autodetectada; el orden de columnas no importa.</div>
+        </td>
+    </tr>
+    <tr>
+        <th>Directorio de comunas</th>
+        <td>@Model.ComunasCount registros cargados</td>
+    </tr>
+</table>
