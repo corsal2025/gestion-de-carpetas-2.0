@@ -1300,3 +1300,7 @@ body {
    vertical and horizontal bars appear here, and the table header stays pinned while scrolling. */
 .modulo-main { overflow: auto; min-height: 0; min-width: 0; }
 #tabla-peticiones.table-responsive { overflow: visible; }
+/* Every header is centred, including "Nombre de contribuyente" (its cells stay left-aligned). */
+#tabla-peticiones .data-table th,
+#tabla-peticiones .data-table th:nth-child(3),
+#tabla-peticiones .table > thead > tr > th:nth-child(3) { text-align: center !important; vertical-align: middle !important; }
