@@ -1281,3 +1281,17 @@ body {
 #tabla-peticiones .table > tbody > tr > td:nth-child(2) { text-align: center; font-weight: 600; color: inherit; }
 #tabla-peticiones .table > tbody > tr > td:nth-child(3) { text-align: left; font-weight: 700; }
 #tabla-peticiones .table > thead > tr > th:nth-child(3) { text-align: left; }
+
+/* Same look as the system trays (class data-table: uppercase header and cells, centred), but sized to the screen:
+   the tray's fixed per-column widths do not apply here because the columns differ. */
+#tabla-peticiones .data-table { width: 100% !important; min-width: 0 !important; table-layout: auto !important; }
+#tabla-peticiones .data-table th,
+#tabla-peticiones .data-table td { width: auto !important; min-width: 0 !important; white-space: normal !important; text-align: center !important; }
+#tabla-peticiones .data-table th:nth-child(1),
+#tabla-peticiones .data-table td:nth-child(1) { width: 36px !important; }
+#tabla-peticiones .data-table th:nth-child(2),
+#tabla-peticiones .data-table td:nth-child(2) { min-width: 105px !important; white-space: nowrap !important; }
+#tabla-peticiones .data-table th:nth-child(3),
+#tabla-peticiones .data-table td:nth-child(3) { text-align: left !important; min-width: 200px !important; }
+#tabla-peticiones .data-table th:nth-child(4),
+#tabla-peticiones .data-table td:nth-child(4) { white-space: nowrap !important; }
