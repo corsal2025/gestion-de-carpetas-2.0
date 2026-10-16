@@ -31,7 +31,7 @@ public static class EstadoTransitions
                 EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.CambioDomSubidoCorreo, EstadoCarpeta.SubidaConOficio,
                 EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CambioDomicilioSolicitado,
                 EstadoCarpeta.CambioDomicilio, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado,
-                EstadoCarpeta.CanjeLicExtranjera,
+                EstadoCarpeta.CanjeLicExtranjera, EstadoCarpeta.Citada,
             ],
         };
 
