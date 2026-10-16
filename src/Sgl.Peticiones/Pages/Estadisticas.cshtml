@@ -1,0 +1,135 @@
+@page "/peticiones/Estadisticas"
+@model PeticionCambioDomicilio.Pages.EstadisticasModel
+@{
+    ViewData["Title"] = "Estadísticas";
+    string Pct(double? v) => v is null ? "—" : $"{v.Value:0}%";
+    string Dias(double? v) => v is null ? "—" : $"{v.Value:0.#} d.";
+}
+
+<div class="mb-3">
+    <h1 class="h3 mb-1">Estadísticas</h1>
+    <div class="text-muted" style="font-size:.8rem;">
+        Cómo responden las comunas · la demora se mide desde el envío del correo hasta que la
+        carpeta figura como subida en el Excel (columna <code>ESTADO DE LA CARPETA</code>).
+    </div>
+</div>
+
+@if (Model.TotalEnviadas == 0)
+{
+    <div class="alert alert-info">Todavía no hay peticiones enviadas. La estadística aparece cuando empieces a enviar correos.</div>
+}
+else
+{
+    <div class="stat-row mb-3" id="est-contadores">
+        <div class="stat-chip"><b class="num">@Model.TotalEnviadas</b><span>Carpetas pedidas</span></div>
+        <div class="stat-chip stat-chip--soft"><b class="num">@Model.ComunasConEnvios</b><span>Comunas</span></div>
+        <div class="stat-chip stat-chip--ok"><b class="num">@Pct(Model.PorcentajeEnPlazo)</b><span>Dentro de plazo</span></div>
+        <div class="stat-chip"><b class="num">@Dias(Model.DemoraPromedio)</b><span>Demora promedio</span></div>
+        <div class="stat-chip stat-chip--bad"><b class="num">@Model.SubimosNosotros</b><span>Subimos nosotros</span></div>
+        <div class="stat-chip stat-chip--soft"><b class="num">@Model.Abiertas</b><span>Sin cerrar</span></div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card h-100" id="est-ranking">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">Comunas con más cambios de domicilio</h2>
+                    <p class="text-muted mb-3" style="font-size:.78rem;">Carpetas pedidas (enviadas)</p>
+                    @foreach (var (comuna, cantidad) in Model.RankingVolumen)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="text-end text-muted" style="width:130px; font-size:.8rem;">@comuna</span>
+                            <div class="barra-track flex-grow-1">
+                                <i style="width:@(cantidad * 100 / Model.VolumenMaximo)%"></i>
+                            </div>
+                            <span class="num fw-bold" style="width:26px; font-size:.8rem;">@cantidad</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100" id="est-quien">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">Quién sube la carpeta a CONASET</h2>
+                    <p class="text-muted mb-3" style="font-size:.78rem;">De @Model.Cerradas carpeta(s) ya cerrada(s)</p>
+                    @{
+                        var totalClasif = Model.SubioComuna + Model.SubimosNosotros;
+                        var pComuna = totalClasif > 0 ? Model.SubioComuna * 100 / totalClasif : 0;
+                    }
+                    <div class="barra-split mb-3">
+                        @if (totalClasif == 0)
+                        {
+                            <i class="s-idle" style="width:100%"></i>
+                        }
+                        else
+                        {
+                            <i class="s-ok" style="width:@(pComuna)%"></i>
+                            <i class="s-bad" style="width:@(100 - pComuna)%"></i>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.82rem;">
+                        <span><span class="cuadro s-ok"></span> La subió la comuna (SGL)</span>
+                        <span class="num fw-bold">@Model.SubioComuna</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:.82rem;">
+                        <span><span class="cuadro s-bad"></span> La subimos nosotros (F8 / oficio / correo)</span>
+                        <span class="num fw-bold">@Model.SubimosNosotros</span>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted" style="font-size:.82rem;">
+                        <span><span class="cuadro s-idle"></span> Todavía abiertas</span>
+                        <span class="num fw-bold">@Model.Abiertas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive" id="est-tabla">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th class="text-start">Comuna</th>
+                    <th>Solicitadas</th>
+                    <th>Subió comuna</th>
+                    <th>Subimos nosotros</th>
+                    <th>Demora prom.</th>
+                    <th style="width:170px">% en plazo</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in Model.PorComuna)
+            {
+                <tr class="fila-pendiente">
+                    <td class="dato text-start">@c.Comuna</td>
+                    <td class="num">@c.Solicitadas</td>
+                    <td class="num">@c.SubioComuna</td>
+                    <td class="num @(c.SubimosNosotros > 0 ? "fw-bold" : "")" style="@(c.SubimosNosotros > 0 ? "color:var(--warn-ink)" : "")">@c.SubimosNosotros</td>
+                    <td class="num fw-bold">@Dias(c.DemoraPromedio)</td>
+                    <td>
+                        @if (c.PorcentajeEnPlazo is null)
+                        {
+                            <span class="text-muted" style="font-size:.8rem;">sin cerrar</span>
+                        }
+                        else
+                        {
+                            var pct = (int)Math.Round(c.PorcentajeEnPlazo.Value);
+                            var color = pct >= 80 ? "var(--ok-rail)" : pct >= 50 ? "var(--warn-rail)" : "var(--bad-rail)";
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="barra-track flex-grow-1"><i style="width:@(pct)%; background:@color"></i></div>
+                                <span class="num text-muted" style="font-size:.78rem; width:34px;">@pct%</span>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted mt-2" style="font-size:.78rem;">
+        Solo cuenta carpetas cerradas <strong>después</strong> de que empezó a registrarse la fecha de subida.
+        "La subió la comuna" = <code>SUBIDA A CONASET</code>. "La subimos nosotros" =
+        <code>SUBIDA CON F8 / OFICIO / CORREO</code>.
+    </p>
+}

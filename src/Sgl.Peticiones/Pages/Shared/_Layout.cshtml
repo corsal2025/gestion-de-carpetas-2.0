@@ -1,0 +1,113 @@
+@inject PeticionCambioDomicilio.AppOptions Options
+@inject PeticionCambioDomicilio.Ews.IMailSender Mail
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Petición Cambio de Domicilio</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom mb-0">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-3" asp-page="/Index">
+                    <img src="~/img/logo-municipal.png" alt="Municipalidad de Valparaíso" class="brand-logo" height="115" />
+                    <span class="brand-text">
+                        <span class="brand-title">Cambio de Domicilio</span>
+                        <span class="brand-sub">Depto. Licencias de Conducir · Municipalidad de Valparaíso</span>
+                    </span>
+                </a>
+                @{
+                    var pagina = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+                    string NavClass(string p) => "nav-link" + (string.Equals(pagina, p, StringComparison.OrdinalIgnoreCase) ? " active" : "");
+                }
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="@NavClass("/peticiones")" asp-page="/Index">Peticiones</a></li>
+                        <li class="nav-item"><a class="@NavClass("/peticiones/Comunas")" asp-page="/Comunas">Comunas</a></li>
+                        <li class="nav-item"><a class="@NavClass("/peticiones/Estadisticas")" asp-page="/Estadisticas">Estadísticas</a></li>
+                        <li class="nav-item"><a class="@NavClass("/peticiones/Configuracion")" asp-page="/Configuracion">Configuración</a></li>
+                    </ul>
+                    @{
+                        // Single-file exe: Assembly.Location viene vacio; se usa la ruta del proceso.
+                        DateTime? buildStamp = null;
+                        try
+                        {
+                            var exe = Environment.ProcessPath;
+                            if (!string.IsNullOrEmpty(exe) && System.IO.File.Exists(exe))
+                            {
+                                buildStamp = System.IO.File.GetLastWriteTime(exe);
+                            }
+                        }
+                        catch { }
+                    }
+                    <div class="d-flex align-items-center gap-3">
+                        <button id="btn-guia-global" class="btn-guia-accion" type="button" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
+                            <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
+                            <span>Cómo usar el sistema</span>
+                        </button>
+                        @if (buildStamp is not null)
+                        {
+                            <span class="navbar-text small text-muted">v @buildStamp.Value.ToString("dd-MM HH:mm")</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    @{
+        var envioReal = Mail.IsConfigured && string.IsNullOrWhiteSpace(Options.TestModeEmail);
+        var modoPrueba = !string.IsNullOrWhiteSpace(Options.TestModeEmail);
+    }
+    @if (envioReal)
+    {
+        <div class="modo-franja modo-franja--real">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.3 3.6-8 13.9A2 2 0 0 0 4 20.5h16a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+            ENVÍO REAL ACTIVO — los correos salen a las municipalidades
+        </div>
+    }
+    else if (modoPrueba)
+    {
+        <div class="modo-franja modo-franja--prueba">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>
+            MODO PRUEBA — nada llega a las municipalidades (todo va a @Options.TestModeEmail)
+        </div>
+    }
+    <div class="container">
+        <main role="main" class="pb-3">
+            @if (TempData["Flash"] is string flash)
+            {
+                <div class="alert alert-info">@flash</div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/guia-interactiva.js" asp-append-version="true"></script>
+    <script src="~/js/lico-juegos.js" asp-append-version="true"></script>
+    <script>
+        // No saltar al tope cuando una accion recarga la pagina: guardar el scroll antes de
+        // enviar cualquier formulario y volver a esa posicion al cargar. Tambien deja el foco
+        // cerca de la fila donde se hizo la accion.
+        (function () {
+            var KEY = "scroll:" + location.pathname;
+            document.addEventListener("submit", function () {
+                try { sessionStorage.setItem(KEY, String(window.scrollY)); } catch (e) {}
+            }, true);
+            window.addEventListener("DOMContentLoaded", function () {
+                var y;
+                try { y = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) {}
+                if (y !== null && y !== undefined) {
+                    window.scrollTo(0, parseInt(y, 10) || 0);
+                }
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
