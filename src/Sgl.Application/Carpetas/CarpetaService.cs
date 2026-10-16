@@ -568,6 +568,27 @@ public sealed class CarpetaService(
     }
 
     /// <returns>The values before the decision, to undo it with <see cref="DeshacerEstadoAsync"/>.</returns>
+    /// <summary>"Dejar para revisión": a carpeta from Por clasificar without resolution goes to Para revisión (Citada).</summary>
+    public async Task DejarParaRevisionAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.DejarParaRevision(autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task<PuntoRestauracionEstado> CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);

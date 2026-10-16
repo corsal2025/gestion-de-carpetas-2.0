@@ -1202,7 +1202,7 @@
                                             var fechaIlegible = elegido is null && !string.IsNullOrWhiteSpace(textoFecha) && porFecha is null;
                                         }
                                         <div class="clasif-cell">
-                                            <select class="excel-select @(elegido is null && porFecha is not null ? "select-sugerido" : null)" value="@(elegido?.ToString() ?? "")"
+                                            <select class="excel-select @(elegido is null && porFecha is not null ? "select-sugerido" : null)" value="@(dejarRevision.Contains(c.Id) ? ValorDejarRevision : (elegido?.ToString() ?? ""))"
                                                     aria-label="Estado destino de la clasificación"
                                                     @onchange="(e) => SeleccionarDestino(c.Id, e)">
                                                 <option value="" hidden>— Clasificar —</option>
@@ -1210,6 +1210,7 @@
                                                 {
                                                     <option value="@e">@Labels.Of(e)</option>
                                                 }
+                                                <option value="@ValorDejarRevision">Dejar para revisión</option>
                                             </select>
                                             @if (elegido is { } dSel && Carpeta.EsCambioDomicilio(dSel))
                                             {
@@ -1391,8 +1392,18 @@
 
     private string? FechaClasif(Guid id) => fechaClasif.GetValueOrDefault(id);
 
+    private const string ValorDejarRevision = "__dejar_revision__";
+    private readonly HashSet<Guid> dejarRevision = [];
+
     private void SeleccionarDestino(Guid id, ChangeEventArgs e)
     {
+        if (e.Value?.ToString() == ValorDejarRevision)
+        {
+            dejarRevision.Add(id);
+            destinoClasif[id] = null;
+            return;
+        }
+        dejarRevision.Remove(id);
         destinoClasif[id] = Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var d) ? d : null;
         // A first license has no previous carpeta: its date is blocked and cleared.
         if (destinoClasif[id] == EstadoCarpeta.PrimeraLicencia) fechaClasif.Remove(id);
@@ -1443,6 +1454,7 @@
 
     private Task ClasificarUnaAsync(Guid id, TramiteAgenda? tramite = null)
     {
+        if (dejarRevision.Contains(id)) return DejarParaRevisionAsync(id);
         intentoAplicar.Add(id);
         if (Faltantes(id, tramite) is not null) return Task.CompletedTask;
         var elegido = DestinoElegido(id, tramite);
@@ -1451,6 +1463,24 @@
         return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id),
             elegido == EstadoCarpeta.PrimeraLicencia ? null : fechaClasif.GetValueOrDefault(id),
             elegido is { } d && Carpeta.EsCambioDomicilio(d) ? comunaClasif.GetValueOrDefault(id) : null);
+    }
+
+    /// <summary>Leaves the carpeta in Para revisión (no class, no state) and removes it from the classifier.</summary>
+    private async Task DejarParaRevisionAsync(Guid id)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        try
+        {
+            await Carpetas.DejarParaRevisionAsync(id, autor);
+            dejarRevision.Remove(id);
+            destinoClasif.Remove(id);
+            await CargarMetricasAsync();
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "No se pudo dejar la carpeta para revisión");
+        }
     }
 
     private async Task ClasificarLoteAsync()

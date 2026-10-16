@@ -9,7 +9,9 @@ public sealed partial class Carpeta
     public TimeOnly? HoraCita { get; private set; }
 
     /// <summary>States a "Por clasificar" carpeta may be manually classified into.</summary>
-    public static IReadOnlyList<EstadoCarpeta> DestinosClasificacion => EstadoTransitions.NextStates(EstadoCarpeta.PorClasificar);
+    /// <summary>States a classification can pick. "Citada" is excluded: leaving a carpeta for review is its own action.</summary>
+    public static IReadOnlyList<EstadoCarpeta> DestinosClasificacion =>
+        EstadoTransitions.NextStates(EstadoCarpeta.PorClasificar).Where(e => e != EstadoCarpeta.Citada).ToList();
 
     /// <summary>Creates a carpeta from a daily agenda row. Nothing is auto-classified.</summary>
     public static Carpeta CrearDesdeAgenda(
@@ -61,6 +63,21 @@ public sealed partial class Carpeta
         {
             AsignarComuna(comuna, autor, now);
         }
+    }
+
+    /// <summary>
+    /// "Dejar para revisión": a carpeta from Por clasificar that has no resolution yet goes back to Citada, so it
+    /// shows in "Para revisión" until it gets a state. No class is required.
+    /// </summary>
+    public void DejarParaRevision(string autor, DateTime now)
+    {
+        RequireActiva();
+        RequireAutor(autor);
+        if (Estado != EstadoCarpeta.PorClasificar)
+        {
+            throw new DomainException("Solo se pueden dejar para revisión las carpetas de 'Por clasificar'.");
+        }
+        CambiarEstado(EstadoCarpeta.Citada, autor, now);
     }
 
     /// <summary>Checks every classification rule without changing anything (lets a batch validate all rows first).</summary>

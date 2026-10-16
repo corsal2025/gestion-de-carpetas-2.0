@@ -37,6 +37,8 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.NoExisteCarpeta),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
+        // "Dejar para revisión": a carpeta without resolution goes back to Citada (Para revisión).
+        (EstadoCarpeta.PorClasificar, EstadoCarpeta.Citada),
         // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8.
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
