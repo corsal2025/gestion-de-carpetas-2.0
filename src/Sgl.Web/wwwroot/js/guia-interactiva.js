@@ -147,13 +147,6 @@
     },
     {
       pagina: '/',
-      target: '#chk-marcar-todas',
-      titulo: 'Marcar o desmarcar todas',
-      icono: '☑️',
-      descripcion: 'La casilla del encabezado marca o desmarca <b>todas las pendientes</b> de una vez. Las marcadas alimentan los botones <b>Enviar marcadas</b>, <b>Marcar como enviadas</b> e <b>Imprimir marcadas</b>.'
-    },
-    {
-      pagina: '/',
       target: '.js-marcar-btn',
       fallbackTarget: '#tabla-peticiones',
       titulo: 'Casilla de cada persona',
