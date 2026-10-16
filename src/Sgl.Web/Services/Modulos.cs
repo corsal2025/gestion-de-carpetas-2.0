@@ -21,6 +21,14 @@ public static class ModulosCatalogo
     public const string ClaveIntegridad = "integridad";
     public const string ClavePeticiones = "peticiones";
 
+    /// <summary>
+    /// CSS class of a module's menu circle ("m-..."): every module has its own colour (see modulos.css) and all
+    /// circles share one size. Trays use their tray name; the other pages use their key.
+    /// </summary>
+    public static string ClaseColor(Modulo m) => m.Bandeja is { } b
+        ? $"m-{b.ToString().ToLowerInvariant()}"
+        : $"m-{m.Clave}";
+
     // Simple 24x24 stroke icons (paths only).
     public static readonly GrupoModulo Entrada = new("entrada", "Entrada", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
     public static readonly GrupoModulo Preparacion = new("preparacion", "Preparación", "grupo-preparacion", "M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z");

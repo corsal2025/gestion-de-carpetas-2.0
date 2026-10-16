@@ -608,3 +608,15 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 
 /* Módulo Peticiones de cambio de domicilio: círculo con su color característico (verde azulado). */
 .sidebar-modulo.m-peticiones { --punto-excel: #0d9488; }
+/* Every module has its own circle colour; all circles share the 12px size set above. */
+.sidebar-modulo.m-porclasificar { --punto-excel: #64748b; }
+.sidebar-modulo.m-pararevision { --punto-excel: #f97316; }
+.sidebar-modulo.m-duplicados { --punto-excel: #eab308; }
+.sidebar-modulo.m-cerradas { --punto-excel: #334155; }
+.sidebar-modulo.m-archivadas { --punto-excel: #92400e; }
+.sidebar-modulo.m-anuladas { --punto-excel: #9ca3af; }
+.sidebar-modulo.m-todas { --punto-excel: #0ea5e9; }
+.sidebar-modulo.m-integridad { --punto-excel: #e11d48; }
+.sidebar-modulo.m-peticiones-comunas { --punto-excel: #84cc16; }
+.sidebar-modulo.m-peticiones-estadisticas { --punto-excel: #f472b6; }
+.sidebar-modulo.m-peticiones-configuracion { --punto-excel: #6366f1; }
