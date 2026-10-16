@@ -145,7 +145,6 @@
             <th>Nombre de contribuyente</th>
             <th>Sede</th>
             <th class="text-center">Comuna</th>
-            <th>Estado</th>
             <th>F. solicitud</th>
             <th>Envío</th>
             <th>Plazo · 15 d. háb.</th>
@@ -214,30 +213,6 @@
             <td class="dato">@p.NombreCompleto</td>
             <td class="text-muted" title="@p.Origen" style="cursor:help; font-size:.78rem;">@p.Oficina</td>
             <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
-            <td>
-                @{
-                    var opcionActual = EstadoCarpetaCatalog.OpcionDashboard(p.EstadoCarpeta);
-                    string EtiquetaCarpeta(string v) => v switch
-                    {
-                        EstadoCarpetaCatalog.SubidaConaset => "Subida a CONASET",
-                        EstadoCarpetaCatalog.SubidaCorreo => "Subida con correo",
-                        _ => "— sin subir —",
-                    };
-                }
-                <form method="post" asp-page-handler="EstadoCarpeta" class="carpeta-form d-inline js-carpeta-form" data-id="@p.Id">
-                    <input type="hidden" name="id" value="@p.Id" />
-                    <select name="estado" class="carpeta-select js-carpeta-select" title="Estado de la carpeta">
-                        @foreach (var v in EstadoCarpetaCatalog.OpcionesDashboard)
-                        {
-                            <option value="@v" selected="@(opcionActual == v ? "selected" : null)">@EtiquetaCarpeta(v)</option>
-                        }
-                    </select>
-                </form>
-                @if (p.SubidaEn is not null)
-                {
-                    <div class="carpeta-fecha num">subida @p.SubidaEn.Value.ToString("dd-MM-yyyy")</div>
-                }
-            </td>
             <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
             <td>
                 @if (p.Estado == EstadoPeticion.Enviada && p.EnviadaEn is not null)

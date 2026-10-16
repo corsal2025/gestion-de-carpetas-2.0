@@ -1266,7 +1266,7 @@ body {
 /* RUT, fecha y hora de envío en una sola línea; el resto del texto sí baja de línea. */
 #tabla-peticiones .table > tbody > tr > td.num,
 #tabla-peticiones .table > tbody > tr > td .pill { white-space: nowrap; }
-#tabla-peticiones .table > tbody > tr > td:nth-child(8) > span:not(.pill) { white-space: nowrap; }
+#tabla-peticiones .table > tbody > tr > td:nth-child(7) > span:not(.pill) { white-space: nowrap; }
 /* Pantallas medianas (laptops): un paso más compacto para que la tabla quepa junto al menú lateral. */
 @media (max-width: 1500px) {
   #tabla-peticiones .table > thead > tr > th,

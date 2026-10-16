@@ -179,14 +179,6 @@
     },
     {
       pagina: '/',
-      target: '.js-carpeta-select',
-      fallbackTarget: '#tabla-peticiones',
-      titulo: 'Estado de la carpeta',
-      icono: '🗂️',
-      descripcion: 'Selector por persona: <b>— sin subir —</b>, <b>Subida a CONASET</b> o <b>Subida con correo</b>. Se guarda al cambiarlo y, si corresponde, muestra la fecha de subida. La fila cerrada se pinta de azul.'
-    },
-    {
-      pagina: '/',
       target: '#tabla-peticiones tbody tr td:nth-child(9)',
       fallbackTarget: '#tabla-peticiones',
       titulo: 'Columna Origen',
