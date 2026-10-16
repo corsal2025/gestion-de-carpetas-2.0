@@ -1295,3 +1295,8 @@ body {
 #tabla-peticiones .data-table td:nth-child(3) { text-align: left !important; min-width: 200px !important; }
 #tabla-peticiones .data-table th:nth-child(4),
 #tabla-peticiones .data-table td:nth-child(4) { white-space: nowrap !important; }
+
+/* The page frame never scrolls (the system fixes it to the window), so the module area scrolls itself:
+   vertical and horizontal bars appear here, and the table header stays pinned while scrolling. */
+.modulo-main { overflow: auto; min-height: 0; min-width: 0; }
+#tabla-peticiones.table-responsive { overflow: visible; }
