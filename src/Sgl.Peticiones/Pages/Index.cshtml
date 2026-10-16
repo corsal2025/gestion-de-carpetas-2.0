@@ -148,7 +148,7 @@
             <th>F. solicitud</th>
             <th>Envío</th>
             <th>Plazo · 15 d. háb.</th>
-            <th style="width:1%"></th>
+            <th>Acción</th>
         </tr>
     </thead>
     <tbody>
@@ -259,18 +259,7 @@
                 }
             </td>
             <td class="col-acciones">
-                @if (finalizada)
-                {
-                    @* Rectificar: reabre el caso como petición nueva (mismo RUT + comuna = se reinicia). *@
-                    <button type="button" class="btn btn-sm btn-outline-secondary js-nueva-peticion"
-                            data-nombre="@p.NombreCompleto" data-rut="@p.Rut" data-comuna="@p.Comuna"
-                            title="Caso terminado: ingresar otra petición para rectificar">↻ Nueva petición</button>
-                }
-                @if (esEnviada)
-                {
-                    <span class="pill pill--ok">✓ Enviada</span>
-                }
-                else if (pendientesComuna > 0)
+                @if (!esEnviada && pendientesComuna > 0)
                 {
                     var rutDudoso = Model.Peticiones.Any(x =>
                         x.Comuna.Equals(p.Comuna, System.StringComparison.OrdinalIgnoreCase)

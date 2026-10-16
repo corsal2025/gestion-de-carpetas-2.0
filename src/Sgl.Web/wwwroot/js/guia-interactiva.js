@@ -191,7 +191,7 @@
       fallbackTarget: '.col-acciones',
       titulo: 'Enviar comuna (N)',
       icono: '📤',
-      descripcion: 'Despacha de golpe <b>un correo con todas las personas pendientes de esa comuna</b>; el número N es cuántas son. Si alguna tiene RUT sin validar, te lo advierte antes de confirmar. Cuando ya se envió, la fila muestra «✓ Enviada».'
+      descripcion: 'Despacha de golpe <b>un correo con todas las personas pendientes de esa comuna</b>; el número N es cuántas son. Si alguna tiene RUT sin validar, te lo advierte antes de confirmar.'
     },
     {
       pagina: '/', pose: 'alerta',
