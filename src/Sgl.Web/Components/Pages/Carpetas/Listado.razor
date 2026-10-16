@@ -1190,7 +1190,7 @@
                                                value="@(esPrimera ? null : FechaClasif(c.Id))"
                                                disabled="@esPrimera"
                                                @onchange="(e) => FechaElegidaAsync(c.Id, e.Value?.ToString())"
-                                               title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : $"Fecha de la última carpeta. Sector: {SectorFisico.Calcular(FechaClasif(c.Id))}")" />
+                                               title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : "Fecha de la última carpeta")" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => clasesClasif[c.Id] = v" Disabled="clasificando" />
