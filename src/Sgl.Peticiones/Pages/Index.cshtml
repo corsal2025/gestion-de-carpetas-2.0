@@ -9,22 +9,6 @@
     var vencidas = Model.Peticiones.Count(p => PlazoInfo.Para(p).Vencido);
 }
 
-<div class="page-head">
-    <button type="button" id="btn-lico-saludo" class="head-lico" data-lico="saluda" aria-label="Lico: haz clic para ver una gracia">
-        <span class="head-lico-burbuja">¡Hola! Me llamo Lico</span>
-    </button>
-    <div style="flex:1 1 280px">
-        <h1 class="h3">Peticiones de cambio de domicilio</h1>
-        <div class="sub">Flujo saliente · Decreto 170, art. 14 · plazo legal 15 días hábiles</div>
-    </div>
-    <div class="stat-row">
-        <div class="stat-chip"><b class="num">@total</b><span>Total</span></div>
-        <div class="stat-chip stat-chip--soft"><b class="num">@pendientes</b><span>Pendientes</span></div>
-        <div class="stat-chip stat-chip--ok"><b class="num">@enviadas</b><span>Enviadas</span></div>
-        <div class="stat-chip stat-chip--bad"><b class="num">@vencidas</b><span>Vencidas</span></div>
-    </div>
-</div>
-
 @if (Model.ModoPruebaEmail is not null)
 {
     <div class="alert alert-danger">

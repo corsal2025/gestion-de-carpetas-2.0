@@ -17,5 +17,6 @@ public sealed class MenuSistemaCatalogo : IMenuSistema
     // Same rule as the side menu: trays wear their tray colour, "duplicados" the neutral ring.
     private static string ClaseColor(Modulo m) => m.Bandeja is { } b
         ? $"m-{b.ToString().ToLowerInvariant()}"
-        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados" : "";
+        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados"
+        : m.Clave.StartsWith("peticiones", StringComparison.Ordinal) ? "m-peticiones" : "";
 }

@@ -99,7 +99,8 @@
     // "Posibles duplicados" has no Excel colour: it takes the same neutral ring dot as "Por clasificar".
     private static string ClaseColor(Modulo m) => m.Bandeja is { } b
         ? $"m-{b.ToString().ToLowerInvariant()}"
-        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados" : "";
+        : m.Clave == ModulosCatalogo.ClaveDuplicados ? "m-duplicados"
+        : m.Clave.StartsWith("peticiones", StringComparison.Ordinal) ? "m-peticiones" : "";
 
     private static string ClaseSemaforo(object? semaforo) => $"sem-{(semaforo?.ToString() ?? "").ToLowerInvariant()}";
 

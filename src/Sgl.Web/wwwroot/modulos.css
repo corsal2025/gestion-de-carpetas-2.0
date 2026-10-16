@@ -605,3 +605,6 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 
 /* Lupa de duplicado y lápiz (observación) siempre juntos, a la derecha del nombre. */
 .nombre-acciones { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }
+
+/* Módulo Peticiones de cambio de domicilio: círculo con su color característico (verde azulado). */
+.sidebar-modulo.m-peticiones { --punto-excel: #0d9488; }
