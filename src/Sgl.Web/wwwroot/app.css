@@ -2200,6 +2200,15 @@ table.acta-table tfoot td {
     to { transform: rotate(360deg); }
 }
 
+/* Reduced motion: the spinner stops rotating and gently fades instead, so it still signals "loading". */
+@keyframes spin-calmo {
+    50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner { animation: spin-calmo 2s ease-in-out infinite; }
+}
+
 #blazor-error-ui {
     display: none;
     position: fixed;

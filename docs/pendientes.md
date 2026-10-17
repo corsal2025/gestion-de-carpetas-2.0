@@ -66,7 +66,5 @@ Revisión adversarial: 1 alto (corregido: F8 no puede pisar una carpeta ya Otorg
 - **Pendiente de producto:** probar la generación real en Word (no se abrió un .docx generado) y el envío EWS contra Exchange.
 
 ## Rediseño de interfaz — Etapa 6 (2026-10-17)
-Cerrado: filas Excel en tema claro, Peticiones con el estilo nuevo, Anuladas/Integridad/Firmantes, controles de tabla a 36 px y limpieza de CSS sin uso. Queda abierto:
-- **BAJA — movimiento:** el spinner de carga (`app.css`) gira sin fin y no se detiene con `prefers-reduced-motion` (es un indicador de estado).
+Cerrado: filas Excel en tema claro, Peticiones con el estilo nuevo, Anuladas/Integridad/Firmantes, controles de tabla a 36 px, limpieza de CSS sin uso, spinner calmo con movimiento reducido y barra de Peticiones en dos columnas en teléfono. Queda abierto:
 - **BAJA — no verificado:** Firefox/Safari (solo se probó el navegador integrado), impresión, lector de pantalla y teclado completo en Peticiones.
-- **BAJA — Peticiones en teléfono:** sin desborde de página, pero la barra de acciones es una columna larga de botones y la tabla se desplaza dentro de su caja.
