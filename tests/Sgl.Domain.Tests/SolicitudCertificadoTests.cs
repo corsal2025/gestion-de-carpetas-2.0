@@ -27,6 +27,32 @@ public class SolicitudCertificadoTests
     }
 
     [Fact]
+    public void SinCarpeta_from_Pedir_is_manual_without_an_F8_and_starts_unsigned()
+    {
+        var c = SolicitudCertificado.CrearDesdePedir(Carpeta, " ana ", Now);
+
+        Assert.Equal(TipoCertificado.SinCarpeta, c.Tipo);
+        Assert.Equal(OrigenCertificado.Manual, c.Origen);
+        Assert.Null(c.SolicitudF8Id);
+        Assert.Equal("ana", c.SolicitadoPor);
+        Assert.Equal(Now, c.SolicitadoEn);
+        Assert.True(c.EstaAbierta);
+    }
+
+    [Fact]
+    public void SinCarpeta_from_Pedir_requires_carpeta_and_author()
+    {
+        Assert.Throws<DomainException>(() => SolicitudCertificado.CrearDesdePedir(Guid.Empty, "ana", Now));
+        Assert.Throws<DomainException>(() => SolicitudCertificado.CrearDesdePedir(Carpeta, " ", Now));
+    }
+
+    [Fact]
+    public void Manual_creation_still_rejects_SinCarpeta()
+    {
+        Assert.Throws<DomainException>(() => SolicitudCertificado.CrearManual(Carpeta, TipoCertificado.SinCarpeta, null, null, "ana", Now));
+    }
+
+    [Fact]
     public void SinCarpeta_requires_the_F8_request()
     {
         Assert.Throws<DomainException>(() => SolicitudCertificado.CrearDesdeF8(Carpeta, Guid.Empty, "ana", Now));

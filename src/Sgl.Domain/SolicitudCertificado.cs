@@ -96,6 +96,13 @@ public sealed class SolicitudCertificado
         return Nuevo(carpetaId, TipoCertificado.SinCarpeta, OrigenCertificado.DesdeF8, solicitudF8Id, null, null, autor, now);
     }
 
+    /// <summary>
+    /// Opens the SinCarpeta certificate that "Pedir" (Crear certificado / oficio) hands over to this module when the carpeta
+    /// has none open yet. It is a manual request: no F8 behind it.
+    /// </summary>
+    public static SolicitudCertificado CrearDesdePedir(Guid carpetaId, string autor, DateTime now) =>
+        Nuevo(carpetaId, TipoCertificado.SinCarpeta, OrigenCertificado.Manual, null, null, null, autor, now);
+
     /// <summary>Manual request (Registro Civil or Oficio).</summary>
     public static SolicitudCertificado CrearManual(
         Guid carpetaId,

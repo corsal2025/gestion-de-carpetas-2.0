@@ -100,6 +100,91 @@ public class BandejaTests
     }
 
     [Fact]
+    public void Requested_Crear_certificado_leaves_its_tray_for_En_certificado()
+    {
+        Assert.Equal(Bandeja.CrearCertificado, Carpeta.ClasificarBandeja(EstadoCarpeta.CrearCertificado, Decision.Pendiente, null));
+        Assert.Equal(Bandeja.EnCertificado, Carpeta.ClasificarBandeja(EstadoCarpeta.CrearCertificado, Decision.Pendiente, null, pedida: true));
+        Assert.Equal(Bandeja.EnCertificado, Carpeta.ClasificarBandeja(EstadoCarpeta.CrearCertificado, Decision.Pendiente, Carpeta.ColaDeCaja, pedida: true));
+    }
+
+    [Theory]
+    [InlineData(EstadoCarpeta.SubidaConOficio)]
+    [InlineData(EstadoCarpeta.NoExisteCarpeta)]
+    [InlineData(EstadoCarpeta.SeEncuentraEnArchivos)]
+    public void The_request_only_moves_carpetas_in_Crear_certificado(EstadoCarpeta estado)
+    {
+        Assert.Equal(
+            Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null),
+            Carpeta.ClasificarBandeja(estado, Decision.Pendiente, null, pedida: true));
+    }
+
+    [Fact]
+    public void Caja_and_final_decision_still_win_over_the_request()
+    {
+        Assert.Equal(Bandeja.Archivadas, Carpeta.ClasificarBandeja(EstadoCarpeta.CrearCertificado, Decision.Pendiente, "CAJA 1", pedida: true));
+        Assert.Equal(Bandeja.Cerradas, Carpeta.ClasificarBandeja(EstadoCarpeta.CrearCertificado, Decision.Otorgado, null, pedida: true));
+    }
+
+    [Fact]
+    public void Pedir_moves_the_carpeta_and_signing_it_away_returns_it_to_a_normal_tray()
+    {
+        var c = CarpetaFactory.InEstado(EstadoCarpeta.CrearCertificado);
+        Assert.Equal(Bandeja.CrearCertificado, c.Bandeja);
+
+        c.RegistrarPeticion("javiera", CarpetaFactory.Now);
+        Assert.Equal(Bandeja.EnCertificado, c.Bandeja);
+
+        c.ForzarEstado(EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
+        Assert.Equal(Bandeja.SubidaConOficio, c.Bandeja);
+        Assert.NotNull(c.FechaPeticion);
+    }
+
+    [Fact]
+    public void Entering_Crear_certificado_again_starts_without_a_stale_request()
+    {
+        var c = CarpetaFactory.InEstado(EstadoCarpeta.CrearCertificado);
+        c.RegistrarPeticion("javiera", CarpetaFactory.Now);
+        c.ForzarEstado(EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
+
+        c.ForzarEstado(EstadoCarpeta.CrearCertificado, "javiera", CarpetaFactory.Now);
+
+        Assert.Null(c.FechaPeticion);
+        Assert.Equal(Bandeja.CrearCertificado, c.Bandeja);
+    }
+
+    [Fact]
+    public void Undo_back_into_Crear_certificado_does_not_leave_the_carpeta_requested()
+    {
+        var c = CarpetaFactory.InEstado(EstadoCarpeta.CrearCertificado);
+        c.RegistrarPeticion("javiera", CarpetaFactory.Now);
+        var punto = c.PuntoRestauracion();
+        c.ForzarEstado(EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
+
+        c.RestaurarEstado(punto, EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
+
+        Assert.Equal(EstadoCarpeta.CrearCertificado, c.Estado);
+        Assert.Null(c.FechaPeticion);
+        Assert.Equal(Bandeja.CrearCertificado, c.Bandeja);
+    }
+
+    [Fact]
+    public void Sql_expression_matches_pure_function_for_requested_carpetas()
+    {
+        var compiled = Carpeta.BandejaExpresion.Compile();
+        foreach (var estado in Enum.GetValues<EstadoCarpeta>())
+        foreach (var caja in new string?[] { null, "CAJA 1", Carpeta.ColaDeCaja })
+        {
+            var c = Carpeta.CrearImportada(Guid.NewGuid(), new Ciudadano(Rut.Parse("12345678-5"), "A", "B"), Sede.Placilla,
+                new DateOnly(2026, 1, 1), null, null, estado, EstadoTransitions.DecisionFor(estado), null, null, caja, null, CarpetaFactory.Now);
+            if (estado == EstadoCarpeta.CrearCertificado)
+            {
+                c.RegistrarPeticion("x", CarpetaFactory.Now);
+            }
+            Assert.Equal(Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo, c.FechaPeticion is not null), compiled(c));
+        }
+    }
+
+    [Fact]
     public void Folder_moves_bandeja_automatically_when_estado_changes()
     {
         var c = CarpetaFactory.New();

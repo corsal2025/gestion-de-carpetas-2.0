@@ -49,4 +49,17 @@ public sealed class DecisionRapidaTests : IDisposable
         Assert.Equal(antes.FechaSubida, det.FechaSubida);
         Assert.Single((await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorPreparar, Take: 10))).Items);
     }
+
+    [Theory]
+    [InlineData(Decision.Otorgado, Decision.Denegado)]
+    [InlineData(Decision.Denegado, Decision.Pendiente)]
+    public async Task A_final_decision_cannot_be_changed_through_the_service(Decision final, Decision otra)
+    {
+        var id = await RegistrarAsync();
+        await _db.NewService().CambiarDecisionAsync(id, final, "ana");
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().CambiarDecisionAsync(id, otra, "ana"));
+
+        Assert.Equal(final, (await _db.NewService().ObtenerAsync(id)).Decision);
+    }
 }

@@ -49,6 +49,10 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("ClasesLicencia");
 
+                    b.Property<string>("CodigoF8")
+                        .HasMaxLength(15)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Comuna")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -73,6 +77,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("FechaImpresion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("FechaPenultimaCarpeta")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("FechaPeticion")

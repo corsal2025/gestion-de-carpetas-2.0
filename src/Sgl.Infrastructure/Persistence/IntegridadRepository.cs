@@ -16,7 +16,7 @@ public sealed class IntegridadRepository(SglDbContext db, IPanelQuery panel) : I
         var carpetas = await db.Carpetas.IgnoreQueryFilters().AsNoTracking()
             .Select(c => new CarpetaIntegridad(
                 c.Id, c.CiudadanoId, c.Ciudadano.Rut.Value, c.Estado, c.Decision, c.CajaArchivo, c.Clases, c.Anulada,
-                c.FechaCitacion, c.FechaSubida, c.FechaCierre, c.FechaRegistro))
+                c.FechaCitacion, c.FechaSubida, c.FechaCierre, c.FechaRegistro, c.FechaPeticion != null))
             .ToListAsync(ct);
 
         // Trays as the module screens see them: one predicate per tray over the (soft-delete filtered) set.

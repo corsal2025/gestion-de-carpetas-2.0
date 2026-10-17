@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Solicitudes;
@@ -28,7 +28,7 @@ public sealed class TestDb : IDisposable
     public CarpetaService NewService(LicenciasOptions? options = null)
     {
         var ctx = NewContext();
-        return new(new CarpetaRepository(ctx), Clock, options, solicitudesF8: new SolicitudF8Repository(ctx));
+        return new(new CarpetaRepository(ctx), Clock, options, solicitudesF8: new SolicitudF8Repository(ctx), certificados: new CertificadoRepository(ctx));
     }
 
     /// <summary>F8 service over one context shared by every repository (one unit of work, like a scoped circuit).</summary>

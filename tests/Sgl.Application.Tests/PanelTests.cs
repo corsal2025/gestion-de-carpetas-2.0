@@ -164,6 +164,24 @@ public sealed class PanelServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Pedir_lowers_Crear_certificado_and_raises_En_certificado_without_changing_the_total()
+    {
+        var a = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand("12345678-5", "JUAN", "PEREZ", Sede.Placilla, new DateOnly(2026, 5, 4), "ana"));
+        var b = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand("11111111-1", "ANA", "SOTO", Sede.Placilla, new DateOnly(2026, 5, 4), "ana"));
+        await _db.NewService().ForzarEstadoAsync(a, EstadoCarpeta.CrearCertificado, "ana");
+        await _db.NewService().ForzarEstadoAsync(b, EstadoCarpeta.CrearCertificado, "ana");
+        var antes = await NewPanel().ObtenerAsync();
+        Assert.Equal(2, antes.Modulos.Single(m => m.Bandeja == Bandeja.CrearCertificado).Conteo);
+
+        await _db.NewService().PedirAsync(a, "javiera");
+
+        var despues = await NewPanel().ObtenerAsync();
+        Assert.Equal(1, despues.Modulos.Single(m => m.Bandeja == Bandeja.CrearCertificado).Conteo);
+        Assert.Equal(1, despues.Modulos.Single(m => m.Bandeja == Bandeja.EnCertificado).Conteo);
+        Assert.Equal(antes.Modulos.Sum(m => m.Conteo), despues.Modulos.Sum(m => m.Conteo));
+    }
+
+    [Fact]
     public async Task ActividadHoy_counts_carpetas_that_left_the_location_tray_today_and_the_ones_still_waiting()
     {
         var ayer = new DateTime(2026, 5, 3, 15, 0, 0, DateTimeKind.Utc);

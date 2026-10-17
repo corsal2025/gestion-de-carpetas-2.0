@@ -8,6 +8,8 @@ public sealed partial class Carpeta
     public const int MaxUsuarioLength = 100;
     public const int MaxIdoneidadLength = 200;
     public const int MaxComunaLength = 100;
+
+    public const int MaxCodigoF8Length = 15;
     public const int MaxCajaLength = 50;
 
     private readonly List<HistorialCambio> _historial = [];
@@ -35,6 +37,12 @@ public sealed partial class Carpeta
     public string? FechaUltimaCarpeta { get; private set; }
 
     public string? Comuna { get; private set; }
+
+    /// <summary>F8 code typed by staff: ASCII digits only, up to <see cref="MaxCodigoF8Length"/> digits.</summary>
+    public string? CodigoF8 { get; private set; }
+
+    /// <summary>Date of the citizen's second-to-last carpeta (informational; may precede the citation date).</summary>
+    public DateOnly? FechaPenultimaCarpeta { get; private set; }
 
     public string? TipoTramite { get; private set; }
 
@@ -128,6 +136,41 @@ public sealed partial class Carpeta
         {
             Audit(now, usuario, nameof(Comuna), Comuna, com);
             Comuna = com;
+        }
+    }
+
+    public void AsignarCodigoF8(string? codigo, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        var nuevo = string.IsNullOrWhiteSpace(codigo) ? null : codigo.Trim();
+        if (nuevo is not null && !nuevo.All(char.IsAsciiDigit))
+        {
+            throw new DomainException("El código F8 solo admite números.");
+        }
+        if (nuevo?.Length > MaxCodigoF8Length)
+        {
+            throw new DomainException($"El código F8 excede {MaxCodigoF8Length} caracteres.");
+        }
+        if (nuevo != CodigoF8)
+        {
+            Audit(now, usuario, nameof(CodigoF8), CodigoF8, nuevo);
+            CodigoF8 = nuevo;
+        }
+    }
+
+    public void AsignarFechaPenultimaCarpeta(DateOnly? fecha, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        if (fecha is { } f && f > HoraChile.Fecha(now))
+        {
+            throw new DomainException("La fecha de la penúltima carpeta no puede ser futura.");
+        }
+        if (fecha != FechaPenultimaCarpeta)
+        {
+            Audit(now, usuario, nameof(FechaPenultimaCarpeta), FechaPenultimaCarpeta?.ToString("yyyy-MM-dd"), fecha?.ToString("yyyy-MM-dd"));
+            FechaPenultimaCarpeta = fecha;
         }
     }
 
@@ -240,13 +283,22 @@ public sealed partial class Carpeta
     public static bool PermiteBusquedaPendiente(EstadoCarpeta estado) =>
         estado is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43;
 
+    /// <summary>
+    /// States where the "en proceso de búsqueda" mark may exist: the archive states plus "No existe carpeta"
+    /// (the search continues there). Used only by the mark itself; the printed-listing rules, the tray queries and the
+    /// automatic F8 notice keep using <see cref="PermiteBusquedaPendiente"/>. A mark set in an archive state is kept when
+    /// the carpeta moves to "No existe carpeta" and cleared when it leaves the set.
+    /// </summary>
+    public static bool PermiteEnProcesoDeBusqueda(EstadoCarpeta estado) =>
+        PermiteBusquedaPendiente(estado) || estado == EstadoCarpeta.NoExisteCarpeta;
+
     public void MarcarPendienteBusqueda(bool valor, string autor, DateTime now)
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
-        if (valor && !PermiteBusquedaPendiente(Estado))
+        if (valor && !PermiteEnProcesoDeBusqueda(Estado))
         {
-            throw new DomainException("Solo se puede marcar pendiente de búsqueda una carpeta en Archivos u Of. 43.");
+            throw new DomainException("Solo se puede marcar pendiente de búsqueda una carpeta en Archivos, Of. 43 o No existe carpeta.");
         }
 
         if (valor != PendienteBusqueda)
@@ -258,7 +310,7 @@ public sealed partial class Carpeta
 
     private void LimpiarPendienteBusquedaSiCorresponde(string usuario, DateTime now)
     {
-        if (PendienteBusqueda && !PermiteBusquedaPendiente(Estado))
+        if (PendienteBusqueda && !PermiteEnProcesoDeBusqueda(Estado))
         {
             Audit(now, usuario, nameof(PendienteBusqueda), SiNo(true), SiNo(false));
             PendienteBusqueda = false;
@@ -290,12 +342,22 @@ public sealed partial class Carpeta
         _ => false
     };
 
+    /// <summary>A final decision (Otorgado / Denegado) can never be changed: the only way back is the undo of the action that set it.</summary>
+    private void RequireDecisionNoFinal()
+    {
+        if (Decision is Decision.Otorgado or Decision.Denegado)
+        {
+            throw new DomainException($"La decisión ya es final ({Decision}) y no se puede modificar.");
+        }
+    }
+
     public void CambiarDecision(Decision nueva, string autor, DateTime now)
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
         if (nueva != Decision)
         {
+            RequireDecisionNoFinal();
             Audit(now, usuario, nameof(Decision), Decision.ToString(), nueva.ToString());
             Decision = nueva;
 

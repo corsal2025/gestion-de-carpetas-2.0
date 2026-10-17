@@ -20,7 +20,17 @@ public sealed record SolicitudF8Dto(
     EstadoSolicitudF8 Estado,
     string? ResueltoPor,
     DateTime? ResueltoEn,
-    string? Observacion);
+    string? Observacion)
+{
+    /// <summary>F8 code typed on the carpeta (read-only here).</summary>
+    public string? CodigoF8 { get; init; }
+
+    /// <summary>Penultimate-carpeta date typed on the carpeta (read-only here).</summary>
+    public DateOnly? FechaPenultimaCarpeta { get; init; }
+}
+
+/// <summary>Result of sending a carpeta to Subida con F8 from its tray; SolicitudId is null when no request was open.</summary>
+public sealed record SubidaConF8Resultado(Guid? SolicitudId, string Mensaje);
 
 /// <summary>A row of the Certificado / Oficio module.</summary>
 public sealed record SolicitudCertificadoDto(

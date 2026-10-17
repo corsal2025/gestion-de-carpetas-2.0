@@ -51,10 +51,6 @@ public class EstadoTransitionsTests
         // and a signed certificate / oficio uploads the carpeta (SubidaConOficio).
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.CrearCertificado, EstadoCarpeta.SubidaConOficio),
-        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConF8),
-        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.CrearCertificado),
-        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConF8),
-        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.SubidaConF8),

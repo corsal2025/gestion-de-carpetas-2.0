@@ -41,6 +41,20 @@ public sealed class IntegridadServicioTests : IDisposable
     }
 
     [Fact]
+    public async Task A_requested_certificate_keeps_trays_panel_and_total_consistent()
+    {
+        var id = await RegistrarAsync("11111111-1");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.CrearCertificado, "ana");
+        await RegistrarAsync("22222222-2", ClaseLicencia.C);
+        await _db.NewService().PedirAsync(id, "ana");
+
+        var r = await NewService().EjecutarAsync(OrigenIntegridad.Manual);
+
+        Assert.Empty(r.Problemas);
+        Assert.Equal(0, r.Corrida.Problemas);
+    }
+
+    [Fact]
     public async Task Cancelled_carpetas_never_count_as_a_problem_nor_appear_in_trays()
     {
         var id = await RegistrarAsync("11111111-1");

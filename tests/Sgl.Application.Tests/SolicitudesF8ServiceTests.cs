@@ -360,4 +360,58 @@ public sealed class SolicitudesF8ServiceTests : IDisposable
         Assert.Equal(final, (await DetalleAsync(_db, id)).Estado);
         Assert.Empty((await _db.NewCertificadosService().ListarAsync(new ListarCertificadosQuery())).Items);
     }
+
+    [Fact]
+    public async Task MarcarSubidoPorCarpeta_with_an_open_request_closes_it_and_moves_the_carpeta()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
+        var solicitud = (await _db.NewF8Service().SolicitarF8Async(id, "ana")).SolicitudId;
+
+        var resultado = await _db.NewF8Service().MarcarSubidoPorCarpetaAsync(id, "luis");
+
+        Assert.Equal(solicitud, resultado.SolicitudId);
+        var fila = Assert.Single(await Todas());
+        Assert.Equal(EstadoSolicitudF8.Subido, fila.Estado);
+        Assert.Equal("luis", fila.ResueltoPor);
+        var detalle = await DetalleAsync(_db, id);
+        Assert.Equal(EstadoCarpeta.SubidaConF8, detalle.Estado);
+        Assert.Contains(detalle.Historial, h => h.Campo == nameof(Carpeta.Estado) && h.Nuevo == nameof(EstadoCarpeta.SubidaConF8) && h.Usuario == "luis");
+    }
+
+    [Fact]
+    public async Task MarcarSubidoPorCarpeta_without_a_request_moves_the_carpeta_and_creates_none()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
+
+        var resultado = await _db.NewF8Service().MarcarSubidoPorCarpetaAsync(id, "luis");
+
+        Assert.Null(resultado.SolicitudId);
+        Assert.Empty(await Todas());
+        Assert.Equal(EstadoCarpeta.SubidaConF8, (await DetalleAsync(_db, id)).Estado);
+    }
+
+    [Fact]
+    public async Task MarcarSubidoPorCarpeta_refuses_a_final_carpeta_and_changes_nothing()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
+        await _db.NewF8Service().SolicitarF8Async(id, "ana");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.Otorgado, "ana");
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewF8Service().MarcarSubidoPorCarpetaAsync(id, "luis"));
+
+        Assert.Equal(EstadoCarpeta.Otorgado, (await DetalleAsync(_db, id)).Estado);
+        Assert.Equal(EstadoSolicitudF8.Solicitado, Assert.Single(await Todas()).Estado);
+    }
+
+    [Fact]
+    public async Task MarcarSubidoPorCarpeta_requires_an_author_and_changes_nothing()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
+        await _db.NewF8Service().SolicitarF8Async(id, "ana");
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewF8Service().MarcarSubidoPorCarpetaAsync(id, " "));
+
+        Assert.Equal(EstadoCarpeta.NoExisteCarpeta, (await DetalleAsync(_db, id)).Estado);
+        Assert.Equal(EstadoSolicitudF8.Solicitado, Assert.Single(await Todas()).Estado);
+    }
 }

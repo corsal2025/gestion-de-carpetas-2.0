@@ -26,4 +26,9 @@ public enum Bandeja
     CanjeLicExtranjera = 17,
     /// <summary>Carpetas left in Citada after the initial classification: no resolution yet (automatic).</summary>
     ParaRevision = 18,
+    /// <summary>
+    /// Crear certificado carpeta already requested with "Pedir": it lives in Solicitudes · Certificado / Oficio until it is
+    /// signed. Derived (never assigned) and not a menu entry; the certificates module is its screen.
+    /// </summary>
+    EnCertificado = 19,
 }

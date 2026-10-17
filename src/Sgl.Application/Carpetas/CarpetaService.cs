@@ -9,7 +9,8 @@ public sealed class CarpetaService(
     TimeProvider clock,
     LicenciasOptions? options = null,
     INotificadorPeticion? notificador = null,
-    ISolicitudF8Repository? solicitudesF8 = null)
+    ISolicitudF8Repository? solicitudesF8 = null,
+    ICertificadoRepository? certificados = null)
 {
     private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
@@ -472,19 +473,38 @@ public sealed class CarpetaService(
     }
 
     /// <summary>
-    /// "Pedir" (Crear certificado / oficio): stores and audits the request, then hands it to the mail port.
-    /// The request is kept even when no mail is configured or the mail fails.
+    /// "Pedir" (Crear certificado / oficio): hands the carpeta over to Solicitudes · Certificado / Oficio, where the
+    /// certificate process ends. In ONE save it audits the request date (the carpeta leaves the tray) and makes sure an open
+    /// SinCarpeta certificate exists (the one opened by the F8 flow is reused). Then it hands the request to the mail port;
+    /// the request is kept even when no mail is configured or the mail fails.
+    /// Asking again for a carpeta already handed over changes nothing and sends nothing.
     /// </summary>
     /// <returns>True when the request mail was sent.</returns>
     public async Task<bool> PedirAsync(Guid id, string autor, CancellationToken ct = default)
     {
+        if (certificados is null)
+        {
+            throw new InvalidOperationException("Pedir necesita el repositorio de certificados.");
+        }
+
         PeticionCertificado peticion;
         await _gate.WaitAsync(ct);
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
             var now = Now;
+            var abierto = await certificados.GetAbiertoAsync(carpeta.Id, TipoCertificado.SinCarpeta, ct);
+            if (carpeta.FechaPeticion is not null && abierto is not null)
+            {
+                return false;
+            }
+
             carpeta.RegistrarPeticion(autor, now);
+            if (abierto is null)
+            {
+                await certificados.AddAsync(SolicitudCertificado.CrearDesdePedir(carpeta.Id, autor, now), ct);
+            }
+
             await repository.SaveChangesAsync(ct);
             peticion = new PeticionCertificado(
                 carpeta.Id,
@@ -692,6 +712,33 @@ public sealed class CarpetaService(
         {
             var carpeta = await LoadActivaAsync(id, ct);
             carpeta.ModificarFechaUltimaCarpeta(fecha, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public Task GuardarCodigoF8Async(Guid id, string? codigo, string autor, CancellationToken ct = default) =>
+        EditarActivaAsync(id, c => c.AsignarCodigoF8(codigo, autor, Now), ct);
+
+    public Task GuardarFechaPenultimaCarpetaAsync(Guid id, DateOnly? fecha, string autor, CancellationToken ct = default) =>
+        EditarActivaAsync(id, c => c.AsignarFechaPenultimaCarpeta(fecha, autor, Now), ct);
+
+    private async Task EditarActivaAsync(Guid id, Action<Carpeta> edicion, CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            edicion(carpeta);
             await repository.SaveChangesAsync(ct);
         }
         catch

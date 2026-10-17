@@ -49,7 +49,8 @@ public sealed record CarpetaIntegridad(
     DateOnly FechaCitacion,
     DateOnly? FechaSubida,
     DateOnly? FechaCierre,
-    DateTime FechaRegistro);
+    DateTime FechaRegistro,
+    bool Pedida = false);
 
 /// <summary>
 /// Everything the rules look at, gathered from the real pipelines (the tray predicates, the grouped counters and
@@ -86,7 +87,7 @@ public static class ReglasIntegridad
         foreach (var c in e.Carpetas.Where(c => !c.Anulada))
         {
             var visibles = e.BandejasVisibles.TryGetValue(c.Id, out var lista) ? lista : [];
-            var esperada = Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo);
+            var esperada = Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo, c.Pedida);
             if (visibles.Count != 1)
             {
                 v.Add(new ViolacionIntegridad(ReglaIntegridad.UnaSolaBandeja, c.Id,
@@ -131,7 +132,7 @@ public static class ReglasIntegridad
     {
         var abiertas = e.Carpetas
             .Where(c => !c.Anulada && c.Decision == Decision.Pendiente && c.Clases != ClaseLicencia.Ninguna
-                        && Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo) != Bandeja.Archivadas);
+                        && Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo, c.Pedida) != Bandeja.Archivadas);
         foreach (var grupo in abiertas.GroupBy(c => c.CiudadanoId))
         {
             var lista = grupo.ToList();

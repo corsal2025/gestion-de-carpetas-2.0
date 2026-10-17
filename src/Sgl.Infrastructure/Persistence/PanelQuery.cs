@@ -23,11 +23,12 @@ public sealed class PanelQuery(SglDbContext db) : IPanelQuery
                 c.Decision,
                 EnCajaReal = c.CajaArchivo != null && c.CajaArchivo.Trim() != "" && c.CajaArchivo != Carpeta.ColaDeCaja,
                 c.FechaCitacion,
+                Pedida = c.FechaPeticion != null,
             })
-            .Select(g => new { g.Key.Estado, g.Key.Decision, g.Key.EnCajaReal, g.Key.FechaCitacion, N = g.Count() })
+            .Select(g => new { g.Key.Estado, g.Key.Decision, g.Key.EnCajaReal, g.Key.FechaCitacion, g.Key.Pedida, N = g.Count() })
             .ToListAsync(ct);
 
-        return filas.Select(f => new GrupoBandejaDto(f.Estado, f.Decision, f.EnCajaReal, f.FechaCitacion, f.N)).ToList();
+        return filas.Select(f => new GrupoBandejaDto(f.Estado, f.Decision, f.EnCajaReal, f.FechaCitacion, f.N, f.Pedida)).ToList();
     }
 
     public async Task<IReadOnlyList<MovimientoPanelDto>> MovimientosDesdeAsync(DateTime desdeUtc, CancellationToken ct = default) =>

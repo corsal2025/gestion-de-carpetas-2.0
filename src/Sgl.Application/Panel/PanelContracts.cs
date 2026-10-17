@@ -31,9 +31,9 @@ public sealed record PanelDto(
     IReadOnlyDictionary<Bandeja, MetaDelDiaDto> ActividadHoy);
 
 /// <summary>Carpetas grouped by the raw columns that decide their tray, plus appointment date.</summary>
-public sealed record GrupoBandejaDto(EstadoCarpeta Estado, Decision Decision, bool EnCajaReal, DateOnly FechaCitacion, int Cantidad)
+public sealed record GrupoBandejaDto(EstadoCarpeta Estado, Decision Decision, bool EnCajaReal, DateOnly FechaCitacion, int Cantidad, bool Pedida = false)
 {
-    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, EnCajaReal ? "CAJA" : null);
+    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, EnCajaReal ? "CAJA" : null, Pedida);
 }
 
 /// <summary>Audit entry of a non-cancelled carpeta, reduced to what the panel needs.</summary>

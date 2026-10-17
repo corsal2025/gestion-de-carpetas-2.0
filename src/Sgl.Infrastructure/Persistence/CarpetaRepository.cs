@@ -95,6 +95,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.FechaCierre,
                 c.FechaImpresion,
                 c.FechaPeticion,
+                c.CodigoF8,
+                c.FechaPenultimaCarpeta,
                 OtrasAbiertas = search.Take == null && search.Ids == null
                     ? 0
                     : db.Carpetas.Count(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id && o.Decision == Decision.Pendiente),
@@ -126,6 +128,8 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 FechaCierre = r.FechaCierre,
                 FechaImpresion = r.FechaImpresion,
                 FechaPeticion = r.FechaPeticion,
+                CodigoF8 = r.CodigoF8,
+                FechaPenultimaCarpeta = r.FechaPenultimaCarpeta,
                 OtrasAbiertas = conRango ? r.OtrasAbiertas : null,
             })
             .ToList();

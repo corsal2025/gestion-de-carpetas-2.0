@@ -19,9 +19,10 @@ public sealed class IntegridadReglasTests
         DateOnly? citacion = null,
         DateOnly? subida = null,
         DateOnly? cierre = null,
-        DateTime? registro = null) =>
+        DateTime? registro = null,
+        bool pedida = false) =>
         new(Guid.NewGuid(), ciudadano ?? Guid.NewGuid(), "11111111-1", estado, decision, caja, clases, anulada,
-            citacion ?? new DateOnly(2026, 4, 1), subida, cierre, registro ?? Registro);
+            citacion ?? new DateOnly(2026, 4, 1), subida, cierre, registro ?? Registro, pedida);
 
     /// <summary>A consistent snapshot: each active carpeta in the tray its state dictates, counters matching.</summary>
     private static EntradaIntegridad Coherente(
@@ -29,13 +30,27 @@ public sealed class IntegridadReglasTests
         IReadOnlyDictionary<Guid, DateTime>? revisiones = null)
     {
         var visibles = carpetas.Where(c => !c.Anulada)
-            .ToDictionary(c => c.Id, c => (IReadOnlyList<Bandeja>)[Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo)]);
+            .ToDictionary(c => c.Id, c => (IReadOnlyList<Bandeja>)[Carpeta.ClasificarBandeja(c.Estado, c.Decision, c.CajaArchivo, c.Pedida)]);
         var conteo = Enum.GetValues<Bandeja>().ToDictionary(b => b, b => visibles.Values.Count(v => v[0] == b));
         return new EntradaIntegridad(carpetas, visibles, conteo, conteo, carpetas.Count(c => !c.Anulada),
             revisiones ?? new Dictionary<Guid, DateTime>());
     }
 
     private static IReadOnlyList<ViolacionIntegridad> Evaluar(EntradaIntegridad e) => ReglasIntegridad.Evaluar(e, Hoy);
+
+    [Fact]
+    public void A_requested_certificate_in_En_certificado_is_consistent_and_in_the_old_tray_is_not()
+    {
+        var pedida = C(EstadoCarpeta.CrearCertificado, pedida: true);
+        var coherente = Coherente([pedida, C(EstadoCarpeta.CrearCertificado)]);
+        Assert.Empty(Evaluar(coherente));
+
+        // A screen still showing the requested carpeta in the Crear certificado tray is a violation.
+        var visibles = coherente.BandejasVisibles.ToDictionary(p => p.Key, p => p.Value);
+        visibles[pedida.Id] = [Bandeja.CrearCertificado];
+        var roto = coherente with { BandejasVisibles = visibles };
+        Assert.Contains(Evaluar(roto), v => v.Regla == ReglaIntegridad.UnaSolaBandeja && v.CarpetaId == pedida.Id);
+    }
 
     [Fact]
     public void A_consistent_snapshot_has_no_problems()

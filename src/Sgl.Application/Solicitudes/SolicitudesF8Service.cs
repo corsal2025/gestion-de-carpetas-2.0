@@ -77,6 +77,37 @@ public sealed class SolicitudesF8Service(
     }
 
     /// <summary>
+    /// "Subida con F8" button of the "No existe carpeta" tray: sends the carpeta to SubidaConF8 (audited). An open F8
+    /// request is closed as Subido in the same save; without one no request is created.
+    /// </summary>
+    public async Task<SubidaConF8Resultado> MarcarSubidoPorCarpetaAsync(Guid carpetaId, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(carpetaId, ct);
+            RequireNoFinal(carpeta, "Subida con F8");
+            var now = Now;
+            var abierta = await solicitudes.GetAbiertaPorCarpetaAsync(carpeta.Id, ct);
+            abierta?.MarcarSubido(autor, now, null);
+            carpeta.ForzarEstado(EstadoCarpeta.SubidaConF8, autor, now);
+            await carpetas.SaveChangesAsync(ct);
+            return new SubidaConF8Resultado(abierta?.Id, abierta is null
+                ? "La carpeta quedó en Subida con F8 (no había solicitud de F8 abierta)."
+                : "La carpeta quedó en Subida con F8 y su solicitud de F8 se cerró.");
+        }
+        catch
+        {
+            carpetas.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
     /// The F8 could not be generated: closes the request as NoSeGenero, sends the carpeta to Crear certificado and
     /// opens a SinCarpeta certificate linked to the request (or reuses the one already open). The notification to
     /// the director goes out after the commit; a failing adapter never undoes the resolution.

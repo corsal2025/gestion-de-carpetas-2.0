@@ -73,6 +73,8 @@ public sealed class SolicitudF8Repository(SglDbContext db) : ISolicitudF8Reposit
                 x.S.ResueltoPor,
                 x.S.ResueltoEn,
                 x.S.Observacion,
+                x.C.CodigoF8,
+                x.C.FechaPenultimaCarpeta,
             })
             .ToListAsync(ct);
 
@@ -90,7 +92,11 @@ public sealed class SolicitudF8Repository(SglDbContext db) : ISolicitudF8Reposit
             r.Estado,
             r.ResueltoPor,
             r.ResueltoEn,
-            r.Observacion)).ToList(), total);
+            r.Observacion)
+        {
+            CodigoF8 = r.CodigoF8,
+            FechaPenultimaCarpeta = r.FechaPenultimaCarpeta,
+        }).ToList(), total);
     }
 
     public async Task<IReadOnlyDictionary<EstadoSolicitudF8, int>> ContarPorEstadoAsync(CancellationToken ct = default)

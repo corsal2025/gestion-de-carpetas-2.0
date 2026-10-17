@@ -33,9 +33,16 @@ public sealed partial class Carpeta
 
     private void AplicarEstado(EstadoCarpeta nuevo, string usuario, DateTime now)
     {
+        // Checked before anything is written: a final decision is never reopened or flipped as a side effect of a state change.
+        if (EstadoTransitions.DecisionFor(nuevo) != Decision)
+        {
+            RequireDecisionNoFinal();
+        }
+
         Audit(now, usuario, nameof(Estado), Estado.ToString(), nuevo.ToString());
         Estado = nuevo;
         FechaEstadoActual = now;
+        LimpiarPeticionSiEntraACertificado(usuario, now);
         LimpiarPendienteBusquedaSiCorresponde(usuario, now);
         LimpiarImpresionSiCorresponde(usuario, now);
 
@@ -128,6 +135,7 @@ public sealed partial class Carpeta
         Audit(now, usuario, nameof(Estado), Estado.ToString(), punto.Estado.ToString());
         Estado = punto.Estado;
         FechaEstadoActual = punto.FechaEstadoActual;
+        LimpiarPeticionSiEntraACertificado(usuario, now);
 
         if (Decision != punto.Decision)
         {

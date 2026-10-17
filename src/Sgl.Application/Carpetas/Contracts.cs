@@ -141,6 +141,12 @@ public sealed record CarpetaResumenDto(
     /// <summary>When the certificate / oficio was last requested with "Pedir" (UTC).</summary>
     public DateTime? FechaPeticion { get; init; }
 
+    /// <summary>Free-text F8 code typed by staff.</summary>
+    public string? CodigoF8 { get; init; }
+
+    /// <summary>Date of the citizen's second-to-last carpeta, typed by staff.</summary>
+    public DateOnly? FechaPenultimaCarpeta { get; init; }
+
     /// <summary>When the carpeta was registered or imported (only filled by ranged listings).</summary>
     public DateTime? FechaRegistro { get; init; }
 
@@ -162,7 +168,7 @@ public sealed record CarpetaResumenDto(
     /// <summary>Open carpeta of the same RUT (only filled for "Por clasificar" ranged listings).</summary>
     public AlertaDuplicadoDto? AlertaDuplicado { get; init; }
 
-    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo);
+    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, CajaArchivo, FechaPeticion is not null);
 }
 
 public sealed record HistorialDto(DateTime Fecha, string Usuario, string Campo, string? Anterior, string? Nuevo);

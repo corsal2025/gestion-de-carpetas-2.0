@@ -8,18 +8,20 @@ public sealed partial class Carpeta
     public const string ColaDeCaja = "Cola de Caja";
 
     /// <summary>The tray this carpeta currently belongs to. Moves automatically with its state.</summary>
-    public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo);
+    public Bandeja Bandeja => ClasificarBandeja(Estado, Decision, CajaArchivo, FechaPeticion is not null);
 
     /// <summary>
     /// Precedence: Por clasificar (agenda, only by state) &gt; Archivadas (real caja) &gt; Cerradas (final decision) &gt; one tray per
     /// action estado (subidas, cambio de domicilio, ubicación, certificado, canje, sin carpeta) &gt; Por preparar (1° Licencia).
-    /// "Pendiente de búsqueda" is only a same-day flag, not a tray.
+    /// "Pendiente de búsqueda" is only a same-day flag, not a tray. A Crear certificado carpeta already requested
+    /// (<paramref name="pedida"/>) belongs to <see cref="Bandeja.EnCertificado"/>: it left the tray for the certificates module.
     /// </summary>
-    public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja)
+    public static Bandeja ClasificarBandeja(EstadoCarpeta estado, Decision decision, string? caja, bool pedida = false)
     {
         if (estado == EstadoCarpeta.PorClasificar) return Bandeja.PorClasificar;
         if (!string.IsNullOrWhiteSpace(caja) && caja != ColaDeCaja) return Bandeja.Archivadas;
         if (decision is Decision.Otorgado or Decision.Denegado) return Bandeja.Cerradas;
+        if (pedida && estado == EstadoCarpeta.CrearCertificado) return Bandeja.EnCertificado;
         return BandejaPorEstado(estado);
     }
 
@@ -64,7 +66,7 @@ public sealed partial class Carpeta
         : c.Estado == EstadoCarpeta.CambioDomicilioSolicitado ? Bandeja.CambioDomicilioSolicitado
         : c.Estado == EstadoCarpeta.SeEncuentraEnArchivos ? Bandeja.SeEncuentraEnArchivos
         : c.Estado == EstadoCarpeta.SeEncuentraEnOf43 ? Bandeja.SeEncuentraEnOf43
-        : c.Estado == EstadoCarpeta.CrearCertificado ? Bandeja.CrearCertificado
+        : c.Estado == EstadoCarpeta.CrearCertificado ? (c.FechaPeticion != null ? Bandeja.EnCertificado : Bandeja.CrearCertificado)
         : c.Estado == EstadoCarpeta.CanjeLicExtranjera ? Bandeja.CanjeLicExtranjera
         : Bandeja.PorPreparar;
 

@@ -70,6 +70,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.FechaCierre);
             b.Property(c => c.FechaImpresion);
             b.Property(c => c.FechaPeticion);
+            b.Property(c => c.CodigoF8).HasMaxLength(Carpeta.MaxCodigoF8Length);
+            b.Property(c => c.FechaPenultimaCarpeta);
             // Soft delete: cancelled carpetas vanish from every query (modules, counts, statistics, duplicates).
             // Only the "Anuladas" view, restore and import idempotency opt out with IgnoreQueryFilters().
             b.HasQueryFilter(c => !c.Anulada);
