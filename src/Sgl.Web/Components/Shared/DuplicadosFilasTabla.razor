@@ -20,7 +20,6 @@
         var abierto = abiertoId == g.CiudadanoId;
         <tr class="fila-duplicada dup-caso @(abierto ? "abierto" : null)" @key="g.CiudadanoId">
             <td class="td-check col-sticky-check"><input type="checkbox" disabled title="Los casos por arreglar no se clasifican en lote" /></td>
-            <td class="date-cell col-sticky-rut">@g.Rut</td>
             <td class="col-sticky-nombre">
                 <div class="nombre-wrapper-cell">
                     <span class="name-cell" title="@g.NombreCompleto">@g.NombreCompleto</span>
@@ -30,10 +29,11 @@
                     </a>
                 </div>
             </td>
+            <td class="date-cell col-sticky-rut">@g.Rut</td>
             <td><span class="sede-tag">—</span></td>
             <td colspan="@(Columnas - 4)">
                 <div class="dup-caso-resumen">
-                    <span class="dup-motivo @(g.Motivo.StartsWith("RUT") ? "dup-motivo-alerta" : null)">@g.Motivo</span>
+                    <span class="dup-motivo @(g.Motivo.StartsWith("RUT") ? "dup-motivo-alerta" : null)" title="@g.Motivo">@g.Motivo</span>
                     <span class="dup-badge" title="Carpetas abiertas">@g.CarpetasAbiertas</span>
                     <button type="button" class="btn-small" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => Alternar(g.CiudadanoId)">@(abierto ? "Cerrar" : "Resolver")</button>
                 </div>

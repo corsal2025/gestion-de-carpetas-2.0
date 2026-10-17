@@ -388,7 +388,7 @@ html body .data-table .name-cell { font-size: 0.86rem !important; font-weight: 6
 html body .data-table .sede-tag,
 html body .data-table .date-cell { font-size: 0.8rem !important; font-weight: 500 !important; }
 
-html body .data-table td.col-sticky-nombre {
+html body .data-table td.col-sticky-rut {
     border-right: 1px solid var(--border-color) !important;
     box-shadow: 6px 0 10px -6px rgb(14 26 43 / 0.18) !important;
 }
@@ -1408,7 +1408,6 @@ html body .data-table tbody td select.excel-select option:disabled {
 
 /* ---------- Pendiente busqueda ahora va despues del nombre (no congelada) ---------- */
 html body .data-table thead th.th-pend {
-    width: 120px; min-width: 120px; max-width: 120px;
     padding: 0 .4rem !important;
     text-align: center !important;
     white-space: normal !important;
@@ -1418,7 +1417,6 @@ html body .data-table thead th.th-pend {
     overflow: visible;
     text-overflow: clip;
 }
-html body .data-table td.td-pend { width: 120px; min-width: 120px; max-width: 120px; }
 
 /* ---------- Boton Caja: pildora verde con icono de archivador ---------- */
 html body .data-table tbody td .btn-action-caja,
@@ -1455,19 +1453,14 @@ html body .data-table td.col-sticky-nombre .name-cell {
     text-overflow: clip !important;
     white-space: nowrap !important;
 }
-html body .data-table td.col-sticky-nombre { width: max-content !important; min-width: 280px !important; }
-html body .data-table th.col-sticky-nombre { width: max-content !important; min-width: 280px !important; }
 html body .data-table .nombre-wrapper-cell { gap: .75rem; }
 @media (max-width: 850px) {
     html body .data-table .col-sticky-nombre .name-cell { max-width: none !important; }
 }
 
 /* Bandejas: columnas compactas; la columna Persona absorbe el espacio sobrante */
-html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { width: 1% !important; min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .9rem; padding-right: .9rem; }
-html body .data-table.bandeja-table { width: 100% !important; table-layout: auto !important; }
-html body .data-table.bandeja-table th:nth-child(2), html body .data-table.bandeja-table td:nth-child(2) { width: 1% !important; white-space: nowrap; }
-/* El espacio sobrante va al final de la fila, no al nombre */
-html body .data-table.bandeja-table th:last-child, html body .data-table.bandeja-table td:last-child { width: auto !important; }
+html body .data-table.bandeja-table th, html body .data-table.bandeja-table td { min-width: 0 !important; max-width: none !important; white-space: nowrap; text-align: left !important; padding-left: .8rem; padding-right: .8rem; }
+html body .data-table.bandeja-table { width: max-content !important; min-width: 0 !important; table-layout: auto !important; }
 /* Every cell must stay a table-cell or headers and cells drift apart */
 html body .data-table.bandeja-table td.action-cell { display: table-cell !important; white-space: nowrap; }
 html body .data-table.bandeja-table td.action-cell > * { display: inline-flex; vertical-align: middle; margin-right: .25rem; }
@@ -1482,10 +1475,6 @@ html body .data-table.bandeja-table .clasif-cell .excel-select { max-width: 170p
 html body .data-table.bandeja-table td .badge.info { white-space: normal; display: inline-block; max-width: 150px; }
 html body .data-table.bandeja-table td:has(.clasif-cell), html body .data-table.bandeja-table td:has(.badge.info) { white-space: normal; }
 html body .data-table.bandeja-table td .comuna-input-inline[placeholder="dd-mm-aaaa"] { width: 96px !important; }
-
-/* Listado "Todas": RUT con ancho fijo real (contenido + botón) y Nombre anclado justo después (36 + 136) */
-html body .data-table th.col-sticky-rut, html body .data-table td.col-sticky-rut { width: 136px !important; min-width: 136px !important; max-width: 136px !important; }
-html body .data-table th.col-sticky-nombre, html body .data-table td.col-sticky-nombre { left: 172px !important; }
 
 /* Duplicados: columnas ajustadas al contenido; Nombre absorbe el sobrante */
 html body .dup-tabla th, html body .dup-tabla td { width: 1%; white-space: nowrap; }

@@ -82,7 +82,7 @@
                         <tr>
                             <th style="width: 42px;">N°</th>
                             <th style="text-align: left;">Nombre de contribuyente</th>
-                            <th>RUT</th>
+                            <th class="col-rut-centrado">RUT</th>
                             <th>Sede</th>
                             <th>Trámite / Tipo</th>
                             <th>Última Carpeta</th>
@@ -97,7 +97,7 @@
                             <tr>
                                 <td class="n">@correlativo</td>
                                 <td class="nom">@item.NombreCompleto</td>
-                                <td class="mono">@item.Rut</td>
+                                <td class="mono col-rut-centrado">@item.Rut</td>
                                 <td>@Labels.Of(item.Sede)</td>
                                 <td>@(item.TipoTramite ?? Labels.Of(item.Estado))</td>
                                 <td>@(string.IsNullOrEmpty(item.FechaUltimaCarpeta) ? "S/C" : item.FechaUltimaCarpeta)</td>
@@ -290,12 +290,10 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th class="th-check">
-                                        <input type="checkbox" checked="@TodosColaSeleccionados" @onchange="ToggleSelectAllCola" title="Seleccionar todas" />
-                                    </th>
+                                    <th class="th-check"></th>
                                     <th>N°</th>
-                                    <th>RUT</th>
                                     <th>Nombre de contribuyente</th>
+                                    <th class="col-rut-centrado">RUT</th>
                                     <th>Sede</th>
                                     <th>Trámite</th>
                                     <th>Fecha Citación</th>
@@ -313,8 +311,8 @@
                                             <input type="checkbox" checked="@sel" @onchange="() => ToggleSelectCola(c.Id)" />
                                         </td>
                                         <td>@nro</td>
-                                        <td><span class="rut-cell">@c.Rut</span></td>
                                         <td><span class="name-cell">@c.NombreCompleto</span></td>
+                                        <td class="col-rut-centrado"><span class="rut-cell">@c.Rut</span></td>
                                         <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                                         <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
                                         <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>

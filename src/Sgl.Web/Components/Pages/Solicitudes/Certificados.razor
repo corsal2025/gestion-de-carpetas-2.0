@@ -142,8 +142,8 @@
             <table class="data-table bandeja-table">
                 <thead>
                     <tr>
-                        <th class="col-sticky-rut">RUT</th>
                         <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
                         <th>SEDE</th>
                         <th>TIPO</th>
                         <th>ORIGEN</th>
@@ -159,7 +159,6 @@
                     @foreach (var s in items)
                     {
                         <tr @key="s.Id">
-                            <td class="date-cell col-sticky-rut">@s.Rut</td>
                             <td class="col-sticky-nombre">
                                 <div class="nombre-wrapper-cell">
                                     <span class="name-cell">@s.NombreCompleto</span>
@@ -171,6 +170,7 @@
                                     </span>
                                 </div>
                             </td>
+                            <td class="date-cell col-sticky-rut">@s.Rut</td>
                             <td><span class="sede-tag">@Labels.Of(s.Sede)</span></td>
                             <td>@EtiquetasSolicitudes.Of(s.Tipo)</td>
                             <td>@EtiquetasSolicitudes.Of(s.Origen)</td>
@@ -178,7 +178,7 @@
                             <td class="date-cell">@HoraChile.ALocal(s.SolicitadoEn).ToString("dd-MM-yyyy")</td>
                             <td>
                                 <span class="badge @(s.Estado == EstadoCertificado.Firmado ? "ok" : "warn")">@EtiquetasSolicitudes.Of(s.Estado)</span>
-                                <div class="muted sol-correo">@(s.EnviadoADirectorEn is { } env ? $"Correo enviado {HoraChile.ALocal(env):dd-MM-yyyy}" : "Correo: no enviado")</div>
+                                <span class="sol-correo-ico muted" title="@(s.EnviadoADirectorEn is { } env ? $"Correo enviado {HoraChile.ALocal(env):dd-MM-yyyy}" : "Correo: no enviado (modo prueba / sin correo del Director)")" aria-label="Estado del correo al Director">@(s.EnviadoADirectorEn is null ? "✉ ✕" : "✉ ✓")</span>
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(s.NumeroOficio) ? "—" : s.NumeroOficio)</td>
                             <td>
@@ -395,18 +395,6 @@
         mensaje = null;
         if (!AutorListo()) return;
 
-        bool confirmado;
-        try
-        {
-            confirmado = await JS.InvokeAsync<bool>("confirm",
-                $"¿Confirmar que el documento de {s.NombreCompleto} ({s.Rut}) fue firmado y entregado? La carpeta pasa a «Subida con oficio».");
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
-        {
-            return;
-        }
-
-        if (!confirmado) return;
 
         ocupadoId = s.Id;
         try

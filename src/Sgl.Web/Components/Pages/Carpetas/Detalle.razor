@@ -113,8 +113,8 @@ else
                         <td>@Sgl.Domain.HoraChile.ALocal(h.Fecha).ToString("dd-MM-yyyy HH:mm")</td>
                         <td>@h.Usuario</td>
                         <td>@Labels.Campo(h.Campo)</td>
-                        <td>@h.Anterior</td>
-                        <td>@h.Nuevo</td>
+                        <td class="celda-trunca" title="@h.Anterior">@h.Anterior</td>
+                        <td class="celda-trunca" title="@h.Nuevo">@h.Nuevo</td>
                     </tr>
                 }
             </tbody>

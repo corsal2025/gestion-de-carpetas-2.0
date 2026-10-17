@@ -12,11 +12,12 @@
     <script>
         // Aplica tema y estilo de filas antes del primer pintado (evita el parpadeo claro/oscuro).
         (function () {
-            var d = document.documentElement, t = null, r = null;
-            try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); } catch (e) { }
+            var d = document.documentElement, t = null, r = null, g = null;
+            try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); g = localStorage.getItem('sgl-design'); } catch (e) { }
             if (t !== 'light' && t !== 'dark') t = 'light';
             d.setAttribute('data-theme', t);
             d.setAttribute('data-rows', r === 'soft' ? 'soft' : 'classic');
+            d.setAttribute('data-design', g === 'institucional' ? 'institucional' : 'claro');
         })();
     </script>
     <link rel="stylesheet" href="@Assets["app.css"]" />

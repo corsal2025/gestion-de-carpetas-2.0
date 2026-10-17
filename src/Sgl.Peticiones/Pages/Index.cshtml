@@ -110,7 +110,7 @@
             <thead>
                 <tr>
                     <th>Nombre</th>
-                    <th>RUT</th>
+                    <th class="col-rut-centrado">RUT</th>
                     <th class="text-center">Comuna</th>
                     <th style="width:1%"></th>
                 </tr>
@@ -141,8 +141,8 @@
     <thead>
         <tr>
             <th class="text-center" style="width:1%"></th>
-            <th>RUT</th>
             <th>Nombre de contribuyente</th>
+            <th class="col-rut-centrado">RUT</th>
             <th>Sede</th>
             <th class="text-center">Comuna</th>
             <th>Fecha de solicitud</th>
@@ -209,20 +209,21 @@
                     </form>
                 }
             </td>
-            <td class="dato num">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
             <td class="dato">
                 <div class="d-flex align-items-center justify-content-between gap-2">
-                    <span class="nombre-persona">@p.NombreCompleto</span>
+                    <span class="nombre-persona" title="@p.NombreCompleto">@p.NombreCompleto</span>
                     <a class="icono-buscar-dup icono-buscar-dup--neutro" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
                        title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                     </a>
                 </div>
             </td>
-            <td class="text-muted" title="@p.Origen" style="cursor:help;">@p.Oficina</td>
+            <td class="dato num col-rut-centrado">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
+            <td class="text-muted celda-una-linea" title="@p.Origen" style="cursor:help;">@p.Oficina</td>
             <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
             <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
             <td>
+                <span class="fila-inline">
                 @if (p.Estado == EstadoPeticion.Enviada && p.EnviadaEn is not null)
                 {
                     <span class="pill pill--ok" title="@envioTitulo" style="cursor:help">
@@ -246,6 +247,7 @@
                 {
                     <span class="pill pill--idle">Sin enviar</span>
                 }
+                </span>
             </td>
             <td>
                 @if (esResuelta)
@@ -256,7 +258,7 @@
                 }
                 else if (plazo.Inicio is null)
                 {
-                    <span class="plazo-txt text-muted">El reloj parte al enviar</span>
+                    <span class="plazo-txt text-muted" title="El reloj parte al enviar" style="cursor:help">—</span>
                 }
                 else
                 {
@@ -267,6 +269,7 @@
                 }
             </td>
             <td class="col-acciones">
+                <span class="fila-inline fila-inline--acciones">
                 @if (!esEnviada && pendientesComuna > 0)
                 {
                     var rutDudoso = Model.Peticiones.Any(x =>
@@ -277,8 +280,9 @@
                     <form method="post" class="d-inline"
                           onsubmit="return confirm('@p.Comuna: @pendientesComuna persona(s) pendiente(s).\nSe envía 1 correo con todas.@(aviso) ¿Continuar?');">
                         <input type="hidden" name="id" value="@p.Id" />
-                        <button asp-page-handler="EnviarComuna" class="btn btn-sm btn-outline-primary">
-                            Enviar comuna (@pendientesComuna)
+                        <button asp-page-handler="EnviarComuna" class="btn btn-sm btn-outline-primary text-nowrap"
+                                title="Enviar a la comuna de @p.Comuna: 1 correo con las @pendientesComuna petición(es) pendiente(s)">
+                            Enviar (@pendientesComuna)
                         </button>
                     </form>
                 }
@@ -286,6 +290,7 @@
                     <input type="hidden" name="id" value="@p.Id" />
                     <button asp-page-handler="Eliminar" class="btn btn-sm btn-outline-danger" title="Eliminar">✕</button>
                 </form>
+                </span>
             </td>
         </tr>
     }

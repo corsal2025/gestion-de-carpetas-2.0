@@ -641,3 +641,380 @@ html body :is(.badge, .badge-count, .badge-total, .filter-chip, .chip-impreso, .
 html body :is(.txt-ayuda, .est-nota, .plazo-txt, .quick-add-hint, .pdf-toolbar-hint) {
     font-size: var(--fs-small);
 }
+
+/* RUT siempre centrado (encabezado y celdas) en todos los módulos */
+html body :is(th, td).col-sticky-rut,
+html body :is(th, td).col-rut-centrado,
+html body :is(th, td).dup-col-rut,
+html body .data-table :is(th, td).col-sticky-rut,
+html body .table :is(th, td).col-rut-centrado { text-align: center !important; }
+/* Columns are NOMBRE then RUT: the theme left-aligns the 2nd bandeja column (the name; the RUT in tables without a checkbox column), so the RUT cell is centred by class */
+html body .data-table.bandeja-table tbody td.col-sticky-rut { text-align: center !important; }
+
+/* Columnas bien delimitadas: rejilla vertical visible en todas las tablas, sobre cualquier color de fila */
+html body .data-table tbody td,
+html body .table tbody td,
+html body .dup-tabla tbody td {
+    border-right: 1px solid rgba(15, 23, 42, 0.28) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.18) !important;
+}
+html body .data-table tbody td:last-child,
+html body .table tbody td:last-child,
+html body .dup-tabla tbody td:last-child { border-right: 0 !important; }
+html body .data-table thead th,
+html body .table thead th,
+html body .dup-tabla thead th { border-right: 1px solid rgba(255, 255, 255, 0.55) !important; }
+html body .data-table thead th:last-child,
+html body .table thead th:last-child,
+html body .dup-tabla thead th:last-child { border-right: 0 !important; }
+html[data-theme="dark"] body .data-table tbody td,
+html[data-theme="dark"] body .table tbody td,
+html[data-theme="dark"] body .dup-tabla tbody td {
+    border-right-color: rgba(255, 255, 255, 0.22) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Barra superior: el listado para búsqueda va a la derecha, junto a «Mostrar sedes y acciones» */
+.panel-barra { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.panel-barra .btn-panel-toggle { flex: 1 1 auto; }
+.busqueda-acciones { display: inline-flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; margin-left: auto; }
+.busqueda-acciones .btn-small { margin: 0; padding: 0.35rem 0.9rem; white-space: nowrap; }
+
+/* «Listado para búsqueda»: amarillo de acento, contrasta con el azul del encabezado y de la tabla */
+html body .busqueda-acciones .btn-primary {
+    background: #ffd84d !important;
+    background-image: none !important;
+    color: #1b2140 !important;
+    border: 2px solid #1b2140 !important;
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(255, 216, 77, 0.55);
+}
+html body .busqueda-acciones .btn-primary:hover:not(:disabled) { background: #ffe680 !important; box-shadow: 0 3px 12px rgba(255, 216, 77, 0.75); }
+html body .busqueda-acciones .btn-primary:disabled { opacity: 0.5; box-shadow: none; }
+
+/* Delimitación de columnas reforzada: línea oscura de 2 px + filo claro, visible sobre verde, morado, rojo y blanco */
+html body .data-table tbody td,
+html body .table tbody td,
+html body .dup-tabla tbody td {
+    border-right: 2px solid rgba(15, 23, 42, 0.62) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.45) !important;
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.45);
+}
+html body .data-table tbody td:last-child,
+html body .table tbody td:last-child,
+html body .dup-tabla tbody td:last-child { border-right: 0 !important; box-shadow: none; }
+html body .data-table thead th,
+html body .table thead th,
+html body .dup-tabla thead th { border-right: 2px solid rgba(255, 255, 255, 0.85) !important; }
+html body .data-table thead th:last-child,
+html body .table thead th:last-child,
+html body .dup-tabla thead th:last-child { border-right: 0 !important; }
+html[data-theme="dark"] body .data-table tbody td,
+html[data-theme="dark"] body .table tbody td,
+html[data-theme="dark"] body .dup-tabla tbody td {
+    border-right-color: rgba(255, 255, 255, 0.5) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Final decision: read-only text instead of a select */
+html body .decision-final { font-weight: 700; letter-spacing: .02em; }
+
+/* ==========================================================================
+   AUTO COLUMN WIDTHS (final word)
+   Every column = its widest content. No fixed widths anywhere: the table is as wide as the sum of its columns and the
+   .table-container scrolls horizontally when that is wider than the screen. Sticky offsets come from app.js
+   (--w-check / --w-nombre, published per table). Headers wrap only on word boundaries (width:1px makes the header's
+   preferred width its longest word, so the column width is decided by the body cells).
+   ========================================================================== */
+html body .data-table.data-table {
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    table-layout: auto !important;
+}
+html body .data-table.data-table :is(th, td) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    white-space: nowrap !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+}
+html body .data-table.data-table thead th {
+    width: 1px;
+    white-space: normal !important;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
+    line-height: 1.15;
+}
+html body .data-table.data-table thead th:is(.th-check, .col-sticky-check) { white-space: nowrap !important; }
+html body .data-table.data-table :is(th, td).col-sticky-check { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+/* NOMBRE: one line, as wide as the longest name up to 30rem (then an ellipsis; the full name is in the tooltip). Lupa sits right next to the pencil. */
+html body .data-table.data-table :is(th, td).col-sticky-nombre { text-align: left !important; }
+html body .data-table.data-table td.col-sticky-nombre { max-width: 34rem; }
+html body .data-table.data-table td.col-sticky-nombre .nombre-wrapper-cell { width: auto; max-width: 34rem; }
+html body .data-table.data-table td.col-sticky-nombre .name-cell {
+    white-space: nowrap !important;
+    overflow-wrap: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 30rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+html body .data-table.data-table :is(th, td).col-sticky-rut { text-align: center !important; }
+/* Selects / inputs inside cells size to their content, not to a stretched column */
+html body .data-table.data-table td.action-cell { width: auto; }
+@media (max-width: 600px) {
+    html body .data-table.data-table :is(th, td).col-sticky-rut { position: static !important; }
+}
+
+/* ==========================================================================
+   ONE LINE PER ROW (final word, every module)
+   Each record is a single line of uniform, compact height: no body cell wraps and no cell stacks content. Long free text
+   (names, motivos, observations) gets one line + ellipsis; the full text is always in the cell's title tooltip.
+   Headers may wrap on word boundaries (2 lines max) - that is intentional.
+   ========================================================================== */
+html body :is(.data-table, .table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .integridad-tabla,
+              .est-tabla, .est-barras, .content table:not(.acta-table):not(.cases)) tbody :is(td, th) {
+    white-space: nowrap !important;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    vertical-align: middle;
+}
+html body :is(.dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-tabla, .est-barras) tbody :is(td, th) {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    line-height: 1.3;
+}
+html body :is(.dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-tabla, .est-barras) thead th {
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
+}
+/* Long free text: one line, ellipsis, full text in the tooltip */
+html body td.celda-trunca,
+html body .celda-una-linea {
+    max-width: 24rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+html body td.celda-trunca--nombre { max-width: 30rem; }
+html body td.celda-trunca > .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+html body .integridad .dup-tabla td:nth-child(2).celda-trunca { min-width: 18rem; max-width: 24rem; }
+html body .data-table .name-cell,
+html body .table .nombre-persona,
+html body .data-table .nombre-persona {
+    display: block;
+    max-width: 30rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+html body .data-table td .nombre-wrapper-cell .name-cell { display: block; }
+/* Inline groups (status + time, buttons) */
+.fila-inline { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: nowrap; white-space: nowrap; vertical-align: middle; }
+.fila-inline form { margin: 0; display: inline-flex; }
+.fila-inline .pill-time { margin-left: 0; }
+html body .table > tbody > tr > td { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+html body .table .btn-sm { white-space: nowrap; line-height: 1.3; }
+/* Peticiones: deadline = mini bar + text in one row */
+html body .plazo { flex-direction: row; align-items: center; gap: 0.5rem; min-width: 0; white-space: nowrap; }
+html body .plazo-bar { width: 3.5rem; flex: 0 0 3.5rem; }
+html body .plazo-txt { white-space: nowrap; }
+html body .table-responsive:has(> table) { overflow-x: auto; }
+/* Peticiones: name = text + magnifier on the same line */
+html body .table td.dato > .d-flex { flex-wrap: nowrap !important; white-space: nowrap; }
+html body .table td.dato > .d-flex > .icono-buscar-dup { flex: 0 0 auto; }
+/* Cells that used to be flex/stacked containers */
+html body td.dup-revision-acciones { display: table-cell; }
+html body td.dup-revision-acciones > * { display: inline-flex; vertical-align: middle; margin-right: 0.3rem; }
+html body td .clasif-cell { flex-wrap: nowrap; max-width: none; }
+html body .caja-title-cell, html body .caja-actions-cell { flex-wrap: nowrap; white-space: nowrap; }
+html body .caja-actions-cell { justify-content: flex-end; }
+html body .caja-actions-cell > * { white-space: nowrap; }
+html body .sol-anio { flex-wrap: nowrap; white-space: nowrap; }
+html body .data-table .sol-anio :is(input, button) { height: 2rem; padding-top: 0.15rem; padding-bottom: 0.15rem; }
+html body .data-table td .excel-cell-date, html body td.excel-cell-date { white-space: nowrap; }
+.sol-correo-ico { font-size: 0.75rem; margin-left: 0.4rem; cursor: help; white-space: nowrap; }
+/* "Por arreglar" rows and section bands */
+html body .dup-caso-resumen { flex-wrap: nowrap; white-space: nowrap; }
+html body .dup-caso-resumen .dup-motivo { max-width: 24rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dup-seccion-cab-fila { flex-wrap: nowrap; white-space: nowrap; }
+/* Printable acta table inside the box modal: single-line rows on screen only */
+@media screen {
+    html body table.acta-table tbody td { white-space: nowrap; }
+    html body table.acta-table td.nom { max-width: 30rem; overflow: hidden; text-overflow: ellipsis; }
+}
+html body .table .barra-track { min-width: 6rem; }
+html body .table td form.d-flex { flex-wrap: nowrap; }
+html body .table td form.d-flex input[type="email"] { min-width: 18rem; }
+
+/* ==========================================================================
+   DISEÑO · Capa final de estilo visual (solo apariencia; ningún cambio de lógica).
+   html[data-design="claro"] (por defecto) y html[data-design="institucional"].
+   Los tokens claros solo aplican fuera del tema oscuro (html[data-theme="dark"]).
+   ========================================================================== */
+html {
+    --dz-radius-ctl: 8px;
+    --dz-radius-card: 12px;
+    --dz-btn-md: 34px;
+    --dz-btn-sm: 30px;
+    --dz-fs-body: 13.5px;
+    --dz-fs-th: 12px;
+    --dz-fs-title: 24px;
+}
+
+/* Tokens · claro y limpio (por defecto) */
+html:not([data-theme="dark"]):not([data-design="institucional"]) {
+    --bg-page: #f6f7f9;
+    --surface: #ffffff;
+    --surface-alt: #f6f7f9;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --border-color: #e5e7eb;
+    --border-hover: #cbd5e1;
+    --brand-primary: #14306e;
+    --brand-primary-hover: #0e2355;
+    --brand-light: #eef2ff;
+    --radius-sm: var(--dz-radius-ctl);
+    --radius-md: var(--dz-radius-card);
+    --radius-lg: var(--dz-radius-card);
+}
+
+/* Tokens · institucional cálido (azul municipal + amarillo de acción) */
+html[data-design="institucional"]:not([data-theme="dark"]) {
+    --bg-page: #faf6ec;
+    --surface: #fffdf7;
+    --surface-alt: #f7f1e1;
+    --text-primary: #1b2140;
+    --text-secondary: #3c4466;
+    --text-muted: #5f6788;
+    --border-color: #ece5d3;
+    --border-hover: #d9cfb5;
+    --brand-primary: #26388c;
+    --brand-primary-hover: #1a2766;
+    --brand-light: #e4ecfb;
+    --radius-sm: var(--dz-radius-ctl);
+    --radius-md: var(--dz-radius-card);
+    --radius-lg: var(--dz-radius-card);
+}
+
+/* Tipografía: cuerpo y celdas 13.5px, encabezados 12px semibold, títulos 24px */
+html body { font-size: var(--dz-fs-body); }
+html body .data-table tbody td { font-size: var(--dz-fs-body) !important; }
+html body .data-table thead th { font-size: var(--dz-fs-th) !important; font-weight: 600 !important; }
+html body .content > h1,
+html body .header-section h1,
+html body .page-container .header-section h1 {
+    font-size: var(--dz-fs-title) !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.02em;
+}
+
+/* Encabezados de tabla: banda uniforme. Claro: superficie + texto muted. Institucional: banda azul + subrayado amarillo. */
+html:not([data-theme="dark"]):not([data-design="institucional"]) body .data-table thead th {
+    background: var(--surface) !important;
+    color: var(--text-muted) !important;
+    -webkit-text-fill-color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    height: 40px;
+}
+html[data-design="institucional"]:not([data-theme="dark"]) body .data-table thead th {
+    background: var(--brand-primary) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-bottom: 3px solid #f6d23c !important;
+    height: 40px;
+}
+
+/* Filas por estado: fondo neutro + barra izquierda de 3px del color del estado (el texto y el chip indican el estado). */
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] { --estado-acc: #94a3b8; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-citada { --estado-acc: #94a3b8; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-revision { --estado-acc: #ca8a04; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-alertada { --estado-acc: #e11d48; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-primeralicencia { --estado-acc: #c026d3; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaaconaset,
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconaset { --estado-acc: #2563eb; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconf8 { --estado-acc: #a16207; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconoficio { --estado-acc: #d97706; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoaconaset { --estado-acc: #0891b2; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoconcorreo { --estado-acc: #64748b; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosolicitado { --estado-acc: #3b82f6; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomicilio { --estado-acc: #1d4ed8; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-canjelicenciaextranjera { --estado-acc: #475569; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenarchivos { --estado-acc: #4d7c0f; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenoficina43 { --estado-acc: #7c3aed; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-noexistecarpeta { --estado-acc: #dc2626; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearoficio,
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearcertificado { --estado-acc: #be185d; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientef8,
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientecertificado { --estado-acc: #ea580c; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-esperaexamen { --estado-acc: #0ea5e9; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-clasependiente { --estado-acc: #f59e0b; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-otorgado { --estado-acc: #16a34a; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-paradenegar { --estado-acc: #c2410c; }
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-denegado { --estado-acc: #991b1b; }
+
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    font-weight: 500 !important;
+}
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td *:not([class*="btn"]):not([class*="badge"]):not([class*="pill"]):not([class*="chip"]):not([class*="muted"]):not(select):not(input):not(button):not(a) {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+}
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td a:not([class*="btn"]) {
+    color: var(--brand-primary) !important;
+    -webkit-text-fill-color: var(--brand-primary) !important;
+}
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--estado-acc) !important;
+}
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"]:hover td {
+    background: var(--surface-alt) !important;
+}
+html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"].row-selected td {
+    background: var(--brand-light) !important;
+}
+
+/* Botones: una sola escala (sm 30px, md 34px, mismo radio). Principal = relleno azul; secundario = blanco con borde. */
+html:not([data-theme="dark"]) body :is(.btn, .btn-primary, .btn-secondary, .btn-detail, .btn-clear, .btn-small, .btn-sm) {
+    border-radius: var(--dz-radius-ctl) !important;
+}
+html body :is(.btn, .btn-primary, .btn-secondary) { min-height: var(--dz-btn-md); }
+html body :is(.btn-sm, .btn-small) { min-height: var(--dz-btn-sm); }
+html:not([data-theme="dark"]) body .btn-primary {
+    background: var(--brand-primary) !important;
+    background-image: none !important;
+    border-color: var(--brand-primary) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    box-shadow: none !important;
+}
+html:not([data-theme="dark"]) body .btn-primary:hover:not(:disabled) {
+    background: var(--brand-primary-hover) !important;
+    transform: none;
+}
+html:not([data-theme="dark"]) body .btn-secondary {
+    background: var(--surface) !important;
+    background-image: none !important;
+    border: 1px solid var(--border-hover) !important;
+    color: var(--text-primary) !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+/* Tarjetas y paneles (Peticiones, Estadísticas, Integridad, Detalle): mismos tokens de radio, borde y sombra. */
+html:not([data-theme="dark"]) body :is(.card, .est-card) {
+    border-radius: var(--dz-radius-card) !important;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}

@@ -60,10 +60,12 @@
             <table class="data-table bandeja-table">
                 <thead>
                     <tr>
-                        <th class="col-sticky-rut">RUT</th>
                         <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
                         <th>SEDE</th>
                         <th>ORIGEN</th>
+                        <th>CÓDIGO F8</th>
+                        <th>FECHA DE PENÚLTIMA CARPETA</th>
                         <th>SOLICITADO POR</th>
                         <th>FECHA DE SOLICITUD</th>
                         <th>ESTADO</th>
@@ -75,7 +77,6 @@
                     @foreach (var s in items)
                     {
                         <tr @key="s.Id">
-                            <td class="date-cell col-sticky-rut">@s.Rut</td>
                             <td class="col-sticky-nombre">
                                 <div class="nombre-wrapper-cell">
                                     <span class="name-cell">@s.NombreCompleto</span>
@@ -87,8 +88,11 @@
                                     </span>
                                 </div>
                             </td>
+                            <td class="date-cell col-sticky-rut">@s.Rut</td>
                             <td><span class="sede-tag">@Labels.Of(s.Sede)</span></td>
                             <td>@Labels.Of(s.EstadoOrigen)</td>
+                            <td class="date-cell">@(s.CodigoF8 ?? "—")</td>
+                            <td class="date-cell">@(s.FechaPenultimaCarpeta is { } fp ? fp.ToString("dd-MM-yyyy") : "—")</td>
                             <td>@s.SolicitadoPor</td>
                             <td class="date-cell">@HoraChile.ALocal(s.SolicitadoEn).ToString("dd-MM-yyyy")</td>
                             <td><span class="badge @ClaseEstado(s.Estado)">@EtiquetasSolicitudes.Of(s.Estado)</span></td>
@@ -214,24 +218,11 @@
         return false;
     }
 
-    private async Task<bool> ConfirmarAsync(string pregunta)
-    {
-        try
-        {
-            return await JS.InvokeAsync<bool>("confirm", pregunta);
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
-        {
-            return false;
-        }
-    }
-
     private async Task MarcarSubidoAsync(SolicitudF8Dto s)
     {
         error = null;
         CerrarMensaje();
         if (!AutorListo()) return;
-        if (!await ConfirmarAsync($"¿Confirmar que el F8 de {s.NombreCompleto} ({s.Rut}) fue subido? La carpeta pasa a «Subida con F8».")) return;
 
         ocupadoId = s.Id;
         try
@@ -256,7 +247,6 @@
         error = null;
         CerrarMensaje();
         if (!AutorListo()) return;
-        if (!await ConfirmarAsync($"¿Confirmar que no se pudo generar el F8 de {s.NombreCompleto} ({s.Rut})? Se abrirá una solicitud de certificado.")) return;
 
         ocupadoId = s.Id;
         try

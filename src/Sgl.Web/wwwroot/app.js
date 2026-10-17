@@ -566,6 +566,12 @@ window.printPdfDocument = function (titulo) {
             root.setAttribute('data-theme', next);
             save('sgl-theme', next);
         },
+        // Estilo visual: "claro" (por defecto) o "institucional". Solo cambia tokens CSS.
+        toggleDesign: function () {
+            var next = root.getAttribute('data-design') === 'institucional' ? 'claro' : 'institucional';
+            root.setAttribute('data-design', next);
+            save('sgl-design', next);
+        },
         toggleRows: function () {
             var next = root.getAttribute('data-rows') === 'classic' ? 'soft' : 'classic';
             root.setAttribute('data-rows', next);
@@ -616,4 +622,103 @@ window.printPdfDocument = function (titulo) {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') cerrarAbiertos(null);
     });
+})();
+
+/**
+ * Auto-sized table columns support (table.data-table).
+ *  - Publishes --w-check / --w-nombre (rendered widths of the checkbox and NOMBRE columns) on each table, so the
+ *    sticky-left offsets in CSS follow the real column widths instead of constants.
+ *  - Tables flagged .tabla-virtual (Blazor Virtualize: only visible rows exist) keep columns monotonic: per column
+ *    index the widest width seen is applied as min-width on the header cell, so columns only grow while scrolling
+ *    and never jitter. A new table instance (each tray mounts one) starts from scratch.
+ * Reads are batched before writes inside one requestAnimationFrame; applying min-width equal to the measured width
+ * and publishing custom properties never changes any column size, so there is no resize loop.
+ */
+(function () {
+    'use strict';
+    var estado = new WeakMap();
+    var vigiladas = [];
+    var pendiente = false;
+    var ro = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(programar) : null;
+
+    function programar() {
+        if (pendiente) return;
+        pendiente = true;
+        requestAnimationFrame(function () {
+            pendiente = false;
+            try { procesar(); } catch (e) { /* cosmetic only */ }
+        });
+    }
+
+    function procesar() {
+        var tablas = document.querySelectorAll('table.data-table');
+        var lecturas = [];
+        var i, t, st;
+
+        vigiladas = vigiladas.filter(function (x) { return x.isConnected; });
+        for (i = 0; i < tablas.length; i++) {
+            t = tablas[i];
+            if (!estado.has(t)) {
+                estado.set(t, { max: [], check: null, nombre: null });
+                if (ro) ro.observe(t);
+                vigiladas.push(t);
+            }
+        }
+
+        // 1) reads
+        for (i = 0; i < tablas.length; i++) {
+            t = tablas[i];
+            var fila = t.tHead && t.tHead.rows[0];
+            if (!fila) continue;
+            var celdas = fila.cells, anchos = [], c, nombreIdx = -1;
+            for (c = 0; c < celdas.length; c++) {
+                anchos.push(celdas[c].getBoundingClientRect().width);
+                if (nombreIdx < 0 && celdas[c].classList.contains('col-sticky-nombre')) nombreIdx = c;
+            }
+            lecturas.push({ t: t, celdas: celdas, anchos: anchos, nombreIdx: nombreIdx });
+        }
+
+        // 2) writes
+        lecturas.forEach(function (l) {
+            st = estado.get(l.t);
+            var monotona = l.t.classList.contains('tabla-virtual');
+            var c;
+            if (monotona) {
+                for (c = 0; c < l.anchos.length; c++) {
+                    var w = Math.ceil(l.anchos[c]);
+                    if (w > (st.max[c] || 0)) st.max[c] = w;
+                    // Always re-apply: Blazor re-creates header cells on re-render and the new element has no inline min-width,
+                    // which let the column shrink below the width the sticky offsets (--w-nombre) were computed from.
+                    var minimo = (st.max[c] || 0) + 'px';
+                    // !important: the stylesheets force `min-width: 0 !important` on table cells, which a plain inline value cannot beat.
+                    if (l.celdas[c].style.getPropertyValue('min-width') !== minimo || l.celdas[c].style.getPropertyPriority('min-width') !== 'important') {
+                        l.celdas[c].style.setProperty('min-width', minimo, 'important');
+                    }
+                }
+            }
+            var ancho = function (idx) {
+                var w = Math.ceil(l.anchos[idx]);
+                return monotona ? Math.max(w, st.max[idx] || 0) : w;
+            };
+            var check = (l.celdas[0] && l.celdas[0].classList.contains('col-sticky-check')) ? ancho(0) : 0;
+            if (check !== st.check) { st.check = check; l.t.style.setProperty('--w-check', check + 'px'); }
+            if (l.nombreIdx >= 0) {
+                var nombre = ancho(l.nombreIdx);
+                if (nombre !== st.nombre) { st.nombre = nombre; l.t.style.setProperty('--w-nombre', nombre + 'px'); }
+            }
+        });
+    }
+
+    function iniciar() {
+        programar();
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver(programar).observe(document.body, { childList: true, subtree: true });
+        }
+        window.addEventListener('resize', programar);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(programar);
+    }
+
+    window.sglTablas = { recalcular: programar };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+    else iniciar();
 })();

@@ -73,9 +73,9 @@
                             {
                                 <tr>
                                     <td><span class="integridad-codigo" title="@ReglasIntegridadInfo.Titulo(p.Regla)">@ReglasIntegridadInfo.Codigo(p.Regla)</span></td>
-                                    <td>@p.Detalle</td>
+                                    <td class="celda-trunca" title="@p.Detalle">@p.Detalle</td>
                                     <td>@(p.Rut ?? "—")</td>
-                                    <td class="nombre-persona">@(p.NombreCompleto ?? "—")</td>
+                                    <td class="nombre-persona celda-trunca celda-trunca--nombre" title="@p.NombreCompleto">@(p.NombreCompleto ?? "—")</td>
                                     <td>@(p.Sede is { } s ? Labels.Of(s) : "—")</td>
                                     <td>@(p.Estado is { } e ? Labels.Of(e) : "—")</td>
                                     <td>

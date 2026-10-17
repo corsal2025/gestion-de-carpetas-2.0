@@ -58,7 +58,6 @@ public static class ModulosCatalogo
         Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambios de domicilio que nos solicitan por correo", "CD"),
         new(ClavePeticiones, CambioDomicilio, "Peticiones de cambio de domicilio a otras comunas", "PE", "peticiones"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado", "CS"),
-        new(ClaveF8, Solicitudes, "F8", "FS", "f8"),
         new(ClaveCertificados, Solicitudes, "Certificado / Oficio", "CF", "certificados"),
         new("peticiones-comunas", Sistema, "Comunas y correos", "CO", "peticiones/Comunas"),
         new("peticiones-estadisticas", Sistema, "Estadísticas de peticiones", "EP", "peticiones/Estadisticas"),
