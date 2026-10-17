@@ -213,13 +213,96 @@ html:not([data-design="institucional"]):not([data-theme="dark"]) .topbar :focus-
     box-shadow: none;
 }
 
-/* Below ~2100px the single row no longer fits: brand + tools + funcionario on row 1, navigation on row 2. */
-@media (max-width: 2099px) {
+/* ---- Compact single-row top bar (stage 3) ----------------------------------
+   One row from 1280px up. Compaction, in order: tighter nav pills, 40px tool buttons,
+   the 6 palette swatches collapse into one popover button (markup in MainLayout.razor,
+   behaviour in app.js), the funcionario label becomes visually hidden (the input keeps its
+   aria-label) and the brand text shrinks/hides on narrower desktops. Two rows below 1280px. */
+@media (min-width: 1280px) {
+    html:not([data-design="institucional"]) .topbar { flex-wrap: nowrap; gap: 8px 12px; min-height: 64px; padding: 8px 12px; }
+    html:not([data-design="institucional"]) .topbar .brand-group { flex: 0 0 auto; }
+    html:not([data-design="institucional"]) .main-nav { flex: 1 1 auto; flex-wrap: nowrap; gap: 2px; min-width: 0; }
+    html:not([data-design="institucional"]) body .main-nav .nav-item,
+    html:not([data-design="institucional"]) body .main-nav .nav-item.nav-carpetas,
+    html:not([data-design="institucional"]) body .main-nav .nav-item.nav-cajas,
+    html:not([data-design="institucional"]) body .main-nav .nav-item.nav-importar,
+    html:not([data-design="institucional"]) body .main-nav .nav-item.nav-estadisticas {
+        padding: 0 10px;
+        gap: 6px;
+        font-size: 0.84rem;
+        white-space: nowrap;
+    }
+    html:not([data-design="institucional"]) body .main-nav .btn-guia-accion {
+        padding: 0 12px 0 6px !important;
+        margin-left: 2px !important;
+        font-size: 0.84rem;
+        white-space: nowrap;
+    }
+    html:not([data-design="institucional"]) .topbar .head-lico,
+    html:not([data-design="institucional"]) .topbar .head-lico .lico-slot,
+    html:not([data-design="institucional"]) .topbar .head-lico svg { width: 44px; height: 44px; }
+    html:not([data-design="institucional"]) .topbar-tools { gap: 6px; margin-left: 0; }
+    html:not([data-design="institucional"]) .tool-btn { width: 40px; height: 40px; }
+    html:not([data-design="institucional"]) .user-block .autor input { width: 118px; height: 40px; }
+    html:not([data-design="institucional"]) .user-block .autor .autor-etq {
+        position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+}
+/* Brand text: full name from 1700px, name only from 1500px, logo only below that. */
+@media (min-width: 1280px) and (max-width: 1699px) {
+    html:not([data-design="institucional"]) .topbar .brand-text .brand-sub { display: none; }
+}
+@media (min-width: 1280px) and (max-width: 1499px) {
+    html:not([data-design="institucional"]) .topbar .brand-text { display: none; }
+}
+
+/* Two rows below 1280px: brand + tools + funcionario on row 1, navigation on row 2. */
+@media (max-width: 1279px) {
     html:not([data-design="institucional"]) .topbar .brand-group { order: 1; }
     html:not([data-design="institucional"]) .topbar .topbar-tools { order: 2; margin-left: auto; }
     html:not([data-design="institucional"]) .topbar .user-block { order: 3; }
     html:not([data-design="institucional"]) .topbar .main-nav { order: 4; flex: 1 1 100%; }
 }
+
+/* ---- Palette popover (glass design only; legacy design keeps inline swatches) ---- */
+html:not([data-design="institucional"]) .pal-wrap { position: relative; flex: 0 0 auto; }
+html:not([data-design="institucional"]) .pal-toggle {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 14px;
+    border: 1px solid var(--glass-line);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+html:not([data-design="institucional"]) .pal-toggle:hover,
+html:not([data-design="institucional"]) .pal-toggle[aria-expanded="true"] { background: var(--shell-hover); border-color: var(--accent-line); }
+html:not([data-design="institucional"]) .pal-toggle i {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--btn-grad);
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--glass-line);
+}
+html:not([data-design="institucional"]) .pal-wrap > .pal {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 130;
+    padding: 6px;
+    gap: 2px;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--glass-shadow);
+}
+html:not([data-design="institucional"]) .pal-wrap > .pal.pal-abierta { display: inline-flex; }
+/* Legacy design: no trigger, swatches stay inline in the bar. */
+html[data-design="institucional"] .pal-toggle { display: none; }
+html[data-design="institucional"] .pal-wrap { display: contents; }
 
 @media (max-width: 760px) {
     html:not([data-design="institucional"]) .topbar { margin: 8px var(--shell-gap) 8px; padding: 8px 10px; }

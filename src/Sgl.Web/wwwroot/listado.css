@@ -1,0 +1,462 @@
+/* ==========================================================================
+   LISTADO · Stage 3 of the UI redesign (Components/Pages/Carpetas/Listado.razor).
+   Loaded LAST (after shell.css). Restyle only: header bar, sede/state chips,
+   quick-add, bulk bars, table rows as soft cards, days pill, hero and the
+   right-hand detail panel. Tokens come from theme.css (--glass, --glass-line,
+   --accent-soft, --btn-grad, --pal-rgb ...) so every palette x theme works.
+   Scope: .listado-page, and never html[data-design="institucional"], which keeps
+   the legacy look. Hard constraints kept: one-line cells, sticky name/RUT columns,
+   uppercase names, mono RUT, Excel state colours in data-rows="classic".
+   Specificity note: the legacy sheets use !important and :not(#sgl) selectors, so
+   rules that must win repeat that prefix.
+   ========================================================================== */
+
+html:not([data-design="institucional"]) .listado-page {
+    --lst-row: color-mix(in srgb, rgb(var(--pal-rgb)) 4%, var(--surface));
+    --lst-row-hover: color-mix(in srgb, rgb(var(--pal-rgb)) 10%, var(--surface));
+    --lst-gap: 6px;
+    /* Days-waiting pill (semaforo colours are untouched; these only tint the pill). */
+    --lst-rojo-bg: #fde4e1;  --lst-rojo-tx: #8c1b10;
+    --lst-ama-bg: #fdf0c4;   --lst-ama-tx: #5f4300;
+    --lst-ver-bg: #d8f3e3;   --lst-ver-tx: #0d5430;
+}
+html[data-theme="dark"]:not([data-design="institucional"]) .listado-page {
+    --lst-row: color-mix(in srgb, var(--brand-primary) 7%, var(--surface));
+    --lst-row-hover: color-mix(in srgb, var(--brand-primary) 16%, var(--surface));
+    --lst-rojo-bg: #4a1b17;  --lst-rojo-tx: #ffb9b0;
+    --lst-ama-bg: #43360d;   --lst-ama-tx: #f6d968;
+    --lst-ver-bg: #123d28;   --lst-ver-tx: #8fe3b4;
+}
+
+/* ---------- 1. Hero (Por clasificar only): one compact row ------------------ */
+/* The legacy "institucional" design keeps its original screen: no hero there. */
+html[data-design="institucional"] .listado-hero { display: none; }
+html:not([data-design="institucional"]) .listado-hero {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 28px;
+    min-height: 72px;
+    max-height: 140px;
+    margin: 0 0 8px;
+    padding: 10px 22px;
+    position: relative;
+    overflow: hidden;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+}
+html:not([data-design="institucional"]) .listado-hero::before {
+    content: "";
+    position: absolute;
+    right: -60px;
+    top: -90px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--aurora-2), transparent 70%);
+    pointer-events: none;
+}
+html:not([data-design="institucional"]) .listado-hero > * { position: relative; }
+.listado-hero .hero-saludo { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1 1 240px; }
+.listado-hero .hero-kicker {
+    font: 600 0.7rem var(--font-ui);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.listado-hero .hero-titulo {
+    margin: 0;
+    font: 700 1.5rem/1.1 'Bricolage Grotesque', var(--font-ui);
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+.listado-hero .hero-nombre { color: var(--brand-primary); }
+.listado-hero .hero-kpis { display: flex; align-items: center; gap: 22px; }
+.listado-hero .hero-kpi { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.listado-hero .hero-kpi-n {
+    font: 700 1.75rem/1 'Bricolage Grotesque', var(--font-ui);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.listado-hero .hero-kpi-l { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+.listado-hero .hero-kpi-rojo .hero-kpi-n { color: var(--lst-rojo-tx, #8c1b10); }
+html[data-theme="dark"] .listado-hero .hero-kpi-rojo .hero-kpi-n { color: #ffb9b0; }
+.listado-hero .hero-kpi-spark { flex-direction: row; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); }
+.listado-hero .hero-kpi-spark .spark-barra { fill: var(--brand-primary); opacity: 0.55; }
+.listado-hero .hero-kpi-spark .spark-barra.hoy { opacity: 1; }
+.listado-hero .hero-meta { flex: 1 1 260px; min-width: 240px; max-width: 420px; margin-left: auto; }
+.listado-hero .meta-dia { background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0; }
+.listado-hero .meta-dia-texto { font-size: 0.82rem; margin-bottom: 4px; }
+.listado-hero .meta-dia-barra { height: 8px; }
+
+/* ---------- 2. Header bar: "Mostrar sedes y acciones" + status ------------- */
+html:not([data-design="institucional"]) .listado-page .panel-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    min-height: 44px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-panel-toggle {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--glass-line);
+    border-radius: 999px;
+    background: var(--glass);
+    color: var(--text-primary) !important;
+    font: 700 0.75rem var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-panel-toggle:hover,
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-panel-toggle.open {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .listado-page .panel-toggle-resumen {
+    font: 700 0.7rem 'IBM Plex Mono', var(--font-mono);
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+html:not([data-design="institucional"]) .listado-page :is(button, a, input, select, textarea, summary, [role="button"]):focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* Sede pills + PDF pills + quick actions live in one glass card. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-tabs-container {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+    gap: 10px 14px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills {
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    border: 1px solid var(--glass-line);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills .pill {
+    min-height: 40px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills .pill:hover:not(.active) {
+    background: var(--shell-hover);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills .pill.active {
+    background: var(--btn-grad);
+    color: #fff;
+    box-shadow: 0 10px 20px -12px rgb(var(--pal-rgb) / 0.7);
+}
+html:not([data-design="institucional"]) .listado-page .badge-count { font: 600 0.72rem 'IBM Plex Mono', var(--font-mono); }
+
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-pdf-pill,
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters {
+    min-height: 40px;
+    border-radius: 999px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    color: var(--text-primary);
+    box-shadow: none;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters:hover,
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+}
+
+/* Buttons: 44px, radius 14, gradient primary, hover lift. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page :is(.btn-primary, .btn-secondary, .btn-import-link) {
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 14px !important;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+html:not(#sgl):not([data-theme="dark"]):not([data-design="institucional"]) body .listado-page .btn-primary {
+    background: var(--btn-grad) !important;
+    border-color: transparent !important;
+    box-shadow: 0 12px 26px -12px rgb(var(--pal-rgb) / 0.75) !important;
+}
+html:not(#sgl):not([data-theme="dark"]):not([data-design="institucional"]) body .listado-page .btn-primary:hover:not(:disabled) {
+    background: var(--btn-grad-hover) !important;
+    transform: translateY(-2px);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-secondary:hover:not(:disabled) { transform: translateY(-2px); }
+html:not(#sgl):not([data-design="institucional"]) body .listado-page :is(.btn-primary, .btn-secondary):disabled { opacity: 0.55; transform: none; }
+
+/* ---------- 3. Filter chips, search row, quick-add, bulk bars ---------------- */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .filter-label {
+    font: 700 0.7rem var(--font-ui);
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .filter-chip {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--glass-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: 600 0.8125rem var(--font-ui);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .filter-chip:hover:not(.active) {
+    color: var(--text-primary);
+    border-color: var(--accent-line);
+    background: var(--shell-hover);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .filter-chip.active {
+    background: var(--btn-grad);
+    border-color: transparent;
+    color: #fff;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .search-bar-row :is(input:not([type="date"]), select) {
+    min-height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-line);
+    background: var(--surface);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page :is(.fecha-filter-wrapper, .quick-add-field) input[type="date"] {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--glass-line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .por-arreglar-toggle .chip-por-arreglar {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 16px;
+    border-radius: 999px;
+}
+
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .quick-add-accordion {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+    padding: 8px 12px 12px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .quick-add-summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 14px;
+    cursor: pointer;
+    font: 700 0.95rem 'Bricolage Grotesque', var(--font-ui);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .quick-add-summary:hover { background: var(--shell-hover); }
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .quick-add-field :is(input:not([type="checkbox"]), select) {
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-line);
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+/* Bulk-action bars (classify in batch, search-list offer): floating accent card. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page :is(.clasif-lote-bar, .oferta-listado) {
+    border: 1px solid var(--accent-line) !important;
+    border-radius: 18px;
+    background: var(--accent-soft) !important;
+    box-shadow: var(--glass-shadow);
+    padding: 8px 14px;
+    gap: 10px 12px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .clasif-lote-bar select { min-height: 40px; border-radius: 12px; }
+
+/* ---------- 4. Table: rows as soft cards ------------------------------------ */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .table-container {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table thead th {
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: 700 0.6875rem var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Gap between cards is a transparent bottom border (keeps Virtualize row maths simple);
+   the background stops at the padding box so the gap shows the container behind. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table tbody tr:not(.fila-placeholder):not(.dup-caso-detalle) > td {
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: var(--lst-gap) solid transparent !important;
+    background-clip: padding-box !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table tbody tr:not(.fila-placeholder) > td:first-child {
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table tbody tr:not(.fila-placeholder) > td:last-child {
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+}
+
+/* Soft rows only: tinted card + 4px semaforo bar. Classic keeps the Excel colours untouched. */
+html:not(#sgl)[data-rows="soft"]:not([data-design="institucional"]) body .listado-page .data-table tbody tr[class*="estado-"]:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada) > td {
+    background-color: var(--lst-row) !important;
+}
+html:not(#sgl)[data-rows="soft"]:not([data-design="institucional"]) body .listado-page .data-table tbody tr[class*="estado-"]:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):hover > td {
+    background-color: var(--lst-row-hover) !important;
+}
+html:not(#sgl)[data-rows="soft"]:not([data-design="institucional"]) body .listado-page .data-table tbody tr[class*="estado-"] > td:first-child {
+    box-shadow: inset 4px 0 0 0 var(--lst-bar, var(--estado-acc, transparent)) !important;
+}
+html[data-rows="soft"] .listado-page .data-table tbody tr:has(.dias-cell .semaforo-rojo) { --lst-bar: #dc2626; }
+html[data-rows="soft"] .listado-page .data-table tbody tr:has(.dias-cell .semaforo-amarillo) { --lst-bar: #eab308; }
+html[data-rows="soft"] .listado-page .data-table tbody tr:has(.dias-cell .semaforo-verde) { --lst-bar: #16a34a; }
+
+/* Duplicate alert rows ("Por arreglar"): always clearly red, in every theme and row mode. polish.css (soft rows)
+   currently out-ranks the modulos.css red in the light theme, so it is restated here with the same specificity
+   prefix (both designs). Static (no blinking): the blink peaked at #ef4444 under #7f1d1d text, below 4.5:1. #7f1d1d on #fecaca = 7.5:1. */
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td {
+    background-color: #fecaca !important;
+    color: #7f1d1d !important;
+    -webkit-text-fill-color: #7f1d1d !important;
+    animation: none !important;
+}
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td * { color: #7f1d1d; }
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td:first-child {
+    box-shadow: inset 4px 0 0 #b91c1c !important;
+}
+
+/* Hover lift (rows only, never in classic/Excel to keep the sheet-like feel steady). */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    html[data-rows="soft"]:not([data-design="institucional"]) .listado-page .data-table tbody tr[class*="estado-"] {
+        transition: transform 0.15s;
+    }
+    html[data-rows="soft"]:not([data-design="institucional"]) .listado-page .data-table tbody tr[class*="estado-"]:hover {
+        transform: translateX(4px);
+    }
+}
+
+/* Cell typography. */
+html:not([data-design="institucional"]) .listado-page .data-table .name-cell { font-weight: 700; }
+html:not([data-design="institucional"]) .listado-page .data-table .excel-rut-input,
+html:not([data-design="institucional"]) .listado-page .data-table .rut-input {
+    font-family: 'IBM Plex Mono', var(--font-mono);
+}
+
+/* Sede as a small tag. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .sede-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* Sector sticker: radius/padding only (its own colours stay). */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .sector-cell {
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Days-waiting pill: the semaforo dot stays, the pill tints by the same class. */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .dias-cell {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .dias-cell:has(.semaforo-rojo) {
+    background: var(--lst-rojo-bg) !important; color: var(--lst-rojo-tx) !important; -webkit-text-fill-color: var(--lst-rojo-tx) !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .dias-cell:has(.semaforo-amarillo) {
+    background: var(--lst-ama-bg) !important; color: var(--lst-ama-tx) !important; -webkit-text-fill-color: var(--lst-ama-tx) !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .dias-cell:has(.semaforo-verde) {
+    background: var(--lst-ver-bg) !important; color: var(--lst-ver-tx) !important; -webkit-text-fill-color: var(--lst-ver-tx) !important;
+}
+
+/* Row buttons: 40px targets, radius 12 (colours stay as set in modulos.css). */
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table :is(.btn-action-caja, .btn-action-caja-ok, .btn-detail, .btn-decision, .btn-alerta, .btn-alerta-sec) {
+    min-height: 40px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table :is(.btn-detail, .btn-obs-trigger, .icono-buscar-dup, .btn-pend-busqueda) {
+    border-radius: 12px;
+}
+html:not([data-design="institucional"]) .listado-page .data-table :is(.btn-obs-trigger, .icono-buscar-dup, .btn-pend-busqueda) {
+    min-width: 40px;
+    min-height: 40px;
+}
+html:not([data-design="institucional"]) .listado-page .data-table details.clase-rapida > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+}
+html:not([data-design="institucional"]) .listado-page .data-table input[type="checkbox"] { width: 20px; height: 20px; }
+
+/* ---------- 5. Right-hand detail panel -------------------------------------- */
+html:not([data-design="institucional"]) .drawer-backdrop.abierto,
+html:not([data-design="institucional"]) .drawer-backdrop.open { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+html:not([data-design="institucional"]) .case-drawer { border-radius: 22px 0 0 22px; }
+html:not(#sgl):not([data-design="institucional"]) body .case-drawer .drawer-section {
+    border-radius: 18px;
+    border-color: var(--glass-line);
+}
+html:not(#sgl):not([data-design="institucional"]) body .drawer-header {
+    border-bottom: 1px solid var(--glass-line);
+}
+html:not(#sgl):not([data-design="institucional"]) body .drawer-title-name {
+    font-family: 'Bricolage Grotesque', var(--font-ui);
+    letter-spacing: -0.015em;
+}
+html:not(#sgl):not([data-design="institucional"]) body .drawer-section-title {
+    font: 700 0.75rem var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .drawer-close-btn {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 14px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .drawer-body :is(input:not([type="checkbox"]), select) {
+    min-height: 40px;
+    border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html .listado-page *, html .listado-page *::before { transition: none !important; }
+    html .listado-page :is(.nombre-pend-parpadeo, .parpadeo) { animation: none !important; }
+}

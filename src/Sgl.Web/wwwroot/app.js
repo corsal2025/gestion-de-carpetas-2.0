@@ -624,6 +624,36 @@ window.printPdfDocument = function (titulo) {
     document.addEventListener('DOMContentLoaded', syncPrefs);
 })();
 
+// Palette popover in the top bar (glass design only; the legacy design shows the swatches inline).
+// Pure DOM, no Blazor state: toggle with the button, close on Escape, outside click or after choosing.
+(function () {
+    function parts() {
+        var b = document.getElementById('btn-paleta'), p = document.getElementById('pal-panel');
+        return b && p ? { btn: b, panel: p } : null;
+    }
+    function setOpen(open, returnFocus) {
+        var x = parts(); if (!x) return;
+        x.btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        x.panel.classList.toggle('pal-abierta', open);
+        if (open) {
+            var cur = x.panel.querySelector('.sw[aria-pressed="true"]') || x.panel.querySelector('.sw');
+            if (cur && cur.focus) cur.focus();
+        } else if (returnFocus) x.btn.focus();
+    }
+    document.addEventListener('click', function (e) {
+        var x = parts(); if (!x || !e.target || !e.target.closest) return;
+        if (e.target.closest('#btn-paleta')) { setOpen(x.btn.getAttribute('aria-expanded') !== 'true', false); return; }
+        if (x.btn.getAttribute('aria-expanded') !== 'true') return;
+        var sw = e.target.closest('#pal-panel .sw');
+        if (sw) setOpen(false, true);
+        else if (!e.target.closest('#pal-panel')) setOpen(false, false);
+    });
+    document.addEventListener('keydown', function (e) {
+        var x = parts(); if (!x || e.key !== 'Escape' || x.btn.getAttribute('aria-expanded') !== 'true') return;
+        setOpen(false, true);
+    });
+})();
+
 // Selector de clase de licencia (details.clase-rapida): se cierra al pinchar fuera, con Escape o al abrir otro.
 (function () {
     function cerrarAbiertos(excepto) {

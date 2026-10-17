@@ -20,7 +20,30 @@
     }
 </datalist>
 
-<div class="page-container">
+<div class="page-container listado-page">
+    @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelDia && ModulosCatalogo.DeBandeja(Bandeja.PorClasificar) is { } moduloPorClasificar)
+    {
+        @* Presentation only: greeting plus figures ModulosState already holds (no extra queries). *@
+        var estadoPorClasificar = Modulos.De(moduloPorClasificar);
+        <section class="listado-hero" aria-label="Resumen del día en Por clasificar">
+            <div class="hero-saludo">
+                <span class="hero-kicker">@DateTime.Now.ToString("dddd d 'de' MMMM", CultureInfo.GetCultureInfo("es-CL"))</span>
+                <h2 class="hero-titulo">@(DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 20 ? "Buenas tardes" : "Buenas noches")@if (Autor.HasNombre) {<text>, </text><span class="hero-nombre">@Autor.Nombre</span>}</h2>
+            </div>
+            <div class="hero-kpis">
+                <div class="hero-kpi">
+                    <span class="hero-kpi-n"><NumeroAnimado Valor="estadoPorClasificar.Conteo" /></span>
+                    <span class="hero-kpi-l">por clasificar</span>
+                </div>
+                <div class="hero-kpi hero-kpi-rojo">
+                    <span class="hero-kpi-n"><NumeroAnimado Valor="estadoPorClasificar.Atrasadas" /></span>
+                    <span class="hero-kpi-l">atrasadas</span>
+                </div>
+                <div class="hero-kpi hero-kpi-spark"><Sparkline Valores="estadoPorClasificar.Serie" /></div>
+            </div>
+            <div class="hero-meta"><MetaDiaBar Meta="panelDia.Meta" Delgada="true" PorHacer="clasificar" /></div>
+        </section>
+    }
     <!-- Panel estático y fijo de filtros, sedes y búsqueda siempre visible -->
     <div class="sticky-controls-panel">
         <div class="panel-barra">
