@@ -1804,3 +1804,34 @@ html .pal .sw:hover i { transform: scale(1.18); }
 html .pal .sw[aria-pressed="true"] i { border-color: var(--topbar-bg); box-shadow: 0 0 0 2.5px #fff; }
 html .pal .sw:focus-visible { outline-color: #fff; outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) { html .pal .sw i { transition: none; } }
+
+/* ---------- 14. Shell tokens (stage 2: aurora background + glass chrome) ----
+   Derived from --pal-rgb / --surface so every palette tints the shell and both
+   themes stay readable. Consumed by shell.css (applies unless data-design is
+   "institucional", which keeps the legacy solid look). */
+html {
+    --shell-gap: 28px;
+    --aurora-1: rgb(var(--pal-rgb) / 0.20);
+    --aurora-2: color-mix(in srgb, color-mix(in srgb, rgb(var(--pal-rgb)) 50%, #1fb5d9) 20%, transparent);
+    --aurora-3: color-mix(in srgb, color-mix(in srgb, rgb(var(--pal-rgb)) 55%, #e889c4) 14%, transparent);
+    --aurora-dot: rgb(var(--pal-rgb) / 0.18);
+    --glass: color-mix(in srgb, var(--surface) 74%, transparent);
+    --glass-line: color-mix(in srgb, rgb(var(--pal-rgb)) 16%, var(--border-color));
+    --glass-shadow: 0 1px 2px rgb(var(--pal-rgb) / 0.06), 0 18px 40px -24px rgb(var(--pal-rgb) / 0.38);
+    --accent-soft: color-mix(in srgb, rgb(var(--pal-rgb)) 12%, var(--surface));
+    --accent-line: color-mix(in srgb, rgb(var(--pal-rgb)) 38%, transparent);
+    --shell-hover: color-mix(in srgb, rgb(var(--pal-rgb)) 9%, transparent);
+}
+html[data-theme="dark"] {
+    --aurora-1: rgb(var(--pal-rgb) / 0.55);
+    --aurora-2: color-mix(in srgb, color-mix(in srgb, rgb(var(--pal-rgb)) 50%, #1fb5d9) 32%, transparent);
+    --aurora-3: color-mix(in srgb, color-mix(in srgb, rgb(var(--pal-rgb)) 55%, #e889c4) 22%, transparent);
+    --aurora-dot: rgb(190 205 255 / 0.12);
+    --glass: color-mix(in srgb, var(--surface) 78%, transparent);
+    --glass-line: color-mix(in srgb, var(--brand-primary) 22%, var(--border-color));
+    --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 20px 44px -22px rgb(0 0 0 / 0.7);
+    --accent-soft: color-mix(in srgb, var(--brand-primary) 20%, var(--surface));
+    --accent-line: color-mix(in srgb, var(--brand-primary) 45%, transparent);
+    --shell-hover: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+}
+@media (max-width: 1024px) { html { --shell-gap: 12px; } }

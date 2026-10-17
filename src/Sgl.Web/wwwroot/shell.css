@@ -1,0 +1,402 @@
+/* ==========================================================================
+   SHELL · Stage 2 of the UI redesign: aurora page background, floating glass
+   top bar and glass modules sidebar.
+   Loaded LAST (after polish.css). Tokens (--glass, --aurora-*, --accent-soft...)
+   live in theme.css section 14 and follow the palette via --pal-rgb.
+   Scope: everything below applies unless html[data-design="institucional"],
+   which keeps the legacy solid blue top bar and flat sidebar untouched.
+   Only shell chrome is restyled here; tables, rows and forms are not touched.
+   ========================================================================== */
+
+/* ---------- 1. Page background: aurora glows + fading dot grid ------------- */
+/* The body becomes transparent so the fixed pseudo-elements (z-index -1) show
+   above the <html> background and below all content. They never take clicks. */
+html:not([data-design="institucional"]) body { background: transparent; }
+html:not([data-design="institucional"]) body::before,
+html:not([data-design="institucional"]) body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+html:not([data-design="institucional"]) body::before {
+    background:
+        radial-gradient(900px 520px at 8% -6%, var(--aurora-1), transparent 62%),
+        radial-gradient(720px 480px at 96% 6%, var(--aurora-2), transparent 62%),
+        radial-gradient(820px 620px at 62% 108%, var(--aurora-3), transparent 62%);
+}
+html:not([data-design="institucional"]) body::after {
+    background-image: radial-gradient(var(--aurora-dot) 1px, transparent 1.6px);
+    background-size: 22px 22px;
+    -webkit-mask-image: linear-gradient(#000, transparent 75%);
+    mask-image: linear-gradient(#000, transparent 75%);
+}
+@media print {
+    html:not([data-design="institucional"]) body::before,
+    html:not([data-design="institucional"]) body::after { display: none; }
+}
+
+/* Content gutters follow the floating bar (module pages get theirs from .modulo-shell). */
+html:not([data-design="institucional"]) .content:not(:has(> .modulo-shell)) {
+    padding-left: var(--shell-gap);
+    padding-right: var(--shell-gap);
+}
+html:not([data-design="institucional"]) .footer {
+    background: transparent;
+    border-top: 0;
+}
+
+/* ---------- 2. Page cards: glass ------------------------------------------- */
+html:not([data-design="institucional"]) .content .card {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+}
+
+/* ---------- 3. Top bar: floating rounded glass ----------------------------- */
+html:not([data-design="institucional"]) .topbar {
+    height: auto;
+    min-height: 68px;
+    margin: 14px var(--shell-gap) 12px;
+    padding: 8px 14px 8px 14px;
+    gap: 8px 16px;
+    flex-wrap: wrap;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    backdrop-filter: blur(14px) saturate(1.3);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+    color: var(--text-primary);
+}
+/* Legacy decoration (colour stripe and yellow road line) clashes with the glass bar. */
+html:not([data-design="institucional"]) .topbar::before,
+html:not([data-design="institucional"]) .topbar::after { display: none; }
+
+/* Brand */
+html:not([data-design="institucional"]) .brand-mark.brand-logo {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--glass-line);
+    box-shadow: 0 8px 18px -10px rgb(var(--pal-rgb) / 0.5);
+}
+html:not([data-design="institucional"]) .topbar .brand-text {
+    border-left: 3px solid var(--brand-primary);
+    color: var(--text-secondary);
+}
+html:not([data-design="institucional"]) .topbar .brand-text strong {
+    font-family: 'Bricolage Grotesque', var(--font-ui);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .topbar .brand-text .brand-sub {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+/* Navigation pills */
+html:not([data-design="institucional"]) .main-nav {
+    flex: 1 1 360px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+}
+html:not([data-design="institucional"]) body .main-nav .nav-item,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-carpetas,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-cajas,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-importar,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-estadisticas {
+    height: auto;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 14px;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+html:not([data-design="institucional"]) body .main-nav .nav-item:hover {
+    background: var(--shell-hover) !important;
+    color: var(--text-primary) !important;
+}
+html:not([data-design="institucional"]) body .main-nav .nav-item.active,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-carpetas.active,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-cajas.active,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-importar.active,
+html:not([data-design="institucional"]) body .main-nav .nav-item.nav-estadisticas.active {
+    background: var(--accent-soft) !important;
+    border-color: var(--accent-line) !important;
+    color: var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+/* "Como usar el sistema": palette-coloured pill with white text (btn-grad is always dark enough) */
+html:not([data-design="institucional"]) body .main-nav .btn-guia-accion {
+    min-height: 44px;
+    height: auto !important;
+    border: 1px solid var(--accent-line) !important;
+    background: var(--btn-grad) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 20px -12px rgb(var(--pal-rgb) / 0.7) !important;
+    margin-left: 0.25rem !important;
+}
+html:not([data-design="institucional"]) body .main-nav .btn-guia-accion:hover {
+    background: var(--btn-grad-hover) !important;
+    transform: none !important;
+}
+
+/* Tools: palette swatches, icon buttons, funcionario field */
+html:not([data-design="institucional"]) .topbar-tools { gap: 10px; }
+html:not([data-design="institucional"]) .pal {
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    padding: 0 4px;
+}
+html:not([data-design="institucional"]) .pal .sw i { box-shadow: 0 0 0 1.5px var(--glass-line); }
+html:not([data-design="institucional"]) .pal .sw[aria-pressed="true"] i {
+    border-color: var(--surface);
+    box-shadow: 0 0 0 2.5px var(--sc);
+}
+html:not([data-design="institucional"]) .pal .sw:focus-visible { outline-color: var(--ring); }
+
+html:not([data-design="institucional"]) .tool-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-line);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .tool-btn:hover {
+    background: var(--shell-hover);
+    border-color: var(--accent-line);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .tool-btn[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--text-primary);
+}
+
+html:not([data-design="institucional"]) .user-block .autor { color: var(--text-secondary); }
+html:not([data-design="institucional"]) .user-block .autor .autor-etq {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+html:not([data-design="institucional"]) .user-block .autor input {
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-line);
+    background: var(--surface);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .user-block .autor input::placeholder { color: var(--text-secondary); opacity: 1; }
+html:not([data-design="institucional"]) .user-block .autor input:focus {
+    border-color: var(--ring);
+    outline: 3px solid var(--ring);
+    outline-offset: 1px;
+}
+/* Yellow-on-glass focus ring is weak on light surfaces: use the palette ring on the bar's own controls. */
+html:not([data-design="institucional"]):not([data-theme="dark"]) .topbar :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* Below ~2100px the single row no longer fits: brand + tools + funcionario on row 1, navigation on row 2. */
+@media (max-width: 2099px) {
+    html:not([data-design="institucional"]) .topbar .brand-group { order: 1; }
+    html:not([data-design="institucional"]) .topbar .topbar-tools { order: 2; margin-left: auto; }
+    html:not([data-design="institucional"]) .topbar .user-block { order: 3; }
+    html:not([data-design="institucional"]) .topbar .main-nav { order: 4; flex: 1 1 100%; }
+}
+
+@media (max-width: 760px) {
+    html:not([data-design="institucional"]) .topbar { margin: 8px var(--shell-gap) 8px; padding: 8px 10px; }
+    html:not([data-design="institucional"]) .main-nav { flex-basis: 100%; }
+}
+
+/* ---------- 4. Modules sidebar: glass card --------------------------------- */
+html:not([data-design="institucional"]) .modulo-shell {
+    gap: 20px;
+    padding: 0 var(--shell-gap) 8px;
+    box-sizing: border-box;
+}
+html:not([data-design="institucional"]) .modulo-main { padding-left: 0; padding-right: 0; }
+@media (max-width: 1024px) {
+    html:not([data-design="institucional"]) .modulo-shell { padding-left: 0; padding-right: 0; gap: 12px; }
+}
+
+html:not([data-design="institucional"]) .modulos-sidebar {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
+}
+html:not([data-design="institucional"]) .sidebar-cabecera {
+    padding: 10px 12px 8px 14px;
+    border-bottom: 1px solid var(--glass-line);
+}
+html:not([data-design="institucional"]) .sidebar-titulo {
+    font: 700 0.75rem var(--font-ui);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    padding: 6px 4px;
+}
+html:not([data-design="institucional"]) .sidebar-plegar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border-color: var(--glass-line);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .sidebar-plegar:hover { background: var(--shell-hover); border-color: var(--accent-line); }
+html:not([data-design="institucional"]) .sidebar-grupos {
+    padding: 8px 8px 14px;
+    overflow-x: hidden;
+}
+html:not([data-design="institucional"]) .sidebar-grupo { margin-bottom: 2px; }
+
+/* Group header: icon, bold name, aggregated traffic light, rotating chevron */
+html:not([data-design="institucional"]) .sidebar-grupo-titulo {
+    min-height: 44px;
+    gap: 10px;
+    padding: 0 10px;
+    border-radius: 14px;
+    color: var(--text-primary);
+    font: 700 0.9rem 'Bricolage Grotesque', var(--font-ui);
+    text-transform: none;
+    letter-spacing: 0;
+}
+html:not([data-design="institucional"]) .sidebar-grupo-titulo:hover { background: var(--shell-hover); }
+html:not([data-design="institucional"]) .sidebar-grupo-ico { color: var(--grupo); width: 20px; height: 20px; }
+/* The ▾/▸ text glyph is replaced by a CSS chevron that rotates when the group is open. */
+html:not([data-design="institucional"]) .sidebar-chevron {
+    position: relative;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    font-size: 0;
+    color: var(--text-secondary);
+}
+html:not([data-design="institucional"]) .sidebar-chevron::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: translate(-65%, -50%) rotate(-45deg);
+    transition: transform 0.2s;
+}
+html:not([data-design="institucional"]) .sidebar-grupo-titulo[aria-expanded="true"] .sidebar-chevron::before {
+    transform: translate(-50%, -65%) rotate(45deg);
+}
+html:not([data-design="institucional"]) .sidebar-grupo-titulo > .semaforo-punto { width: 10px; height: 10px; }
+html:not([data-design="institucional"]) .sidebar-grupo ul { padding: 2px 0 8px 8px; margin: 0; }
+
+/* Module rows */
+html:not([data-design="institucional"]) .sidebar-modulo {
+    position: relative;
+    gap: 10px;
+    min-height: 44px;
+    margin: 1px 0;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 0.844rem;
+    font-weight: 500;
+}
+html:not([data-design="institucional"]) .modulos-sidebar:not(.plegado) .sidebar-modulo {
+    min-height: 44px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+html:not([data-design="institucional"]) .sidebar-modulo:hover {
+    background: var(--shell-hover);
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) .sidebar-modulo.activo {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--text-primary);
+    font-weight: 700;
+}
+html:not([data-design="institucional"]) .sidebar-modulo.activo::before {
+    content: "";
+    position: absolute;
+    left: -9px;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 4px;
+    background: var(--btn-grad);
+}
+/* Keyboard focus inside the scroll container: keep the ring inside so it is never clipped. */
+html:not([data-design="institucional"]) .sidebar-modulo:focus-visible,
+html:not([data-design="institucional"]) .sidebar-grupo-titulo:focus-visible,
+html:not([data-design="institucional"]) .sidebar-plegar:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: -3px;
+    box-shadow: none;
+}
+/* Counters: shape/typography only; the semaforo colour variants and the active-row colours stay as defined in modulos.css. */
+html:not([data-design="institucional"]) .sidebar-contador {
+    min-width: 34px;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font: 600 0.75rem 'IBM Plex Mono', var(--font-mono);
+}
+
+/* Collapsed strip (~56px): icons for groups, initials for modules */
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-grupos { padding: 6px; }
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-grupo + .sidebar-grupo {
+    border-top: 1px solid var(--glass-line);
+    margin-top: 4px;
+    padding-top: 4px;
+}
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-grupo-titulo { padding: 0; }
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-modulo { min-height: 36px; padding: 0; }
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-modulo.activo::before { left: -4px; top: 8px; bottom: 8px; }
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-cabecera { padding: 10px 0 8px; }
+
+/* Narrow screens: the sidebar always shows as the icon strip (see modulos.css) */
+@media (max-width: 900px) {
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-chevron,
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo-nombre,
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-modulo-nombre,
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-contador { display: none; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo-titulo { justify-content: center; position: relative; padding: 0; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo-titulo > .semaforo-punto {
+        position: absolute; top: 4px; right: 6px; width: 0.5rem; height: 0.5rem;
+    }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-modulo { justify-content: center; padding: 0; min-height: 36px; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupos { padding: 6px; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-modulo.activo::before { left: -4px; }
+}
+
+/* Legacy design keeps its original sidebar: the new aggregated dot in the group header is glass-only. */
+html[data-design="institucional"] .modulos-sidebar:not(.plegado) .sidebar-grupo-titulo > .semaforo-punto { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    html .sidebar-chevron::before { transition: none; }
+}

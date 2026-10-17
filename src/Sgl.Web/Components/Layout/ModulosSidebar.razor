@@ -31,6 +31,7 @@
                     @if (!plegado)
                     {
                         <span class="sidebar-grupo-nombre">@grupo.Nombre</span>
+                        <SemaforoPunto Color="eg.Semaforo" Atrasadas="eg.Atrasadas" />
                         <span class="sidebar-chevron" aria-hidden="true">@(abierto ? "▾" : "▸")</span>
                     }
                     else
