@@ -491,3 +491,153 @@ html body .data-table tbody tr.dup-seccion-cab-normal > td { background: var(--b
 .dup-caso-resumen { display: flex; gap: 0.75rem; align-items: center; }
 .dup-seccion-mas > td { text-align: center; padding: 0.5rem; }
 html body .data-table tbody tr.dup-caso-detalle > td { background: var(--surface-alt); padding: 0.5rem 0.75rem; white-space: normal; }
+
+/* ==========================================================================
+   TIPOGRAFIA UNIFICADA · capa final (se carga ultima en el marco del sistema).
+   Una sola familia y una sola escala para TODOS los modulos (incluido /peticiones,
+   que carga estos mismos CSS y luego css/site.css: por eso se usa `html body ...`).
+   Escala tomada de las bandejas (.data-table): celdas 0.82rem, nombres 0.86rem,
+   encabezado de tabla 0.92rem. Los nombres de personas siempre en MAYUSCULAS.
+   ========================================================================== */
+html {
+    --font-ui: 'Public Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --fs-title: 1.7rem;     /* titulo de pagina (h1) */
+    --fs-section: 1.1rem;   /* titulo de seccion / tarjeta (h2, h3) */
+    --fs-th: 0.92rem;       /* encabezado de tabla */
+    --fs-td: 0.82rem;       /* celda de tabla */
+    --fs-name: 0.86rem;     /* nombre de persona en tabla */
+    --fs-label: 0.82rem;    /* etiqueta de formulario */
+    --fs-input: 0.85rem;    /* inputs / selects */
+    --fs-btn: 0.88rem;      /* botones */
+    --fs-btn-sm: 0.78rem;   /* botones chicos */
+    --fs-badge: 0.78rem;    /* insignias, chips, pills de estado */
+    --fs-small: 0.78rem;    /* texto de ayuda */
+}
+
+/* Familia unica (incluye controles, que por defecto no heredan) */
+html body,
+html body :is(input, select, textarea, button, table, th, td, h1, h2, h3, h4, h5, h6, label, .btn, .form-control, .form-select, .card, .badge) {
+    font-family: var(--font-ui);
+}
+/* Las celdas de RUT y codigos mantienen su monoespaciada */
+html body :is(code, pre, kbd, samp, .col-sticky-rut, .col-sticky-rut *) { font-family: var(--font-mono); }
+/* Vistas de papel/PDF: misma familia */
+html body :is(.doc-sheet, .acta-sheet, table.acta-table, table.cases, .acta-title, .doc-header) { font-family: var(--font-ui); }
+
+/* Titulo de pagina */
+html body h1,
+html body .header-section h1,
+html body .page-container .header-section h1,
+html body .content:not(:has(.page-container)) > h1,
+html body .content:has(.dup-filtros) > h1,
+html body .modulo-scroll > h1,
+html body .inicio-cabecera h1,
+html body .page-head h1,
+html body h1.h3 {
+    font-size: var(--fs-title) !important;
+}
+html body .modulo-titulo { font-size: var(--fs-title); }
+
+/* Titulos de seccion / tarjeta */
+html body .section-title,
+html body .card-head h3,
+html body .est-card h3,
+html body .queue-header h2,
+html body .modal-card h3,
+html body .integridad-regla h2,
+html body .card h2.h6,
+html body .card h2.h5,
+html body .card .h6,
+html body .card .h5,
+html body .drawer-section-title,
+html body .doc-header h2 {
+    font-size: var(--fs-section);
+    font-weight: 700;
+}
+
+/* Encabezado de tabla */
+html body .data-table thead th,
+html body .table > thead > tr > th,
+html body .est-tabla thead th,
+html body .est-tabla th,
+html body .est-barras thead th,
+html body .dup-tabla thead th,
+html body .dup-revision-tabla thead th,
+html body .aviso-tabla thead th,
+html body .dup-carpetas thead th,
+html body .integridad-tabla thead th,
+html body .content table:not(.acta-table):not(.cases) thead th {
+    font-size: var(--fs-th) !important;
+}
+
+/* Celda de tabla */
+html body .data-table td,
+html body .table > tbody > tr > td,
+html body .est-tabla td,
+html body .est-barras td,
+html body .est-barras th[scope="row"],
+html body .est-barra-etq,
+html body .dup-tabla td,
+html body .dup-revision-tabla,
+html body .dup-revision-tabla td,
+html body .aviso-tabla td,
+html body .dup-carpetas td,
+html body .content table:not(.acta-table):not(.cases) tbody td {
+    font-size: var(--fs-td);
+}
+html body .data-table td { font-size: var(--fs-td) !important; }
+html body .data-table .name-cell { font-size: var(--fs-name) !important; }
+
+/* Nombres de personas: tamano + MAYUSCULAS siempre */
+html body .name-cell,
+html body .nombre-persona,
+html body td.nom,
+html body .drawer-title-name,
+html body .data-table .name-cell,
+html body .data-table .nombre-persona,
+html body .est-tabla .nombre-persona,
+html body .dup-comparacion-head .nombre-persona,
+html body .dup-revision-head .nombre-persona,
+html body td.nombre {
+    text-transform: uppercase !important;
+}
+html body .nombre-persona,
+html body td.nom,
+html body .table .nombre-persona { font-size: inherit; }
+html body td .nombre-persona { font-size: var(--fs-name); font-weight: 650; }
+html body .data-table td .nombre-persona,
+html body .data-table td .name-cell { font-size: var(--fs-name) !important; }
+
+/* Etiquetas e inputs (fuera de celdas densas de las bandejas) */
+html body label,
+html body .filter-label,
+html body .quick-add-field label,
+html body .drawer-field label,
+html body .est-filtros label,
+html body .dup-filtros label,
+html body .form-label {
+    font-size: var(--fs-label);
+}
+html body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, .form-control, .form-select):not(.data-table *):not(.excel-select) {
+    font-size: var(--fs-input);
+}
+html body :is(.form-control-sm, .form-select-sm) { font-size: var(--fs-input); }
+
+/* Botones */
+html body :is(.btn, .btn-primary, .btn-secondary, .btn-detail, .btn-clear, .btn-warning-outline, .btn-peligro) {
+    font-size: var(--fs-btn);
+}
+html body :is(.btn-sm, .btn-small, .btn-alerta, .btn-alerta-sec, .btn-action-caja, .toolbar .btn, .table .btn-sm) {
+    font-size: var(--fs-btn-sm);
+}
+
+/* Insignias / chips / pills de estado */
+html body :is(.badge, .badge-count, .badge-total, .filter-chip, .chip-impreso, .comuna-chip, .sede-tag,
+              .chip-por-arreglar, .pill--ok, .pill--warn, .pill--bad, .pill--idle, .pill-time, .stat-chip) {
+    font-size: var(--fs-badge);
+}
+
+/* Texto de ayuda / pequeno */
+html body :is(.txt-ayuda, .est-nota, .plazo-txt, .quick-add-hint, .pdf-toolbar-hint) {
+    font-size: var(--fs-small);
+}

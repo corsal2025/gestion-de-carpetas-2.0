@@ -75,7 +75,7 @@
                                     <td><span class="integridad-codigo" title="@ReglasIntegridadInfo.Titulo(p.Regla)">@ReglasIntegridadInfo.Codigo(p.Regla)</span></td>
                                     <td>@p.Detalle</td>
                                     <td>@(p.Rut ?? "—")</td>
-                                    <td>@(p.NombreCompleto ?? "—")</td>
+                                    <td class="nombre-persona">@(p.NombreCompleto ?? "—")</td>
                                     <td>@(p.Sede is { } s ? Labels.Of(s) : "—")</td>
                                     <td>@(p.Estado is { } e ? Labels.Of(e) : "—")</td>
                                     <td>

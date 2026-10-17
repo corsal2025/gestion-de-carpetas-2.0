@@ -18,7 +18,7 @@
 @{ var g = Grupo; }
             <div class="dup-comparacion" aria-live="polite">
                 <header class="dup-comparacion-head">
-                    <strong>Carpetas abiertas de @g.NombreCompleto · @g.Rut</strong>
+                    <strong>Carpetas abiertas de <span class="nombre-persona">@g.NombreCompleto</span> · @g.Rut</strong>
                     <span class="dup-head-acciones"><button type="button" class="dup-btn-mantener btn-small" disabled="@ocupado" @onclick="() => MarcarRevisadoAsync(g.CiudadanoId)">No es duplicada: mantener ambas</button><button type="button" class="secondary btn-small" @onclick="() => OnCerrar.InvokeAsync()">Cerrar ✕</button></span>
                 </header>
                                         @if (detalle is not { } carpetas)

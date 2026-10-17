@@ -2,7 +2,7 @@
 @model PeticionCambioDomicilio.Pages.IndexModel
 @using PeticionCambioDomicilio.Domain
 @{
-    ViewData["Title"] = "Peticiones";
+    ViewData["Title"] = "Peticiones de cambio de domicilio a otras comunas";
     var total = Model.Peticiones.Count;
     var enviadas = Model.Peticiones.Count(p => p.Estado == EstadoPeticion.Enviada);
     var pendientes = total - enviadas;
@@ -212,14 +212,14 @@
             <td class="dato num">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
             <td class="dato">
                 <div class="d-flex align-items-center justify-content-between gap-2">
-                    <span>@p.NombreCompleto</span>
+                    <span class="nombre-persona">@p.NombreCompleto</span>
                     <a class="icono-buscar-dup icono-buscar-dup--neutro" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
                        title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                     </a>
                 </div>
             </td>
-            <td class="text-muted" title="@p.Origen" style="cursor:help; font-size:.78rem;">@p.Oficina</td>
+            <td class="text-muted" title="@p.Origen" style="cursor:help;">@p.Oficina</td>
             <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
             <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
             <td>
@@ -296,7 +296,7 @@
     </tbody>
 </table>
 </div>
-<div class="d-flex justify-content-between text-muted mt-2" style="font-size:.75rem;">
+<div class="d-flex justify-content-between text-muted mt-2 txt-ayuda">
     <span>Pendientes arriba en el orden del Excel · enviadas abajo por fecha de envío, la más nueva primero</span>
     <span>Respaldo automático de la base antes de importar o borrar</span>
 </div>

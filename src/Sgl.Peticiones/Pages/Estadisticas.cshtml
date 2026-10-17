@@ -8,7 +8,7 @@
 
 <div class="mb-3">
     <h1 class="h3 mb-1">Estadísticas</h1>
-    <div class="text-muted" style="font-size:.8rem;">
+    <div class="text-muted txt-ayuda">
         Cómo responden las comunas · la demora se mide desde el envío del correo hasta que la
         carpeta figura como subida en el Excel (columna <code>ESTADO DE LA CARPETA</code>).
     </div>
@@ -34,15 +34,15 @@ else
             <div class="card h-100" id="est-ranking">
                 <div class="card-body">
                     <h2 class="h6 mb-1">Comunas con más cambios de domicilio</h2>
-                    <p class="text-muted mb-3" style="font-size:.78rem;">Carpetas pedidas (enviadas)</p>
+                    <p class="text-muted mb-3 txt-ayuda">Carpetas pedidas (enviadas)</p>
                     @foreach (var (comuna, cantidad) in Model.RankingVolumen)
                     {
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="text-end text-muted" style="width:130px; font-size:.8rem;">@comuna</span>
+                            <span class="text-end text-muted txt-ayuda" style="width:130px;">@comuna</span>
                             <div class="barra-track flex-grow-1">
                                 <i style="width:@(cantidad * 100 / Model.VolumenMaximo)%"></i>
                             </div>
-                            <span class="num fw-bold" style="width:26px; font-size:.8rem;">@cantidad</span>
+                            <span class="num fw-bold" style="width:26px;">@cantidad</span>
                         </div>
                     }
                 </div>
@@ -52,7 +52,7 @@ else
             <div class="card h-100" id="est-quien">
                 <div class="card-body">
                     <h2 class="h6 mb-1">Quién sube la carpeta a CONASET</h2>
-                    <p class="text-muted mb-3" style="font-size:.78rem;">De @Model.Cerradas carpeta(s) ya cerrada(s)</p>
+                    <p class="text-muted mb-3 txt-ayuda">De @Model.Cerradas carpeta(s) ya cerrada(s)</p>
                     @{
                         var totalClasif = Model.SubioComuna + Model.SubimosNosotros;
                         var pComuna = totalClasif > 0 ? Model.SubioComuna * 100 / totalClasif : 0;
@@ -68,15 +68,15 @@ else
                             <i class="s-bad" style="width:@(100 - pComuna)%"></i>
                         }
                     </div>
-                    <div class="d-flex justify-content-between mb-2" style="font-size:.82rem;">
+                    <div class="d-flex justify-content-between mb-2">
                         <span><span class="cuadro s-ok"></span> La subió la comuna (SGL)</span>
                         <span class="num fw-bold">@Model.SubioComuna</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2" style="font-size:.82rem;">
+                    <div class="d-flex justify-content-between mb-2">
                         <span><span class="cuadro s-bad"></span> La subimos nosotros (F8 / oficio / correo)</span>
                         <span class="num fw-bold">@Model.SubimosNosotros</span>
                     </div>
-                    <div class="d-flex justify-content-between text-muted" style="font-size:.82rem;">
+                    <div class="d-flex justify-content-between text-muted">
                         <span><span class="cuadro s-idle"></span> Todavía abiertas</span>
                         <span class="num fw-bold">@Model.Abiertas</span>
                     </div>
@@ -109,7 +109,7 @@ else
                     <td>
                         @if (c.PorcentajeEnPlazo is null)
                         {
-                            <span class="text-muted" style="font-size:.8rem;">sin cerrar</span>
+                            <span class="text-muted txt-ayuda">sin cerrar</span>
                         }
                         else
                         {
@@ -117,7 +117,7 @@ else
                             var color = pct >= 80 ? "var(--ok-rail)" : pct >= 50 ? "var(--warn-rail)" : "var(--bad-rail)";
                             <div class="d-flex align-items-center gap-2">
                                 <div class="barra-track flex-grow-1"><i style="width:@(pct)%; background:@color"></i></div>
-                                <span class="num text-muted" style="font-size:.78rem; width:34px;">@pct%</span>
+                                <span class="num text-muted txt-ayuda" style="width:34px;">@pct%</span>
                             </div>
                         }
                     </td>
@@ -127,7 +127,7 @@ else
         </table>
     </div>
 
-    <p class="text-muted mt-2" style="font-size:.78rem;">
+    <p class="text-muted mt-2 txt-ayuda">
         Solo cuenta carpetas cerradas <strong>después</strong> de que empezó a registrarse la fecha de subida.
         "La subió la comuna" = <code>SUBIDA A CONASET</code>. "La subimos nosotros" =
         <code>SUBIDA CON F8 / OFICIO / CORREO</code>.

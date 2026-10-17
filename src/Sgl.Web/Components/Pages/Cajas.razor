@@ -341,7 +341,7 @@
     <div class="modal-overlay" @onclick="CerrarModalCaja">
         <div class="modal-card" @onclick:stopPropagation>
             <h3>📦 Almacenamiento en Caja Física</h3>
-            <p>Carpeta: <strong>@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
+            <p>Carpeta: <strong class="nombre-persona">@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
             <div class="modal-form">
                 <label>Código / Identificador de la Caja o Estante:
                     <input @bind="nuevaCajaModal" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
