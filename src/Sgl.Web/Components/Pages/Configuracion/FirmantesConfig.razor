@@ -1,0 +1,140 @@
+@page "/configuracion/firmantes"
+@layout ModuloLayout
+@using Sgl.Application.Solicitudes
+@inject FirmantesService FirmantesSvc
+
+<PageTitle>@TituloPagina.De("Firmantes")</PageTitle>
+
+<div class="modulo-scroll firmantes">
+    <header class="integridad-cabecera">
+        <div>
+            <h1>Firmantes</h1>
+            <p class="muted">
+                Quién firma los certificados y oficios y a quién se avisa. Estos datos se escriben en los documentos Word
+                y el correo del Director recibe el aviso de cada solicitud nueva.
+            </p>
+        </div>
+    </header>
+
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">@mensaje <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensaje = null">✕</button></div>
+    }
+
+    @if (cargando)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div>
+    }
+    else
+    {
+        <form @onsubmit="GuardarAsync" @onsubmit:preventDefault>
+            <section class="sol-panel" aria-label="Director">
+                <h2>Director</h2>
+                <div class="sol-form">
+                    <label class="firmantes-campo">Nombre
+                        <input @bind="directorNombre" maxlength="@Firmantes.MaxLength" autocomplete="off" />
+                    </label>
+                    <label>Cargo
+                        <select @bind="directorCargo">
+                            @foreach (var c in CargosDirector)
+                            {
+                                <option value="@c">@c</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="firmantes-campo">Correo
+                        <input type="email" @bind="directorCorreo" maxlength="@Firmantes.MaxLength" autocomplete="off" placeholder="nombre@dominio.cl" />
+                    </label>
+                </div>
+                <p class="muted firmantes-nota">
+                    El aviso por correo solo sale si está activado en la configuración del sistema (<code>Certificados:EnvioCorreoActivo</code>);
+                    con el modo prueba de Peticiones se desvía a la casilla de prueba.
+                </p>
+            </section>
+
+            <section class="sol-panel" aria-label="Secretaría">
+                <h2>Secretaría municipal</h2>
+                <div class="sol-form">
+                    <label class="firmantes-campo">Nombre
+                        <input @bind="secretariaNombre" maxlength="@Firmantes.MaxLength" autocomplete="off" />
+                    </label>
+                    <label class="firmantes-campo">Cargo
+                        <input @bind="secretariaCargo" maxlength="@Firmantes.MaxLength" autocomplete="off" />
+                    </label>
+                </div>
+            </section>
+
+            <button type="submit" class="btn-primary" disabled="@guardando">@(guardando ? "Guardando…" : "Guardar")</button>
+        </form>
+    }
+</div>
+
+@code {
+    private static readonly string[] CargosBase = ["Director", "Director (S)"];
+
+    private bool cargando = true;
+    private bool guardando;
+    private string? error;
+    private string? mensaje;
+
+    private string directorNombre = string.Empty;
+    private string directorCargo = CargosBase[0];
+    private string directorCorreo = string.Empty;
+    private string secretariaNombre = string.Empty;
+    private string secretariaCargo = string.Empty;
+
+    /// <summary>The two valid titles, plus whatever is stored if it is something else (so it is never silently replaced).</summary>
+    private IEnumerable<string> CargosDirector =>
+        CargosBase.Contains(directorCargo) ? CargosBase : [.. CargosBase, directorCargo];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Aplicar(await FirmantesSvc.ObtenerAsync());
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Aplicar(Firmantes f)
+    {
+        directorNombre = f.DirectorNombre;
+        directorCargo = string.IsNullOrWhiteSpace(f.DirectorCargo) ? CargosBase[0] : f.DirectorCargo;
+        directorCorreo = f.DirectorCorreo;
+        secretariaNombre = f.SecretariaNombre;
+        secretariaCargo = f.SecretariaCargo;
+    }
+
+    private async Task GuardarAsync()
+    {
+        error = null;
+        mensaje = null;
+        guardando = true;
+        try
+        {
+            var guardado = await FirmantesSvc.GuardarAsync(
+                new Firmantes(directorNombre, directorCargo, directorCorreo, secretariaNombre, secretariaCargo));
+            Aplicar(guardado);
+            mensaje = "Firmantes guardados.";
+        }
+        catch (DomainException ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

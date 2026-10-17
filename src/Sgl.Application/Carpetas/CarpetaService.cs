@@ -1,3 +1,4 @@
+using Sgl.Application.Solicitudes;
 using Sgl.Domain;
 
 namespace Sgl.Application.Carpetas;
@@ -7,7 +8,8 @@ public sealed class CarpetaService(
     ICarpetaRepository repository,
     TimeProvider clock,
     LicenciasOptions? options = null,
-    INotificadorPeticion? notificador = null)
+    INotificadorPeticion? notificador = null,
+    ISolicitudF8Repository? solicitudesF8 = null)
 {
     private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
@@ -102,7 +104,9 @@ public sealed class CarpetaService(
             ArgumentNullException.ThrowIfNull(cmd);
             var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
             var punto = carpeta.PuntoRestauracion();
+            var estadoAnterior = carpeta.Estado;
             carpeta.CambiarEstado(cmd.NuevoEstado, cmd.Autor, Now);
+            await SolicitarF8AutomaticoAsync(carpeta, estadoAnterior, cmd.Autor, ct);
             await repository.SaveChangesAsync(ct);
             return punto;
         }
@@ -428,7 +432,9 @@ public sealed class CarpetaService(
         {
             var carpeta = await LoadActivaAsync(id, ct);
             var punto = carpeta.PuntoRestauracion();
+            var estadoAnterior = carpeta.Estado;
             carpeta.ForzarEstado(nuevoEstado, autor, Now);
+            await SolicitarF8AutomaticoAsync(carpeta, estadoAnterior, autor, ct);
             await repository.SaveChangesAsync(ct);
             return punto;
         }
@@ -842,6 +848,23 @@ public sealed class CarpetaService(
 
     public Task<IReadOnlyList<string>> ObtenerTiposTramiteAsync(CancellationToken ct = default) =>
         repository.GetTiposTramiteAsync(ct);
+
+    /// <summary>
+    /// The one place of the automatic F8 request: a carpeta searched in Archivos / Of. 43 that turns out not to exist
+    /// (moved to No existe carpeta) gets an F8 request, in the same save as the state change. The request records the
+    /// search tray it came from; if one is already open nothing is added. Runs inside the caller's write gate.
+    /// </summary>
+    private async Task SolicitarF8AutomaticoAsync(Carpeta carpeta, EstadoCarpeta estadoAnterior, string autor, CancellationToken ct)
+    {
+        if (solicitudesF8 is null
+            || carpeta.Estado != EstadoCarpeta.NoExisteCarpeta
+            || !Carpeta.PermiteBusquedaPendiente(estadoAnterior))
+        {
+            return;
+        }
+
+        await SolicitudF8Creacion.SolicitarAsync(solicitudesF8, carpeta.Id, estadoAnterior, autor, Now, ct);
+    }
 
     /// <summary>Loads a carpeta that may be mutated: cancelled ones are rejected (only restore/inspect may see them).</summary>
     private async Task<Carpeta> LoadActivaAsync(Guid id, CancellationToken ct)

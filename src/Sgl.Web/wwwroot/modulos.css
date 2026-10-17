@@ -10,6 +10,8 @@ html {
     --grupo-preparacion-soft: #dff4f3;
     --grupo-domicilio: #7a3fb8;
     --grupo-domicilio-soft: #efe5fa;
+    --grupo-solicitudes: #b4236b;
+    --grupo-solicitudes-soft: #fbe6f1;
     --grupo-subidas: #8f4a06;
     --grupo-subidas-soft: #fdf0e1;
     --grupo-cierre: #4d5578;
@@ -31,6 +33,8 @@ html[data-theme="dark"] {
     --grupo-preparacion-soft: #12343a;
     --grupo-domicilio: #c4a1f0;
     --grupo-domicilio-soft: #2b1f4a;
+    --grupo-solicitudes: #f08bbd;
+    --grupo-solicitudes-soft: #3d1a2c;
     --grupo-subidas: #f6b866;
     --grupo-subidas-soft: #3a2a12;
     --grupo-cierre: #b9c0e0;
@@ -46,6 +50,8 @@ html[data-theme="dark"] {
 .grupo-entrada { --grupo: var(--grupo-entrada); --grupo-soft: var(--grupo-entrada-soft); }
 .grupo-preparacion { --grupo: var(--grupo-preparacion); --grupo-soft: var(--grupo-preparacion-soft); }
 .grupo-domicilio { --grupo: var(--grupo-domicilio); --grupo-soft: var(--grupo-domicilio-soft); }
+
+.grupo-solicitudes { --grupo: var(--grupo-solicitudes); --grupo-soft: var(--grupo-solicitudes-soft); }
 .grupo-subidas { --grupo: var(--grupo-subidas); --grupo-soft: var(--grupo-subidas-soft); }
 .grupo-cierre { --grupo: var(--grupo-cierre); --grupo-soft: var(--grupo-cierre-soft); }
 
@@ -624,8 +630,11 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .sidebar-modulo.m-cerradas { --punto-excel: #0d9488; }
 .sidebar-modulo.m-archivadas { --punto-excel: #92400e; }
 .sidebar-modulo.m-anuladas { --punto-excel: #a8a29e; }
+.sidebar-modulo.m-f8 { --punto-excel: #c80000; }
+.sidebar-modulo.m-certificados { --punto-excel: #C27BA0; }
 .sidebar-modulo.m-todas { --punto-excel: #38bdf8; }
 .sidebar-modulo.m-integridad { --punto-excel: #e11d48; }
+.sidebar-modulo.m-firmantes { --punto-excel: #6366f1; }
 .sidebar-modulo.m-peticiones-comunas { --punto-excel: #bef264; }
 .sidebar-modulo.m-peticiones-estadisticas { --punto-excel: #d946ef; }
 .sidebar-modulo.m-peticiones-configuracion { --punto-excel: #4ade80; }
@@ -638,3 +647,29 @@ html[data-theme="dark"] .icono-buscar-dup.icono-buscar-dup--neutro { background:
 .icono-buscar-dup.icono-buscar-dup--neutro { width: 30px; height: 30px; }
 html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
 html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro svg { stroke: #0f172a !important; }
+
+
+/* ---------- Módulos F8 y Certificado / Oficio: filtros y panel de alta ---------- */
+.sol-filtros { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.5rem 0 0.75rem; }
+.sol-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 999px; border: 1px solid var(--borde, #cbd5e1); background: transparent; color: inherit; font-size: var(--fs-badge, 0.78rem); font-weight: 600; cursor: pointer; }
+.sol-chip.activo { background: var(--grupo-solicitudes, #b4236b); border-color: var(--grupo-solicitudes, #b4236b); color: #fff; }
+.sol-chip .sol-chip-n { opacity: 0.85; font-variant-numeric: tabular-nums; }
+.sol-panel { border: 1px solid var(--borde, #cbd5e1); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.9rem; }
+.sol-panel h2 { font-size: var(--fs-section, 1.1rem); margin: 0 0 0.5rem; }
+.sol-form { display: flex; flex-wrap: wrap; gap: 0.6rem 0.9rem; align-items: flex-end; }
+.sol-form label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--fs-label, 0.82rem); }
+.sol-form input, .sol-form select { font-size: var(--fs-input, 0.85rem); }
+.sol-paginador { display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; margin-top: 0.6rem; font-size: var(--fs-small, 0.78rem); }
+
+/* Certificado / Oficio: download link, renewal-year editor, mail status; Firmantes settings. */
+html .alert.warning { padding: .7rem .9rem; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-weight: 600; margin-bottom: .6rem; }
+html[data-theme="dark"] .alert.warning { background: #33270a; border-color: #854d0e; color: #fde68a; }
+html .alert.warning a { color: inherit; text-decoration: underline; margin-left: .4rem; }
+a.btn-action-caja { display: inline-flex; align-items: center; text-decoration: none; }
+.sol-correo { font-size: 0.72rem; margin-top: 0.15rem; white-space: nowrap; }
+.sol-anio { display: inline-flex; gap: 0.3rem; align-items: center; }
+.sol-anio-input { width: 4.5rem; font-size: var(--fs-input, 0.85rem); }
+.firmantes .firmantes-campo { min-width: min(100%, 20rem); }
+.firmantes .firmantes-campo input { width: 100%; }
+.firmantes .firmantes-nota { margin: 0.5rem 0 0; max-width: 70ch; font-size: 0.8rem; }
+.firmantes form > .btn-primary { margin-top: 0.2rem; }

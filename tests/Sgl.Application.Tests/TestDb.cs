@@ -1,6 +1,7 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
+using Sgl.Application.Solicitudes;
 using Sgl.Infrastructure.Persistence;
 
 namespace Sgl.Application.Tests;
@@ -24,8 +25,26 @@ public sealed class TestDb : IDisposable
         new(new DbContextOptionsBuilder<SglDbContext>().UseSqlite(_connection).Options);
 
     /// <summary>Service over a fresh context so assertions never read stale tracked entities.</summary>
-    public CarpetaService NewService(LicenciasOptions? options = null) =>
-        new(new CarpetaRepository(NewContext()), Clock, options);
+    public CarpetaService NewService(LicenciasOptions? options = null)
+    {
+        var ctx = NewContext();
+        return new(new CarpetaRepository(ctx), Clock, options, solicitudesF8: new SolicitudF8Repository(ctx));
+    }
+
+    /// <summary>F8 service over one context shared by every repository (one unit of work, like a scoped circuit).</summary>
+    public SolicitudesF8Service NewF8Service(INotificadorCertificado? notificador = null)
+    {
+        var ctx = NewContext();
+        return new(new CarpetaRepository(ctx), new SolicitudF8Repository(ctx), new CertificadoRepository(ctx), new FirmantesRepository(ctx), Clock, notificador);
+    }
+
+    public CertificadosService NewCertificadosService(INotificadorCertificado? notificador = null)
+    {
+        var ctx = NewContext();
+        return new(new CarpetaRepository(ctx), new CertificadoRepository(ctx), new FirmantesRepository(ctx), Clock, notificador);
+    }
+
+    public FirmantesService NewFirmantesService() => new(new FirmantesRepository(NewContext()));
 
     public DuplicadosService NewDuplicadosService() => new(new DuplicadoRepository(NewContext()), Clock);
 

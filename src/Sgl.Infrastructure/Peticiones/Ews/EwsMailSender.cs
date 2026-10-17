@@ -13,6 +13,15 @@ public interface IMailSender
     Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken);
 }
 
+/// <summary>Un archivo adjunto de un correo.</summary>
+public sealed record AdjuntoCorreo(string Nombre, string ContentType, byte[] Contenido);
+
+/// <summary>Transporte que además sabe adjuntar archivos (lo usa el aviso de certificados al Director).</summary>
+public interface IMailSenderConAdjuntos : IMailSender
+{
+    Task SendAsync(string toAddress, string subject, string body, IReadOnlyList<AdjuntoCorreo> adjuntos, CancellationToken cancellationToken);
+}
+
 /// <summary>
 /// Transporte SOAP mínimo contra el EWS on-premises de Exchange. Solo envía correo
 /// (CreateItem / SendAndSaveCopy). Basic auth sobre TLS.
@@ -22,7 +31,7 @@ public interface IMailSender
 /// red. Un 401/403 corta al primer intento y lanza <see cref="EwsAuthException"/>: reintentar
 /// credenciales rechazadas solo acelera el bloqueo de la cuenta de dominio.
 /// </summary>
-public sealed class EwsMailSender : IMailSender, IDisposable
+public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
 {
     private static readonly XNamespace Soap = "http://schemas.xmlsoap.org/soap/envelope/";
     private static readonly XNamespace T = "http://schemas.microsoft.com/exchange/services/2006/types";
@@ -48,7 +57,11 @@ public sealed class EwsMailSender : IMailSender, IDisposable
 
     public bool IsConfigured => _http is not null;
 
-    public async Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken)
+    public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken) =>
+        SendAsync(toAddress, subject, body, [], cancellationToken);
+
+    public async Task SendAsync(
+        string toAddress, string subject, string body, IReadOnlyList<AdjuntoCorreo> adjuntos, CancellationToken cancellationToken)
     {
         if (_http is null || _ews?.Url is null)
         {
@@ -56,7 +69,7 @@ public sealed class EwsMailSender : IMailSender, IDisposable
                 "Falta configurar Peticion:Ews (Url/Username/Password) en appsettings.Local.json.");
         }
 
-        var soap = BuildSendMailRequest(toAddress, subject, body, _sendAs);
+        var soap = BuildSendMailRequest(toAddress, subject, body, _sendAs, adjuntos);
         var response = await PostAsync(_ews.Url, soap, cancellationToken);
         EnsureSuccess(response);
     }
@@ -161,7 +174,8 @@ public sealed class EwsMailSender : IMailSender, IDisposable
         }
     }
 
-    private static string BuildSendMailRequest(string toAddress, string subject, string body, string? sendAsAddress)
+    public static string BuildSendMailRequest(
+        string toAddress, string subject, string body, string? sendAsAddress, IReadOnlyList<AdjuntoCorreo>? adjuntos = null)
     {
         var envelope = new XElement(Soap + "Envelope",
             new XAttribute(XNamespace.Xmlns + "soap", Soap),
@@ -178,6 +192,14 @@ public sealed class EwsMailSender : IMailSender, IDisposable
                         new XElement(T + "Message",
                             new XElement(T + "Subject", subject),
                             new XElement(T + "Body", new XAttribute("BodyType", "Text"), body),
+                            // El orden importa: Attachments va después de Body y antes de ToRecipients.
+                            adjuntos is { Count: > 0 }
+                                ? new XElement(T + "Attachments",
+                                    adjuntos.Select(a => new XElement(T + "FileAttachment",
+                                        new XElement(T + "Name", a.Nombre),
+                                        new XElement(T + "ContentType", a.ContentType),
+                                        new XElement(T + "Content", Convert.ToBase64String(a.Contenido)))))
+                                : null,
                             new XElement(T + "ToRecipients",
                                 new XElement(T + "Mailbox",
                                     new XElement(T + "EmailAddress", toAddress))),

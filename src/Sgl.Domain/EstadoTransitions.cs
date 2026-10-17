@@ -1,4 +1,4 @@
-namespace Sgl.Domain;
+﻿namespace Sgl.Domain;
 
 /// <summary>
 /// State machine for a carpeta. Mirrors exactly the "Flujo de carpeta" stateDiagram
@@ -14,17 +14,21 @@ public static class EstadoTransitions
             [EstadoCarpeta.Alertada] = [EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.SubidaConaset] = [EstadoCarpeta.EsperaExamen],
             [EstadoCarpeta.PrimeraLicencia] = [EstadoCarpeta.EsperaExamen],
-            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset],
+            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
+            // An F8 can be requested from here too: uploaded -> SubidaConF8; not generated -> Crear certificado.
+            [EstadoCarpeta.CambioDomicilioSolicitado] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
             [EstadoCarpeta.EsperaExamen] = [EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ClasePendiente] = [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],
             // Physical search (phase 3, R8): found -> uploaded to Conaset; not found -> F8 tray.
-            [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
-            [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
+            [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
+            [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
             // A carpeta declared missing is uploaded with F8 or with an oficio; it never goes back to the shelves.
-            [EstadoCarpeta.NoExisteCarpeta] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio],
+            // F8 not generated -> Crear certificado; the signed certificate / oficio then uploads it (SubidaConOficio).
+            [EstadoCarpeta.NoExisteCarpeta] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio, EstadoCarpeta.CrearCertificado],
+            [EstadoCarpeta.CrearCertificado] = [EstadoCarpeta.SubidaConOficio],
             [EstadoCarpeta.PorClasificar] =
             [
                 EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8,

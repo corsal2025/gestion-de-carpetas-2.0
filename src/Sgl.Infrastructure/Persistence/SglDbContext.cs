@@ -17,6 +17,12 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<IntegridadCorrida> IntegridadCorridas => Set<IntegridadCorrida>();
 
+    public DbSet<SolicitudF8> SolicitudesF8 => Set<SolicitudF8>();
+
+    public DbSet<SolicitudCertificado> SolicitudesCertificado => Set<SolicitudCertificado>();
+
+    public DbSet<ConfiguracionItem> Configuracion => Set<ConfiguracionItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -115,6 +121,53 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(r => r.CiudadanoId).ValueGeneratedNever().UseCollation("NOCASE");
             b.Property(r => r.RevisadoPor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
             b.HasOne<Ciudadano>().WithMany().HasForeignKey(r => r.CiudadanoId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SolicitudF8>(b =>
+        {
+            b.ToTable("SolicitudesF8");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(s => s.CarpetaId).UseCollation("NOCASE");
+            b.HasOne<Carpeta>().WithMany().HasForeignKey(s => s.CarpetaId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(s => s.EstadoOrigen).HasConversion<string>().HasMaxLength(50);
+            b.Property(s => s.SolicitadoPor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
+            b.Property(s => s.Estado).HasConversion<string>().HasMaxLength(20);
+            b.Property(s => s.ResueltoPor).HasMaxLength(Carpeta.MaxUsuarioLength);
+            b.Property(s => s.Observacion).HasMaxLength(SolicitudF8.MaxObservacionLength);
+            b.HasIndex(s => new { s.Estado, s.SolicitadoEn });
+            // At most one open request per carpeta, enforced by the database too (the service checks first).
+            b.HasIndex(s => s.CarpetaId).IsUnique().HasFilter("[Estado] = 'Solicitado'");
+        });
+
+        modelBuilder.Entity<SolicitudCertificado>(b =>
+        {
+            b.ToTable("SolicitudesCertificado");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(s => s.CarpetaId).UseCollation("NOCASE");
+            b.Property(s => s.SolicitudF8Id).UseCollation("NOCASE");
+            b.HasOne<Carpeta>().WithMany().HasForeignKey(s => s.CarpetaId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<SolicitudF8>().WithMany().HasForeignKey(s => s.SolicitudF8Id).OnDelete(DeleteBehavior.Restrict);
+            b.Property(s => s.Tipo).HasConversion<string>().HasMaxLength(20);
+            b.Property(s => s.Origen).HasConversion<string>().HasMaxLength(20);
+            b.Property(s => s.Estado).HasConversion<string>().HasMaxLength(20);
+            b.Property(s => s.SolicitadoPor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
+            b.Property(s => s.FirmadoPor).HasMaxLength(Carpeta.MaxUsuarioLength);
+            b.Property(s => s.NumeroOficio).HasMaxLength(SolicitudCertificado.MaxNumeroOficioLength);
+            b.Property(s => s.ParametrosJson).HasMaxLength(4000).IsRequired();
+            b.Property(s => s.Observacion).HasMaxLength(SolicitudCertificado.MaxObservacionLength);
+            b.HasIndex(s => new { s.Estado, s.SolicitadoEn });
+            // At most one open certificate per carpeta and tipo, enforced by the database too.
+            b.HasIndex(s => new { s.CarpetaId, s.Tipo }).IsUnique().HasFilter("[Estado] = 'PorFirmar'");
+        });
+
+        modelBuilder.Entity<ConfiguracionItem>(b =>
+        {
+            b.ToTable("Configuracion");
+            b.HasKey(i => i.Clave);
+            b.Property(i => i.Clave).HasMaxLength(ConfiguracionItem.MaxClaveLength);
+            b.Property(i => i.Valor).HasMaxLength(ConfiguracionItem.MaxValorLength).IsRequired();
         });
     }
 }

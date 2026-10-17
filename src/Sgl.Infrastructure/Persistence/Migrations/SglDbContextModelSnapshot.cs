@@ -293,6 +293,145 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.ToTable("RevisionesDuplicado", (string)null);
                 });
 
+            modelBuilder.Entity("Sgl.Domain.SolicitudCertificado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<Guid>("CarpetaId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<DateTime?>("EnviadoADirectorEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FirmadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirmadoPor")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NumeroOficio")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ParametrosJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SolicitadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SolicitadoPor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SolicitudF8Id")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SolicitudF8Id");
+
+                    b.HasIndex("CarpetaId", "Tipo")
+                        .IsUnique()
+                        .HasFilter("[Estado] = 'PorFirmar'");
+
+                    b.HasIndex("Estado", "SolicitadoEn");
+
+                    b.ToTable("SolicitudesCertificado", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.SolicitudF8", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<Guid>("CarpetaId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EstadoOrigen")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ResueltoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResueltoPor")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SolicitadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SolicitadoPor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarpetaId")
+                        .IsUnique()
+                        .HasFilter("[Estado] = 'Solicitado'");
+
+                    b.HasIndex("Estado", "SolicitadoEn");
+
+                    b.ToTable("SolicitudesF8", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Infrastructure.Persistence.ConfiguracionItem", b =>
+                {
+                    b.Property<string>("Clave")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Valor")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Clave");
+
+                    b.ToTable("Configuracion", (string)null);
+                });
+
             modelBuilder.Entity("Sgl.Domain.Carpeta", b =>
                 {
                     b.HasOne("Sgl.Domain.Ciudadano", "Ciudadano")
@@ -347,6 +486,29 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CiudadanoId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sgl.Domain.SolicitudCertificado", b =>
+                {
+                    b.HasOne("Sgl.Domain.Carpeta", null)
+                        .WithMany()
+                        .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sgl.Domain.SolicitudF8", null)
+                        .WithMany()
+                        .HasForeignKey("SolicitudF8Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.SolicitudF8", b =>
+                {
+                    b.HasOne("Sgl.Domain.Carpeta", null)
+                        .WithMany()
+                        .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

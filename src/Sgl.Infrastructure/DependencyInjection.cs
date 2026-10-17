@@ -1,5 +1,6 @@
 using Sgl.Application;
 using Sgl.Infrastructure.Carpetas;
+using Sgl.Infrastructure.Documentos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +8,7 @@ using Sgl.Application.Carpetas;
 using Sgl.Application.Estadisticas;
 using Sgl.Application.Integridad;
 using Sgl.Application.Panel;
+using Sgl.Application.Solicitudes;
 using Sgl.Infrastructure.Persistence;
 
 namespace Sgl.Infrastructure;
@@ -33,6 +35,22 @@ public static class DependencyInjection
         // "Pedir" mail to Dirección / Secretaría: no mail until the real adapter is configured.
         services.AddSingleton<INotificadorPeticion, PeticionSinCorreo>();
         services.AddScoped<DuplicadosService>();
+        // F8 and Certificado / Oficio modules. All repositories share the scoped DbContext (one unit of work).
+        services.AddScoped<ISolicitudF8Repository, SolicitudF8Repository>();
+        services.AddScoped<ICertificadoRepository, CertificadoRepository>();
+        services.AddScoped<IFirmantesRepository, FirmantesRepository>();
+        services.AddScoped<SolicitudesF8Service>();
+        services.AddScoped<CertificadosService>();
+        services.AddScoped<FirmantesService>();
+        services.AddScoped<DocumentoCertificadoService>();
+        // Documents and the mail to the Director. The mail is OFF unless Certificados:EnvioCorreoActivo is true, and
+        // it honours the Peticiones test mode (Peticion:TestModeEmail).
+        services.AddSingleton(new CertificadosOptions
+        {
+            EnvioCorreoActivo = bool.TryParse(configuration[$"{CertificadosOptions.SectionName}:EnvioCorreoActivo"], out var activo) && activo,
+        });
+        services.AddSingleton<IGeneradorDocumentoCertificado, GeneradorDocumentoCertificado>();
+        services.AddSingleton<INotificadorCertificado, NotificadorCertificadoCorreo>();
         services.AddScoped<IPanelQuery, PanelQuery>();
         services.AddScoped<PanelService>();
         services.AddScoped<IIntegridadRepository, IntegridadRepository>();

@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
     <ProjectReference Include="..\Sgl.Application\Sgl.Application.csproj" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <EmbeddedResource Include="Peticiones\Comunas\comunas.seed.csv" LogicalName="comunas.seed.csv" />
+    <EmbeddedResource Include="Documentos\Plantillas\*.docx" LogicalName="Plantillas.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

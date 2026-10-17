@@ -2,6 +2,7 @@ using Sgl.Application;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Integridad;
 using Sgl.Application.Panel;
+using Sgl.Application.Solicitudes;
 using Sgl.Domain;
 
 namespace Sgl.Web.Services;
@@ -19,6 +20,9 @@ public static class ModulosCatalogo
     public const string ClaveTodas = "todas";
     public const string ClaveIntegridad = "integridad";
     public const string ClavePeticiones = "peticiones";
+    public const string ClaveF8 = "f8";
+    public const string ClaveCertificados = "certificados";
+    public const string ClaveFirmantes = "firmantes";
 
     /// <summary>
     /// CSS class of a module's menu circle ("m-..."): every module has its own colour (see modulos.css) and all
@@ -37,7 +41,9 @@ public static class ModulosCatalogo
 
     public static readonly GrupoModulo Sistema = new("sistema", "Control", "grupo-sistema", "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4");
 
-    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Subidas, Cierre, Sistema];
+    public static readonly GrupoModulo Solicitudes = new("solicitudes", "SOLICITUDES", "grupo-solicitudes", "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6");
+
+    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Solicitudes, Subidas, Cierre, Sistema];
 
     public static readonly IReadOnlyList<Modulo> Todos =
     [
@@ -49,9 +55,11 @@ public static class ModulosCatalogo
         Tray(Preparacion, Bandeja.SinCarpetaF8, "No existe carpeta (F8)", "F8"),
         Tray(Preparacion, Bandeja.CrearCertificado, "Crear certificado / oficio", "CE"),
         Tray(Preparacion, Bandeja.CanjeLicExtranjera, "Canje lic. extranjera", "CJ"),
-        Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambio de domicilio", "CD"),
+        Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambios de domicilio que nos solicitan por correo", "CD"),
+        new(ClavePeticiones, CambioDomicilio, "Peticiones de cambio de domicilio a otras comunas", "PE", "peticiones"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado", "CS"),
-        new(ClavePeticiones, CambioDomicilio, "Peticiones", "PE", "peticiones"),
+        new(ClaveF8, Solicitudes, "F8", "FS", "f8"),
+        new(ClaveCertificados, Solicitudes, "Certificado / Oficio", "CF", "certificados"),
         new("peticiones-comunas", Sistema, "Comunas y correos", "CO", "peticiones/Comunas"),
         new("peticiones-estadisticas", Sistema, "Estadísticas de peticiones", "EP", "peticiones/Estadisticas"),
         new("peticiones-configuracion", Sistema, "Configuración de correo", "CC", "peticiones/Configuracion"),
@@ -64,6 +72,7 @@ public static class ModulosCatalogo
         Tray(Cierre, Bandeja.Archivadas, "Archivadas", "AV"),
         new(ClaveAnuladas, Cierre, "Anuladas", "AN", "anuladas"),
         new(ClaveIntegridad, Sistema, "Integridad", "IN", "integridad"),
+        new(ClaveFirmantes, Sistema, "Firmantes", "FI", "configuracion/firmantes"),
         new(ClaveTodas, Cierre, "Todas las carpetas", "TO", "carpetas?bandeja=todas"),
     ];
 
@@ -89,6 +98,9 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
     /// <summary>Last integrity watchdog run (null until one exists).</summary>
     public CorridaIntegridadDto? Integridad { get; private set; }
 
+    /// <summary>Open requests of the SOLICITUDES group (badges of F8 and Certificado / Oficio).</summary>
+    public ContadoresSolicitudes Solicitudes { get; private set; } = ContadoresSolicitudes.Vacio;
+
     public event Action? Changed;
 
     public EstadoModulo De(Modulo modulo)
@@ -112,6 +124,8 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
                 Integridad is { TieneProblemas: true } ? Semaforo.Rojo : Semaforo.Verde,
                 Integridad?.Problemas ?? 0,
                 SinSerie),
+            ModulosCatalogo.ClaveF8 => new EstadoModulo(Solicitudes.F8Solicitados, null, 0, SinSerie),
+            ModulosCatalogo.ClaveCertificados => new EstadoModulo(Solicitudes.CertificadosPorFirmar, null, 0, SinSerie),
             ModulosCatalogo.ClaveTodas => new EstadoModulo(p.Modulos.Sum(m => m.Conteo), null, 0, SinSerie),
             _ => new EstadoModulo(0, null, 0, SinSerie),
         };
@@ -146,6 +160,9 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
             await using var scope = scopeFactory.CreateAsyncScope();
             Panel = await scope.ServiceProvider.GetRequiredService<PanelService>().ObtenerAsync();
             Integridad = await scope.ServiceProvider.GetRequiredService<IntegridadService>().UltimaAsync();
+            Solicitudes = ContadoresSolicitudes.Desde(
+                await scope.ServiceProvider.GetRequiredService<SolicitudesF8Service>().ContarPorEstadoAsync(),
+                await scope.ServiceProvider.GetRequiredService<CertificadosService>().ContarPorEstadoAsync());
             Changed?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

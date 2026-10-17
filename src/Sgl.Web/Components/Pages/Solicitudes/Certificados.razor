@@ -1,0 +1,529 @@
+@page "/certificados"
+@layout ModuloLayout
+@using Sgl.Application.Solicitudes
+@inject CertificadosService CertificadosSvc
+@inject CarpetaService Carpetas
+@inject FirmantesService FirmantesSvc
+@inject IGeneradorDocumentoCertificado Generador
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+
+<PageTitle>@TituloPagina.De("Certificado / Oficio")</PageTitle>
+
+<div class="page-container">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Certificado / Oficio <span class="muted">· @(total?.ToString("N0", Cultura) ?? "…")</span></h1>
+        <form class="modulo-busqueda" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
+            <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar certificados u oficios" maxlength="100" />
+            <button type="submit" class="btn-secondary">Buscar</button>
+        </form>
+    </div>
+
+    <section class="sol-panel" aria-label="Nueva solicitud">
+        <h2>Nueva solicitud</h2>
+        <div class="sol-form">
+            <label>Tipo
+                <select @bind="nuevoTipo" @bind:after="LimpiarParametros">
+                    <option value="@TipoCertificado.RegistroCivil">Registro Civil</option>
+                    <option value="@TipoCertificado.Oficio">Oficio</option>
+                </select>
+            </label>
+            <form class="sol-form" @onsubmit="BuscarCarpetaAsync" @onsubmit:preventDefault>
+                <label>RUT
+                    <input @bind="rutNuevo" placeholder="12345678-9" maxlength="20" aria-label="RUT del contribuyente" />
+                </label>
+                <button type="submit" class="btn-secondary" disabled="@buscandoCarpeta">Buscar carpeta</button>
+            </form>
+            @if (candidatas is { Count: > 0 })
+            {
+                <label>Carpeta
+                    <select @bind="carpetaElegida">
+                        @if (candidatas.Count > 1)
+                        {
+                            <option value="@Guid.Empty">Elegir…</option>
+                        }
+                        @foreach (var c in candidatas)
+                        {
+                            <option value="@c.Id">@c.NombreCompleto.ToUpperInvariant() · @Labels.Of(c.Sede) · @Labels.Of(c.Estado) · @c.FechaCitacion.ToString("dd-MM-yyyy")</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (CarpetaSeleccionada is { } sel)
+            {
+                <span class="name-cell" title="Contribuyente seleccionado">@sel.NombreCompleto</span>
+            }
+        </div>
+
+        @if (CarpetaSeleccionada is not null)
+        {
+            <div class="sol-form" style="margin-top: 0.6rem;">
+                @if (nuevoTipo == TipoCertificado.Oficio)
+                {
+                    <label>N° de oficio
+                        <input @bind="numeroOficioNuevo" maxlength="@SolicitudCertificado.MaxNumeroOficioLength" />
+                    </label>
+                    <label>Clase
+                        <input @bind="paramClase" maxlength="@SolicitudCertificado.MaxValorParametro" />
+                    </label>
+                    <label>Motivo
+                        <input @bind="paramMotivo" maxlength="@SolicitudCertificado.MaxValorParametro" />
+                    </label>
+                }
+                else
+                {
+                    <label>Clase
+                        <input @bind="paramClase" maxlength="@SolicitudCertificado.MaxValorParametro" />
+                    </label>
+                    <label>Ley
+                        <input @bind="paramLey" maxlength="@SolicitudCertificado.MaxValorParametro" />
+                    </label>
+                    <label>Fecha de otorgamiento
+                        <input type="date" @bind="paramFechaOtorgamiento" />
+                    </label>
+                }
+                <button type="button" class="btn-primary" disabled="@creando" @onclick="CrearAsync">Crear</button>
+            </div>
+        }
+    </section>
+
+    <div class="sol-filtros">
+        <span class="sol-filtros" role="group" aria-label="Estado">
+            @foreach (var (valor, etiqueta) in Chips)
+            {
+                <button type="button" class="sol-chip @(estado == valor ? "activo" : "")" aria-pressed="@(estado == valor ? "true" : "false")"
+                        @onclick="() => CambiarEstadoAsync(valor)">
+                    @etiqueta <span class="sol-chip-n">@Conteo(valor).ToString("N0", Cultura)</span>
+                </button>
+            }
+        </span>
+        <label class="sol-filtro-tipo">Tipo
+            <select value="@(tipoFiltro?.ToString() ?? "")" @onchange="CambiarTipoFiltroAsync" aria-label="Filtrar por tipo">
+                <option value="">Todos</option>
+                @foreach (var t in Enum.GetValues<TipoCertificado>())
+                {
+                    <option value="@t">@EtiquetasSolicitudes.Of(t)</option>
+                }
+            </select>
+        </label>
+    </div>
+
+    @if (!FirmantesConfigurados)
+    {
+        <div class="alert warning" role="status">
+            Los firmantes no están configurados: no se pueden generar documentos todavía.
+            <a href="configuracion/firmantes">Configurar firmantes</a>
+        </div>
+    }
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">@mensaje <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensaje = null">✕</button></div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando solicitudes…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay solicitudes en esta vista.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table">
+                <thead>
+                    <tr>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th>SEDE</th>
+                        <th>TIPO</th>
+                        <th>ORIGEN</th>
+                        <th>SOLICITADO POR</th>
+                        <th>FECHA DE SOLICITUD</th>
+                        <th>ESTADO</th>
+                        <th>N° OFICIO</th>
+                        <th>AÑO ÚLT. RENOVACIÓN</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in items)
+                    {
+                        <tr @key="s.Id">
+                            <td class="date-cell col-sticky-rut">@s.Rut</td>
+                            <td class="col-sticky-nombre">
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell">@s.NombreCompleto</span>
+                                    <span class="nombre-acciones">
+                                        <a class="icono-buscar-dup icono-buscar-dup--neutro" href="@($"/carpetas?bandeja=todas&buscar={Uri.EscapeDataString(s.Rut)}")"
+                                           title="Ver las carpetas de este RUT" aria-label="Buscar en el sistema las carpetas de este RUT">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                        </a>
+                                    </span>
+                                </div>
+                            </td>
+                            <td><span class="sede-tag">@Labels.Of(s.Sede)</span></td>
+                            <td>@EtiquetasSolicitudes.Of(s.Tipo)</td>
+                            <td>@EtiquetasSolicitudes.Of(s.Origen)</td>
+                            <td>@s.SolicitadoPor</td>
+                            <td class="date-cell">@HoraChile.ALocal(s.SolicitadoEn).ToString("dd-MM-yyyy")</td>
+                            <td>
+                                <span class="badge @(s.Estado == EstadoCertificado.Firmado ? "ok" : "warn")">@EtiquetasSolicitudes.Of(s.Estado)</span>
+                                <div class="muted sol-correo">@(s.EnviadoADirectorEn is { } env ? $"Correo enviado {HoraChile.ALocal(env):dd-MM-yyyy}" : "Correo: no enviado")</div>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(s.NumeroOficio) ? "—" : s.NumeroOficio)</td>
+                            <td>
+                                @if (s.Tipo != TipoCertificado.SinCarpeta)
+                                {
+                                    <span class="muted">—</span>
+                                }
+                                else if (s.Estado == EstadoCertificado.PorFirmar)
+                                {
+                                    <span class="sol-anio">
+                                        <input class="sol-anio-input" inputmode="numeric" maxlength="4" size="5" placeholder="aaaa"
+                                               aria-label="Año de la última renovación" value="@AnioEditado(s)"
+                                               @oninput="e => anios[s.Id] = e.Value?.ToString() ?? string.Empty" />
+                                        <button type="button" class="btn-secondary" disabled="@(ocupadoId == s.Id)" @onclick="() => GuardarAnioAsync(s)">Guardar</button>
+                                    </span>
+                                }
+                                else
+                                {
+                                    @(s.Parametros.GetValueOrDefault(SolicitudCertificado.ClaveAnioRenovacion) ?? "—")
+                                }
+                            </td>
+                            <td class="action-cell">
+                                @if (s.Estado == EstadoCertificado.PorFirmar)
+                                {
+                                    <button type="button" class="btn-decision btn-enviar" disabled="@(ocupadoId == s.Id)"
+                                            title="Firmado y entregado: la carpeta pasa a «Subida con oficio»" @onclick="() => MarcarFirmadoAsync(s)">Firmado y entregado</button>
+                                }
+                                @if (MotivoSinDocumento(s) is { } motivo)
+                                {
+                                    <button type="button" class="btn-action-caja" disabled title="@motivo">Generar documento</button>
+                                }
+                                else
+                                {
+                                    <a class="btn-action-caja" href="certificados/@s.Id/documento" download title="Descargar el documento Word listo para firmar">Generar documento</a>
+                                }
+                                <a class="btn-detail" href="carpetas/@s.CarpetaId" title="Ver detalle e historial">Abrir →</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="sol-paginador">
+            <span>@(skip + 1)–@(skip + items.Count) de @total?.ToString("N0", Cultura)</span>
+            <button type="button" class="btn-secondary" disabled="@(skip == 0)" @onclick="AnteriorAsync">← Anterior</button>
+            <button type="button" class="btn-secondary" disabled="@(skip + items.Count >= total)" @onclick="SiguienteAsync">Siguiente →</button>
+        </div>
+    }
+</div>
+
+@code {
+    private const int PorPagina = ListadoSolicitudes.TakePorDefecto;
+    private const int MaxCandidatas = 20;
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly (EstadoCertificado? Valor, string Etiqueta)[] Chips =
+    [
+        (EstadoCertificado.PorFirmar, "Por firmar"),
+        (EstadoCertificado.Firmado, "Firmado"),
+        (null, "Todos"),
+    ];
+
+    // Listing
+    private IReadOnlyList<SolicitudCertificadoDto>? items;
+    private IReadOnlyDictionary<EstadoCertificado, int> conteos = new Dictionary<EstadoCertificado, int>();
+    private EstadoCertificado? estado = EstadoCertificado.PorFirmar;
+    private TipoCertificado? tipoFiltro;
+    private string? texto;
+    private int skip;
+    private int? total;
+    private Guid? ocupadoId;
+    private string? error;
+    private string? mensaje;
+
+    // New manual request
+    private TipoCertificado nuevoTipo = TipoCertificado.RegistroCivil;
+    private string? rutNuevo;
+    private IReadOnlyList<CarpetaResumenDto>? candidatas;
+    private Guid carpetaElegida;
+    private bool buscandoCarpeta;
+    private bool creando;
+    private string? numeroOficioNuevo;
+    private string? paramClase;
+    private string? paramLey;
+    private string? paramMotivo;
+    private DateTime? paramFechaOtorgamiento;
+
+    private Firmantes firmantes = Firmantes.Vacios;
+    private readonly Dictionary<Guid, string> anios = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarFirmantesAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarFirmantesAsync()
+    {
+        try
+        {
+            firmantes = await FirmantesSvc.ObtenerAsync();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            firmantes = Firmantes.Vacios;
+        }
+    }
+
+    private bool FirmantesConfigurados =>
+        !string.IsNullOrWhiteSpace(firmantes.DirectorNombre) && !string.IsNullOrWhiteSpace(firmantes.DirectorCargo);
+
+    /// <summary>Why the document cannot be downloaded yet (shown as the disabled button's tooltip), or null.</summary>
+    private string? MotivoSinDocumento(SolicitudCertificadoDto s) =>
+        Generador.MotivoNoGenerable(DatosCertificado.Desde(s), firmantes);
+
+    private string AnioEditado(SolicitudCertificadoDto s) =>
+        anios.TryGetValue(s.Id, out var v) ? v : s.Parametros.GetValueOrDefault(SolicitudCertificado.ClaveAnioRenovacion) ?? string.Empty;
+
+    private async Task GuardarAnioAsync(SolicitudCertificadoDto s)
+    {
+        error = null;
+        mensaje = null;
+        if (!AutorListo()) return;
+
+        var parametros = s.Parametros.ToDictionary(p => p.Key, p => p.Value);
+        var anio = AnioEditado(s).Trim();
+        if (anio.Length == 0) parametros.Remove(SolicitudCertificado.ClaveAnioRenovacion);
+        else parametros[SolicitudCertificado.ClaveAnioRenovacion] = anio;
+
+        ocupadoId = s.Id;
+        try
+        {
+            await CertificadosSvc.ActualizarDatosAsync(s.Id, parametros, null, s.Observacion);
+            anios.Remove(s.Id);
+            mensaje = $"Año de la última renovación guardado para {s.NombreCompleto}.";
+            await CargarAsync();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+
+    private CarpetaResumenDto? CarpetaSeleccionada =>
+        candidatas?.FirstOrDefault(c => c.Id == carpetaElegida) ?? (candidatas is { Count: 1 } uno ? uno[0] : null);
+
+    private int Conteo(EstadoCertificado? valor) =>
+        valor is { } v ? conteos.GetValueOrDefault(v) : conteos.Values.Sum();
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var lista = await CertificadosSvc.ListarAsync(new ListarCertificadosQuery(estado, tipoFiltro, texto, skip, PorPagina));
+            conteos = await CertificadosSvc.ContarPorEstadoAsync(tipoFiltro);
+            items = lista.Items;
+            total = lista.Total;
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+            items ??= [];
+        }
+    }
+
+    private Task BuscarAsync()
+    {
+        skip = 0;
+        return CargarAsync();
+    }
+
+    private Task CambiarEstadoAsync(EstadoCertificado? nuevo)
+    {
+        estado = nuevo;
+        skip = 0;
+        return CargarAsync();
+    }
+
+    private Task CambiarTipoFiltroAsync(ChangeEventArgs e)
+    {
+        tipoFiltro = Enum.TryParse<TipoCertificado>(e.Value?.ToString(), out var t) ? t : null;
+        skip = 0;
+        return CargarAsync();
+    }
+
+    private Task AnteriorAsync()
+    {
+        skip = Math.Max(0, skip - PorPagina);
+        return CargarAsync();
+    }
+
+    private Task SiguienteAsync()
+    {
+        skip += PorPagina;
+        return CargarAsync();
+    }
+
+    private bool AutorListo()
+    {
+        if (Autor.HasNombre) return true;
+        error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar solicitudes.";
+        return false;
+    }
+
+    // ---- Firmado y entregado ----
+
+    private async Task MarcarFirmadoAsync(SolicitudCertificadoDto s)
+    {
+        error = null;
+        mensaje = null;
+        if (!AutorListo()) return;
+
+        bool confirmado;
+        try
+        {
+            confirmado = await JS.InvokeAsync<bool>("confirm",
+                $"¿Confirmar que el documento de {s.NombreCompleto} ({s.Rut}) fue firmado y entregado? La carpeta pasa a «Subida con oficio».");
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            return;
+        }
+
+        if (!confirmado) return;
+
+        ocupadoId = s.Id;
+        try
+        {
+            await CertificadosSvc.MarcarFirmadoAsync(s.Id, Autor.Nombre!);
+            mensaje = $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta pasó a «Subida con oficio».";
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+
+    // ---- Nueva solicitud manual ----
+
+    private void LimpiarParametros()
+    {
+        numeroOficioNuevo = paramClase = paramLey = paramMotivo = null;
+        paramFechaOtorgamiento = null;
+    }
+
+    private async Task BuscarCarpetaAsync()
+    {
+        error = null;
+        candidatas = null;
+        carpetaElegida = Guid.Empty;
+        if (string.IsNullOrWhiteSpace(rutNuevo))
+        {
+            error = "Ingrese el RUT del contribuyente.";
+            return;
+        }
+
+        buscandoCarpeta = true;
+        try
+        {
+            var r = await Carpetas.ListarAsync(new ListarCarpetasQuery(Texto: rutNuevo.Trim(), Take: MaxCandidatas));
+            candidatas = r.Items;
+            if (r.Items.Count == 0)
+            {
+                error = "No hay carpetas con ese RUT.";
+            }
+            else if (r.Items.Count == 1)
+            {
+                carpetaElegida = r.Items[0].Id;
+            }
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            buscandoCarpeta = false;
+        }
+    }
+
+    private Dictionary<string, string> ParametrosNuevos()
+    {
+        var p = new Dictionary<string, string>();
+        void Agregar(string clave, string? valor)
+        {
+            if (!string.IsNullOrWhiteSpace(valor)) p[clave] = valor.Trim();
+        }
+
+        Agregar("Clase", paramClase);
+        if (nuevoTipo == TipoCertificado.Oficio)
+        {
+            Agregar("Motivo", paramMotivo);
+        }
+        else
+        {
+            Agregar("Ley", paramLey);
+            Agregar("FechaOtorgamiento", paramFechaOtorgamiento?.ToString("dd-MM-yyyy"));
+        }
+
+        return p;
+    }
+
+    private async Task CrearAsync()
+    {
+        error = null;
+        mensaje = null;
+        if (!AutorListo()) return;
+        if (CarpetaSeleccionada is not { } carpeta)
+        {
+            error = "Elija la carpeta del contribuyente.";
+            return;
+        }
+
+        creando = true;
+        try
+        {
+            var numero = nuevoTipo == TipoCertificado.Oficio && !string.IsNullOrWhiteSpace(numeroOficioNuevo) ? numeroOficioNuevo.Trim() : null;
+            var creado = await CertificadosSvc.CrearManualAsync(
+                new CrearCertificadoManualCommand(carpeta.Id, nuevoTipo, ParametrosNuevos(), numero, Autor.Nombre!));
+            mensaje = $"Solicitud de {EtiquetasSolicitudes.Of(nuevoTipo)} creada para {carpeta.NombreCompleto}. "
+                + MensajesSolicitudes.EstadoCorreo(creado.EnviadoADirector, creado.ErrorEnvio);
+            candidatas = null;
+            rutNuevo = null;
+            carpetaElegida = Guid.Empty;
+            LimpiarParametros();
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            creando = false;
+        }
+    }
+}

@@ -47,3 +47,20 @@ Por revisar / decidir
 - La UI no fue verificada en navegador por el agente.
 
 - **Duplicados en Por clasificar (2026-10-14)**: los casos "por arreglar" (RUT con más de una carpeta abierta sin revisar) ya van dentro de la misma tabla de Por clasificar, ARRIBA de las carpetas normales: fila separadora "POR ARREGLAR · N casos", una fila roja por caso (orden apellido/nombre, de a 100 con "Mostrar más"), luego separador "POR CLASIFICAR · M carpetas" y las filas normales. Botón "Resolver" abre la comparación (Conservar / mantener ambas / Reagendar / Anular). Se omiten los ciudadanos que ya tienen fila propia en la bandeja. El chip "Por arreglar (N)" ahora salta a la sección; el contador del menú lateral no cambia. Pendiente: si Por clasificar está vacía (o el filtro no deja carpetas) se muestra el estado vacío y no los casos.
+
+## Módulos F8 y Certificado / Oficio — Fase A (2026-10-16)
+Revisión adversarial: sin hallazgos bloqueantes ni altos. Pendientes para decidir:
+- **MEDIA — escrituras simultáneas:** cada servicio (`CarpetaService`, `SolicitudesF8Service`, `CertificadosService`) tiene su propio semáforo sobre el mismo `DbContext` del circuito. Dos escrituras a la vez podrían dar un error de EF. Es el patrón que ya existía; arreglo posible: un solo semáforo por circuito.
+- **MEDIA — F8 que queda abierto:** si la carpeta se mueve por otro camino (mover estado a mano, importación de Excel, Deshacer) la solicitud de F8 sigue en "Solicitado". Arreglo posible: que "F8 subido" / "No se pudo generar" se nieguen si la carpeta ya no está en un estado desde el que se pide F8.
+- **BAJA — firmar certificado fuerza `SubidaConOficio`** aunque la carpeta ya esté en Otorgado/Denegado. Arreglo: proteger los estados finales.
+- **BAJA — mensaje de error del envío de correo** se devuelve tal cual al usuario; con un adaptador real podría filtrar datos del servidor.
+- **BAJA — BOM** agregado al inicio de `EstadoTransitions.cs` (cosmético).
+- El correo al Director arranca en **modo prueba** (no envía nada): falta el adaptador real.
+
+## Módulos F8 y Certificado / Oficio — Fases B y C (2026-10-16)
+Revisión adversarial: 1 alto (corregido: F8 no puede pisar una carpeta ya Otorgada/Denegada) y pendientes menores:
+- **MEDIA — descarga del certificado** (`GET /certificados/{id}/documento`): sin autenticación, cualquiera en la red con el id obtiene el .docx con datos personales. Agregar `Cache-Control: no-store`; resolver de fondo cuando exista inicio de sesión.
+- **MEDIA — Firmantes** (`/configuracion/firmantes`): se pueden editar sin indicar el funcionario ni dejar registro. Si se activa `Certificados:EnvioCorreoActivo`, alguien podría cambiar el correo del Director. Exigir nombre de funcionario y auditar.
+- **BAJA — caracteres de control** en nombre o motivo podrían hacer fallar el armado del correo EWS (el certificado igual se crea; el Director no recibe aviso).
+- **BAJA — código muerto:** `CertificadoSinCorreo.cs` ya no se registra en ningún lado.
+- **Pendiente de producto:** probar la generación real en Word (no se abrió un .docx generado) y el envío EWS contra Exchange.

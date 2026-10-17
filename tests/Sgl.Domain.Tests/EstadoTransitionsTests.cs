@@ -1,4 +1,4 @@
-using Sgl.Domain;
+﻿using Sgl.Domain;
 
 namespace Sgl.Domain.Tests;
 
@@ -47,6 +47,18 @@ public class EstadoTransitionsTests
         // A missing carpeta is uploaded with F8 or with an oficio; it never goes back to the shelves.
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
+        // F8 / certificate modules: a requested F8 is uploaded (SubidaConF8) or not generated (Crear certificado),
+        // and a signed certificate / oficio uploads the carpeta (SubidaConOficio).
+        (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.CrearCertificado, EstadoCarpeta.SubidaConOficio),
+        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CrearCertificado),
+        (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.SubidaConF8),
+        (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.CrearCertificado),
     ];
 
     public static TheoryData<EstadoCarpeta, EstadoCarpeta> ValidPairs()

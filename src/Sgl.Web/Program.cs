@@ -97,6 +97,26 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapGet("/certificados/{id:guid}/documento", async (Guid id, Sgl.Application.Solicitudes.DocumentoCertificadoService documentos, CancellationToken ct) =>
+{
+    try
+    {
+        var documento = await documentos.GenerarAsync(id, ct);
+        return Results.File(
+            documento.Contenido,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            documento.NombreArchivo);
+    }
+    catch (Sgl.Application.NotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (Sgl.Domain.DomainException ex)
+    {
+        // The page only offers the link when the data is complete; this is the fallback for a stale page.
+        return Results.Text(ex.Message, "text/plain; charset=utf-8", statusCode: StatusCodes.Status422UnprocessableEntity);
+    }
+});
 app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
 {
     var filtro = new FiltroEstadisticas(

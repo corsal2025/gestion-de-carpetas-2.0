@@ -9,6 +9,7 @@
 @inject IJSRuntime JS
 @inject DuplicadosNotifier DuplicadosNotifier
 @inject DuplicadosService Duplicados
+@inject Sgl.Application.Solicitudes.SolicitudesF8Service SolicitudesF8
 
 <PageTitle>@TituloPagina.De(TituloModuloPdf)</PageTitle>
 
@@ -224,7 +225,7 @@
 
         @if (avisoPeticion is not null)
         {
-            <div class="alert success" role="status">@avisoPeticion <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => avisoPeticion = null">✕</button></div>
+            <div class="alert success" role="status">@avisoPeticion @if (avisoConEnlaceF8) { <a href="f8" class="btn-small">Ir a F8 →</a> } <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => { avisoPeticion = null; avisoConEnlaceF8 = false; }">✕</button></div>
         }
         @if (errorEdicion is not null)
         {
@@ -234,7 +235,7 @@
         {
             <section class="dup-revision" aria-live="polite" aria-label="Revisión de duplicado">
                 <header class="dup-revision-head">
-                    <strong>Duplicado · @filaDup.NombreCompleto · @filaDup.Rut</strong>
+                    <strong>Duplicado · <span class="nombre-persona">@filaDup.NombreCompleto</span> · @filaDup.Rut</strong>
                     <button type="button" class="btn-small secondary" @onclick="CerrarRevisionDup">Cerrar ✕</button>
                 </header>
                 <p class="dup-revision-motivo @(RutDuplicadoValido(filaDup) ? null : "dup-motivo-alerta")">@MotivoDuplicado(filaDup, alertaDup)</p>
@@ -285,15 +286,6 @@
                    href="#dup-seccion" @onclick="IrASeccionPorArreglarAsync" @onclick:preventDefault
                    title="Casos de RUT con más de una carpeta abierta, estén en la bandeja que estén: van arriba de la tabla">Por arreglar (@(totalPorArreglar?.ToString("N0", CultureInfo.GetCultureInfo("es-CL")) ?? "…"))</a>
             </div>
-        }
-        <!-- Navegación entre módulos: menú lateral (ModulosSidebar). Aquí solo la barra de meta en Por clasificar. -->
-        @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelMeta)
-        {
-            <MetaDiaBar Meta="panelMeta.Meta" Delgada="true" />
-        }
-        else if (EsBandejaDeUbicacion(bandejaActiva) && Modulos.Panel?.ActividadHoy.GetValueOrDefault(bandejaActiva!.Value) is { } actividad)
-        {
-            <MetaDiaBar Meta="actividad" Delgada="true" Accion="revisadas hoy" PorHacer="revisar" />
         }
     </div>
 
@@ -591,15 +583,13 @@
                         <th class="th-check col-sticky-check">
                             <input type="checkbox" checked="@TodosSeleccionados" disabled="@seleccionandoTodas" @onchange="ToggleSelectAll" title="Seleccionar todas las carpetas de esta bandeja" />
                         </th>
-                        @foreach (var col in ColumnasBandeja.Where(c => c != ColumnaEtapa && c != ColumnaCierre))
+                        @foreach (var col in ColumnasBandeja.Where(c => c != ColumnaCierre))
                         {
                             <th class="@(col == "NOMBRE DE CONTRIBUYENTE" ? "th-wrap col-sticky-nombre" : col == "RUT" ? "col-sticky-rut" : null)">@col</th>
                         }
-                        @if (ConAccionYEtapa)
+                        @if (ConAccion)
                         {
                             <th>ACCIÓN</th>
-                            @* The stage date always closes the row, after the actions. *@
-                            <th>@ColumnaEtapa</th>
                         }
                         @if (bandejaActiva != Bandeja.PorClasificar)
                         {
@@ -704,7 +694,7 @@
             }
             else if (carpetaParaCaja is not null)
             {
-                <p>Carpeta: <strong>@carpetaParaCaja.NombreCompleto</strong> (@carpetaParaCaja.Rut)</p>
+                <p>Carpeta: <strong class="nombre-persona">@carpetaParaCaja.NombreCompleto</strong> (@carpetaParaCaja.Rut)</p>
             }
 
             <div class="modal-form">
@@ -1090,40 +1080,38 @@
     private DateOnly? filtroDesde;
     private DateOnly? filtroHasta;
 
-    // Every tray ends with "FECHA DE ETAPA": the automatic date the carpeta entered its current stage (Chile time).
-    private const string ColumnaEtapa = "FECHA DE ETAPA";
     // Last data column of every tray: the automatic closing date ("—" while the carpeta is open).
     private const string ColumnaCierre = "FECHA DE CIERRE";
     /// <summary>Location trays (Archivos / Of. 43) are worked down to empty: no action nor stage date, an activity bar instead.</summary>
     private static bool EsBandejaDeUbicacion(Bandeja? b) => b is Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43;
 
-    private bool ConAccionYEtapa => bandejaActiva != Bandeja.PorClasificar && !EsBandejaDeUbicacion(bandejaActiva);
+    private bool ConAccion => bandejaActiva != Bandeja.PorClasificar && !EsBandejaDeUbicacion(bandejaActiva);
 
     // 1° Licencia, Crear certificado and Canje never show ESTADO / OTRAS ABIERTAS (the tray already is the estado).
-    private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre];
-    private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre];
-    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "EN PROCESO DE BÚSQUEDA", "MOVER A", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre];
-    private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaEtapa, ColumnaCierre];
+    private static readonly string[] ColumnasPreparacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaCierre];
+    private static readonly string[] ColumnasSubida = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "SUBIDA", "DÍAS CITACIÓN → SUBIDA", "DÍAS DE TRÁMITE", ColumnaCierre];
+    private static readonly string[] ColumnasUbicacion = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "SECTOR", "EN PROCESO DE BÚSQUEDA", "MOVER A", "DÍAS DE TRÁMITE", ColumnaCierre];
+    private static readonly string[] ColumnasCambioDomicilio = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "COMUNA", "ESTADO", "DÍAS DE TRÁMITE", "ÚLTIMO MOVIMIENTO", ColumnaCierre];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
         [Bandeja.PorClasificar] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "TRÁMITE AGENDA", "FECHA ÚLT. CARPETA", "CLASE *", "CLASIFICAR"],
         [Bandeja.PorPreparar] = ColumnasPreparacion,
-        [Bandeja.ParaRevision] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre],
+        [Bandeja.ParaRevision] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS DE TRÁMITE", ColumnaCierre],
         [Bandeja.CrearCertificado] = ColumnasPreparacion,
         [Bandeja.CanjeLicExtranjera] = ColumnasPreparacion,
         [Bandeja.SeEncuentraEnArchivos] = ColumnasUbicacion,
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre],
+        [Bandeja.SinCarpetaF8] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CITACIÓN", "DÍAS SIN ENCONTRAR", "DÍAS DE TRÁMITE", ColumnaCierre],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
         [Bandeja.CambioDomSubidoConaset] = ColumnasSubida,
         [Bandeja.CambioDomSubidoCorreo] = ColumnasSubida,
-        [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "DÍAS TOTALES", ColumnaEtapa, ColumnaCierre],
-        [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN", "DÍAS DE TRÁMITE", ColumnaEtapa, ColumnaCierre],
+        [Bandeja.Cerradas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "DECISIÓN", "DÍAS TOTALES", ColumnaCierre],
+        [Bandeja.Archivadas] = ["RUT", "NOMBRE DE CONTRIBUYENTE", "SEDE", "CAJA", "FECHA ARCHIVO", "DECISIÓN", "DÍAS DE TRÁMITE", ColumnaCierre],
     };
 
     private IReadOnlyList<string> ColumnasBandeja =>
@@ -1342,9 +1330,14 @@
                                     <td>@Dias(c.Indicadores?.DiasTramite)</td>
                                     break;
                             }
-                            @if (ConAccionYEtapa)
+                            @if (ConAccion)
                             {
                                 <td class="action-cell" @ondblclick:stopPropagation>
+                                    @if (bandejaActiva is Bandeja.CambioDomicilio or Bandeja.CambioDomicilioSolicitado)
+                                    {
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                title="Pedir que se genere el F8 de esta carpeta (queda en el módulo F8)" @onclick="() => SolicitarF8Async(c)">Solicitar F8</button>
+                                    }
                                     @if (bandejaActiva == Bandeja.PorPreparar)
                                     {
                                         @* 1° Licencia has no physical carpetas: only the resolution, nothing to box or open. *@
@@ -1370,8 +1363,8 @@
                                     }
                                     else if (bandejaActiva == Bandeja.SinCarpetaF8)
                                     {
-                                        @* A missing carpeta is sent to one of its two upload trays. *@
-                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con F8»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConF8)">Enviar a F8</button>
+                                        @* A missing carpeta asks for an F8 or is sent with an oficio. *@
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pedir que se genere el F8 de esta carpeta (queda en el módulo F8)" @onclick="() => SolicitarF8Async(c)">Solicitar F8</button>
                                         <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con oficio»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConOficio)">Enviar con oficio</button>
                                     }
                                     else if (bandejaActiva is not (Bandeja.Archivadas or Bandeja.PorClasificar or Bandeja.ParaRevision) && string.IsNullOrEmpty(c.CajaArchivo))
@@ -1388,7 +1381,6 @@
                                         <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
                                     }
                                 </td>
-                                <td class="date-cell etapa-cell"><CampoFecha Valor="@(c.FechaEstadoActual is { } etapa ? HoraChile.Fecha(etapa) : null)" ReadOnly="true" Titulo="Fecha de etapa: desde cuándo está en esta etapa (automática, hora de Chile)" /></td>
                             }
                             @if (bandejaActiva != Bandeja.PorClasificar)
                             {
@@ -2316,6 +2308,13 @@
             var punto = await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
             guardadoOkId = id;
             await AnunciarCambioDeEstadoAsync(id, nuevoEstado, punto);
+            // Archivos / Of. 43 -> No existe carpeta opens the F8 request inside the service: tell the official.
+            if (nuevoEstado == EstadoCarpeta.NoExisteCarpeta && Carpeta.PermiteBusquedaPendiente(punto.Estado))
+            {
+                avisoPeticion = $"Se creó la solicitud de F8 para {await NombreDeAsync(id)}.";
+                avisoConEnlaceF8 = true;
+                DuplicadosNotifier.Notify();
+            }
             await CargarMetricasAsync();
             await CargarAsync();
 
@@ -2365,6 +2364,36 @@
     }
 
     private string? avisoPeticion;
+    private bool avisoConEnlaceF8;
+
+    private async Task<string> NombreDeAsync(Guid id)
+    {
+        try { return (await Carpetas.ObtenerAsync(id)).Nombre; }
+        catch (NotFoundException) { return "la carpeta"; }
+    }
+
+    /// <summary>"Solicitar F8": opens the F8 request of the carpeta (or reports the one already open).</summary>
+    private async Task SolicitarF8Async(CarpetaResumenDto c)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        guardandoId = c.Id;
+        try
+        {
+            var resultado = await SolicitudesF8.SolicitarF8Async(c.Id, autor);
+            avisoPeticion = Sgl.Application.Solicitudes.MensajesSolicitudes.F8Solicitada(resultado, c.NombreCompleto);
+            avisoConEnlaceF8 = true;
+            DuplicadosNotifier.Notify();
+            _ = Modulos.RefrescarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErrorEdicion(ex, "No se pudo solicitar el F8");
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
 
     /// <summary>Closes a 1° Licencia carpeta as granted or denied (asks first: a misclick would close the trámite).</summary>
     private async Task ResolverDecisionAsync(CarpetaResumenDto c, Decision decision)

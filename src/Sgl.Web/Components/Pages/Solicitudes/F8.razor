@@ -1,0 +1,279 @@
+@page "/f8"
+@layout ModuloLayout
+@using Sgl.Application.Solicitudes
+@inject SolicitudesF8Service F8Service
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+
+<PageTitle>@TituloPagina.De("F8")</PageTitle>
+
+<div class="page-container">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">F8 <span class="muted">· @(total?.ToString("N0", Cultura) ?? "…")</span></h1>
+        <form class="modulo-busqueda" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
+            <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar solicitudes de F8" maxlength="100" />
+            <button type="submit" class="btn-secondary">Buscar</button>
+        </form>
+    </div>
+
+    <div class="sol-filtros" role="group" aria-label="Estado de la solicitud">
+        @foreach (var (valor, etiqueta) in Chips)
+        {
+            <button type="button" class="sol-chip @(estado == valor ? "activo" : "")" aria-pressed="@(estado == valor ? "true" : "false")"
+                    @onclick="() => CambiarEstadoAsync(valor)">
+                @etiqueta <span class="sol-chip-n">@Conteo(valor).ToString("N0", Cultura)</span>
+            </button>
+        }
+    </div>
+
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">
+            @mensaje
+            @if (enlaceCertificados)
+            {
+                <a href="certificados" class="btn-small">Ir a Certificado / Oficio →</a>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando solicitudes de F8…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay solicitudes de F8 en esta vista.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table">
+                <thead>
+                    <tr>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th>SEDE</th>
+                        <th>ORIGEN</th>
+                        <th>SOLICITADO POR</th>
+                        <th>FECHA DE SOLICITUD</th>
+                        <th>ESTADO</th>
+                        <th>RESUELTO</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in items)
+                    {
+                        <tr @key="s.Id">
+                            <td class="date-cell col-sticky-rut">@s.Rut</td>
+                            <td class="col-sticky-nombre">
+                                <div class="nombre-wrapper-cell">
+                                    <span class="name-cell">@s.NombreCompleto</span>
+                                    <span class="nombre-acciones">
+                                        <a class="icono-buscar-dup icono-buscar-dup--neutro" href="@($"/carpetas?bandeja=todas&buscar={Uri.EscapeDataString(s.Rut)}")"
+                                           title="Ver las carpetas de este RUT" aria-label="Buscar en el sistema las carpetas de este RUT">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                        </a>
+                                    </span>
+                                </div>
+                            </td>
+                            <td><span class="sede-tag">@Labels.Of(s.Sede)</span></td>
+                            <td>@Labels.Of(s.EstadoOrigen)</td>
+                            <td>@s.SolicitadoPor</td>
+                            <td class="date-cell">@HoraChile.ALocal(s.SolicitadoEn).ToString("dd-MM-yyyy")</td>
+                            <td><span class="badge @ClaseEstado(s.Estado)">@EtiquetasSolicitudes.Of(s.Estado)</span></td>
+                            <td class="date-cell">
+                                @if (s.ResueltoEn is { } re)
+                                {
+                                    @($"{s.ResueltoPor} · {HoraChile.ALocal(re):dd-MM-yyyy}")
+                                }
+                                else
+                                {
+                                    @("—")
+                                }
+                            </td>
+                            <td class="action-cell">
+                                @if (s.Estado == EstadoSolicitudF8.Solicitado)
+                                {
+                                    <button type="button" class="btn-decision btn-enviar" disabled="@(ocupadoId == s.Id)"
+                                            title="El F8 ya fue generado y subido: la carpeta pasa a «Subida con F8»" @onclick="() => MarcarSubidoAsync(s)">F8 subido</button>
+                                    <button type="button" class="btn-action-caja" disabled="@(ocupadoId == s.Id)"
+                                            title="No se pudo generar el F8: se abre una solicitud de certificado" @onclick="() => MarcarNoSeGeneroAsync(s)">No se pudo generar</button>
+                                }
+                                <a class="btn-detail" href="carpetas/@s.CarpetaId" title="Ver detalle e historial">Abrir →</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="sol-paginador">
+            <span>@(skip + 1)–@(skip + items.Count) de @total?.ToString("N0", Cultura)</span>
+            <button type="button" class="btn-secondary" disabled="@(skip == 0)" @onclick="AnteriorAsync">← Anterior</button>
+            <button type="button" class="btn-secondary" disabled="@(skip + items.Count >= total)" @onclick="SiguienteAsync">Siguiente →</button>
+        </div>
+    }
+</div>
+
+@code {
+    private const int PorPagina = ListadoSolicitudes.TakePorDefecto;
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly (EstadoSolicitudF8? Valor, string Etiqueta)[] Chips =
+    [
+        (EstadoSolicitudF8.Solicitado, "Solicitado"),
+        (EstadoSolicitudF8.Subido, "Subido"),
+        (EstadoSolicitudF8.NoSeGenero, "No se generó"),
+        (null, "Todos"),
+    ];
+
+    private IReadOnlyList<SolicitudF8Dto>? items;
+    private IReadOnlyDictionary<EstadoSolicitudF8, int> conteos = new Dictionary<EstadoSolicitudF8, int>();
+    private EstadoSolicitudF8? estado = EstadoSolicitudF8.Solicitado;
+    private string? texto;
+    private int skip;
+    private int? total;
+    private Guid? ocupadoId;
+    private string? error;
+    private string? mensaje;
+    private bool enlaceCertificados;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private int Conteo(EstadoSolicitudF8? valor) =>
+        valor is { } v ? conteos.GetValueOrDefault(v) : conteos.Values.Sum();
+
+    private static string ClaseEstado(EstadoSolicitudF8 e) => e switch
+    {
+        EstadoSolicitudF8.Solicitado => "warn",
+        EstadoSolicitudF8.Subido => "ok",
+        _ => "bad",
+    };
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        enlaceCertificados = false;
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var lista = await F8Service.ListarAsync(new ListarSolicitudesF8Query(estado, texto, skip, PorPagina));
+            conteos = await F8Service.ContarPorEstadoAsync();
+            items = lista.Items;
+            total = lista.Total;
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+            items ??= [];
+        }
+    }
+
+    private Task BuscarAsync()
+    {
+        skip = 0;
+        return CargarAsync();
+    }
+
+    private Task CambiarEstadoAsync(EstadoSolicitudF8? nuevo)
+    {
+        estado = nuevo;
+        skip = 0;
+        return CargarAsync();
+    }
+
+    private Task AnteriorAsync()
+    {
+        skip = Math.Max(0, skip - PorPagina);
+        return CargarAsync();
+    }
+
+    private Task SiguienteAsync()
+    {
+        skip += PorPagina;
+        return CargarAsync();
+    }
+
+    private bool AutorListo()
+    {
+        if (Autor.HasNombre) return true;
+        error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar solicitudes.";
+        return false;
+    }
+
+    private async Task<bool> ConfirmarAsync(string pregunta)
+    {
+        try
+        {
+            return await JS.InvokeAsync<bool>("confirm", pregunta);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private async Task MarcarSubidoAsync(SolicitudF8Dto s)
+    {
+        error = null;
+        CerrarMensaje();
+        if (!AutorListo()) return;
+        if (!await ConfirmarAsync($"¿Confirmar que el F8 de {s.NombreCompleto} ({s.Rut}) fue subido? La carpeta pasa a «Subida con F8».")) return;
+
+        ocupadoId = s.Id;
+        try
+        {
+            await F8Service.MarcarSubidoAsync(s.Id, Autor.Nombre!);
+            mensaje = $"F8 de {s.NombreCompleto} marcado como subido.";
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+
+    private async Task MarcarNoSeGeneroAsync(SolicitudF8Dto s)
+    {
+        error = null;
+        CerrarMensaje();
+        if (!AutorListo()) return;
+        if (!await ConfirmarAsync($"¿Confirmar que no se pudo generar el F8 de {s.NombreCompleto} ({s.Rut})? Se abrirá una solicitud de certificado.")) return;
+
+        ocupadoId = s.Id;
+        try
+        {
+            var resultado = await F8Service.MarcarNoSeGeneroAsync(s.Id, Autor.Nombre!);
+            mensaje = MensajesSolicitudes.NoSeGenero(resultado);
+            enlaceCertificados = true;
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+}
