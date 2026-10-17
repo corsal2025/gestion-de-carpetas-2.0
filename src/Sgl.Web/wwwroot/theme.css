@@ -23,7 +23,8 @@ html {
     --btn-grad: linear-gradient(135deg, #26388c, #3a55cf);
     --btn-grad-hover: linear-gradient(135deg, #1a2766, #26388c);
     --head-grad: linear-gradient(120deg, #1d2c75, #26388c 55%, #3550c8);
-    --dots: rgb(38 56 140 / 0.07);
+    --pal-rgb: 38 56 140; /* accent as "R G B" so shadows can follow the palette */
+    --dots: rgb(var(--pal-rgb) / 0.07);
 
     --bg-page: #eef2fb;
     --surface: #ffffff;
@@ -801,17 +802,17 @@ html a.btn-primary {
     border-radius: 999px;
     background: var(--btn-grad);
     color: #fff;
-    box-shadow: 0 4px 12px rgb(38 56 140 / .3), inset 0 1px 0 rgb(255 255 255 / .2);
+    box-shadow: 0 4px 12px rgb(var(--pal-rgb) / .3), inset 0 1px 0 rgb(255 255 255 / .2);
     transition: transform .15s ease, box-shadow .15s ease;
 }
-html .btn-primary:hover { background: var(--btn-grad-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgb(38 56 140 / .4), inset 0 1px 0 rgb(255 255 255 / .2); }
+html .btn-primary:hover { background: var(--btn-grad-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgb(var(--pal-rgb) / .4), inset 0 1px 0 rgb(255 255 255 / .2); }
 html[data-theme="dark"] .btn-primary { color: #fff; }
 html .btn-secondary, html a.btn-secondary, html .btn-toggle-filters,
 html .btn-pdf-pill, html .btn-outline-link, html .btn-print-caja, html .btn-warning-outline, html a.btn-outline-link,
 html .content a.button.secondary, html .btn-copy-rut { border-radius: 999px; }
 html .content .actions button, html .content .inline button, html .content form .actions button[type="submit"] {
     border-radius: 999px; background: var(--btn-grad); color: #fff;
-    box-shadow: 0 4px 12px rgb(38 56 140 / .3), inset 0 1px 0 rgb(255 255 255 / .2);
+    box-shadow: 0 4px 12px rgb(var(--pal-rgb) / .3), inset 0 1px 0 rgb(255 255 255 / .2);
 }
 html[data-theme="dark"] .content .actions button, html[data-theme="dark"] .content .inline button { color: #fff; }
 html .content .actions button:hover, html .content .inline button:hover { background: var(--btn-grad-hover); }
@@ -822,7 +823,7 @@ html[data-theme="dark"] .btn-toggle-filters.active { border-color: var(--brand-p
 /* Selector de sedes: pildoras sobre capsula */
 html .sede-pills { border-radius: 999px; }
 html .pill { border-radius: 999px; }
-html .pill.active { background: var(--btn-grad); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgb(38 56 140 / .35); }
+html .pill.active { background: var(--btn-grad); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgb(var(--pal-rgb) / .35); }
 html[data-theme="dark"] .pill.active { background: var(--btn-grad); box-shadow: 0 4px 12px rgb(0 0 0 / .5); }
 html .pill.active .badge-count { background: rgb(255 255 255 / .92); color: var(--lico-accent); }
 
@@ -837,7 +838,7 @@ html .search-input-wrapper input:focus,
 html .state-select-wrapper select:focus,
 html .select-caja:focus,
 html .content .form input:focus, html .content .form select:focus, html .content .inline select:focus {
-    border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(38 56 140 / .25);
+    border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(var(--pal-rgb) / .25);
 }
 html[data-theme="dark"] .search-input-wrapper input:focus,
 html[data-theme="dark"] .state-select-wrapper select:focus,
@@ -877,7 +878,7 @@ html[data-theme="dark"] body .data-table thead th,
 html[data-theme="dark"] body .data-table thead th.col-sticky-check,
 html[data-theme="dark"] body .data-table thead th.col-sticky-pend,
 html[data-theme="dark"] body .data-table thead th.col-sticky-rut,
-html[data-theme="dark"] body .data-table thead th.col-sticky-nombre { background: #1a2766 !important; }
+html[data-theme="dark"] body .data-table thead th.col-sticky-nombre { background: var(--topbar-bg) !important; }
 html .content .card table:not(.data-table) th { color: var(--lico-accent); border-bottom: 3px solid var(--lico-cyan); }
 html[data-theme="dark"] .content .card table:not(.data-table) th { color: var(--brand-primary); }
 
@@ -1012,7 +1013,7 @@ html .cajas-tab-nav { border-bottom: 0; padding-bottom: 0; gap: .4rem; }
 html .tab-btn { border-radius: 999px; border: 1px solid transparent; }
 html .tab-btn.active {
     background: var(--btn-grad); color: #fff; border: 1px solid transparent; margin-bottom: 0;
-    box-shadow: 0 4px 12px rgb(38 56 140 / .3);
+    box-shadow: 0 4px 12px rgb(var(--pal-rgb) / .3);
 }
 html .tab-btn:focus-visible { outline: 3px solid var(--lico-yellow); outline-offset: 2px; box-shadow: 0 0 0 5px var(--lico-accent); }
 html[data-theme="dark"] .tab-btn:focus-visible { box-shadow: none; }
@@ -1593,3 +1594,213 @@ html .user-block .autor input { width: clamp(120px, 11vw, 180px); min-width: 0; 
 /* Logo municipal en la barra superior: sobre un recuadro blanco para que se lea en el fondo azul */
 html .brand-mark.brand-logo { width: auto; height: 50px; padding: 3px 8px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgb(10 16 60 / .35); display: inline-flex; align-items: center; justify-content: center; }
 html .brand-mark.brand-logo img { height: 100%; width: auto; max-width: 70px; object-fit: contain; display: block; }
+
+/* ---------- Palettes (color selector) -------------------------------------
+   html[data-palette] is set before first paint (App.razor) and by sglUi.setPalette.
+   "inst" (Institucional) is the default and has NO block here: it is the look
+   defined by the tokens above. Every other palette overrides ONLY accent-type
+   tokens (buttons, header gradient, brand, topbar, focus ring, dots/shadows).
+   Semantic colors (semaforo red/amber/green, Excel row colors, estado colors)
+   and neutral surfaces/text are intentionally left untouched.
+   Light blocks use [data-theme="light"][data-design] to out-rank polish.css,
+   which loads later and sets --brand-primary per data-design. */
+
+/* Océano */
+html[data-palette="ocea"] { --pal-c: rgb(18,122,168); }
+html[data-palette="ocea"][data-theme="light"][data-design] {
+    --pal-rgb: 10 95 138;
+    --lico-accent: #0a5f8a;
+    --lico-accent-hover: color-mix(in srgb, #0a5f8a 75%, #000);
+    --lico-accent-soft: #dff1f9;
+    --btn-grad: linear-gradient(135deg, #0a5f8a, #127aa8);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #0a5f8a 80%, #000), color-mix(in srgb, #127aa8 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #0a5f8a 80%, #000), #0a5f8a 55%, #127aa8);
+    --dots: rgb(var(--pal-rgb) / 0.07);
+    --ring: #0a5f8a;
+    --brand-primary: #0a5f8a;
+    --brand-primary-hover: color-mix(in srgb, #0a5f8a 75%, #000);
+    --brand-light: #dff1f9;
+    --topbar-bg: #0a5f8a;
+    --topbar-border: color-mix(in srgb, #0a5f8a 75%, #000);
+    --topbar-text: #dff1f9;
+    --topbar-muted: color-mix(in srgb, #dff1f9 78%, #0a5f8a);
+}
+html[data-palette="ocea"][data-theme="dark"] {
+    --pal-rgb: 10 95 138;
+    --lico-accent: #0a5f8a;
+    --lico-accent-hover: color-mix(in srgb, #0a5f8a 75%, #000);
+    --lico-accent-soft: #dff1f9;
+    --btn-grad: linear-gradient(135deg, #0a5f8a, #127aa8);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #0a5f8a 80%, #000), color-mix(in srgb, #127aa8 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #0a5f8a 55%, #000), color-mix(in srgb, #0a5f8a 80%, #000) 55%, #127aa8);
+    --dots: color-mix(in srgb, #6fd3f2 6%, transparent);
+    --brand-primary: #6fd3f2;
+    --brand-primary-hover: color-mix(in srgb, #6fd3f2 70%, #fff);
+    --brand-light: color-mix(in srgb, var(--pal-c) 30%, #161d42);
+    --topbar-bg: color-mix(in srgb, #0a5f8a 50%, #05081d);
+    --topbar-border: #0e1330;
+}
+
+/* Bosque */
+html[data-palette="bosq"] { --pal-c: rgb(31,125,78); }
+html[data-palette="bosq"][data-theme="light"][data-design] {
+    --pal-rgb: 23 102 63;
+    --lico-accent: #17663f;
+    --lico-accent-hover: color-mix(in srgb, #17663f 75%, #000);
+    --lico-accent-soft: #e0f3e8;
+    --btn-grad: linear-gradient(135deg, #17663f, #1f7d4e);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #17663f 80%, #000), color-mix(in srgb, #1f7d4e 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #17663f 80%, #000), #17663f 55%, #1f7d4e);
+    --dots: rgb(var(--pal-rgb) / 0.07);
+    --ring: #17663f;
+    --brand-primary: #17663f;
+    --brand-primary-hover: color-mix(in srgb, #17663f 75%, #000);
+    --brand-light: #e0f3e8;
+    --topbar-bg: #17663f;
+    --topbar-border: color-mix(in srgb, #17663f 75%, #000);
+    --topbar-text: #e0f3e8;
+    --topbar-muted: color-mix(in srgb, #e0f3e8 78%, #17663f);
+}
+html[data-palette="bosq"][data-theme="dark"] {
+    --pal-rgb: 23 102 63;
+    --lico-accent: #17663f;
+    --lico-accent-hover: color-mix(in srgb, #17663f 75%, #000);
+    --lico-accent-soft: #e0f3e8;
+    --btn-grad: linear-gradient(135deg, #17663f, #1f7d4e);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #17663f 80%, #000), color-mix(in srgb, #1f7d4e 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #17663f 55%, #000), color-mix(in srgb, #17663f 80%, #000) 55%, #1f7d4e);
+    --dots: color-mix(in srgb, #7fe0a6 6%, transparent);
+    --brand-primary: #7fe0a6;
+    --brand-primary-hover: color-mix(in srgb, #7fe0a6 70%, #fff);
+    --brand-light: color-mix(in srgb, var(--pal-c) 30%, #161d42);
+    --topbar-bg: color-mix(in srgb, #17663f 50%, #05081d);
+    --topbar-border: #0e1330;
+}
+
+/* Atardecer */
+html[data-palette="atar"] { --pal-c: rgb(196,58,44); }
+html[data-palette="atar"][data-theme="light"][data-design] {
+    --pal-rgb: 163 32 90;
+    --lico-accent: #a3205a;
+    --lico-accent-hover: color-mix(in srgb, #a3205a 75%, #000);
+    --lico-accent-soft: #fbe3ec;
+    --btn-grad: linear-gradient(135deg, #a3205a, #c43a2c);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #a3205a 80%, #000), color-mix(in srgb, #c43a2c 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #a3205a 80%, #000), #a3205a 55%, #c43a2c);
+    --dots: rgb(var(--pal-rgb) / 0.07);
+    --ring: #a3205a;
+    --brand-primary: #a3205a;
+    --brand-primary-hover: color-mix(in srgb, #a3205a 75%, #000);
+    --brand-light: #fbe3ec;
+    --topbar-bg: #a3205a;
+    --topbar-border: color-mix(in srgb, #a3205a 75%, #000);
+    --topbar-text: #fbe3ec;
+    --topbar-muted: color-mix(in srgb, #fbe3ec 78%, #a3205a);
+}
+html[data-palette="atar"][data-theme="dark"] {
+    --pal-rgb: 163 32 90;
+    --lico-accent: #a3205a;
+    --lico-accent-hover: color-mix(in srgb, #a3205a 75%, #000);
+    --lico-accent-soft: #fbe3ec;
+    --btn-grad: linear-gradient(135deg, #a3205a, #c43a2c);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #a3205a 80%, #000), color-mix(in srgb, #c43a2c 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #a3205a 55%, #000), color-mix(in srgb, #a3205a 80%, #000) 55%, #c43a2c);
+    --dots: color-mix(in srgb, #ff9db8 6%, transparent);
+    --brand-primary: #ff9db8;
+    --brand-primary-hover: color-mix(in srgb, #ff9db8 70%, #fff);
+    --brand-light: color-mix(in srgb, var(--pal-c) 30%, #161d42);
+    --topbar-bg: color-mix(in srgb, #a3205a 50%, #05081d);
+    --topbar-border: #0e1330;
+}
+
+/* Violeta */
+html[data-palette="viol"] { --pal-c: rgb(112,64,208); }
+html[data-palette="viol"][data-theme="light"][data-design] {
+    --pal-rgb: 75 47 176;
+    --lico-accent: #4b2fb0;
+    --lico-accent-hover: color-mix(in srgb, #4b2fb0 75%, #000);
+    --lico-accent-soft: #ece6fb;
+    --btn-grad: linear-gradient(135deg, #4b2fb0, #7040d0);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #4b2fb0 80%, #000), color-mix(in srgb, #7040d0 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #4b2fb0 80%, #000), #4b2fb0 55%, #7040d0);
+    --dots: rgb(var(--pal-rgb) / 0.07);
+    --ring: #4b2fb0;
+    --brand-primary: #4b2fb0;
+    --brand-primary-hover: color-mix(in srgb, #4b2fb0 75%, #000);
+    --brand-light: #ece6fb;
+    --topbar-bg: #4b2fb0;
+    --topbar-border: color-mix(in srgb, #4b2fb0 75%, #000);
+    --topbar-text: #ece6fb;
+    --topbar-muted: color-mix(in srgb, #ece6fb 78%, #4b2fb0);
+}
+html[data-palette="viol"][data-theme="dark"] {
+    --pal-rgb: 75 47 176;
+    --lico-accent: #4b2fb0;
+    --lico-accent-hover: color-mix(in srgb, #4b2fb0 75%, #000);
+    --lico-accent-soft: #ece6fb;
+    --btn-grad: linear-gradient(135deg, #5430c9, #7d45d6);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #5430c9 80%, #000), color-mix(in srgb, #7d45d6 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #5430c9 55%, #000), color-mix(in srgb, #5430c9 80%, #000) 55%, #7d45d6);
+    --dots: color-mix(in srgb, #c0a8ff 6%, transparent);
+    --brand-primary: #c0a8ff;
+    --brand-primary-hover: color-mix(in srgb, #c0a8ff 70%, #fff);
+    --brand-light: color-mix(in srgb, var(--pal-c) 30%, #161d42);
+    --topbar-bg: color-mix(in srgb, #5430c9 50%, #05081d);
+    --topbar-border: #0e1330;
+}
+
+/* Grafito */
+html[data-palette="graf"] { --pal-c: rgb(89,96,122); }
+html[data-palette="graf"][data-theme="light"][data-design] {
+    --pal-rgb: 43 47 66;
+    --lico-accent: #2b2f42;
+    --lico-accent-hover: color-mix(in srgb, #2b2f42 75%, #000);
+    --lico-accent-soft: #e9ebf3;
+    --btn-grad: linear-gradient(135deg, #2b2f42, #4a5068);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #2b2f42 80%, #000), color-mix(in srgb, #4a5068 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #2b2f42 80%, #000), #2b2f42 55%, #4a5068);
+    --dots: rgb(var(--pal-rgb) / 0.07);
+    --ring: #2b2f42;
+    --brand-primary: #2b2f42;
+    --brand-primary-hover: color-mix(in srgb, #2b2f42 75%, #000);
+    --brand-light: #e9ebf3;
+    --topbar-bg: #2b2f42;
+    --topbar-border: color-mix(in srgb, #2b2f42 75%, #000);
+    --topbar-text: #e9ebf3;
+    --topbar-muted: color-mix(in srgb, #e9ebf3 78%, #2b2f42);
+}
+html[data-palette="graf"][data-theme="dark"] {
+    --pal-rgb: 43 47 66;
+    --lico-accent: #2b2f42;
+    --lico-accent-hover: color-mix(in srgb, #2b2f42 75%, #000);
+    --lico-accent-soft: #e9ebf3;
+    --btn-grad: linear-gradient(135deg, #3b4254, #59607a);
+    --btn-grad-hover: linear-gradient(135deg, color-mix(in srgb, #3b4254 80%, #000), color-mix(in srgb, #59607a 80%, #000));
+    --head-grad: linear-gradient(120deg, color-mix(in srgb, #3b4254 55%, #000), color-mix(in srgb, #3b4254 80%, #000) 55%, #59607a);
+    --dots: color-mix(in srgb, #c3c9de 6%, transparent);
+    --brand-primary: #c3c9de;
+    --brand-primary-hover: color-mix(in srgb, #c3c9de 70%, #fff);
+    --brand-light: color-mix(in srgb, var(--pal-c) 30%, #161d42);
+    --topbar-bg: color-mix(in srgb, #3b4254 50%, #05081d);
+    --topbar-border: #0e1330;
+}
+
+/* ---------- Palette selector (topbar swatches) --------------------------- */
+html .pal {
+    display: inline-flex; align-items: center; flex-shrink: 0;
+    padding: 0 2px; border-radius: 12px; border: 1px solid #2b3b58;
+}
+html .pal .sw {
+    width: 40px; height: 40px; padding: 0; border: 0; background: transparent;
+    display: grid; place-items: center; cursor: pointer; border-radius: 10px;
+}
+html .pal .sw i {
+    display: block; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--sc); border: 3px solid transparent;
+    box-shadow: 0 0 0 1.5px rgb(255 255 255 / .55); /* keeps dark swatches visible on the topbar */
+    transition: transform .15s;
+}
+html .pal .sw:hover i { transform: scale(1.18); }
+html .pal .sw[aria-pressed="true"] i { border-color: var(--topbar-bg); box-shadow: 0 0 0 2.5px #fff; }
+html .pal .sw:focus-visible { outline-color: #fff; outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { html .pal .sw i { transition: none; } }

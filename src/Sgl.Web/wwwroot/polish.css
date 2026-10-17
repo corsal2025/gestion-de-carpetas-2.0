@@ -292,7 +292,7 @@ html[data-theme="dark"] .clasif-sugerencia { color: #c9d3ff; }
 .chip-impreso { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.76rem; font-weight: 700; background: var(--ok-fondo); color: var(--ok-texto); }
 .chip-sin-imprimir { color: var(--text-muted); }
 .btn-pulso { animation: pulso 1.6s ease-in-out infinite; }
-@keyframes pulso { 0%, 100% { box-shadow: 0 0 0 0 rgb(38 56 140 / 0.45); } 50% { box-shadow: 0 0 0 7px rgb(38 56 140 / 0); } }
+@keyframes pulso { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--pal-rgb) / 0.45); } 50% { box-shadow: 0 0 0 7px rgb(var(--pal-rgb) / 0); } }
 
 /* Documento del listado: casillas para marcar a mano */
 .doc-busqueda .c-num { width: 38px; text-align: center; }

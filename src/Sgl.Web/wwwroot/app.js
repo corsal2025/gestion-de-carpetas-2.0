@@ -560,7 +560,22 @@ window.printPdfDocument = function (titulo) {
         var b = document.getElementById('btn-filas');
         if (b) b.setAttribute('aria-pressed', root.getAttribute('data-rows') === 'classic' ? 'true' : 'false');
     }
+    var PALETTES = ['inst', 'ocea', 'bosq', 'atar', 'viol', 'graf'];
+    function syncPaletteButtons() {
+        var cur = root.getAttribute('data-palette') || 'inst';
+        document.querySelectorAll('.pal .sw[data-palette]').forEach(function (b) {
+            var on = b.getAttribute('data-palette') === cur ? 'true' : 'false';
+            if (b.getAttribute('aria-pressed') !== on) b.setAttribute('aria-pressed', on);
+        });
+    }
     window.sglUi = {
+        // Paleta de color: solo cambia tokens CSS (html[data-palette]); 'inst' es la original.
+        setPalette: function (key) {
+            if (PALETTES.indexOf(key) < 0) return;
+            root.setAttribute('data-palette', key);
+            save('sgl-palette', key);
+            syncPaletteButtons();
+        },
         toggleTheme: function () {
             var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             root.setAttribute('data-theme', next);
@@ -604,8 +619,9 @@ window.printPdfDocument = function (titulo) {
         },
     };
     // El botón se vuelve a renderizar con Blazor: sincronizar su estado al cambiar el DOM.
-    new MutationObserver(syncRowsButton).observe(document.body, { childList: true, subtree: true });
-    document.addEventListener('DOMContentLoaded', syncRowsButton);
+    function syncPrefs() { syncRowsButton(); syncPaletteButtons(); }
+    new MutationObserver(syncPrefs).observe(document.body, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', syncPrefs);
 })();
 
 // Selector de clase de licencia (details.clase-rapida): se cierra al pinchar fuera, con Escape o al abrir otro.
