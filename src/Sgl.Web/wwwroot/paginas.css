@@ -762,3 +762,105 @@ html:not([data-design="institucional"]) .pg-cajas .name-cell { text-transform: u
     html[data-design="institucional"] .est-grid { grid-template-columns: minmax(0, 1fr); }
     html[data-design="institucional"] .est-card { min-width: 0; overflow-x: auto; }
 }
+
+/* ==========================================================================
+   5. CONTROL PAGES: /integridad, /configuracion/firmantes, /anuladas
+   Glass cards, Bricolage headings and 40px buttons, same recipe as Cajas.
+   ========================================================================== */
+html:not([data-design="institucional"]) body :is(.integridad, .firmantes) :is(h1, h2) {
+    font-family: 'Bricolage Grotesque', var(--font-ui);
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+}
+html:not([data-design="institucional"]) body :is(.integridad, .firmantes) .integridad-cabecera h1 {
+    font-size: clamp(28px, 3.2vw, 40px);
+    line-height: 1.05;
+    font-weight: 700;
+}
+html:not(#sgl):not([data-design="institucional"]) body :is(.integridad, .firmantes) :is(.card, .sol-panel, .integridad-regla),
+html:not(#sgl):not([data-design="institucional"]) body .integridad .integridad-estado {
+    border: 1px solid var(--glass-line) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--glass-shadow) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+}
+html:not(#sgl):not([data-design="institucional"]) body :is(.integridad, .firmantes) :is(.card, .sol-panel, .integridad-regla) {
+    background: var(--glass) !important;
+    padding: 16px 20px;
+}
+html:not([data-design="institucional"]) body .integridad .integridad-estado { padding: 14px 20px; }
+html:not([data-design="institucional"]) body .integridad .integridad-regla h2 { font-size: 1rem; }
+html:not([data-design="institucional"]) body .integridad .card > h2,
+html:not([data-design="institucional"]) body .firmantes .sol-panel > h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+html:not([data-design="institucional"]) body .integridad .integridad-regla-estado { border-radius: 12px; }
+
+/* Tables inside the cards: transparent rows, uppercase small header. */
+html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla thead th {
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    color: var(--text-secondary);
+    font: 700 0.6875rem var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--glass-line);
+}
+html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla tbody tr:hover > td { background: var(--pg-row-hover); }
+html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla tbody td { border-bottom: 1px solid var(--glass-line); }
+
+/* Buttons and fields: >= 40px, palette fill. */
+html:not(#sgl):not([data-design="institucional"]) body :is(.integridad, .firmantes, .anuladas-page) :is(.btn-primary, .btn-secondary, .btn-small, .btn-detail, .btn-action-caja) {
+    min-height: 40px;
+    border-radius: 12px;
+}
+html:not(#sgl):not([data-design="institucional"]) body :is(.integridad, .firmantes) .btn-primary {
+    background: var(--pg-fill) !important;
+    border-color: transparent !important;
+    color: var(--pg-on-accent) !important;
+    -webkit-text-fill-color: var(--pg-on-accent) !important;
+    padding: 0 18px;
+    font-weight: 700;
+}
+html:not(#sgl):not([data-design="institucional"]) body .firmantes .sol-form :is(input, select) {
+    min-height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-line);
+    background: var(--surface);
+    color: var(--text-primary);
+    padding: 0 12px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .firmantes .sol-form label { color: var(--text-secondary); font-weight: 600; }
+html:not([data-design="institucional"]) body :is(.integridad, .firmantes) :is(button, input, select, a):focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* /anuladas: header as a glass card, Bricolage title, 40px search. */
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .modulo-barra {
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+}
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .modulo-titulo {
+    font: 700 clamp(26px, 3vw, 36px)/1.05 'Bricolage Grotesque', var(--font-ui);
+    letter-spacing: -.02em;
+}
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .modulo-titulo .muted { font: 600 .5em var(--font-mono); }
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .modulo-busqueda { min-width: 0; max-width: 100%; }
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .modulo-busqueda input {
+    min-width: 0;
+    width: min(16rem, 100%);
+    min-height: 40px;
+    border: 1px solid var(--glass-line);
+    border-radius: 12px;
+}
+html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .table-container {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    box-shadow: var(--glass-shadow);
+}

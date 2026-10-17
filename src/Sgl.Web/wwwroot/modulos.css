@@ -318,6 +318,14 @@ html[data-rows="classic"] body .data-table tbody tr.estado-cambiodomicilio td { 
 html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenarchivos td { background: #3d7a29 !important; }
 html[data-rows="classic"] body .data-table tbody tr.estado-noexistecarpeta td { background: #c80000 !important; }
 html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenoficina43 td { background: #6450a6 !important; }
+/* Pending-search name highlight on Excel rows: the 55% yellow let the row's white text drop to ~1.5:1; solid yellow + dark text. */
+html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo,
+html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo * {
+    background-color: var(--lico-yellow) !important;
+    color: #1b2140 !important;
+    -webkit-text-fill-color: #1b2140 !important;
+}
+html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo * { background-color: transparent !important; }
 
 /* Barra de clasificación en lote */
 html body .clasif-lote-bar { background: var(--surface-alt) !important; color: var(--text-primary) !important; border-color: var(--border-color) !important; }

@@ -7,7 +7,7 @@
 
 <PageTitle>@TituloPagina.De("Anuladas")</PageTitle>
 
-<div class="page-container">
+<div class="page-container anuladas-page">
     <div class="modulo-barra">
         <h1 class="modulo-titulo">Anuladas <span class="muted">· @(items?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
         <form class="modulo-busqueda" @onsubmit="CargarAsync" @onsubmit:preventDefault>

@@ -1,0 +1,154 @@
+/* ============================================================
+   Peticiones (Razor Pages) — glass look aligned with the Blazor shell.
+   Loaded only by Sgl.Peticiones/Pages/Shared/_Layout.cshtml, AFTER css/site.css.
+   site.css hard-codes a light palette on :root; here those tokens are bridged
+   to theme.css tokens (palette + dark mode). The institutional design keeps
+   site.css untouched, as the rest of the system does with data-design.
+   ============================================================ */
+
+/* html[...] (0,1,1) out-ranks site.css :root (0,1,0). */
+html:not([data-design="institucional"]) {
+    --canvas: transparent;
+    --ink: var(--text-primary);
+    --ink-soft: var(--text-secondary);
+    --ink-faint: var(--text-muted);
+    --line: var(--glass-line);
+    --line-strong: var(--accent-line);
+    --accent: var(--brand-primary);
+    --accent-hover: color-mix(in srgb, var(--brand-primary) 82%, #000);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --pt-ctl: 40px;
+}
+html[data-theme="dark"]:not([data-design="institucional"]) {
+    --accent-hover: color-mix(in srgb, var(--brand-primary) 82%, #fff);
+}
+html:not([data-design="institucional"]) body .modulo-main { color: var(--text-primary); }
+
+/* Headings: Bricolage, as in the Blazor pages. */
+html:not([data-design="institucional"]) body .modulo-main :is(h1, h2, h3, .h3, .h5, .h6) {
+    font-family: 'Bricolage Grotesque', var(--font-ui);
+    color: var(--text-primary);
+    letter-spacing: -0.015em;
+}
+html:not([data-design="institucional"]) body .modulo-main h1 { font-size: clamp(1.6rem, 2.4vw, 2.1rem); font-weight: 700; }
+
+/* Glass cards. */
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .card {
+    background: var(--glass) !important;
+    border: 1px solid var(--glass-line) !important;
+    border-radius: 22px !important;
+    box-shadow: var(--glass-shadow) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .stat-chip {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+}
+
+/* Buttons: >= 40px targets, palette colours. */
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn {
+    min-height: var(--pt-ctl);
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 600;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table .btn-sm {
+    min-height: var(--pt-ctl);
+    padding: 0 .75rem;
+    font-size: .8rem;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-primary {
+    background: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    color: #fff !important;
+}
+html[data-theme="dark"]:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-primary {
+    color: #0b1030 !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-primary:hover {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-outline-primary {
+    color: var(--brand-primary) !important;
+    border-color: var(--accent-line) !important;
+    background: transparent;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-outline-primary:hover {
+    background: var(--accent-soft) !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-outline-secondary {
+    color: var(--text-secondary) !important;
+    border-color: var(--glass-line) !important;
+    background: transparent;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn-outline-secondary:hover {
+    background: var(--shell-hover) !important;
+    color: var(--text-primary) !important;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .btn:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* Form fields: solid surface (glass under text hurts legibility). */
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main :is(.form-control, .form-select) {
+    min-height: var(--pt-ctl);
+    border-radius: 12px;
+    background-color: var(--surface-alt);
+    border-color: var(--glass-line);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main :is(.form-control, .form-select)::placeholder { color: var(--text-muted); }
+
+/* Tables: glass container, theme text. */
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table-responsive {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    border-radius: 18px;
+    box-shadow: var(--glass-shadow);
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-primary);
+    color: var(--text-primary);
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table > thead > tr > th {
+    background: transparent;
+    color: var(--text-secondary);
+    font: 700 0.6875rem var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .text-muted { color: var(--text-muted) !important; }
+
+/* State rows in dark: legacy dark rules flatten every row to the surface, so restore a dark tint of each
+   state rail (text stays --text-primary, >= 4.5:1 on these tints). */
+html[data-theme="dark"] body .modulo-main .table > tbody > tr.fila-enviada > td { background: color-mix(in srgb, var(--ok-rail) 22%, var(--surface)) !important; }
+html[data-theme="dark"] body .modulo-main .table > tbody > tr:is(.fila-sincorreo, .fila-rutinvalido) > td { background: color-mix(in srgb, var(--warn-rail) 20%, var(--surface)) !important; }
+html[data-theme="dark"] body .modulo-main .table > tbody > tr.fila-error > td { background: color-mix(in srgb, var(--bad-rail) 22%, var(--surface)) !important; }
+html[data-theme="dark"] body .modulo-main .table > tbody > tr.fila-marcada > td { background: color-mix(in srgb, var(--mark-rail) 22%, var(--surface)) !important; }
+html[data-theme="dark"] body .modulo-main .table > tbody > tr:is(.fila-enviada, .fila-sincorreo, .fila-error, .fila-rutinvalido, .fila-marcada) > td {
+    color: var(--text-primary) !important;
+}
+
+/* Striped / pending rows: site.css hard-codes #fafaf8; use a palette tint and theme text instead. */
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table-striped > tbody > tr:nth-of-type(odd) > td { background: var(--pg-row); }
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table > tbody > tr.fila-pendiente:hover > td { background: var(--pg-row-hover) !important; }
+html:not(#sgl):not([data-design="institucional"]) body .modulo-main .table > tbody > tr > td { color: var(--text-primary); }
+
+/* Bootstrap light surfaces (bg-light, code chips) follow the theme so dark text never sits on them inverted. */
+html[data-theme="dark"] body .modulo-main .bg-light { background-color: var(--surface-alt) !important; color: var(--text-primary); }
+html[data-theme="dark"] body .modulo-main code { background: var(--surface-alt); color: var(--brand-primary); }
+
+/* Mode banner (test / real sending) with rounded glass edges. */
+html:not([data-design="institucional"]) body .modo-franja { border-radius: 14px; margin: 0 12px 12px; }

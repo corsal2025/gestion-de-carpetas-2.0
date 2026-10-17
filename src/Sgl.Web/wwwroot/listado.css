@@ -380,6 +380,12 @@ html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table
     background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
+/* Excel rows in light: the 8% tint lifted the white-on-green/blue sede text just under 4.5:1; outline instead. */
+html:not(#sgl)[data-rows="classic"]:not([data-theme="dark"]):not([data-design="institucional"]) body .listado-page .data-table tbody tr[class*="estado-"] .sede-tag {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 45%, transparent);
+}
+
 /* Sector sticker: radius/padding only (its own colours stay). */
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table .sector-cell {
     border-radius: 8px;
@@ -424,6 +430,13 @@ html:not([data-design="institucional"]) .listado-page .data-table details.clase-
     min-height: 40px;
 }
 html:not([data-design="institucional"]) .listado-page .data-table input[type="checkbox"] { width: 20px; height: 20px; }
+/* In-row fields (date, comuna, clase, quick-class "Listo", observation button): 36px minimum in both designs, still one line per row.
+   The claro design already gives the obs button and clase summary 40px above. Institucional rows grow 42.8 -> 44.8px (Listado.razor FilaAlturaEstimada). */
+html:not(#sgl) body .listado-page .data-table tbody :is(input.date-input-inline, select.excel-select, .clase-rapida-listo),
+html:not(#sgl)[data-design="institucional"] body .listado-page .data-table tbody :is(.btn-obs-trigger, details.clase-rapida > summary) {
+    min-height: 36px;
+    box-sizing: border-box;
+}
 
 /* ---------- 5. Right-hand detail panel -------------------------------------- */
 html:not([data-design="institucional"]) .drawer-backdrop.abierto,

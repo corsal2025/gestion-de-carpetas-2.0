@@ -121,12 +121,6 @@ html .content:not(:has(.page-container)):has(> .inicio) { padding-bottom: 3.5rem
 .leyenda-mini i:nth-child(2) { height: 10px; }
 .leyenda-mini i:nth-child(3) { height: 7px; background: var(--brand-primary); }
 
-.inicio-grupos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
-    gap: 0.9rem;
-    align-items: start;
-}
 .inicio-grupo {
     background: var(--surface);
     border: 1px solid var(--border-color);
@@ -188,21 +182,6 @@ html .content:not(:has(.page-container)):has(> .inicio) { padding-bottom: 3.5rem
 .meta-dia-delgada { display: block; }
 
 /* ---------- Aviso de integridad (Inicio) ------------------------------------------- */
-.aviso-integridad {
-    display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
-    padding: 0.7rem 1rem;
-    background: var(--aviso-bg);
-    border: 1px solid var(--aviso-borde);
-    border-left: 6px solid var(--lico-red);
-    border-radius: var(--radius-md);
-    color: var(--aviso-texto);
-    text-decoration: none;
-}
-.aviso-integridad:hover { box-shadow: var(--shadow-sm); }
-.aviso-integridad svg { flex-shrink: 0; }
-.aviso-integridad-texto { display: flex; flex-direction: column; flex: 1 1 280px; min-width: 0; }
-.aviso-integridad-texto small { font-size: 0.82rem; opacity: 0.95; }
-.aviso-integridad-enlace { font-weight: 800; white-space: nowrap; }
 
 /* ---------- Vista Integridad -------------------------------------------------------- */
 .integridad { display: flex; flex-direction: column; gap: 1rem; }
@@ -269,16 +248,13 @@ html .content:not(:has(.page-container)):has(> .inicio) { padding-bottom: 3.5rem
 @keyframes toast-cuenta { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ---------- Búsqueda física (R10) y sugerencia por fecha (R6) --------------------- */
-.busqueda-bar, .oferta-listado {
+.oferta-listado {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem;
     margin: 0 0 0.6rem; padding: 0.6rem 0.85rem;
     background: var(--surface); border: 1px solid var(--border-color);
     border-left: 5px solid var(--grupo-preparacion);
     border-radius: var(--radius-md);
 }
-.busqueda-icono { display: inline-flex; color: var(--grupo-preparacion); }
-.busqueda-texto { display: flex; flex-direction: column; flex: 1 1 260px; min-width: 0; }
-.busqueda-texto small { color: var(--text-secondary); font-size: 0.8rem; }
 .oferta-listado { border-left-color: var(--lico-green); background: var(--ok-fondo); color: var(--ok-texto); }
 .oferta-texto { flex: 1 1 280px; font-weight: 600; }
 
@@ -287,8 +263,6 @@ html .content:not(:has(.page-container)):has(> .inicio) { padding-bottom: 3.5rem
 .clasif-sugerencia-aviso { color: var(--aviso-texto); }
 html[data-theme="dark"] .clasif-sugerencia { color: #c9d3ff; }
 
-.etapa-cell { white-space: nowrap; }
-.etapa-cell small { display: block; color: var(--text-muted); font-size: 0.72rem; }
 .chip-impreso { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.76rem; font-weight: 700; background: var(--ok-fondo); color: var(--ok-texto); }
 .chip-sin-imprimir { color: var(--text-muted); }
 .btn-pulso { animation: pulso 1.6s ease-in-out infinite; }
@@ -303,7 +277,7 @@ html[data-theme="dark"] .clasif-sugerencia { color: #c9d3ff; }
 
 @media print {
     .casilla { border-color: #000; }
-    .toast-deshacer, .busqueda-bar, .oferta-listado { display: none !important; }
+    .toast-deshacer, .oferta-listado { display: none !important; }
     .doc-busqueda tr { break-inside: avoid; }
     .doc-busqueda thead { display: table-header-group; }
 }
@@ -317,7 +291,6 @@ html[data-theme="dark"] .clasif-sugerencia { color: #c9d3ff; }
 }
 
 /* ---------- Ajustes de densidad del Inicio -------------------------------------------- */
-.inicio-grupos { grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); }
 .inicio-tarjetas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.55rem; }
 .modulo-tarjeta { min-height: 92px; gap: 0.2rem; padding: 0.55rem 0.65rem; }
 .tarjeta-contador { font-size: 1.45rem; }
@@ -355,9 +328,7 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .dup-grupo { transition: background-color 0.12s ease; }
 .dup-grupo:hover td, .dup-grupo.abierto td { background: var(--brand-light); }
 .dup-grupo.abierto td:first-child { box-shadow: inset 3px 0 0 var(--brand-primary); }
-.dup-col-rut { font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
-.dup-col-nombre { font-weight: 600; }
-.dup-col-cant, .dup-tabla thead th:nth-child(3) { text-align: center; }
+.dup-tabla thead th:nth-child(3) { text-align: center; }
 .dup-badge {
     display: inline-flex;
     align-items: center;
@@ -381,12 +352,6 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
     white-space: nowrap;
     cursor: pointer;
 }
-.dup-acciones .dup-btn-ver {
-    background: transparent;
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
-}
-.dup-acciones .dup-btn-ver:hover { background: var(--brand-light); }
 .dup-acciones .dup-btn-mantener {
     background: var(--ok-fondo);
     color: var(--ok-texto);
@@ -440,7 +405,6 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 .dup-mas[open] > summary { margin-bottom: 0.4rem; }
 
 /* Duplicados: motivo en lenguaje claro */
-.dup-tabla .dup-col-motivo { white-space: normal; text-align: left; min-width: 14rem; }
 .dup-motivo { font-size: 0.85rem; color: var(--text-primary); }
 .dup-motivo-alerta {
     color: var(--aviso-texto);
@@ -454,7 +418,6 @@ html .user-block .autor input { width: clamp(150px, 12vw, 210px); }
 /* Duplicados: nombre con lupa (igual que el listado) y motivo en una línea */
 .dup-nombre-celda { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .dup-nombre-celda .icono-buscar-dup { cursor: pointer; padding: 0; }
-.dup-tabla .dup-col-motivo { white-space: nowrap; }
 
 /* 1° Licencia: cierre del trámite como otorgada o denegada */
 .btn-decision {
@@ -522,7 +485,7 @@ html body :is(input, select, textarea, button, table, th, td, h1, h2, h3, h4, h5
 /* Las celdas de RUT y codigos mantienen su monoespaciada */
 html body :is(code, pre, kbd, samp, .col-sticky-rut, .col-sticky-rut *) { font-family: var(--font-mono); }
 /* Vistas de papel/PDF: misma familia */
-html body :is(.doc-sheet, .acta-sheet, table.acta-table, table.cases, .acta-title, .doc-header) { font-family: var(--font-ui); }
+html body :is(.doc-sheet, table.acta-table, table.cases, .acta-title, .doc-header) { font-family: var(--font-ui); }
 
 /* Titulo de pagina */
 html body h1,
@@ -565,7 +528,6 @@ html body .dup-tabla thead th,
 html body .dup-revision-tabla thead th,
 html body .aviso-tabla thead th,
 html body .dup-carpetas thead th,
-html body .integridad-tabla thead th,
 html body .content table:not(.acta-table):not(.cases) thead th {
     font-size: var(--fs-th) !important;
 }
@@ -645,7 +607,6 @@ html body :is(.txt-ayuda, .est-nota, .plazo-txt, .quick-add-hint, .pdf-toolbar-h
 /* RUT siempre centrado (encabezado y celdas) en todos los módulos */
 html body :is(th, td).col-sticky-rut,
 html body :is(th, td).col-rut-centrado,
-html body :is(th, td).dup-col-rut,
 html body .data-table :is(th, td).col-sticky-rut,
 html body .table :is(th, td).col-rut-centrado { text-align: center !important; }
 /* Columns are NOMBRE then RUT: the theme left-aligns the 2nd bandeja column (the name; the RUT in tables without a checkbox column), so the RUT cell is centred by class */
@@ -777,7 +738,7 @@ html body .data-table.data-table td.action-cell { width: auto; }
    (names, motivos, observations) gets one line + ellipsis; the full text is always in the cell's title tooltip.
    Headers may wrap on word boundaries (2 lines max) - that is intentional.
    ========================================================================== */
-html body :is(.data-table, .table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .integridad-tabla,
+html body :is(.data-table, .table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas,
               .est-tabla, .est-barras, .content table:not(.acta-table):not(.cases)) tbody :is(td, th) {
     white-space: nowrap !important;
     overflow-wrap: normal;
@@ -934,54 +895,54 @@ html[data-design="institucional"]:not([data-theme="dark"]) body .data-table thea
 }
 
 /* Filas por estado: fondo neutro + barra izquierda de 3px del color del estado (el texto y el chip indican el estado). */
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] { --estado-acc: #94a3b8; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-citada { --estado-acc: #94a3b8; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-revision { --estado-acc: #ca8a04; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-alertada { --estado-acc: #e11d48; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-primeralicencia { --estado-acc: #c026d3; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaaconaset,
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconaset { --estado-acc: #2563eb; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconf8 { --estado-acc: #a16207; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconoficio { --estado-acc: #d97706; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoaconaset { --estado-acc: #0891b2; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoconcorreo { --estado-acc: #64748b; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosolicitado { --estado-acc: #3b82f6; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomicilio { --estado-acc: #1d4ed8; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-canjelicenciaextranjera { --estado-acc: #475569; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenarchivos { --estado-acc: #4d7c0f; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenoficina43 { --estado-acc: #7c3aed; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-noexistecarpeta { --estado-acc: #dc2626; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearoficio,
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearcertificado { --estado-acc: #be185d; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientef8,
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientecertificado { --estado-acc: #ea580c; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-esperaexamen { --estado-acc: #0ea5e9; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-clasependiente { --estado-acc: #f59e0b; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-otorgado { --estado-acc: #16a34a; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-paradenegar { --estado-acc: #c2410c; }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr.estado-denegado { --estado-acc: #991b1b; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] { --estado-acc: #94a3b8; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-citada { --estado-acc: #94a3b8; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-revision { --estado-acc: #ca8a04; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-alertada { --estado-acc: #e11d48; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-primeralicencia { --estado-acc: #c026d3; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaaconaset,
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconaset { --estado-acc: #2563eb; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconf8 { --estado-acc: #a16207; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-subidaconoficio { --estado-acc: #d97706; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoaconaset { --estado-acc: #0891b2; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosubidoconcorreo { --estado-acc: #64748b; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomiciliosolicitado { --estado-acc: #3b82f6; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-cambiodomicilio { --estado-acc: #1d4ed8; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-canjelicenciaextranjera { --estado-acc: #475569; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenarchivos { --estado-acc: #4d7c0f; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-seencuentraenoficina43 { --estado-acc: #7c3aed; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-noexistecarpeta { --estado-acc: #dc2626; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearoficio,
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-crearcertificado { --estado-acc: #be185d; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientef8,
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-pendientecertificado { --estado-acc: #ea580c; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-esperaexamen { --estado-acc: #0ea5e9; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-clasependiente { --estado-acc: #f59e0b; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-otorgado { --estado-acc: #16a34a; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-paradenegar { --estado-acc: #c2410c; }
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr.estado-denegado { --estado-acc: #991b1b; }
 
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td {
     background: var(--surface) !important;
     color: var(--text-primary) !important;
     -webkit-text-fill-color: var(--text-primary) !important;
     font-weight: 500 !important;
 }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td *:not([class*="btn"]):not([class*="badge"]):not([class*="pill"]):not([class*="chip"]):not([class*="muted"]):not(select):not(input):not(button):not(a) {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td *:not([class*="btn"]):not([class*="badge"]):not([class*="pill"]):not([class*="chip"]):not([class*="muted"]):not(select):not(input):not(button):not(a) {
     color: inherit !important;
     -webkit-text-fill-color: inherit !important;
 }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td a:not([class*="btn"]) {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td a:not([class*="btn"]) {
     color: var(--brand-primary) !important;
     -webkit-text-fill-color: var(--brand-primary) !important;
 }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td:first-child {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] td:first-child {
     box-shadow: inset 3px 0 0 0 var(--estado-acc) !important;
 }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"]:hover td {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"]:hover td {
     background: var(--surface-alt) !important;
 }
-html[data-rows]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"].row-selected td {
+html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"].row-selected td {
     background: var(--brand-light) !important;
 }
 
