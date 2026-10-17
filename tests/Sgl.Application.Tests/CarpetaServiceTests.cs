@@ -259,6 +259,41 @@ public sealed class CarpetaServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ModificarNombre_updates_person_uppercase_and_writes_audit()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));
+        await _db.NewService().ModificarNombreAsync(id, "  juan andrés pérez soto ", "operador");
+
+        var c = await _db.NewService().ObtenerAsync(id);
+        Assert.Equal("JUAN ANDRÉS", c.Nombre);
+        Assert.Equal("PÉREZ SOTO", c.Apellido);
+        var audit = c.Historial.Last(h => h.Campo == "Nombre");
+        Assert.Equal("JUAN ANDRÉS PÉREZ SOTO", audit.Nuevo);
+        Assert.Equal("operador", audit.Usuario);
+    }
+
+    [Fact]
+    public async Task ModificarNombre_rejects_empty_name_without_changes()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));
+        var antes = (await _db.NewService().ObtenerAsync(id)).Nombre;
+
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().ModificarNombreAsync(id, "  ", "operador"));
+
+        Assert.Equal(antes, (await _db.NewService().ObtenerAsync(id)).Nombre);
+    }
+
+    [Fact]
+    public async Task ModificarRut_rejects_invalid_check_digit()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));
+
+        await Assert.ThrowsAnyAsync<Exception>(() => _db.NewService().ModificarRutAsync(id, "12.345.678-9", "operador"));
+
+        Assert.Equal("12.345.678-5", (await _db.NewService().ObtenerAsync(id)).Rut);
+    }
+
+    [Fact]
     public async Task EditarAsync_with_new_rut_updates_rut_correctly()
     {
         var id = await _db.NewService().RegistrarAsync(Cmd(rut: "12.345.678-5"));

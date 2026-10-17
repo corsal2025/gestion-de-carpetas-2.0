@@ -44,6 +44,31 @@ public sealed class Ciudadano
         Rut = nuevoRut ?? throw new DomainException("El RUT es obligatorio.");
     }
 
+    /// <summary>
+    /// Manual correction of the full name (shared by every carpeta of this person). The last two words are the
+    /// surnames, as in <see cref="Separar"/>. Returns true when the name changed.
+    /// </summary>
+    public bool CambiarNombreCompleto(string completo)
+    {
+        if (string.IsNullOrWhiteSpace(completo))
+        {
+            throw new DomainException("El nombre es obligatorio.");
+        }
+
+        var (nombre, apellido) = Separar(completo);
+        nombre = RequireName(nombre, "nombre");
+        apellido = RequireName(apellido, "apellido");
+        if (nombre == Nombre && apellido == Apellido)
+        {
+            return false;
+        }
+
+        Nombre = nombre;
+        Apellido = apellido;
+        NombreBusqueda = NormalizeForSearch(NombreCompleto);
+        return true;
+    }
+
     public const string SinNombre = "SIN NOMBRE";
     public const string SinApellido = "SIN APELLIDO";
 

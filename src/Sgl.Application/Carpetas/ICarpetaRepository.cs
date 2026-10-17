@@ -42,6 +42,13 @@ public interface ICarpetaRepository
     /// <summary>Cancelled carpetas, most recently cancelled first, optionally filtered by RUT/name fragments.</summary>
     Task<IReadOnlyList<CarpetaAnuladaDto>> GetAnuladasAsync(string? rutFragment, string? nameFragment, CancellationToken ct = default);
 
+    /// <summary>
+    /// Top-bar search over every carpeta, cancelled included: compact RUT fragment or normalized name fragment. Each hit
+    /// carries its current tray with the same derivation as the menu counters (Entrada split into REVISIÓN).
+    /// </summary>
+    Task<IReadOnlyList<ResultadoBusquedaGlobalDto>> BuscarGlobalAsync(
+        string? rutCompacto, string? nombre, int limite, DateOnly hoy, CancellationToken ct = default);
+
     /// <summary>Open carpetas of a citizen that are not archived in a real box (cancelled ones excluded).</summary>
     Task<IReadOnlyList<CarpetaAbiertaDto>> GetCarpetasAbiertasSinArchivarAsync(Guid ciudadanoId, CancellationToken ct = default);
 

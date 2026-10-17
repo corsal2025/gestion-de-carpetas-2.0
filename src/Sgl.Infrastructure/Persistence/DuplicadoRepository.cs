@@ -44,7 +44,9 @@ public sealed class DuplicadoRepository(SglDbContext db) : IDuplicadoRepository
 
         if (search.SinCarpetaPorClasificar)
         {
-            query = query.Where(x => !abiertas.Any(c => c.CiudadanoId == x.CiudadanoId && c.Estado == EstadoCarpeta.PorClasificar));
+            // Their Entrada carpetas (Por clasificar or Citada) already show as rows of Revisión · Duplicadas.
+            query = query.Where(x => !abiertas.Any(c => c.CiudadanoId == x.CiudadanoId
+                && (c.Estado == EstadoCarpeta.PorClasificar || c.Estado == EstadoCarpeta.Citada)));
         }
 
         if (search.RutFragment is { } rut)

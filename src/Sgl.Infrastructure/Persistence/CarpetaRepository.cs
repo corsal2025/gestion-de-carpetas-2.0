@@ -45,11 +45,7 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
         CarpetaSearch search, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(search);
-        var query = Filtrar(search);
-        if (search.Bandeja is { } bandeja)
-        {
-            query = query.Where(Carpeta.EnBandeja(bandeja));
-        }
+        var query = await FiltrarPorBandejaAsync(search, ct);
 
         if (search.Ids is { } ids)
         {
@@ -152,14 +148,89 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
     public async Task<IReadOnlyList<Guid>> SearchIdsAsync(CarpetaSearch search, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(search);
-        var query = Filtrar(search);
-        if (search.Bandeja is { } bandeja)
-        {
-            query = query.Where(Carpeta.EnBandeja(bandeja));
-        }
-
+        var query = await FiltrarPorBandejaAsync(search, ct);
         return await Ordenar(query, search.Bandeja).Select(c => c.Id).ToListAsync(ct);
     }
+
+    /// <summary>
+    /// Filters plus tray. Entrada trays (Entrantes and the REVISIÓN submodules) need other rows (duplicates), so they
+    /// are resolved by <see cref="RevisionEntradaQuery"/> and applied by primary key; every other tray stays in SQL.
+    /// </summary>
+    private async Task<IQueryable<Carpeta>> FiltrarPorBandejaAsync(CarpetaSearch search, CancellationToken ct)
+    {
+        var query = Filtrar(search);
+        if (search.Bandeja is not { } bandeja)
+        {
+            return query;
+        }
+
+        if (!RevisionEntrada.EsDeEntrada(bandeja))
+        {
+            return query.Where(Carpeta.EnBandeja(bandeja));
+        }
+
+        var ids = (await RevisionEntradaQuery.ClasificarAsync(db, query, Hoy(search), ct))
+            .Where(c => c.Bandeja == bandeja)
+            .Select(c => c.Id)
+            .ToList();
+        return query.Where(c => ids.Contains(c.Id));
+    }
+
+    public async Task<IReadOnlyList<ResultadoBusquedaGlobalDto>> BuscarGlobalAsync(
+        string? rutCompacto, string? nombre, int limite, DateOnly hoy, CancellationToken ct = default)
+    {
+        var query = db.Carpetas.IgnoreQueryFilters().AsNoTracking();
+        if (rutCompacto is { } rut)
+        {
+            query = query.Where(c => c.Ciudadano.Rut.Value.Replace(".", "").Replace("-", "").ToUpper().Contains(rut));
+        }
+
+        if (nombre is { } n)
+        {
+            query = query.Where(c => c.Ciudadano.NombreBusqueda.Contains(n));
+        }
+
+        var filas = await query
+            .OrderBy(c => c.Anulada)
+            .ThenByDescending(c => c.FechaCitacion)
+            .ThenBy(c => c.Id)
+            .Take(limite)
+            .Select(c => new
+            {
+                c.Id,
+                Rut = c.Ciudadano.Rut.Value,
+                c.Ciudadano.Nombre,
+                c.Ciudadano.Apellido,
+                c.Anulada,
+                c.Estado,
+                c.Decision,
+                c.CajaArchivo,
+                Pedida = c.FechaPeticion != null,
+            })
+            .ToListAsync(ct);
+        var bandejaBase = filas.ToDictionary(f => f.Id, f => Carpeta.ClasificarBandeja(f.Estado, f.Decision, f.CajaArchivo, f.Pedida));
+
+        // Entrada carpetas are split into Entrantes / REVISIÓN exactly as the menu counters do.
+        var entradaIds = filas
+            .Where(f => !f.Anulada && bandejaBase[f.Id] is Bandeja.PorClasificar or Bandeja.ParaRevision)
+            .Select(f => f.Id)
+            .ToList();
+        var revision = entradaIds.Count == 0
+            ? new Dictionary<Guid, Bandeja>()
+            : (await RevisionEntradaQuery.ClasificarAsync(db, db.Carpetas.AsNoTracking().Where(c => entradaIds.Contains(c.Id)), hoy, ct))
+                .ToDictionary(c => c.Id, c => c.Bandeja);
+
+        return filas
+            .Select(f => new ResultadoBusquedaGlobalDto(
+                f.Id,
+                $"{f.Nombre} {f.Apellido}".Trim(),
+                Rut.TryParse(f.Rut, out var parsed) ? parsed!.Formatted : f.Rut,
+                revision.GetValueOrDefault(f.Id, bandejaBase[f.Id]),
+                f.Anulada))
+            .ToList();
+    }
+
+    private static DateOnly Hoy(CarpetaSearch search) => search.Hoy ?? HoraChile.Fecha(DateTime.UtcNow);
 
     public async Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default) =>
         await db.Historial.AsNoTracking().MaxAsync(h => (long?)h.Id, ct) ?? 0;
@@ -172,7 +243,20 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             .Select(g => new { g.Key, Total = g.Count() })
             .ToListAsync(ct);
 
-        return Enum.GetValues<Bandeja>().ToDictionary(b => b, b => grupos.FirstOrDefault(g => g.Key == b)?.Total ?? 0);
+        var conteos = Enum.GetValues<Bandeja>().ToDictionary(b => b, b => grupos.FirstOrDefault(g => g.Key == b)?.Total ?? 0);
+        if (conteos[Bandeja.PorClasificar] + conteos[Bandeja.ParaRevision] == 0)
+        {
+            return conteos;
+        }
+
+        // Split the Entrada trays into Entrantes and the REVISIÓN submodules (same total).
+        var entrada = await RevisionEntradaQuery.ClasificarAsync(db, Filtrar(search), Hoy(search), ct);
+        foreach (var b in RevisionEntrada.Submodulos.Append(Bandeja.PorClasificar))
+        {
+            conteos[b] = entrada.Count(c => c.Bandeja == b);
+        }
+
+        return conteos;
     }
 
     public async Task<IReadOnlyList<MovimientoDto>> GetMovimientosAsync(IReadOnlyCollection<Guid> carpetaIds, CancellationToken ct = default)

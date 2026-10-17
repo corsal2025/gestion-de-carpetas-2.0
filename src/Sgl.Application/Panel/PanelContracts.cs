@@ -33,7 +33,10 @@ public sealed record PanelDto(
 /// <summary>Carpetas grouped by the raw columns that decide their tray, plus appointment date.</summary>
 public sealed record GrupoBandejaDto(EstadoCarpeta Estado, Decision Decision, bool EnCajaReal, DateOnly FechaCitacion, int Cantidad, bool Pedida = false)
 {
-    public Bandeja Bandeja => Carpeta.ClasificarBandeja(Estado, Decision, EnCajaReal ? "CAJA" : null, Pedida);
+    /// <summary>Entrada split (Entrantes or a REVISIÓN submodule) when known; it needs other rows, so the query sets it.</summary>
+    public Bandeja? BandejaEntrada { get; init; }
+
+    public Bandeja Bandeja => BandejaEntrada ?? Carpeta.ClasificarBandeja(Estado, Decision, EnCajaReal ? "CAJA" : null, Pedida);
 }
 
 /// <summary>Audit entry of a non-cancelled carpeta, reduced to what the panel needs.</summary>
@@ -47,6 +50,7 @@ public interface IPanelQuery
     /// <summary>Audit entries (from <paramref name="desdeUtc"/>) that can move a carpeta into a tray.</summary>
     Task<IReadOnlyList<MovimientoPanelDto>> MovimientosDesdeAsync(DateTime desdeUtc, CancellationToken ct = default);
 
+    /// <summary>Clean carpetas waiting in "Licencias para clasificar" (REVISIÓN submodules excluded).</summary>
     Task<int> PendientesPorClasificarAsync(CancellationToken ct = default);
 
     /// <summary>"Por clasificar" carpetas whose RUT already has another open, non-archived carpeta.</summary>

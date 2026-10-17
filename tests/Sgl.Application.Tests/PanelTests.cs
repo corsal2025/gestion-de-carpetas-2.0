@@ -133,9 +133,9 @@ public sealed class PanelServiceTests : IDisposable
             var juan = new Ciudadano(Rut.Parse("12345678-5"), "JUAN", "PEREZ");
             var ana = new Ciudadano(Rut.Parse("11111111-1"), "ANA", "SOTO");
             var pedro = new Ciudadano(Rut.Parse("22222222-2"), "PEDRO", "ROJAS");
-            var a = Carpeta.CrearDesdeAgenda(juan, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, null, "imp", ayer);
-            var b = Carpeta.CrearDesdeAgenda(ana, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, null, "imp", ayer);
-            var c = Carpeta.CrearDesdeAgenda(pedro, Sede.AvArgentina, new DateOnly(2026, 4, 28), null, null, "imp", ayer);
+            var a = Carpeta.CrearDesdeAgenda(juan, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", ayer);
+            var b = Carpeta.CrearDesdeAgenda(ana, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", ayer);
+            var c = Carpeta.CrearDesdeAgenda(pedro, Sede.AvArgentina, new DateOnly(2026, 4, 28), null, TramiteAgenda.Renovacion, "imp", ayer);
             ctx.Carpetas.AddRange(a, b, c);
             ctx.SaveChanges();
             aClasificar = a.Id;

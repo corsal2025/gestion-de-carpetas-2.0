@@ -241,4 +241,5 @@ public sealed record CarpetaSearch(
     Bandeja? Bandeja = null,
     DateOnly? Desde = null,
     DateOnly? Hasta = null,
-    IReadOnlyList<Guid>? Ids = null);
+    IReadOnlyList<Guid>? Ids = null,
+    DateOnly? Hoy = null);

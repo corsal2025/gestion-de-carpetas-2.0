@@ -18,8 +18,12 @@ public sealed class ClasificacionTests : IDisposable
         var ana = new Ciudadano(Rut.Parse("11111111-1"), "ANA", "SOTO");
         if (conHistorialPrevio)
         {
-            ctx.Carpetas.Add(Carpeta.Registrar(juan, Sede.Placilla, new DateOnly(2019, 3, 1), "x", Antes));
-            ctx.Carpetas.Add(Carpeta.Registrar(juan, Sede.MercadoPuerto, new DateOnly(2021, 6, 2), "x", Antes));
+            // Archived history: earlier trámites, not open duplicates (those would send juan to Revisión · Duplicadas).
+            var p1 = Carpeta.Registrar(juan, Sede.Placilla, new DateOnly(2019, 3, 1), "x", Antes);
+            var p2 = Carpeta.Registrar(juan, Sede.MercadoPuerto, new DateOnly(2021, 6, 2), "x", Antes);
+            p1.AsignarCaja("CAJA 1", "x", Antes);
+            p2.AsignarCaja("CAJA 2", "x", Antes);
+            ctx.Carpetas.AddRange(p1, p2);
         }
         var a = Carpeta.CrearDesdeAgenda(juan, Sede.AvArgentina, new DateOnly(2026, 5, 4), new TimeOnly(9, 0), TramiteAgenda.Renovacion, "imp", Antes);
         var b = Carpeta.CrearDesdeAgenda(ana, Sede.AvArgentina, new DateOnly(2026, 5, 4), new TimeOnly(8, 30), TramiteAgenda.PrimeraVezExtension, "imp", Antes);

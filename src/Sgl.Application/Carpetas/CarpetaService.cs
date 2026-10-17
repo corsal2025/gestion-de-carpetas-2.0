@@ -375,6 +375,27 @@ public sealed class CarpetaService(
         }
     }
 
+    public async Task ModificarNombreAsync(Guid id, string nombreCompleto, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.ModificarNombre(nombreCompleto, autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed operation must not leave tracked changes for a later save in the same circuit.
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public async Task AsignarCajaAsync(AsignarCajaCommand cmd, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
@@ -829,7 +850,8 @@ public sealed class CarpetaService(
         var movimientos = (await repository.GetMovimientosAsync(items.Select(i => i.Id).ToList(), ct))
             .ToLookup(m => m.CarpetaId);
         var hoy = clock.HoyChile();
-        var porClasificar = items.Where(i => i.Estado == EstadoCarpeta.PorClasificar).Select(i => i.Id).ToList();
+        // Duplicate alerts: agenda carpetas plus Citadas (both can land in Revisión · Duplicadas).
+        var porClasificar = items.Where(i => i.Estado is EstadoCarpeta.PorClasificar or EstadoCarpeta.Citada).Select(i => i.Id).ToList();
         var previos = porClasificar.Count == 0
             ? new Dictionary<Guid, TramitePrevioDto>()
             : await repository.GetTramitesPreviosAsync(porClasificar, ct);
@@ -845,6 +867,18 @@ public sealed class CarpetaService(
             })
             .ToList();
         return new ListResult<CarpetaResumenDto>(enriquecidos, total);
+    }
+
+    /// <summary>Top-bar search by RUT or name across every carpeta (any tray, cancelled too), at most <see cref="BusquedaGlobal.Limite"/>.</summary>
+    public async Task<IReadOnlyList<ResultadoBusquedaGlobalDto>> BuscarGlobalAsync(string? texto, CancellationToken ct = default)
+    {
+        var (rut, nombre) = BusquedaGlobal.Parse(texto);
+        if (rut is null && nombre is null)
+        {
+            return [];
+        }
+
+        return await repository.BuscarGlobalAsync(rut, nombre, BusquedaGlobal.Limite, clock.HoyChile(), ct);
     }
 
     /// <summary>Ids of all matches in list order, to page big trays by primary key (no OFFSET scans).</summary>
@@ -864,7 +898,7 @@ public sealed class CarpetaService(
         return repository.CountByBandejaAsync(ToSearch(query.Normalized() with { Bandeja = null }), ct);
     }
 
-    private static CarpetaSearch ToSearch(ListarCarpetasQuery q)
+    private CarpetaSearch ToSearch(ListarCarpetasQuery q)
     {
         var (rutFragment, nameFragment) = TextoBusqueda.Parse(q.Texto);
         return new CarpetaSearch(
@@ -881,7 +915,8 @@ public sealed class CarpetaService(
             q.Bandeja,
             q.Desde,
             q.Hasta,
-            q.Ids);
+            q.Ids,
+            clock.HoyChile());
     }
 
     public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>

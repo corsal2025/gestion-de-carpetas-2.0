@@ -178,6 +178,18 @@ public sealed partial class Carpeta
         };
 
     /// <summary>
+    /// Classification options for a row: without a readable "última carpeta" date the physical-location states
+    /// (Archivos / Of. 43) are not offered, since they are decided only by that date.
+    /// </summary>
+    public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacionSegunFecha(
+        IEnumerable<EstadoCarpeta> opciones, string? fechaUltimaCarpeta)
+    {
+        ArgumentNullException.ThrowIfNull(opciones);
+        if (DestinoPorFechaUltimaCarpeta(fechaUltimaCarpeta) is not null) return opciones.ToList();
+        return opciones.Where(e => e is not (EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43)).ToList();
+    }
+
+    /// <summary>
     /// Destination of a classification: an explicit state is always respected; otherwise the default action is
     /// "Buscar carpeta física" computed from the entered date (or, failing that, the one already stored).
     /// </summary>

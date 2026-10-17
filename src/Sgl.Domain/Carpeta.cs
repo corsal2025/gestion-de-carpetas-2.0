@@ -433,6 +433,18 @@ public sealed partial class Carpeta
         }
     }
 
+    /// <summary>Corrects the person's name (applies to all their carpetas); audited on this carpeta.</summary>
+    public void ModificarNombre(string nombreCompleto, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        var anterior = Ciudadano.NombreCompleto;
+        if (Ciudadano.CambiarNombreCompleto(nombreCompleto))
+        {
+            Audit(now, usuario, "Nombre", anterior, Ciudadano.NombreCompleto);
+        }
+    }
+
     private void Audit(DateTime now, string usuario, string campo, string? anterior, string? nuevo) =>
         _historial.Add(new HistorialCambio(Id, now, usuario, campo, anterior, nuevo));
 

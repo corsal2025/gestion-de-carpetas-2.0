@@ -44,7 +44,7 @@ public sealed class IntegridadRepository(SglDbContext db, IPanelQuery panel) : I
 
         var panelGrupos = await panel.GruposAsync(ct);
         var conteoPanel = Enum.GetValues<Bandeja>()
-            .ToDictionary(b => b, b => panelGrupos.Where(g => g.Bandeja == b).Sum(g => g.Cantidad));
+            .ToDictionary(b => b, b => panelGrupos.Where(g => BandejaBase(g) == b).Sum(g => g.Cantidad));
 
         var revisiones = await db.RevisionesDuplicado.AsNoTracking()
             .ToDictionaryAsync(r => r.CiudadanoId, r => r.RevisadoEn, ct);
@@ -57,6 +57,10 @@ public sealed class IntegridadRepository(SglDbContext db, IPanelQuery panel) : I
             total,
             revisiones);
     }
+
+    /// <summary>Tray by state alone: the panel's Entrada split (REVISIÓN) is folded back so both sides compare the same trays.</summary>
+    private static Bandeja BandejaBase(GrupoBandejaDto g) =>
+        Carpeta.ClasificarBandeja(g.Estado, g.Decision, g.EnCajaReal ? "CAJA" : null, g.Pedida);
 
     public async Task GuardarCorridaAsync(IntegridadCorrida corrida, CancellationToken ct = default)
     {

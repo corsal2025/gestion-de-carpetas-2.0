@@ -22,6 +22,45 @@ public class ClasificacionPorFechaTests
     }
 
     [Theory]
+    [InlineData("2023-06-30", EstadoCarpeta.SeEncuentraEnArchivos)]
+    [InlineData("2023-07-01", EstadoCarpeta.SeEncuentraEnOf43)]
+    public void DestinoPorFecha_boundary_with_iso_dates_from_the_date_input(string fecha, EstadoCarpeta esperado)
+    {
+        Assert.Equal(esperado, Carpeta.DestinoPorFechaUltimaCarpeta(fecha));
+    }
+
+    [Fact]
+    public void Without_a_date_the_options_exclude_archivos_and_of43()
+    {
+        var opciones = Carpeta.OpcionesClasificacionSegunFecha(Carpeta.DestinosClasificacion, null);
+
+        Assert.DoesNotContain(EstadoCarpeta.SeEncuentraEnArchivos, opciones);
+        Assert.DoesNotContain(EstadoCarpeta.SeEncuentraEnOf43, opciones);
+        Assert.Contains(EstadoCarpeta.PrimeraLicencia, opciones);
+        Assert.Contains(EstadoCarpeta.CambioDomicilio, opciones);
+        Assert.Contains(EstadoCarpeta.CanjeLicExtranjera, opciones);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("xx")]
+    public void Unreadable_date_counts_as_no_date_for_the_options(string fecha)
+    {
+        var opciones = Carpeta.OpcionesClasificacionSegunFecha(Carpeta.DestinosClasificacion, fecha);
+
+        Assert.DoesNotContain(EstadoCarpeta.SeEncuentraEnArchivos, opciones);
+        Assert.DoesNotContain(EstadoCarpeta.SeEncuentraEnOf43, opciones);
+    }
+
+    [Fact]
+    public void With_a_date_the_options_are_unchanged()
+    {
+        var opciones = Carpeta.OpcionesClasificacionSegunFecha(Carpeta.DestinosClasificacion, "2020-01-01");
+
+        Assert.Equal(Carpeta.DestinosClasificacion, opciones);
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("xx")]

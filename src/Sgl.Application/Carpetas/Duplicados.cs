@@ -97,7 +97,7 @@ public sealed record CarpetaDuplicadoDetalleDto(
     DateTime? UltimoMovimientoFecha,
     string? UltimoMovimientoPor);
 
-/// <param name="SinCarpetaPorClasificar">Skips citizens that already have an open carpeta in Por clasificar (they show their own red row there).</param>
+/// <param name="SinCarpetaPorClasificar">Skips citizens that already have an open Entrada carpeta (Por clasificar or Citada): they show their own red row in Revisión · Duplicadas.</param>
 public sealed record DuplicadoSearch(string? RutFragment, string? NameFragment, Sede? Sede, int Skip, int? Take, bool SinCarpetaPorClasificar = false);
 
 /// <summary>Persistence port for the duplicate review queue.</summary>

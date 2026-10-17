@@ -31,4 +31,18 @@ public enum Bandeja
     /// signed. Derived (never assigned) and not a menu entry; the certificates module is its screen.
     /// </summary>
     EnCertificado = 19,
+
+    // REVISIÓN: Entrada carpetas (Por clasificar or Citada) with a problem. Derived by RevisionEntrada (it needs other
+    // rows, e.g. duplicates), never by BandejaExpresion, which still returns PorClasificar / ParaRevision for them.
+
+    /// <summary>More than one open carpeta for the same RUT (same rule as the red duplicate alert).</summary>
+    RevisionDuplicadas = 20,
+    /// <summary>RUT present but its check digit (or format) is wrong.</summary>
+    RevisionRutInvalido = 21,
+    /// <summary>No RUT at all.</summary>
+    RevisionSinRut = 22,
+    /// <summary>Agenda carpeta whose trámite could not be identified (renovación / primera vez).</summary>
+    RevisionNoIdentificada = 23,
+    /// <summary>Appointment still in the future: the person has not been evaluated yet.</summary>
+    RevisionNoEvaluadas = 24,
 }

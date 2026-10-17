@@ -8,7 +8,7 @@ namespace Sgl.Infrastructure.Persistence;
 /// Home panel read model. Every aggregation runs in SQL; the soft-delete filter keeps cancelled carpetas out,
 /// except for the explicit "Anuladas" counters.
 /// </summary>
-public sealed class PanelQuery(SglDbContext db) : IPanelQuery
+public sealed class PanelQuery(SglDbContext db, TimeProvider? clock = null) : IPanelQuery
 {
     private static readonly string[] CamposEntrada =
         ["Agenda", "Registro", nameof(Carpeta.Estado), nameof(Carpeta.CajaArchivo)];
@@ -28,8 +28,25 @@ public sealed class PanelQuery(SglDbContext db) : IPanelQuery
             .Select(g => new { g.Key.Estado, g.Key.Decision, g.Key.EnCajaReal, g.Key.FechaCitacion, g.Key.Pedida, N = g.Count() })
             .ToListAsync(ct);
 
-        return filas.Select(f => new GrupoBandejaDto(f.Estado, f.Decision, f.EnCajaReal, f.FechaCitacion, f.N, f.Pedida)).ToList();
+        var grupos = filas
+            .Select(f => new GrupoBandejaDto(f.Estado, f.Decision, f.EnCajaReal, f.FechaCitacion, f.N, f.Pedida))
+            .Where(g => g.Bandeja is not (Bandeja.PorClasificar or Bandeja.ParaRevision))
+            .ToList();
+
+        // Entrada carpetas are split into Entrantes and the REVISIÓN submodules (needs other rows: duplicates).
+        var entrada = await RevisionEntradaQuery.ClasificarAsync(db, db.Carpetas.AsNoTracking(), Hoy(), ct);
+        grupos.AddRange(entrada
+            .GroupBy(c => (c.BandejaBase, c.Bandeja, c.FechaCitacion))
+            .Select(g => new GrupoBandejaDto(
+                g.Key.BandejaBase == Bandeja.PorClasificar ? EstadoCarpeta.PorClasificar : EstadoCarpeta.Citada,
+                Decision.Pendiente, false, g.Key.FechaCitacion, g.Count())
+            {
+                BandejaEntrada = g.Key.Bandeja,
+            }));
+        return grupos;
     }
+
+    private DateOnly Hoy() => HoraChile.Fecha((clock ?? TimeProvider.System).GetUtcNow().UtcDateTime);
 
     public async Task<IReadOnlyList<MovimientoPanelDto>> MovimientosDesdeAsync(DateTime desdeUtc, CancellationToken ct = default) =>
         await db.Historial.AsNoTracking()
@@ -38,8 +55,9 @@ public sealed class PanelQuery(SglDbContext db) : IPanelQuery
             .Select(h => new MovimientoPanelDto(h.Fecha, h.Campo, h.Anterior, h.Nuevo))
             .ToListAsync(ct);
 
-    public Task<int> PendientesPorClasificarAsync(CancellationToken ct = default) =>
-        db.Carpetas.AsNoTracking().CountAsync(c => c.Estado == EstadoCarpeta.PorClasificar, ct);
+    public async Task<int> PendientesPorClasificarAsync(CancellationToken ct = default) =>
+        (await RevisionEntradaQuery.ClasificarAsync(db, db.Carpetas.AsNoTracking(), Hoy(), ct))
+            .Count(c => c.Bandeja == Bandeja.PorClasificar);
 
     public Task<int> AlertasDuplicadoAsync(CancellationToken ct = default)
     {
