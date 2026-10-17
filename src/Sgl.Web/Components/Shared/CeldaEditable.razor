@@ -1,0 +1,60 @@
+@* Inline-editable table cell: double-click (or the small pencil) turns the text into an input.
+   Enter or leaving the field saves (only when the value changed); Escape cancels. *@
+
+@if (editando)
+{
+    <input @ref="input"
+           class="@(EsRut ? "excel-rut-input rut-input celda-editable-input" : "celda-editable-input")"
+           value="@Valor"
+           data-original="@Valor"
+           maxlength="@(EsRut ? 12 : 201)"
+           aria-label="@Titulo"
+           title="Enter para guardar · Esc para cancelar"
+           oninput="@(EsRut ? "formatRutInput(this)" : null)"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();this.value=this.dataset.original;this.blur();}"
+           @onchange="OnChangeAsync"
+           @onblur="Cerrar" />
+}
+else
+{
+    <span class="@CssClass celda-editable-texto" title="@(Title ?? Valor)" @ondblclick="Abrir" @ondblclick:stopPropagation>@Valor</span>
+    <button type="button" class="celda-editable-btn" title="@($"Corregir {Titulo}")" aria-label="@($"Corregir {Titulo}")" @onclick="Abrir">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+    </button>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Valor { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public bool EsRut { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback<string> Guardar { get; set; }
+
+    private bool editando;
+    private bool enfocar;
+    private ElementReference input;
+
+    private void Abrir()
+    {
+        editando = true;
+        enfocar = true;
+    }
+
+    private void Cerrar() => editando = false;
+
+    private async Task OnChangeAsync(ChangeEventArgs e)
+    {
+        var nuevo = e.Value?.ToString()?.Trim() ?? string.Empty;
+        editando = false;
+        if (nuevo.Length == 0 || string.Equals(nuevo, Valor, StringComparison.Ordinal)) return;
+        await Guardar.InvokeAsync(nuevo);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!enfocar || !editando) return;
+        enfocar = false;
+        try { await input.FocusAsync(); } catch (Exception) { /* element gone before focus: nothing to do */ }
+    }
+}

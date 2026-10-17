@@ -1171,7 +1171,7 @@ html .name-cell.nombre-pend-parpadeo {
 /* ---------- Barra inferior desplegable ---------- */
 
 /* ---------- Boton "Como usar el sistema": pildora azul con avatar de Lico ---------- */
-html .main-nav .btn-guia-accion {
+html :is(.main-nav, .topbar-tools) .btn-guia-accion {
     display: inline-flex !important;
     align-items: center !important;
     gap: .65rem !important;
@@ -1187,12 +1187,12 @@ html .main-nav .btn-guia-accion {
     box-shadow: 0 6px 16px rgb(10 16 60 / .35) !important;
     margin-left: .5rem !important;
 }
-html .main-nav .btn-guia-accion:hover {
+html :is(.main-nav, .topbar-tools) .btn-guia-accion:hover {
     background: linear-gradient(90deg, #3550c0 0%, #2790d6 100%) !important;
     box-shadow: 0 8px 20px rgb(10 16 60 / .45) !important;
     transform: translateY(-1px) !important;
 }
-html .main-nav .btn-guia-accion .guia-avatar {
+html :is(.main-nav, .topbar-tools) .btn-guia-accion .guia-avatar {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -1203,7 +1203,7 @@ html .main-nav .btn-guia-accion .guia-avatar {
     background: #fff;
     overflow: hidden;
 }
-html .main-nav .btn-guia-accion .guia-avatar svg { width: 32px; height: 32px; margin: 0; }
+html :is(.main-nav, .topbar-tools) .btn-guia-accion .guia-avatar svg { width: 32px; height: 32px; margin: 0; }
 
 
 /* ==========================================================================

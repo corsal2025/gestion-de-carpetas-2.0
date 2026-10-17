@@ -979,3 +979,231 @@ html:not([data-theme="dark"]) body :is(.card, .est-card) {
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
 }
+
+/* Columna de la lupa («EN PROCESO DE BÚSQUEDA»): solo lleva un icono, así que ocupa el ancho del icono.
+   El encabezado queda en dos filas. Igual en Archivos, Oficina 43 y No existe carpeta (F8). */
+html body .data-table.data-table :is(th, td).col-lupa {
+    width: 1% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+    text-align: center;
+}
+html body .data-table.data-table thead th.col-lupa {
+    font-size: 10.5px !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2;
+}
+html body .data-table.data-table td.col-lupa { white-space: nowrap !important; }
+
+/* Estadísticas: las tablas de cada tarjeta caben en su tarjeta (antes se salían y tapaban la tarjeta vecina). */
+html body .est-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)) !important; }
+html body .est-grid > .est-card { min-width: 0; overflow-x: auto; }
+html body .est-card table.est-tabla { width: 100%; table-layout: auto; }
+html body .est-card table.est-tabla :is(th, td) {
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+}
+html body .est-card table.est-tabla th { letter-spacing: 0.02em !important; white-space: normal !important; }
+html body .est-card table.est-tabla td:first-child { white-space: normal !important; }
+html body .est-card table.est-tabla { font-size: 0.82rem; }
+html body .est-card table.est-tabla :is(th, td) { padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
+html body .est-card table.est-tabla th { font-size: 0.72rem !important; }
+html body .est-card table.est-tabla :is(th, td):first-child { max-width: 9.5rem; overflow-wrap: anywhere; }
+html body .est-grid .est-card table.est-tabla thead th { white-space: normal !important; overflow-wrap: break-word; hyphens: auto; }
+html body .est-grid .est-card table.est-tabla thead th { font-size: 0.68rem !important; letter-spacing: 0 !important; word-break: normal; }
+
+/* Borde azul destacado alrededor de las tablas de bandeja. */
+html body .table-container {
+    border: 2px solid #1d4ed8 !important;
+    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+}
+html[data-theme="dark"] body .table-container {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+}
+
+/* Clase de licencia en la fila: círculo ajustado a la letra (antes 40px de alto). */
+html:not(#sgl) body .listado-page .data-table tbody details.clase-rapida > summary {
+    min-height: 0 !important;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.45rem !important;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Borde azul destacado en todas las cuadrículas: tarjetas, paneles y tablas sueltas (mismo estilo que .table-container). */
+html body :is(.card, .est-card, .table-responsive, .panel-card, .est-kpi, .sol-panel, .kpi-card, .imp-box, .doc-table-card, .dup-card, .caja-queue-card) {
+    border: 2px solid #1d4ed8 !important;
+    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+}
+html body table:is(.data-table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-barras, .table):not(:is(.table-container, .card, .est-card, .table-responsive, .panel-card) table) {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 0;
+    box-shadow: 0 0 0 5px rgb(29 78 216 / 0.15);
+}
+html[data-theme="dark"] body :is(.card, .est-card, .table-responsive, .panel-card, .est-kpi, .sol-panel, .kpi-card, .imp-box, .doc-table-card, .dup-card, .caja-queue-card) {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+}
+html[data-theme="dark"] body table:is(.data-table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-barras, .table):not(:is(.table-container, .card, .est-card, .table-responsive, .panel-card) table) {
+    outline-color: #60a5fa;
+}
+
+/* Título "Módulos" del menú lateral: más grande y centrado en la columna (el botón de plegar queda a la derecha). */
+html body .modulos-sidebar .sidebar-cabecera { position: relative; justify-content: center !important; }
+html body .modulos-sidebar .sidebar-cabecera .sidebar-titulo {
+    flex: 1;
+    text-align: center;
+    font-size: 1rem !important;
+    letter-spacing: 0.12em;
+}
+html body .modulos-sidebar .sidebar-cabecera .sidebar-plegar { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); }
+
+/* Borde azul destacado en el menú lateral de módulos. */
+html body :is(.modulos-sidebar, header.topbar, .listado-hero, .modulo-hero, .page-hero) {
+    border: 2px solid #1d4ed8 !important;
+    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+}
+html[data-theme="dark"] body :is(.modulos-sidebar, header.topbar, .listado-hero, .modulo-hero, .page-hero) {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+}
+
+/* Licencias para clasificar: la tabla cabe en una pantalla sin scroll horizontal. */
+html body .data-table .clasif-cell select.excel-select {
+    min-width: 0 !important;
+    width: 11.5rem !important;
+    font-size: 0.8rem !important;
+    padding-left: 0.4rem !important;
+    padding-right: 1.4rem !important;
+}
+html body .data-table thead th { letter-spacing: 0.04em !important; }
+html body .data-table :is(th, td) { padding-left: 0.55rem !important; padding-right: 0.55rem !important; }
+html body .listado-page .data-table.data-table:not(#x) :is(th, td) { padding-left: 0.45rem !important; padding-right: 0.45rem !important; }
+html body .listado-page .data-table.data-table:not(#x) thead th { letter-spacing: 0.03em !important; }
+html body .modulos-sidebar .sidebar-cabecera .sidebar-titulo { justify-content: center !important; }
+
+/* Buscador universal junto a "Mostrar sedes y acciones" (en el listado de bandejas). */
+html body .panel-barra { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+html body .panel-barra .panel-barra-buscador { flex: 0 1 22rem; }
+html body .panel-barra .panel-barra-buscador .busq-global-input { width: 100%; max-width: none; }
+html body .panel-barra .panel-barra-buscador .busq-global { position: relative; }
+html body .panel-barra .panel-barra-buscador .busq-global-panel { left: 0 !important; right: auto !important; z-index: 60; }
+
+/* Selector de clase: el panel se despliega centrado bajo el botón «Clase», con las clases centradas. */
+html body details.clase-rapida { position: relative; }
+html body details.clase-rapida > .clase-rapida-panel {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+    text-align: center;
+}
+html body details.clase-rapida > .clase-rapida-panel .clases-selector { justify-content: center; }
+html body details.clase-rapida > .clase-rapida-panel .clase-rapida-listo { display: block; margin: 0.5rem auto 0; }
+/* Clases en cuadrícula pareja (4 por fila, todas del mismo ancho) y panel compacto. */
+html body details.clase-rapida > .clase-rapida-panel {
+    padding: 0.35rem !important;
+    width: max-content !important;
+    max-width: none !important;
+}
+html body details.clase-rapida > .clase-rapida-panel .clases-selector {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem !important;
+}
+html body details.clase-rapida > .clase-rapida-panel .clase-chip {
+    margin: 0 !important;
+    justify-content: flex-start;
+    padding: 0.15rem 0.45rem !important;
+    min-width: 0;
+}
+html body details.clase-rapida > .clase-rapida-panel .clase-rapida-listo {
+    margin: 0.35rem auto 0 !important;
+    min-height: 0 !important;
+    padding: 0.25rem 1rem !important;
+}
+
+/* Sin sombra en el borde de las columnas fijas (casilla, nombre, RUT). */
+html body .data-table.data-table :is(th, td):is(.col-sticky-check, .col-sticky-nombre, .col-sticky-rut) { box-shadow: none !important; }
+
+/* Recuadro de la tabla: fondo sólido (igual al encabezado) y la tabla llena el ancho hasta el borde redondeado. */
+html body .table-container { background: var(--surface, #fff) !important; }
+html body .table-container table.data-table { min-width: 100% !important; }
+
+/* Encabezados de tabla: línea fina visible entre cada columna y bajo la fila de encabezados. */
+html body .data-table.data-table:not(#x) thead th {
+    border-left: 0 !important;
+    border-right: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+}
+html body .data-table.data-table:not(#x) thead th:last-child { border-right: 0 !important; }
+html[data-theme="dark"] body .data-table.data-table:not(#x) thead th { border-right-color: #475569 !important; border-bottom-color: #475569 !important; }
+/* Buscador universal centrado en el espacio libre de la barra. */
+html body .panel-barra .panel-barra-buscador { margin-left: auto; margin-right: auto; }
+html body .panel-barra > .btn-panel-toggle { flex: 0 0 auto !important; width: auto !important; }
+
+/* Tabla sin columna de casillas (Licencias para clasificar): las columnas fijas parten desde el borde,
+   sin dejar el hueco de la casilla ni montar el RUT sobre la SEDE. */
+html body table.data-table:not(:has(thead th.col-sticky-check)) { --w-check: 0px !important; }
+html body table.data-table:not(:has(thead th.col-sticky-check)) :is(th, td).col-sticky-nombre { padding-left: 0.9rem !important; }
+/* Encabezado "NOMBRE DE CONTRIBUYENTE" centrado como los demás. */
+html body .data-table.data-table:not(#x) thead th.col-sticky-nombre { text-align: center !important; }
+
+/* Licencias para clasificar: sin botones PDF, las acciones rápidas ocupan su lugar (al centro de la fila de sedes). */
+html body .sede-tabs-container > .quick-actions.quick-actions-centro { margin-left: auto !important; margin-right: auto !important; }
+
+/* "Cargar Excel Masivo" junto al buscador, destacado (verde Excel). */
+html body .btn-excel-destacado {
+    display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
+    padding: 0.4rem 0.85rem; border-radius: 8px;
+    background: #1d6f42; color: #fff !important; font-weight: 700; font-size: 0.85rem; text-decoration: none !important;
+    box-shadow: 0 2px 6px rgb(29 111 66 / 0.35);
+}
+html body .btn-excel-destacado:hover { background: #155a35; }
+html body .btn-excel-destacado:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+html body .btn-excel-destacado svg { width: 16px; height: 16px; }
+html body .panel-barra .panel-barra-buscador { display: flex; align-items: center; gap: 0.6rem; flex: 0 1 34rem !important; }
+html body .panel-barra .panel-barra-buscador .busq-global { flex: 1; }
+html body .topbar-tools .btn-excel-destacado { margin-left: 0.25rem; }
+
+/* Barra superior: título más grande y enlaces (Inicio, Cajas, Estadísticas) centrados en el espacio libre. */
+html body header.topbar .brand strong { font-size: 1.4rem !important; letter-spacing: -0.01em; }
+html body header.topbar > .main-nav { flex: 1 1 auto !important; justify-content: center !important; }
+/* Enlaces de la barra superior más grandes. */
+html body header.topbar > .main-nav .nav-item { font-size: 1.05rem !important; gap: 0.5rem; padding: 0.5rem 0.85rem !important; }
+html body header.topbar > .main-nav .nav-item svg { width: 20px !important; height: 20px !important; }
+
+/* Inline name/RUT correction (CeldaEditable): same height as the text, no width jumps */
+.celda-editable-texto { cursor: text; }
+.celda-editable-btn {
+  border: 0; background: none; padding: 0 2px; margin-left: 2px; color: var(--muted, #888);
+  opacity: 0; cursor: pointer; line-height: 1; vertical-align: middle; flex: 0 0 auto;
+}
+td:hover > .celda-editable-btn, td:hover .celda-editable-btn, .celda-editable-btn:focus-visible { opacity: .75; }
+.celda-editable-input {
+  width: 100%; min-width: 0; box-sizing: border-box; font: inherit; height: 1.7em;
+  padding: 0 4px; margin: 0; text-transform: uppercase;
+}
+
+/* Fila que se está trasladando a otro módulo: sale de la tabla al instante. */
+html body .data-table tbody tr.fila-trasladada { display: none !important; }
+
+/* Listado para búsqueda: columnas ajustadas al contenido (sin el gran espacio entre nombre y RUT), en pantalla y al imprimir. */
+html body table.cases.doc-table.doc-busqueda { width: auto !important; min-width: 0 !important; margin: 0 auto; table-layout: auto !important; }
+html body table.doc-busqueda :is(th, td).c-nombre { padding-right: 2.5rem !important; }
+html body table.doc-busqueda :is(th, td) { padding: 0.55rem 1.1rem !important; white-space: nowrap; }
+html body table.doc-busqueda :is(th, td).c-num { width: 1%; text-align: center !important; }
+html body table.doc-busqueda :is(th, td).c-nombre { text-align: left !important; }
+html body table.doc-busqueda th:nth-child(3), html body table.doc-busqueda td.c-rut,
+html body table.doc-busqueda th:nth-child(4), html body table.doc-busqueda td.c-fecha { text-align: center !important; }
+html body table.doc-busqueda td.c-rut { font-variant-numeric: tabular-nums; }
+html body .doc-listado .doc-count { text-align: center; }
+/* Sin anchos en % en las celdas: en una tabla de ancho automático un 1% hace que la tabla se estire al 100%. */
+html body table.cases.doc-table.doc-busqueda :is(th, td) { width: auto !important; }
+
+/* Listado para búsqueda: el borde azul rodea solo la tabla (no el total ni la firma). */
+html body .doc-listado .doc-table-card { border: 0 !important; box-shadow: none !important; }
+html body table.cases.doc-table.doc-busqueda { border: 2px solid #1d4ed8 !important; border-collapse: collapse; }

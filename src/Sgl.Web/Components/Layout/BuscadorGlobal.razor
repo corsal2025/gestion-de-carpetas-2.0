@@ -1,0 +1,172 @@
+@using Sgl.Application.Carpetas
+@using Sgl.Domain
+@using Sgl.Web.Services
+@implements IDisposable
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Nav
+@inject ILogger<BuscadorGlobal> Logger
+
+<div class="busq-global" @onfocusout="AlSalirFoco">
+    <label class="sr-only" for="busq-global-input">Buscar RUT o nombre en todas las carpetas</label>
+    <input id="busq-global-input" type="search" class="busq-global-input" placeholder="Buscar RUT o nombre" maxlength="100"
+           autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="busq-global-lista"
+           aria-expanded="@(abierto ? "true" : "false")"
+           aria-activedescendant="@(activo >= 0 ? $"busq-global-op-{activo}" : null)"
+           value="@texto" @oninput="AlEscribir" @onkeydown="AlTeclearAsync"
+           title="Buscar en todas las carpetas del sistema por RUT o nombre" />
+    @if (abierto)
+    {
+        <div class="busq-global-panel" role="region" aria-live="polite">
+            @if (buscando)
+            {
+                <p class="busq-global-msg">Buscando…</p>
+            }
+            else if (error)
+            {
+                <p class="busq-global-msg">No se pudo realizar la búsqueda. Intente nuevamente.</p>
+            }
+            else if (resultados.Count == 0)
+            {
+                <p class="busq-global-msg">Sin resultados.</p>
+            }
+            else
+            {
+                <ul id="busq-global-lista" class="busq-global-lista" role="listbox" aria-label="Resultados de la búsqueda">
+                    @for (var i = 0; i < resultados.Count; i++)
+                    {
+                        var r = resultados[i];
+                        var idx = i;
+                        <li id="busq-global-op-@idx" role="option" aria-selected="@(idx == activo ? "true" : "false")"
+                            class="busq-global-item @(idx == activo ? "activo" : null)">
+                            <a href="@($"carpetas/{r.Id}")" @onclick="Cerrar">
+                                <span class="busq-global-nombre">@r.NombreCompleto</span>
+                                <span class="busq-global-rut">@r.Rut</span>
+                                <span class="busq-global-bandeja">@Etiqueta(r)</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+                @if (resultados.Count >= Sgl.Application.Carpetas.BusquedaGlobal.Limite)
+                {
+                    <p class="busq-global-msg">Se muestran las primeras @Sgl.Application.Carpetas.BusquedaGlobal.Limite coincidencias. Precise la búsqueda.</p>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const int EsperaMs = 350;
+
+    private string texto = string.Empty;
+    private IReadOnlyList<ResultadoBusquedaGlobalDto> resultados = [];
+    private bool abierto;
+    private bool buscando;
+    private bool error;
+    private int activo = -1;
+    private CancellationTokenSource? cts;
+
+    /// <summary>Human tray label, same catalog as the side menu ("Revisión › Duplicadas", "1° Licencia"...).</summary>
+    private static string Etiqueta(ResultadoBusquedaGlobalDto r)
+    {
+        if (r.Anulada) return "Anuladas";
+        if (ModulosCatalogo.DeBandeja(r.Bandeja) is not { } m) return r.Bandeja == Bandeja.EnCertificado ? "Certificado / Oficio" : r.Bandeja.ToString();
+        return m.Grupo == ModulosCatalogo.Revision ? $"{m.Grupo.Nombre} › {m.Nombre}" : m.Nombre;
+    }
+
+    private async Task AlEscribir(ChangeEventArgs e)
+    {
+        texto = e.Value?.ToString() ?? string.Empty;
+        if (texto.Trim().Length < Sgl.Application.Carpetas.BusquedaGlobal.MinimoCaracteres)
+        {
+            Cancelar();
+            Cerrar();
+            return;
+        }
+
+        await BuscarAsync(EsperaMs);
+    }
+
+    private async Task AlTeclearAsync(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+                if (abierto && activo >= 0 && activo < resultados.Count)
+                {
+                    var id = resultados[activo].Id;
+                    Cerrar();
+                    Nav.NavigateTo($"carpetas/{id}");
+                }
+                else if (texto.Trim().Length >= Sgl.Application.Carpetas.BusquedaGlobal.MinimoCaracteres)
+                {
+                    await BuscarAsync(0);
+                }
+                break;
+            case "Escape":
+                Cerrar();
+                break;
+            case "ArrowDown" when abierto && resultados.Count > 0:
+                activo = (activo + 1) % resultados.Count;
+                break;
+            case "ArrowUp" when abierto && resultados.Count > 0:
+                activo = activo <= 0 ? resultados.Count - 1 : activo - 1;
+                break;
+        }
+    }
+
+    private async Task BuscarAsync(int esperaMs)
+    {
+        Cancelar();
+        var actual = cts = new CancellationTokenSource();
+        try
+        {
+            if (esperaMs > 0) await Task.Delay(esperaMs, actual.Token);
+            abierto = true;
+            buscando = true;
+            error = false;
+            StateHasChanged();
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var encontrados = await scope.ServiceProvider.GetRequiredService<CarpetaService>().BuscarGlobalAsync(texto, actual.Token);
+            if (actual.IsCancellationRequested) return;
+            resultados = encontrados;
+            activo = -1;
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Falló la búsqueda global.");
+            error = true;
+            resultados = [];
+        }
+
+        buscando = false;
+        StateHasChanged();
+    }
+
+    private async Task AlSalirFoco(FocusEventArgs e)
+    {
+        // Leave time for a click on a result link before closing.
+        await Task.Delay(200);
+        Cerrar();
+    }
+
+    private void Cerrar()
+    {
+        abierto = false;
+        activo = -1;
+    }
+
+    private void Cancelar()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
+        cts = null;
+    }
+
+    public void Dispose() => Cancelar();
+}

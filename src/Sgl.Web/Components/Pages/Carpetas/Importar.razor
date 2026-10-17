@@ -66,7 +66,7 @@
         {
             <div class="imp-box imp-ok" role="status">
                 <h3>✅ Agenda del día importada</h3>
-                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Por clasificar</strong>. Email y teléfono no se guardan.</p>
+                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Licencias para clasificar</strong> (o en <strong>Revisión</strong> si tienen un problema). Email y teléfono no se guardan.</p>
                 <div class="imp-tiles">
                     <div class="imp-tile"><span class="imp-tile-label">Filas leídas</span><strong class="imp-tile-num">@resultadoAgenda.FilasLeidas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Carpetas creadas</span><strong class="imp-tile-num">+@resultadoAgenda.Creadas.ToString("N0")</strong></div>
@@ -78,7 +78,7 @@
                 </div>
                 @if (resultadoAgenda.ConAlertaDuplicado > 0)
                 {
-                    <p class="imp-sedes imp-note">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=PorClasificar">Por clasificar</a> con las acciones Reagendar, Crear nueva o Anular duplicada.</p>
+                    <p class="imp-sedes imp-note">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=RevisionDuplicadas">Revisión › Duplicadas</a> con las acciones Reagendar, Anular duplicada o Mantener ambas.</p>
                 }
                 @if (resultadoAgenda.FilasRutInvalido.Count > 0)
                 {
@@ -98,7 +98,7 @@
                 }
                 <div class="imp-cta">
                     <a href="carpetas?bandeja=PorClasificar" class="btn-primary">
-                        🗂️ Ir a Por clasificar →
+                        🗂️ Ir a Licencias para clasificar →
                     </a>
                 </div>
             </div>

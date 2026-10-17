@@ -682,6 +682,7 @@ window.printPdfDocument = function (titulo) {
  */
 (function () {
     'use strict';
+    var TOPE_COLUMNA = 480; // px: ninguna columna pasa de aquí (el nombre largo ya se corta en 30rem)
     var estado = new WeakMap();
     var vigiladas = [];
     var pendiente = false;
@@ -690,10 +691,16 @@ window.printPdfDocument = function (titulo) {
     function programar() {
         if (pendiente) return;
         pendiente = true;
-        requestAnimationFrame(function () {
+        var hecho = false;
+        var correr = function () {
+            if (hecho) return;
+            hecho = true;
             pendiente = false;
             try { procesar(); } catch (e) { /* cosmetic only */ }
-        });
+        };
+        requestAnimationFrame(correr);
+        // requestAnimationFrame is paused in background tabs/panes: never leave the sticky offsets stale.
+        setTimeout(correr, 150);
     }
 
     function procesar() {
@@ -716,12 +723,18 @@ window.printPdfDocument = function (titulo) {
             t = tablas[i];
             var fila = t.tHead && t.tHead.rows[0];
             if (!fila) continue;
-            var celdas = fila.cells, anchos = [], c, nombreIdx = -1;
+            var celdas = fila.cells, anchos = [], extras = [], c, nombreIdx = -1;
             for (c = 0; c < celdas.length; c++) {
                 anchos.push(celdas[c].getBoundingClientRect().width);
+                // min-width applies to the content box (content-box sizing): padding and borders must be subtracted,
+                // otherwise every pass widens the column by its padding and the ResizeObserver loops forever.
+                var cs = getComputedStyle(celdas[c]);
+                extras.push(cs.boxSizing === 'border-box' ? 0 :
+                    (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) +
+                    (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0));
                 if (nombreIdx < 0 && celdas[c].classList.contains('col-sticky-nombre')) nombreIdx = c;
             }
-            lecturas.push({ t: t, celdas: celdas, anchos: anchos, nombreIdx: nombreIdx });
+            lecturas.push({ t: t, celdas: celdas, anchos: anchos, extras: extras, nombreIdx: nombreIdx });
         }
 
         // 2) writes
@@ -729,19 +742,12 @@ window.printPdfDocument = function (titulo) {
             st = estado.get(l.t);
             var monotona = l.t.classList.contains('tabla-virtual');
             var c;
-            if (monotona) {
-                for (c = 0; c < l.anchos.length; c++) {
-                    var w = Math.ceil(l.anchos[c]);
-                    if (w > (st.max[c] || 0)) st.max[c] = w;
-                    // Always re-apply: Blazor re-creates header cells on re-render and the new element has no inline min-width,
-                    // which let the column shrink below the width the sticky offsets (--w-nombre) were computed from.
-                    var minimo = (st.max[c] || 0) + 'px';
-                    // !important: the stylesheets force `min-width: 0 !important` on table cells, which a plain inline value cannot beat.
-                    if (l.celdas[c].style.getPropertyValue('min-width') !== minimo || l.celdas[c].style.getPropertyPriority('min-width') !== 'important') {
-                        l.celdas[c].style.setProperty('min-width', minimo, 'important');
-                    }
-                }
+            // Columns size to their content: never pin a min-width (a pinned width only grows and broke the layout).
+            // Remove any min-width left by older versions of this script.
+            for (c = 0; c < l.celdas.length; c++) {
+                if (l.celdas[c].style.getPropertyValue('min-width')) l.celdas[c].style.removeProperty('min-width');
             }
+            monotona = false;
             var ancho = function (idx) {
                 var w = Math.ceil(l.anchos[idx]);
                 return monotona ? Math.max(w, st.max[idx] || 0) : w;
@@ -767,4 +773,20 @@ window.printPdfDocument = function (titulo) {
     window.sglTablas = { recalcular: programar };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
     else iniciar();
+})();
+
+/**
+ * Global search box: when the text looks like a RUT (only digits, K, dots, dash), format it as 12.345.678-9 while typing.
+ * Registered in the capture phase so the value is already formatted when Blazor reads the input event.
+ * Names are left untouched.
+ */
+(function () {
+    'use strict';
+    document.addEventListener('input', function (e) {
+        var el = e.target;
+        if (!el || !el.classList || !el.classList.contains('busq-global-input')) return;
+        var v = el.value || '';
+        if (!/\d/.test(v) || !/^[\d\s.\-kK]*$/.test(v)) return;
+        window.formatRutInput(el);
+    }, true);
 })();

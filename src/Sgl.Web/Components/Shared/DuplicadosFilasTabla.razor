@@ -1,4 +1,4 @@
-@* "Por arreglar" rows for the Por clasificar table: one red row per possible-duplicate case (citizen with >1 open
+@* "Por arreglar" rows for the Revisión · Duplicadas table: one red row per possible-duplicate case (citizen with >1 open
    carpeta that has no row of its own in the tray), alphabetical, followed by the separator of the normal rows.
    Rendered inside the tray's <tbody>, so it shares header and columns with the carpeta rows. *@
 @inject DuplicadosService Revision
@@ -6,15 +6,6 @@
 
 @if (total > 0)
 {
-    <tr class="dup-seccion-cab" id="dup-seccion">
-        <td colspan="@Columnas">
-            <div class="dup-seccion-cab-fila">
-                <strong>POR ARREGLAR · @total.ToString("N0", CulturaCl) @(total == 1 ? "caso" : "casos")</strong>
-                <span>ciudadanos con más de una carpeta abierta</span>
-                <a class="dup-seccion-ir" href="#dup-por-clasificar-sep" @onclick="IrAPorClasificarAsync" @onclick:preventDefault>↓ ir a las @(CantidadPorClasificar.ToString("N0", CulturaCl)) por clasificar</a>
-            </div>
-        </td>
-    </tr>
     @foreach (var g in filas)
     {
         var abierto = abiertoId == g.CiudadanoId;
@@ -59,7 +50,7 @@
     <tr class="dup-seccion-cab dup-seccion-cab-normal" id="dup-por-clasificar-sep">
         <td colspan="@Columnas">
             <div class="dup-seccion-cab-fila">
-                <strong>POR CLASIFICAR · @CantidadPorClasificar.ToString("N0", CulturaCl) @(CantidadPorClasificar == 1 ? "carpeta" : "carpetas")</strong>
+                <strong>@Etiqueta.ToUpperInvariant() · @CantidadPorClasificar.ToString("N0", CulturaCl) @(CantidadPorClasificar == 1 ? "carpeta" : "carpetas")</strong>
             </div>
         </td>
     </tr>
@@ -79,6 +70,9 @@
 
     /// <summary>Carpetas in the tray (shown in the "Por clasificar" separator and the shortcut link).</summary>
     [Parameter] public int CantidadPorClasificar { get; set; }
+
+    /// <summary>Name of the host tray's own rows, used in the separator and the shortcut link.</summary>
+    [Parameter] public string Etiqueta { get; set; } = "por clasificar";
 
     /// <summary>Raised when a case was resolved so the host can refresh its own rows and counters.</summary>
     [Parameter] public EventCallback OnCambio { get; set; }

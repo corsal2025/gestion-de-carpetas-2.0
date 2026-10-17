@@ -139,7 +139,7 @@ html:not([data-design="institucional"]) body .main-nav .nav-item.nav-estadistica
 }
 
 /* "Como usar el sistema": palette-coloured pill with white text (btn-grad is always dark enough) */
-html:not([data-design="institucional"]) body .main-nav .btn-guia-accion {
+html:not([data-design="institucional"]) body :is(.main-nav, .topbar-tools) .btn-guia-accion {
     min-height: 44px;
     height: auto !important;
     border: 1px solid var(--accent-line) !important;
@@ -148,7 +148,7 @@ html:not([data-design="institucional"]) body .main-nav .btn-guia-accion {
     box-shadow: 0 10px 20px -12px rgb(var(--pal-rgb) / 0.7) !important;
     margin-left: 0.25rem !important;
 }
-html:not([data-design="institucional"]) body .main-nav .btn-guia-accion:hover {
+html:not([data-design="institucional"]) body :is(.main-nav, .topbar-tools) .btn-guia-accion:hover {
     background: var(--btn-grad-hover) !important;
     transform: none !important;
 }
@@ -232,7 +232,7 @@ html:not([data-design="institucional"]):not([data-theme="dark"]) .topbar :focus-
         font-size: 0.84rem;
         white-space: nowrap;
     }
-    html:not([data-design="institucional"]) body .main-nav .btn-guia-accion {
+    html:not([data-design="institucional"]) body :is(.main-nav, .topbar-tools) .btn-guia-accion {
         padding: 0 12px 0 6px !important;
         margin-left: 2px !important;
         font-size: 0.84rem;
@@ -534,3 +534,18 @@ html:not(#sgl):not([data-design="institucional"]) body .topbar .user-block .auto
     -webkit-text-fill-color: var(--text-secondary) !important;
     opacity: 1;
 }
+
+/* Búsqueda global (barra superior) */
+.busq-global { position: relative; }
+.busq-global .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.busq-global-input { width: 13rem; max-width: 40vw; padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); color: var(--text-primary); font: inherit; font-size: 0.85rem; }
+.busq-global-input:focus-visible { outline: 2px solid var(--border-hover); outline-offset: 1px; }
+.busq-global-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 1000; width: min(30rem, 92vw); max-height: 70vh; overflow-y: auto; background: var(--surface-raised); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 0.25rem; }
+.busq-global-msg { margin: 0; padding: 0.5rem 0.6rem; font-size: 0.82rem; color: var(--text-muted); }
+.busq-global-lista { list-style: none; margin: 0; padding: 0; }
+.busq-global-item a { display: grid; grid-template-columns: 1fr auto; gap: 0 0.75rem; padding: 0.45rem 0.6rem; border-radius: 6px; color: inherit; text-decoration: none; }
+.busq-global-item a:hover, .busq-global-item.activo a, .busq-global-item a:focus-visible { background: var(--surface-alt); }
+.busq-global-nombre { font-weight: 600; font-size: 0.85rem; }
+.busq-global-rut { font-size: 0.8rem; color: var(--text-secondary); text-align: right; }
+.busq-global-bandeja { grid-column: 1 / -1; font-size: 0.76rem; color: var(--text-muted); }
+@media (max-width: 640px) { .busq-global-input { width: 9rem; } }

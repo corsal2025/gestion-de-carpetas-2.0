@@ -33,22 +33,29 @@ public static class ModulosCatalogo
         : $"m-{m.Clave}";
 
     // Simple 24x24 stroke icons (paths only).
-    public static readonly GrupoModulo Entrada = new("entrada", "Entrada", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
-    public static readonly GrupoModulo Preparacion = new("preparacion", "Preparación", "grupo-preparacion", "M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z");
-    public static readonly GrupoModulo CambioDomicilio = new("domicilio", "Cambio de domicilio", "grupo-domicilio", "M3 11l9-7 9 7M5 10v10h14V10");
-    public static readonly GrupoModulo Subidas = new("subidas", "Subidas", "grupo-subidas", "M12 19V5M6 11l6-6 6 6");
+    public static readonly GrupoModulo Entrada = new("entrada", "Peticiones entrantes", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
+    public static readonly GrupoModulo Revision = new("revision", "Revisión y corrección de errores", "grupo-revision", "M9 11l2 2 4-4M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z");
+    public static readonly GrupoModulo Preparacion = new("preparacion", "Tramitaciones de licencias", "grupo-preparacion", "M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z");
+    public static readonly GrupoModulo CambioDomicilio = new("domicilio", "Solicitudes de cambio de domicilio", "grupo-domicilio", "M3 11l9-7 9 7M5 10v10h14V10");
+    public static readonly GrupoModulo Subidas = new("subidas", "Licencias ya subidas a Conaset", "grupo-subidas", "M12 19V5M6 11l6-6 6 6");
     public static readonly GrupoModulo Cierre = new("cierre", "Cierre", "grupo-cierre", "M21 8l-9-5-9 5 9 5zM3 8v8l9 5 9-5V8");
 
     public static readonly GrupoModulo Sistema = new("sistema", "Control", "grupo-sistema", "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4");
 
-    public static readonly GrupoModulo Solicitudes = new("solicitudes", "SOLICITUDES", "grupo-solicitudes", "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6");
+    public static readonly GrupoModulo Solicitudes = new("solicitudes", "Solicitudes especiales", "grupo-solicitudes", "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6");
 
-    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Solicitudes, Subidas, Cierre, Sistema];
+    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Revision, Preparacion, CambioDomicilio, Solicitudes, Subidas, Cierre, Sistema];
 
     public static readonly IReadOnlyList<Modulo> Todos =
     [
-        Tray(Entrada, Bandeja.PorClasificar, "Por clasificar", "PC"),
-        Tray(Entrada, Bandeja.ParaRevision, "Para revisión", "PR"),
+        Tray(Entrada, Bandeja.PorClasificar, "Licencias para clasificar", "PC"),
+        // REVISIÓN: one submodule per problem, in precedence order (RevisionEntrada.Submodulos); Citadas is the old "Para revisión".
+        Tray(Revision, Bandeja.RevisionDuplicadas, "Duplicadas", "DU"),
+        Tray(Revision, Bandeja.RevisionRutInvalido, "RUT inválido", "RI"),
+        Tray(Revision, Bandeja.RevisionSinRut, "Sin RUT", "SR"),
+        Tray(Revision, Bandeja.RevisionNoIdentificada, "Licencia no identificada", "NI"),
+        Tray(Revision, Bandeja.RevisionNoEvaluadas, "No evaluadas", "NE"),
+        Tray(Revision, Bandeja.ParaRevision, "Sin término", "PR"),
         Tray(Preparacion, Bandeja.PorPreparar, "1° Licencia", "1L"),
         Tray(Preparacion, Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos", "AR"),
         Tray(Preparacion, Bandeja.SeEncuentraEnOf43, "Se encuentra en Of. 43", "43"),

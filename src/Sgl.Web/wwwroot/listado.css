@@ -77,7 +77,7 @@ html:not([data-design="institucional"]) .listado-hero > * { position: relative; 
 }
 .listado-hero .hero-nombre { color: var(--brand-primary); }
 .listado-hero .hero-kpis { display: flex; align-items: center; gap: 22px; }
-.listado-hero .hero-kpi { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.listado-hero .hero-kpi { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.1; }
 .listado-hero .hero-kpi-n {
     font: 700 1.75rem/1 'Bricolage Grotesque', var(--font-ui);
     letter-spacing: -0.03em;

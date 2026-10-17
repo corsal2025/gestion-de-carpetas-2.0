@@ -86,6 +86,10 @@ else
         <section class="card det-datos">
             <h2>Datos de la carpeta y ciudadano</h2>
             <div class="form">
+                <label>Nombre completo del Ciudadano
+                    <input @bind="editNombre" maxlength="201" placeholder="NOMBRES APELLIDO PATERNO APELLIDO MATERNO"
+                           title="Los dos últimos términos se guardan como apellidos; se aplica a todas las carpetas de esta persona." />
+                </label>
                 <label>RUT del Ciudadano
                     <div class="det-rut-fila">
                         <input class="rut-input" @bind="editRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
@@ -159,6 +163,7 @@ else
     private EstadoCarpeta? nuevoEstado;
     private EditModel edit = new();
     private string editRut = "";
+    private string editNombre = "";
     private string editCaja = "";
     private ClaseLicencia editClases;
     private bool notFound;
@@ -198,6 +203,7 @@ else
             carpeta = await Carpetas.ObtenerAsync(Id);
             nuevoEstado = null;
             editRut = carpeta.Rut;
+            editNombre = $"{carpeta.Nombre} {carpeta.Apellido}";
             editCaja = carpeta.CajaArchivo ?? "";
             editClases = carpeta.Clases;
             edit = new EditModel
@@ -231,7 +237,11 @@ else
     private Task GuardarAsync() =>
         EjecutarAsync(async () =>
         {
-            // One command, one save: the form is applied completely or not at all.
+            // The name is a person-level correction (own save, validated first); the rest is one command, one save.
+            if (carpeta is not null && editNombre.Trim() != $"{carpeta.Nombre} {carpeta.Apellido}")
+            {
+                await Carpetas.ModificarNombreAsync(Id, editNombre, Autor.Nombre);
+            }
             await Carpetas.EditarAsync(new EditarCarpetaCommand(
                 Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut,
                 Caja: editCaja,

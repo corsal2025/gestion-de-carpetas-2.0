@@ -6,6 +6,8 @@
 html {
     --grupo-entrada: #26388c;
     --grupo-entrada-soft: #e6e9f6;
+    --grupo-revision: #b45309;
+    --grupo-revision-soft: #fdf3e2;
     --grupo-preparacion: #0a6b6b;
     --grupo-preparacion-soft: #dff4f3;
     --grupo-domicilio: #7a3fb8;
@@ -29,6 +31,8 @@ html {
 html[data-theme="dark"] {
     --grupo-entrada: #8fa2f0;
     --grupo-entrada-soft: #1e2756;
+    --grupo-revision: #fbbf24;
+    --grupo-revision-soft: #3a2a0c;
     --grupo-preparacion: #4fd1c5;
     --grupo-preparacion-soft: #12343a;
     --grupo-domicilio: #c4a1f0;
@@ -48,6 +52,7 @@ html[data-theme="dark"] {
 }
 
 .grupo-entrada { --grupo: var(--grupo-entrada); --grupo-soft: var(--grupo-entrada-soft); }
+.grupo-revision { --grupo: var(--grupo-revision); --grupo-soft: var(--grupo-revision-soft); }
 .grupo-preparacion { --grupo: var(--grupo-preparacion); --grupo-soft: var(--grupo-preparacion-soft); }
 .grupo-domicilio { --grupo: var(--grupo-domicilio); --grupo-soft: var(--grupo-domicilio-soft); }
 
@@ -635,6 +640,11 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 /* Every module has its own circle colour; all circles share the 12px size set above. */
 .sidebar-modulo.m-porclasificar { --punto-excel: #111827; }
 .sidebar-modulo.m-pararevision { --punto-excel: #84cc16; }
+.sidebar-modulo.m-revisionduplicadas { --punto-excel: #dc2626; }
+.sidebar-modulo.m-revisionrutinvalido { --punto-excel: #f97316; }
+.sidebar-modulo.m-revisionsinrut { --punto-excel: #78716c; }
+.sidebar-modulo.m-revisionnoidentificada { --punto-excel: #a855f7; }
+.sidebar-modulo.m-revisionnoevaluadas { --punto-excel: #0ea5e9; }
 .sidebar-modulo.m-cerradas { --punto-excel: #0d9488; }
 .sidebar-modulo.m-archivadas { --punto-excel: #92400e; }
 .sidebar-modulo.m-anuladas { --punto-excel: #a8a29e; }
