@@ -140,7 +140,12 @@
 
     private const double W = 640, H = 300, ML = 56, MR = 12, MT = 12, MB = 64, MLH = 170;
     private static readonly CultureInfo Cl = new("es-CL");
-    private static readonly string[] Paleta = ["#3b5bdb", "#0ca678", "#f59f00", "#e64980", "#7950f2", "#15aabf", "#868e96", "#d6336c"];
+    // Colours come from CSS custom properties (--gr-1..8, defined in paginas.css) so charts follow palette and theme; the hex is the fallback.
+    private static readonly string[] Paleta =
+    [
+        "var(--gr-1, #3b5bdb)", "var(--gr-2, #0ca678)", "var(--gr-3, #f59f00)", "var(--gr-4, #e64980)",
+        "var(--gr-5, #7950f2)", "var(--gr-6, #15aabf)", "var(--gr-7, #868e96)", "var(--gr-8, #d6336c)",
+    ];
 
     private static string Color(int i) => Paleta[i % Paleta.Length];
     private static string F(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);

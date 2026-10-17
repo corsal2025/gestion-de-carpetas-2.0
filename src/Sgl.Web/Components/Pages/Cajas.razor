@@ -7,7 +7,7 @@
 
 <PageTitle>@TituloPagina.De(cajaSeleccionada is not null ? $"Acta {cajaSeleccionada}" : "Cajas de archivo")</PageTitle>
 
-<div class="page-container">
+<div class="page-container pg-cajas">
     @if (!string.IsNullOrEmpty(mensajeError))
     {
         <div class="alert error" role="alert">@mensajeError <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensajeError = null">✕</button></div>
@@ -222,7 +222,7 @@
                         <tbody>
                             @foreach (var c in CajasFiltradas)
                             {
-                                <tr>
+                                <tr class="caja-row" style="--fill:@LlenadoRelativo(c.TotalCarpetas)%">
                                     <td>
                                         <div class="caja-title-cell">
                                             <span class="caja-badge-icon" aria-hidden="true"><svg class="ico-caja" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></span>
@@ -368,6 +368,13 @@
     public string? CajaQuery { get; set; }
 
     private string? cajaSeleccionada;
+
+    /// <summary>Presentation-only: occupancy of a box relative to the fullest one (0-100), used for the box illustration.</summary>
+    private int LlenadoRelativo(int total)
+    {
+        var max = cajas is { Count: > 0 } ? cajas.Max(x => x.TotalCarpetas) : 0;
+        return max <= 0 ? 0 : (int)Math.Round(100.0 * total / max);
+    }
     private string pestanaActiva = "cerradas";
     private string filtroCajaTexto = "";
     private string nuevoRotuloCaja = "";

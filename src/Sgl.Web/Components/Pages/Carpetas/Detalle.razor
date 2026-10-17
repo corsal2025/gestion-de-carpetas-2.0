@@ -17,7 +17,23 @@ else if (carpeta is null)
 }
 else
 {
-    <h1><span class="nombre-persona">@carpeta.Nombre @carpeta.Apellido</span> <small class="muted">@carpeta.Rut</small></h1>
+    <div class="pg-detalle">
+    <header class="det-hero card">
+        <span class="lico-slot det-lico" data-lico="saluda" aria-hidden="true"></span>
+        <div class="det-hero-t">
+            <h1><span class="nombre-persona">@carpeta.Nombre @carpeta.Apellido</span> <small class="muted">@carpeta.Rut</small></h1>
+            <div class="det-hero-estado">
+                <span class="@Labels.Css(carpeta.Estado)">@Labels.Of(carpeta.Estado)</span>
+                <span class="det-decision">Decisión: <strong>@Labels.Of(carpeta.Decision)</strong></span>
+            </div>
+        </div>
+        <dl class="det-facts">
+            <div><dt>Sede</dt><dd>@Labels.Of(carpeta.Sede)</dd></div>
+            <div><dt>Citación</dt><dd>@carpeta.FechaCitacion.ToString("dd-MM-yyyy")</dd></div>
+            <div><dt>Subida</dt><dd>@(carpeta.FechaSubida is { } sub ? sub.ToString("dd-MM-yyyy") : "—")</dd></div>
+            <div><dt>Caja</dt><dd>@(string.IsNullOrEmpty(carpeta.CajaArchivo) ? "—" : carpeta.CajaArchivo)</dd></div>
+        </dl>
+    </header>
     @if (carpeta.Anulada)
     {
         <p class="error banner-anulada" role="status"><span>Carpeta <strong>ANULADA</strong> — restaurar desde «Anuladas». (motivo: @carpeta.MotivoAnulacion). No aparece en módulos ni estadísticas; puede restaurarse desde <a href="anuladas">Anuladas</a>.</span></p>
@@ -33,9 +49,16 @@ else
     }
 
     <fieldset class="fieldset-limpio" disabled="@carpeta.Anulada" aria-disabled="@(carpeta.Anulada ? "true" : "false")">
-    <div class="grid">
-        <section class="card">
+    <div class="grid det-grid">
+        <section class="card det-estado">
             <h2>Estado</h2>
+            <ol class="det-pasos" aria-label="Etapa del proceso">
+                @for (var i = 0; i < Etapas.Length; i++)
+                {
+                    var paso = i < etapaActual ? "done" : i == etapaActual ? "now" : "";
+                    <li class="@paso" aria-current="@(i == etapaActual ? "step" : null)"><i aria-hidden="true">@(i < etapaActual ? "✓" : "")</i>@Etapas[i]</li>
+                }
+            </ol>
             <p>
                 Actual: <span class="@Labels.Css(carpeta.Estado)">@Labels.Of(carpeta.Estado)</span>
                 · Decisión: <strong>@Labels.Of(carpeta.Decision)</strong>
@@ -46,24 +69,25 @@ else
             }
             else
             {
+                <div class="det-opciones" role="radiogroup" aria-label="Nuevo estado">
+                    @foreach (var e in carpeta.SiguientesEstados)
+                    {
+                        var elegido = nuevoEstado == e;
+                        <button type="button" class="det-opcion @(elegido ? "on" : null)" role="radio" aria-checked="@(elegido ? "true" : "false")"
+                                @onclick="() => nuevoEstado = e">@Labels.Of(e)</button>
+                    }
+                </div>
                 <div class="inline">
-                    <select @bind="nuevoEstado" aria-label="Nuevo estado">
-                        <option value="">Seleccione el nuevo estado…</option>
-                        @foreach (var e in carpeta.SiguientesEstados)
-                        {
-                            <option value="@e">@Labels.Of(e)</option>
-                        }
-                    </select>
                     <button disabled="@(nuevoEstado is null)" @onclick="CambiarEstadoAsync">Cambiar estado</button>
                 </div>
             }
         </section>
 
-        <section class="card">
+        <section class="card det-datos">
             <h2>Datos de la carpeta y ciudadano</h2>
             <div class="form">
                 <label>RUT del Ciudadano
-                    <div style="display: flex; gap: 6px; align-items: center;">
+                    <div class="det-rut-fila">
                         <input class="rut-input" @bind="editRut" oninput="formatRutInput(this)" placeholder="12.345.678-9" />
                         <button type="button" class="btn-copy-rut" title="Copiar RUT para CAS-Chile" @onclick="() => CopiarRutCasChileAsync(editRut)">📋 Copiar</button>
                     </div>
@@ -102,9 +126,9 @@ else
     </div>
     </fieldset>
 
-    <section class="card">
+    <section class="card det-historial">
         <h2>Historial de cambios</h2>
-        <table>
+        <table class="hist-tabla">
             <thead><tr><th>Fecha</th><th>Usuario</th><th>Campo</th><th>Anterior</th><th>Nuevo</th></tr></thead>
             <tbody>
                 @foreach (var h in carpeta.Historial)
@@ -122,6 +146,7 @@ else
     </section>
 
     <p><a href="carpetas">‹ Volver al listado</a></p>
+    </div>
 }
 
 <UndoToast Aviso="toast" OnDeshacer="DeshacerAsync" OnCerrar="CerrarToast" />
@@ -140,6 +165,16 @@ else
     private string? error;
     private string? mensaje;
     private UndoToast.AvisoDeshacer? toast;
+
+    private static readonly string[] Etapas = ["Entrada", "Preparación", "Subidas", "Cierre"];
+
+    /// <summary>Presentation-only: which of the four process stages the folder is in, derived from data already loaded.</summary>
+    private int etapaActual => carpeta is null ? 0
+        : carpeta.FechaCierre is not null ? 3
+        : carpeta.Estado is EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.SubidaConOficio
+            or EstadoCarpeta.CambioDomSubidoConaset or EstadoCarpeta.CambioDomSubidoCorreo ? 2
+        : carpeta.Estado is EstadoCarpeta.Citada or EstadoCarpeta.PorClasificar ? 0
+        : 1;
 
     private void CerrarToast(UndoToast.AvisoDeshacer aviso)
     {
