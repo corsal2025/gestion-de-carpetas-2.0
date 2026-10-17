@@ -483,3 +483,54 @@ html[data-design="institucional"] .modulos-sidebar:not(.plegado) .sidebar-grupo-
 @media (prefers-reduced-motion: reduce) {
     html .sidebar-chevron::before { transition: none; }
 }
+
+/* ---- Stage 6: legacy ("institucional") top bar fits below 1700px ----------------------------
+   The 6 inline palette swatches made the legacy nowrap bar ~240px wider than 1280px, pushing the
+   tool buttons and the funcionario field off-screen. Let the bar and its tools wrap instead. */
+@media (max-width: 1699px) {
+    html[data-design="institucional"] .topbar { height: auto; min-height: 56px; flex-wrap: wrap; row-gap: 0.4rem; padding-block: 0.4rem; }
+    html[data-design="institucional"] .main-nav { flex-wrap: wrap; }
+    html[data-design="institucional"] .topbar-tools { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; }
+}
+
+/* ---- Stage 6: phone/tablet fixes (glass design) ---------------------------------------------
+   - Rail (<= 900px): the "Módulos" caption is a span of its own, not a child of .sidebar-inicio,
+     so the older rule did not hide it and it showed clipped ("IÓDULO"). Rail links were 6px wide
+     (only the status dot): make them full-width, 40px touch targets.
+   - Phones (<= 560px): the bar used ~40% of the viewport; brand text is dropped, the user field
+     takes its own row and the nav becomes one horizontally scrollable row. */
+@media (max-width: 900px) {
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-titulo { display: none; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-modulo { width: 100%; min-height: 40px; box-sizing: border-box; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo-titulo { min-height: 40px; }
+    /* The tree indent and connector only make sense with labels: in the rail they squeezed links to 6px. */
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo ul { padding: 2px 0 8px; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo > ul > li { padding-left: 0; }
+    html:not([data-design="institucional"]) .modulos-sidebar .sidebar-grupo > ul > li::before { display: none; }
+}
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-modulo { min-height: 40px; width: 100%; box-sizing: border-box; }
+html:not([data-design="institucional"]) .modulos-sidebar.plegado .sidebar-grupo ul { padding: 2px 0 8px; }
+@media (max-width: 560px) {
+    html:not([data-design="institucional"]) .topbar .brand-text { display: none; }
+    html:not([data-design="institucional"]) .topbar .user-block { flex: 1 1 100%; }
+    html:not([data-design="institucional"]) .topbar .user-block .autor { width: 100%; }
+    html:not([data-design="institucional"]) .topbar .user-block .autor input { width: 100%; box-sizing: border-box; }
+    html:not([data-design="institucional"]) .topbar .main-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-block: 4px;
+        scrollbar-width: thin;
+    }
+    html:not([data-design="institucional"]) .topbar .main-nav > * { flex: 0 0 auto; white-space: nowrap; }
+}
+
+/* Page headers must never shrink below their content inside the scrolling page container. */
+html .page-container > .header-section { flex-shrink: 0; }
+
+/* Stage 6: the legacy bar's pale placeholder (#c9d1f5) out-ranked the glass rule and read at 1.5:1 on the
+   white field. --text-secondary on --surface is >= 4.5:1 in both themes and every palette. */
+html:not(#sgl):not([data-design="institucional"]) body .topbar .user-block .autor input::placeholder {
+    color: var(--text-secondary) !important;
+    -webkit-text-fill-color: var(--text-secondary) !important;
+    opacity: 1;
+}

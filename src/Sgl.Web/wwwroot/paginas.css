@@ -595,6 +595,12 @@ html:not([data-design="institucional"]) body .pg-cajas .header-section h1 {
 }
 html:not([data-design="institucional"]) .pg-cajas .header-section .subtitle { color: var(--text-secondary); }
 html:not([data-design="institucional"]) .pg-cajas .header-section .head-art { right: .5rem; bottom: .2rem; }
+/* Phones: the 9.5rem right padding reserved for the Lico art (hidden <= 760px) squeezed the subtitle,
+   and the flex-shrunk header let its text overflow onto the KPI cards. */
+html:not([data-design="institucional"]) .pg-cajas .header-section { flex-shrink: 0; }
+@media (max-width: 760px) {
+    html:not([data-design="institucional"]) body .pg-cajas .header-section { padding-right: 4px; }
+}
 html:not([data-design="institucional"]) .pg-cajas .subtitle { color: var(--text-secondary); }
 
 /* KPI row */
@@ -748,4 +754,11 @@ html:not([data-design="institucional"]) .pg-cajas .name-cell { text-transform: u
 
 @media (prefers-reduced-motion: reduce) {
     .pg-detalle *, .pg-cajas *, .est-kpi, .est-card { transition: none !important; animation: none !important; }
+}
+
+/* Stage 6: legacy design, phones. The single-column stats grid (1fr) let wide cards push the page 67px
+   sideways; minmax(0, 1fr) plus a scrollable card keeps the page width and scrolls the table inside. */
+@media (max-width: 760px) {
+    html[data-design="institucional"] .est-grid { grid-template-columns: minmax(0, 1fr); }
+    html[data-design="institucional"] .est-card { min-width: 0; overflow-x: auto; }
 }

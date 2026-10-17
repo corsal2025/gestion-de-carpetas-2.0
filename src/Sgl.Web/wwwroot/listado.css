@@ -456,6 +456,11 @@ html:not(#sgl):not([data-design="institucional"]) body .drawer-body :is(input:no
     border-radius: 12px;
 }
 
+/* Phones: the three KPIs (178px + gaps) overflowed the hero card and clipped the sparkline. */
+@media (max-width: 480px) {
+    .listado-hero .hero-kpis { flex-wrap: wrap; gap: 8px 16px; max-width: 100%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html .listado-page *, html .listado-page *::before { transition: none !important; }
     html .listado-page :is(.nombre-pend-parpadeo, .parpadeo) { animation: none !important; }

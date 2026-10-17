@@ -15,7 +15,7 @@ Módulo de carpetas, sin autenticación (uso local de prueba):
 - **Cajas de archivo**: asignar carpetas a cajas (individual o por lote), cola de caja, acta imprimible y reapertura de cajas.
 - **Importador Excel** masivo (planillas multihoja por sede) que normaliza estados y valores.
 - Listados PDF por sector (Archivo y Oficina 43) y guía interactiva «Cómo usar el sistema».
-- **Interfaz**: tema claro/oscuro y dos estilos de fila (suaves, o los colores originales del Excel), configurables desde la barra superior y recordados por navegador. Los estilos viven en `src/Sgl.Web/wwwroot/theme.css`, que se carga después de `app.css`.
+- **Interfaz**: tema claro/oscuro y dos estilos de fila (suaves, o los colores originales del Excel), configurables desde la barra superior y recordados por navegador. Los estilos viven en `src/Sgl.Web/wwwroot/theme.css`, que se carga después de `app.css` (ver «Diseño y paletas»).
 
 Fuera de alcance (ya existen en otros sistemas): autenticación, usuarios, roles, filtrado por sede según usuario y dashboard.
 
@@ -89,6 +89,15 @@ Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
 - **Inicio**: grupos de etapa como paneles con su total, tarjetas compactas en rejilla fluida (`auto-fit`), leyenda del semáforo y de las barras de 7 días (con valores diarios en el tooltip; sin entradas se dice «sin movimientos»). La meta del día tiene etiqueta, mensaje motivador y estado vacío propio.
 - **Movimiento**: solo transiciones cortas; con `prefers-reduced-motion` desaparecen (toast, pulso, elevación de tarjetas).
 - **Contraste**: verificado ≥ 4,5:1 en claro y oscuro para los pares nuevos (avisos, toast, grupos, chips). Estilos nuevos en `wwwroot/polish.css` (se carga al final).
+
+### Diseño y paletas
+
+- **Paletas (6)**: Institucional (`inst`, la original y la de por defecto), Océano (`ocea`), Bosque (`bosq`), Atardecer (`atar`), Violeta (`viol`) y Grafito (`graf`). Se eligen con el botón de color de la barra superior (en el estilo `institucional` se ven los 6 puntos en línea). Solo cambian colores de acento (botones, encabezados, marca, anillo de foco, barra superior); el semáforo, los colores de estado/Excel y las superficies neutras no cambian.
+- **Dónde se guardan**: atributo `data-palette` en `<html>` y `localStorage` clave `sgl-palette` (junto a `sgl-theme`, `sgl-rows` y `sgl-design`). El script de `Components/App.razor` los aplica antes del primer pintado; `window.sglUi.setPalette(clave)` (en `app.js`) los cambia.
+- **Estilos**: `claro` (por defecto) es el diseño con vidrio y fondo aurora; `institucional` conserva el aspecto anterior (barra azul, tablas clásicas) y las pantallas nuevas no lo tocan (`html:not([data-design="institucional"])`).
+- **Orden de carga de CSS** (el último gana): `app.css` → `theme.css` (tokens, temas, paletas) → `modulos.css` → `polish.css` → `shell.css` (barra flotante, menú lateral, fondo) → `listado.css` (Listado y barra superior de una fila) → `paginas.css` (Detalle, Estadísticas, Cajas) → `solicitudes.css` (Certificados, F8, Importar). Las hojas antiguas usan `!important` y `:not(#sgl)`; las reglas nuevas que deban ganarles repiten ese prefijo.
+- **Agregar una paleta**: (1) en `theme.css`, sección «Palettes», copiar un bloque y cambiar la clave: `--pal-c` más, para claro y para oscuro, `--pal-rgb`, `--lico-accent`, `--lico-accent-hover`, `--lico-accent-soft`, `--btn-grad`, `--btn-grad-hover`, `--head-grad`, `--dots`, `--ring`, `--brand-primary`, `--brand-primary-hover`, `--brand-light`, `--topbar-bg`, `--topbar-border` (y en claro `--topbar-text`, `--topbar-muted`); (2) agregar la clave a `PALETTES` en `app.js` y a la lista de `App.razor`; (3) agregar su botón `.sw` en `MainLayout.razor`. Verificar contraste ≥ 4,5:1 en claro y oscuro.
+- **Límites conocidos**: Anuladas, Integridad, Firmantes y las páginas de Peticiones (Razor Pages) no fueron rediseñadas: heredan la barra y el fondo nuevos pero conservan sus tarjetas y botones anteriores (en Peticiones los botones miden ~31 px). Los controles dentro de las tablas densas (fechas, comuna, selector de clase) miden menos de 40 px a propósito. Con el estilo de filas «Excel» en tema claro las filas se ven neutras (ver `docs/pendientes.md`, rediseño). Hay animaciones infinitas de Lico (rebote, parpadeo, saludo, travesuras), pulso de «búsqueda pendiente» y el spinner de carga; todas, salvo el spinner, se desactivan con `prefers-reduced-motion`.
 
 ## Pendiente
 - Estado «Clase pendiente» no tiene transiciones de salida en el diagrama actual; confirmar flujo con el departamento.
