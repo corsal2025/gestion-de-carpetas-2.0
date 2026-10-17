@@ -11,14 +11,17 @@
 
 <PageTitle>@TituloPagina.De("Certificado / Oficio")</PageTitle>
 
-<div class="page-container">
-    <div class="modulo-barra">
+<div class="page-container sol-page">
+    <header class="modulo-barra sol-hero card">
+        <span class="lico-slot sol-lico" data-lico="explica" aria-hidden="true"></span>
         <h1 class="modulo-titulo">Certificado / Oficio <span class="muted">· @(total?.ToString("N0", Cultura) ?? "…")</span></h1>
         <form class="modulo-busqueda" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
             <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar certificados u oficios" maxlength="100" />
             <button type="submit" class="btn-secondary">Buscar</button>
         </form>
-    </div>
+    </header>
+
+    <SolicitudesSwitch EsF8="false" Total="total" />
 
     <section class="sol-panel" aria-label="Nueva solicitud">
         <h2>Nueva solicitud</h2>

@@ -8,14 +8,17 @@
 
 <PageTitle>@TituloPagina.De("F8")</PageTitle>
 
-<div class="page-container">
-    <div class="modulo-barra">
+<div class="page-container sol-page sol-f8">
+    <header class="modulo-barra sol-hero card">
+        <span class="lico-slot sol-lico" data-lico="explica" aria-hidden="true"></span>
         <h1 class="modulo-titulo">F8 <span class="muted">· @(total?.ToString("N0", Cultura) ?? "…")</span></h1>
         <form class="modulo-busqueda" @onsubmit="BuscarAsync" @onsubmit:preventDefault>
             <input @bind="texto" placeholder="Buscar por RUT o nombre" aria-label="Buscar solicitudes de F8" maxlength="100" />
             <button type="submit" class="btn-secondary">Buscar</button>
         </form>
-    </div>
+    </header>
+
+    <SolicitudesSwitch EsF8="true" Total="total" />
 
     <div class="sol-filtros" role="group" aria-label="Estado de la solicitud">
         @foreach (var (valor, etiqueta) in Chips)

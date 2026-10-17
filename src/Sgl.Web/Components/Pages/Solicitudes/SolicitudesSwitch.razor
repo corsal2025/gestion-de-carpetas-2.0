@@ -1,0 +1,27 @@
+@* Navigation-only segmented switch shared by /certificados and /f8. No state: each pill is a plain link. *@
+<nav class="sol-seg" aria-label="Tipo de solicitud">
+    <a class="sol-seg-a @(EsF8 ? null : "on")" href="certificados" aria-current="@(EsF8 ? null : "page")">
+        Certificado / Oficio
+        @if (!EsF8 && Total is { } t)
+        {
+            <span class="sol-seg-n">@t.ToString("N0", Cultura)</span>
+        }
+    </a>
+    <a class="sol-seg-a @(EsF8 ? "on" : null)" href="f8" aria-current="@(EsF8 ? "page" : null)">
+        F8
+        @if (EsF8 && Total is { } t2)
+        {
+            <span class="sol-seg-n">@t2.ToString("N0", Cultura)</span>
+        }
+    </a>
+</nav>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    /// <summary>True when the F8 page is the current one.</summary>
+    [Parameter] public bool EsF8 { get; set; }
+
+    /// <summary>Total of the current page only (the other module's total is not available here).</summary>
+    [Parameter] public int? Total { get; set; }
+}

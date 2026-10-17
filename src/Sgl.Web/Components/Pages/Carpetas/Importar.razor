@@ -9,29 +9,36 @@
 
 <PageTitle>@TituloPagina.De("Cargar Excel")</PageTitle>
 
-<div class="page-container" style="max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem;">
-    <div class="header-section" style="margin-bottom: 1.5rem;">
-        <span class="lico-slot head-art" data-lico="saluda" aria-hidden="true"></span>
-        <h1>📥 Carga Masiva de Carpetas desde Excel</h1>
-        <p class="subtitle">Integre planillas Excel oficiales (.xlsx) del Departamento de Licencias para registrar y sincronizar carpetas en lote.</p>
-    </div>
+<div class="page-container imp-page">
+    <header class="header-section imp-hero card">
+        <span class="lico-slot head-art imp-lico" data-lico="saluda" aria-hidden="true"></span>
+        <div class="imp-hero-t">
+            <h1>📥 Carga Masiva de Carpetas desde Excel</h1>
+            <p class="subtitle">Integre planillas Excel oficiales (.xlsx) del Departamento de Licencias para registrar y sincronizar carpetas en lote.</p>
+        </div>
+        <ol class="imp-steps" aria-label="Pasos de la carga">
+            <li class="imp-step @PasoClase(1)" aria-current="@PasoActual(1)"><i>1</i>Elegir archivo</li>
+            <li class="imp-step @PasoClase(2)" aria-current="@PasoActual(2)"><i>2</i>Procesar</li>
+            <li class="imp-step @PasoClase(3)" aria-current="@PasoActual(3)"><i>3</i>Resultado</li>
+        </ol>
+    </header>
 
-    <div class="card" style="padding: 1.75rem; border-radius: 12px; box-shadow: var(--shadow-md); background: #ffffff;">
-        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; color: #1e293b;">
+    <div class="card imp-panel">
+        <h2>
             1. Seleccionar o Arrastrar Archivo Excel (.xlsx)
         </h2>
-        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.25rem;">
+        <p class="imp-help">
             Se detecta automáticamente el formato: <strong>agenda diaria</strong> (Fecha Cita, Hora Inicio, RUT, Trámite, Ubicación… → carpetas <em>Por clasificar</em>) o <strong>planilla DETALLE</strong>.
             En la planilla DETALLE el sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.
         </p>
 
-        <div class="drop-zone" style="border: 2px dashed #93c5fd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; background: #f8fafc; transition: all 0.2s ease;">
-            <div style="font-size: 3rem; margin-bottom: 0.75rem;">📊</div>
-            <label class="btn-primary" style="display: inline-block; cursor: pointer; padding: 0.65rem 1.4rem; font-size: 0.95rem; font-weight: 600; border-radius: 8px;">
+        <div class="drop-zone">
+            <div class="imp-drop-ico" aria-hidden="true">📊</div>
+            <label class="btn-primary imp-browse">
                 Examinar Archivo Excel
-                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx, .xls" style="display: none;" />
+                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx, .xls" class="imp-file" />
             </label>
-            <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #64748b;">
+            <p class="imp-drop-note">
                 @(archivoSeleccionado is not null ? $"Archivo listo: {archivoSeleccionado.Name} ({archivoSeleccionado.Size / 1024} KB)" : "o arrastre el archivo .xlsx aquí (hasta 50 MB)")
             </p>
         </div>
@@ -39,7 +46,7 @@
         @if (cargando)
         {
             <div class="imp-box imp-loading" role="status">
-                <div class="spinner" style="display: inline-block; width: 2rem; height: 2rem; margin-bottom: 0;"></div>
+                <div class="spinner"></div>
                 <h3>Procesando e Integrando Planilla Excel...</h3>
                 <p>
                     Leyendo filas, validando RUTs y sincronizando carpetas en la base de datos. Esto puede tardar unos segundos.
@@ -71,11 +78,11 @@
                 </div>
                 @if (resultadoAgenda.ConAlertaDuplicado > 0)
                 {
-                    <p class="imp-sedes">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=PorClasificar">Por clasificar</a> con las acciones Reagendar, Crear nueva o Anular duplicada.</p>
+                    <p class="imp-sedes imp-note">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=PorClasificar">Por clasificar</a> con las acciones Reagendar, Crear nueva o Anular duplicada.</p>
                 }
                 @if (resultadoAgenda.FilasRutInvalido.Count > 0)
                 {
-                    <p class="imp-sedes">⚠️ RUT inválido (no se creó carpeta) en filas: @string.Join(", ", resultadoAgenda.FilasRutInvalido)</p>
+                    <p class="imp-sedes imp-note">⚠️ RUT inválido (no se creó carpeta) en filas: @string.Join(", ", resultadoAgenda.FilasRutInvalido)</p>
                 }
                 @if (resultadoAgenda.Errores.Count > 0)
                 {
@@ -89,8 +96,8 @@
                         </ul>
                     </div>
                 }
-                <div style="margin-top: 1.5rem; text-align: right;">
-                    <a href="carpetas?bandeja=PorClasificar" class="btn-primary" style="padding: 0.65rem 1.4rem; text-decoration: none; font-weight: 700;">
+                <div class="imp-cta">
+                    <a href="carpetas?bandeja=PorClasificar" class="btn-primary">
                         🗂️ Ir a Por clasificar →
                     </a>
                 </div>
@@ -130,7 +137,7 @@
 
                 @if (resultado.ComunasNoReconocidas > 0)
                 {
-                    <div class="imp-sedes">⚠️ <strong>@resultado.ComunasNoReconocidas.ToString("N0")</strong> fila(s) con comuna no reconocida: se importaron sin comuna (el resto de los datos sí se aplicó).</div>
+                    <div class="imp-sedes imp-note">⚠️ <strong>@resultado.ComunasNoReconocidas.ToString("N0")</strong> fila(s) con comuna no reconocida: se importaron sin comuna (el resto de los datos sí se aplicó).</div>
                 }
 
                 @if (resultado.Errores.Count > 0)
@@ -150,8 +157,8 @@
                     </div>
                 }
 
-                <div style="margin-top: 1.5rem; text-align: right;">
-                    <a href="carpetas" class="btn-primary" style="padding: 0.65rem 1.4rem; text-decoration: none; font-weight: 700;">
+                <div class="imp-cta">
+                    <a href="carpetas" class="btn-primary">
                         📋 Ver Listado de Carpetas Actualizado →
                     </a>
                 </div>
@@ -160,48 +167,26 @@
     </div>
 
     <!-- Guía de formato de columnas soportadas -->
-    <div class="card" style="margin-top: 1.5rem; padding: 1.5rem; border-radius: 12px; background: #ffffff;">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; color: #334155;">
+    <div class="card imp-guide">
+        <h3>
             ℹ️ Formato de Columnas Compatibles del Excel
         </h3>
-        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1rem;">
+        <p class="imp-help">
             El importador acepta tanto los libros multicapa oficiales del departamento como planillas personalizadas.
         </p>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>1. Fecha Citación:</strong> Fecha programada
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>2. Fecha Subida:</strong> Fecha al subir a sistema
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>3. Última Carpeta:</strong> Fecha carpeta anterior
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>4. Nombres / Apellidos:</strong> Ciudadano
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>5. RUT:</strong> Con o sin puntos y guión
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>6. Comuna:</strong> Comuna de procedencia
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>7. Estado:</strong> 12 estados oficiales
-            </div>
-            <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-                <strong>8. Decisión:</strong> Otorgado, Denegado, etc.
-            </div>
+        <div class="imp-cols">
+            <div class="imp-col"><i>1</i><span><strong>Fecha Citación:</strong> Fecha programada</span></div>
+            <div class="imp-col"><i>2</i><span><strong>Fecha Subida:</strong> Fecha al subir a sistema</span></div>
+            <div class="imp-col"><i>3</i><span><strong>Última Carpeta:</strong> Fecha carpeta anterior</span></div>
+            <div class="imp-col"><i>4</i><span><strong>Nombres / Apellidos:</strong> Ciudadano</span></div>
+            <div class="imp-col"><i>5</i><span><strong>RUT:</strong> Con o sin puntos y guión</span></div>
+            <div class="imp-col"><i>6</i><span><strong>Comuna:</strong> Comuna de procedencia</span></div>
+            <div class="imp-col"><i>7</i><span><strong>Estado:</strong> 12 estados oficiales</span></div>
+            <div class="imp-col"><i>8</i><span><strong>Decisión:</strong> Otorgado, Denegado, etc.</span></div>
         </div>
     </div>
 </div>
-
-<style>
-    @@keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-</style>
 
 @code {
     private IBrowserFile? archivoSeleccionado;
@@ -209,6 +194,11 @@
     private string? error;
     private ExcelImportResult? resultado;
     private AgendaImportResult? resultadoAgenda;
+
+    // Presentation only: which step of the 3-step indicator is current / done.
+    private int PasoNumero => (resultado is not null || resultadoAgenda is not null) ? 3 : cargando ? 2 : 1;
+    private string PasoClase(int n) => n < PasoNumero || (n == 3 && PasoNumero == 3) ? "done" : n == PasoNumero ? "on" : string.Empty;
+    private string? PasoActual(int n) => n == PasoNumero ? "step" : null;
 
     private async Task OnArchivoSeleccionado(InputFileChangeEventArgs e)
     {
