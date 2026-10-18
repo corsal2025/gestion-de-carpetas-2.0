@@ -835,7 +835,7 @@
     </div>
 }
 
-<UndoToast Aviso="toast" OnDeshacer="DeshacerToastAsync" OnCerrar="CerrarToast" />
+@* Transfers are automatic: no "Pasó a…" / Deshacer notice is shown. *@
 
 @if (listadoBusqueda is not null)
 {
@@ -1379,7 +1379,7 @@
                                     }
                                     else if (c.PendienteBusqueda)
                                     {
-                                        <button class="btn-action-caja" title="Carpeta encontrada: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Encontrada</button>
+                                        <button class="btn-action-caja" title="Gestionado: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Gestionado</button>
                                     }
                                     else if (bandejaActiva == Bandeja.CrearCertificado)
                                     {
@@ -2445,11 +2445,9 @@
             var punto = await Carpetas.ForzarEstadoAsync(id, nuevoEstado, autor);
             Logger.LogInformation("Mover carpeta a {Estado}: {Ms} ms", nuevoEstado, reloj.ElapsedMilliseconds);
             guardadoOkId = id;
-            await AnunciarCambioDeEstadoAsync(id, nuevoEstado, punto);
             // Archivos / Of. 43 -> No existe carpeta opens the F8 request inside the service: tell the official.
             if (nuevoEstado == EstadoCarpeta.NoExisteCarpeta && Carpeta.PermiteBusquedaPendiente(punto.Estado))
             {
-                avisoPeticion = $"Se creó la solicitud de F8 para {await NombreDeAsync(id)}.";
                 avisoConEnlaceF8 = true; avisoConEnlaceCertificados = false;
                 DuplicadosNotifier.Notify();
             }
@@ -2493,7 +2491,6 @@
         {
             await Carpetas.PedirAsync(c.Id, autor);
             // The carpeta is now in Solicitudes · Certificado / Oficio, where the certificate process ends.
-            avisoPeticion = $"{c.NombreCompleto}: pedido registrado, pasó a Solicitudes · Certificado / Oficio.";
             avisoConEnlaceF8 = false;
             avisoConEnlaceCertificados = true;
             DuplicadosNotifier.Notify();
@@ -2552,7 +2549,6 @@
         try
         {
             await SolicitudesF8.MarcarSubidoPorCarpetaAsync(c.Id, autor);
-            avisoPeticion = $"{c.NombreCompleto} quedó en Subida con F8.";
             avisoConEnlaceF8 = false; avisoConEnlaceCertificados = false;
             DuplicadosNotifier.Notify();
             _ = Modulos.RefrescarAsync();

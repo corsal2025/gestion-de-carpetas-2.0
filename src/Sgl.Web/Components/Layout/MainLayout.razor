@@ -64,6 +64,22 @@
     </div>
 </header>
 
+@if (pedirNombre)
+{
+    <div class="nombre-modal-fondo">
+        <form class="nombre-modal" role="dialog" aria-modal="true" aria-labelledby="nombre-modal-titulo" @onsubmit="ConfirmarNombreAsync" @onsubmit:preventDefault>
+            <h2 id="nombre-modal-titulo">¿Quién está usando el sistema?</h2>
+            <p>Su nombre queda en el historial de cada cambio que haga. Se pide una sola vez en este equipo.</p>
+            <label for="nombre-modal-input">Nombre del funcionario</label>
+            <input id="nombre-modal-input" @bind="nombreNuevo" @bind:event="oninput" maxlength="100" autocomplete="name" autofocus placeholder="Ej.: Javiera Sánchez" />
+            <div class="nombre-modal-acciones">
+                <button type="button" class="btn-secondary" @onclick="OmitirNombre">Ahora no</button>
+                <button type="submit" class="btn-primary" disabled="@string.IsNullOrWhiteSpace(nombreNuevo)">Guardar</button>
+            </div>
+        </form>
+    </div>
+}
+
 <main class="content">
     @Body
 </main>
@@ -89,11 +105,30 @@
             if (!string.IsNullOrWhiteSpace(guardado))
             {
                 Autor.Nombre = guardado.Trim();
-                StateHasChanged();
             }
+            else
+            {
+                // First time on this computer: ask once for the name recorded in the change history.
+                pedirNombre = true;
+            }
+            StateHasChanged();
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
     }
+
+    private bool pedirNombre;
+    private string nombreNuevo = string.Empty;
+
+    private async Task ConfirmarNombreAsync()
+    {
+        if (string.IsNullOrWhiteSpace(nombreNuevo)) return;
+        Autor.Nombre = nombreNuevo.Trim();
+        await GuardarNombreAsync();
+        pedirNombre = false;
+    }
+
+    /// <summary>"Ahora no": changes keep the generic author; the window comes back on the next visit.</summary>
+    private void OmitirNombre() => pedirNombre = false;
 
     private async Task GuardarNombreAsync()
     {
