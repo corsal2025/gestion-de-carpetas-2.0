@@ -173,6 +173,39 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.ToTable("Ciudadanos", (string)null);
                 });
 
+            modelBuilder.Entity("Sgl.Domain.CorreoCambioDomicilio", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CarpetaId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ProcesadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Rut")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarpetaId");
+
+                    b.HasIndex("MessageId", "Rut")
+                        .IsUnique();
+
+                    b.ToTable("CorreosCambioDomicilio", (string)null);
+                });
+
             modelBuilder.Entity("Sgl.Domain.HistorialCambio", b =>
                 {
                     b.Property<long>("Id")
@@ -475,6 +508,15 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("Rut")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sgl.Domain.CorreoCambioDomicilio", b =>
+                {
+                    b.HasOne("Sgl.Domain.Carpeta", null)
+                        .WithMany()
+                        .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

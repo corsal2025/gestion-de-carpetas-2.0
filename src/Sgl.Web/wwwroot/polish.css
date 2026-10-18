@@ -1216,3 +1216,190 @@ html body .nombre-modal p { margin: 0; font-size: 0.88rem; color: var(--text-mut
 html body .nombre-modal label { font-size: 0.8rem; font-weight: 700; margin-top: 0.3rem; }
 html body .nombre-modal input { padding: 0.55rem 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; font: inherit; }
 html body .nombre-modal-acciones { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.4rem; }
+
+/* Datos de las filas centrados en su columna (como los encabezados). */
+html body .data-table.data-table:not(#x) tbody td { text-align: center !important; }
+html body .data-table.data-table:not(#x) tbody td :is(.nombre-wrapper-cell, .clasif-cell, .celda-editable) { justify-content: center !important; }
+html body .data-table.data-table:not(#x) tbody td :is(input.date-input-inline, select.excel-select) { margin-left: auto; margin-right: auto; }
+
+/* Filas por estado (modo "colores del Excel"): mismo color de cada estado en tono pastel, menos invasivo.
+   Una barra de 4px a la izquierda conserva el color original para distinguir el estado de un vistazo. */
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-primeralicencia td { background: #ffd6ff !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-primeralicencia td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-primeralicencia td:first-child { box-shadow: inset 4px 0 0 #FF00FF !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconaset td { background: #d9e4f7 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconaset td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconaset td:first-child { box-shadow: inset 4px 0 0 #1155CC !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconf8 td { background: #f5edd6 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconf8 td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconf8 td:first-child { box-shadow: inset 4px 0 0 #BF9000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconoficio td { background: #fffbef !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconoficio td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-subidaconoficio td:first-child { box-shadow: inset 4px 0 0 #FFE599 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoaconaset td { background: #d6ffff !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoaconaset td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoaconaset td:first-child { box-shadow: inset 4px 0 0 #00FFFF !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoconcorreo td { background: #f7fafb !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoconcorreo td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosubidoconcorreo td:first-child { box-shadow: inset 4px 0 0 #D0E0E3 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosolicitado td { background: #f0f6fb !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosolicitado td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomiciliosolicitado td:first-child { box-shadow: inset 4px 0 0 #9FC5E8 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomicilio td { background: #e0ebf6 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomicilio td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-cambiodomicilio td:first-child { box-shadow: inset 4px 0 0 #3D85C6 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-canjelicenciaextranjera td { background: #fafbfd !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-canjelicenciaextranjera td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-canjelicenciaextranjera td:first-child { box-shadow: inset 4px 0 0 #E2E8F0 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenarchivos td { background: #e7f1e3 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenarchivos td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenarchivos td:first-child { box-shadow: inset 4px 0 0 #6AA84F !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenoficina43 td { background: #edeaf5 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenoficina43 td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-seencuentraenoficina43 td:first-child { box-shadow: inset 4px 0 0 #8E7CC3 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-noexistecarpeta td { background: #ffd6d6 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-noexistecarpeta td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-noexistecarpeta td:first-child { box-shadow: inset 4px 0 0 #FF0000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearoficio td { background: #f5eaf0 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearoficio td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearoficio td:first-child { box-shadow: inset 4px 0 0 #C27BA0 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearcertificado td { background: #f5eaf0 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearcertificado td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-crearcertificado td:first-child { box-shadow: inset 4px 0 0 #C27BA0 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientef8 td { background: #fbeddf !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientef8 td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientef8 td:first-child { box-shadow: inset 4px 0 0 #E69138 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientecertificado td { background: #fbeddf !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientecertificado td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-pendientecertificado td:first-child { box-shadow: inset 4px 0 0 #E69138 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-esperaexamen td { background: #dff4fe !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-esperaexamen td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-esperaexamen td:first-child { box-shadow: inset 4px 0 0 #38bdf8 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-clasependiente td { background: #fef5dc !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-clasependiente td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-clasependiente td:first-child { box-shadow: inset 4px 0 0 #fbbf24 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-otorgado td { background: #ecfcf2 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-otorgado td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-otorgado td:first-child { box-shadow: inset 4px 0 0 #86efac !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-paradenegar td { background: #fff9f1 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-paradenegar td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-paradenegar td:first-child { box-shadow: inset 4px 0 0 #fed7aa !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-denegado td { background: #fff1f1 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-denegado td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-denegado td:first-child { box-shadow: inset 4px 0 0 #fca5a5 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-revision td { background: #fffdec !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-revision td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-revision td:first-child { box-shadow: inset 4px 0 0 #fef08a !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-alertada td { background: #fff7f7 !important; color: #000 !important; font-weight: 600 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-alertada td :is(span, strong, a, div):not(.badge):not(.pill):not(.chip):not([class*="btn"]) { color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr.estado-alertada td:first-child { box-shadow: inset 4px 0 0 #fecaca !important; }
+
+/* Filas por estado en tono pastel: todo el texto en negro (incluidas fechas, RUT y sede) para buen contraste. */
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td,
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td *:not(button):not([class*="btn"]):not(svg):not(path) {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+}
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td :is(input, select) { opacity: 1 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td :is(.sede-badge, .sede-pill, [class*="sede"]) { border-color: #000 !important; }
+html[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td span.name-cell.name-cell { color: #000 !important; -webkit-text-fill-color: #000 !important; }
+/* Filas por estado: todo el texto en negrita. */
+html:not(#sgl)[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td,
+html:not(#sgl)[data-rows="classic"]:not([data-theme="dark"]) body .data-table.data-table tbody tr[class*="estado-"] td *:not(svg):not(path) { font-weight: 700 !important; }
+
+/* Botones PDF Archivo / Oficina 43: bien visibles aunque estén desactivados (se activan al marcar carpetas). */
+html body .pdf-sector-pills .btn-pdf-pill { opacity: 1 !important; filter: none !important; font-weight: 700 !important; border-width: 2px !important; }
+html body .pdf-sector-pills .btn-pdf-pill.btn-pdf-archivo { color: #0b5d8a !important; border-color: #0b5d8a !important; background: #e0f2fe !important; }
+html body .pdf-sector-pills .btn-pdf-pill.btn-pdf-oficina43 { color: #7a5a00 !important; border-color: #b8860b !important; background: #fef3c7 !important; }
+html body .pdf-sector-pills .btn-pdf-pill .pdf-icon { opacity: 1 !important; stroke: currentColor !important; }
+html body .pdf-sector-pills .btn-pdf-pill.disabled { cursor: not-allowed; }
+html body .pdf-sector-pills .btn-pdf-pill.active { box-shadow: 0 2px 8px rgb(0 0 0 / 0.18) !important; }
+
+/* "Nueva carpeta" junto a "Cargar Excel Masivo" en la barra del buscador. */
+html body .panel-barra .btn-nueva-barra { display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; padding: 0.4rem 0.85rem !important; min-height: 0 !important; font-size: 0.85rem !important; border-radius: 8px !important; }
+html body .panel-barra .btn-nueva-barra svg { width: 16px; height: 16px; }
+html body .panel-barra .panel-barra-buscador { flex: 0 1 44rem !important; }
+/* "Cargar Excel Masivo" y "Nueva carpeta": mismo tamaño y forma. */
+html body .panel-barra :is(.btn-excel-destacado, .btn-nueva-barra.btn-nueva-barra) {
+    box-sizing: border-box; height: 38px !important; min-height: 38px !important; width: 12.5rem !important;
+    justify-content: center; padding: 0 0.9rem !important; border-radius: 10px !important;
+    font-size: 0.9rem !important; font-weight: 700 !important; line-height: 1 !important;
+}
+/* Fila de sedes: sedes y "Filtros y búsqueda" centrados juntos en el recuadro. */
+html body .sede-tabs-container { justify-content: center !important; gap: 1.25rem !important; }
+html body .sede-tabs-container > .quick-actions,
+html body .sede-tabs-container > .quick-actions.quick-actions-centro { margin-left: 0 !important; margin-right: 0 !important; }
+/* Buscador del mismo tamaño que "Cargar Excel Masivo" y "Nueva carpeta". */
+html body .panel-barra .panel-barra-buscador .busq-global { flex: 0 0 12.5rem !important; width: 12.5rem !important; }
+html body .panel-barra .panel-barra-buscador .busq-global-input {
+    box-sizing: border-box; width: 12.5rem !important; height: 38px !important; border-radius: 10px !important; font-size: 0.9rem !important;
+}
+html body .panel-barra .panel-barra-buscador .busq-global-panel { width: min(30rem, 92vw) !important; }
+
+/* Archivos / Oficina 43: la tabla cabe en el recuadro. "Mover a" más angosto y encabezado de la lupa en dos líneas. */
+html body .data-table.data-table:not(#x) td select.excel-select:not(.clasif-cell select) { width: 10rem !important; min-width: 0 !important; max-width: 10rem; font-size: 0.8rem !important; }
+html body .data-table.data-table:not(#x) :is(th, td).col-lupa { min-width: 6.8rem !important; }
+html body .data-table.data-table:not(#x) thead th.col-lupa { font-size: 0.72rem !important; }
+html body .data-table.data-table:not(#x) tbody td :is(.date-input-inline, input[type="date"]) { max-width: 8.6rem; }
+html body .data-table.data-table:not(#x) :is(th, td) { vertical-align: middle !important; }
+html body .data-table.data-table:not(#x) tbody td :is(.date-input-inline, input[type="date"]) { max-width: 7.6rem !important; width: 7.6rem !important; font-size: 0.8rem !important; padding-left: 0.2rem !important; padding-right: 0.2rem !important; }
+html body .data-table.data-table:not(#x) td select.excel-select:not(.clasif-cell select) { width: 9rem !important; max-width: 9rem; }
+html body .data-table.data-table:not(#x) tbody td :is(.date-input-inline, input[type="date"]) { min-width: 0 !important; width: 6.9rem !important; max-width: 6.9rem !important; }
+/* El lápiz pequeño de edición rápida no ocupa ancho propio: aparece superpuesto al pasar el mouse. */
+html body .data-table .celda-editable { position: relative; }
+html body .data-table .celda-editable .celda-editable-btn { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); }
+html body .listado-page .data-table.data-table:not(#x) :is(th, td) { padding-left: 0.35rem !important; padding-right: 0.35rem !important; }
+
+/* Barra superior de la bandeja: buscador, Cargar Excel Masivo, Nueva carpeta y Listado para búsqueda
+   con el mismo tamaño compacto y en una sola fila (igual en todos los módulos). */
+html body .panel-barra { flex-wrap: nowrap !important; gap: 0.6rem !important; }
+html body .panel-barra .panel-barra-buscador { flex: 0 0 auto !important; margin-left: auto !important; margin-right: 0 !important; gap: 0.5rem !important; }
+html body .panel-barra :is(.btn-excel-destacado, .btn-nueva-barra.btn-nueva-barra),
+html body .panel-barra .busqueda-acciones .btn-primary,
+html body .panel-barra .panel-barra-buscador .busq-global-input {
+    width: 10.5rem !important; height: 34px !important; min-height: 34px !important; font-size: 0.82rem !important;
+    padding: 0 0.6rem !important; border-radius: 9px !important; box-sizing: border-box;
+}
+html body .panel-barra .panel-barra-buscador .busq-global { flex: 0 0 10.5rem !important; width: 10.5rem !important; }
+html body .panel-barra .busqueda-acciones { margin: 0 !important; flex: 0 0 auto; }
+html body .panel-barra .busqueda-acciones .btn-primary { display: inline-flex; align-items: center; justify-content: center; font-weight: 700 !important; }
+@media (max-width: 1100px) { html body .panel-barra { flex-wrap: wrap !important; } }
+
+/* Barra superior: nada se superpone. Los enlaces nunca se encogen bajo su contenido; si no caben, pasan a una
+   segunda fila centrada. Buscador y "Cargar Excel Masivo" en la barra con el mismo tamaño compacto. */
+html body header.topbar { flex-wrap: wrap !important; row-gap: 0.4rem; }
+html body header.topbar > .main-nav { min-width: max-content !important; flex-wrap: nowrap !important; }
+html body header.topbar > .brand, html body header.topbar > .topbar-tools { flex-shrink: 0 !important; }
+html body .topbar-tools :is(.busq-global-input, .btn-excel-destacado) {
+    box-sizing: border-box; width: 10.5rem !important; height: 34px !important; font-size: 0.82rem !important; padding: 0 0.6rem !important; border-radius: 9px !important;
+}
+html body .topbar-tools .btn-excel-destacado { justify-content: center; }
+html body header.topbar > .brand-group { flex-shrink: 0 !important; min-width: max-content !important; }
+/* El nombre del sistema se ve siempre en pantallas de escritorio (la barra pasa a dos filas si hace falta). */
+@media (min-width: 900px) { html body header.topbar .brand-text { display: flex !important; } }
+
+/* Herramientas de la barra superior centradas en su espacio, con botón para volver al inicio. */
+html body header.topbar > .topbar-tools { justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
+html body .topbar-tools .btn-inicio-barra {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; box-sizing: border-box;
+    height: 34px; padding: 0 0.8rem; border-radius: 9px; background: #1d4ed8; color: #fff !important;
+    font-weight: 700; font-size: 0.82rem; text-decoration: none !important; white-space: nowrap;
+}
+html body .topbar-tools .btn-inicio-barra:hover { background: #1e40af; }
+html body .topbar-tools .btn-inicio-barra:focus-visible { outline: 2px solid #f6d23c; outline-offset: 2px; }
+html body .topbar-tools .btn-inicio-barra svg { width: 16px; height: 16px; }
+
+/* Nueva carpeta: título con botón para volver al inicio. */
+html body .nueva-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+html body .nueva-cabecera h1 { margin: 0; }
+html body .btn-volver-inicio { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none !important; font-weight: 700; }
+
+/* "Sincronizar correo" en la bandeja de cambios de domicilio: mismo tamaño que las otras pestañas de la barra. */
+html body .panel-barra .btn-sync-correo {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; box-sizing: border-box;
+    width: 10.5rem; height: 34px; padding: 0 0.6rem; border-radius: 9px; border: 0;
+    background: #6d28d9; color: #fff; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+}
+html body .panel-barra .btn-sync-correo:hover:not(:disabled) { background: #5b21b6; }
+html body .panel-barra .btn-sync-correo:disabled { opacity: 0.7; cursor: progress; }
+html body .panel-barra .btn-sync-correo:focus-visible { outline: 2px solid #f6d23c; outline-offset: 2px; }

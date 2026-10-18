@@ -290,7 +290,8 @@ public sealed partial class Carpeta
     /// the carpeta moves to "No existe carpeta" and cleared when it leaves the set.
     /// </summary>
     public static bool PermiteEnProcesoDeBusqueda(EstadoCarpeta estado) =>
-        PermiteBusquedaPendiente(estado) || estado == EstadoCarpeta.NoExisteCarpeta;
+        PermiteBusquedaPendiente(estado)
+        || estado is EstadoCarpeta.NoExisteCarpeta or EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado;
 
     public void MarcarPendienteBusqueda(bool valor, string autor, DateTime now)
     {

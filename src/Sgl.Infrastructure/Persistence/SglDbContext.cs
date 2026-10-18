@@ -23,6 +23,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<ConfiguracionItem> Configuracion => Set<ConfiguracionItem>();
 
+    public DbSet<CorreoCambioDomicilio> CorreosCambioDomicilio => Set<CorreoCambioDomicilio>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Ciudadano>(b =>
@@ -170,6 +172,19 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasKey(i => i.Clave);
             b.Property(i => i.Clave).HasMaxLength(ConfiguracionItem.MaxClaveLength);
             b.Property(i => i.Valor).HasMaxLength(ConfiguracionItem.MaxValorLength).IsRequired();
+        });
+
+        modelBuilder.Entity<CorreoCambioDomicilio>(b =>
+        {
+            b.ToTable("CorreosCambioDomicilio");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.MessageId).HasMaxLength(CorreoCambioDomicilio.MaxMessageIdLength).IsRequired();
+            b.Property(c => c.Rut).HasMaxLength(12).IsRequired();
+            b.Property(c => c.CarpetaId).UseCollation("NOCASE");
+            b.HasOne<Carpeta>().WithMany().HasForeignKey(c => c.CarpetaId).OnDelete(DeleteBehavior.Cascade);
+            // Idempotency: one person per message, enforced by the database too.
+            b.HasIndex(c => new { c.MessageId, c.Rut }).IsUnique();
+            b.HasIndex(c => c.CarpetaId);
         });
     }
 }

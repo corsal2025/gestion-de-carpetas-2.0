@@ -14,7 +14,8 @@ public static class EstadoTransitions
             [EstadoCarpeta.Alertada] = [EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.SubidaConaset] = [EstadoCarpeta.EsperaExamen],
             [EstadoCarpeta.PrimeraLicencia] = [EstadoCarpeta.EsperaExamen],
-            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
+            // CambioDomSubidoCorreo: the requesting comuna's email was filed in "CARP. YA SUBIDAS" (mail sync).
+            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado, EstadoCarpeta.CambioDomSubidoCorreo],
             // An F8 can be requested from here too: uploaded -> SubidaConF8; not generated -> Crear certificado.
             [EstadoCarpeta.CambioDomicilioSolicitado] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
             [EstadoCarpeta.EsperaExamen] = [EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],

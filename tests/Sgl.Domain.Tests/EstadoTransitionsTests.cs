@@ -53,6 +53,8 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.CrearCertificado, EstadoCarpeta.SubidaConOficio),
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CrearCertificado),
+        // Mail sync: the request email filed in "CARP. YA SUBIDAS".
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomSubidoCorreo),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.CrearCertificado),
     ];

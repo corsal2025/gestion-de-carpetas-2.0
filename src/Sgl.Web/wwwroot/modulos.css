@@ -327,8 +327,8 @@ html[data-rows="classic"] body .data-table tbody tr.estado-seencuentraenoficina4
 html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo,
 html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo * {
     background-color: var(--lico-yellow) !important;
-    color: #1b2140 !important;
-    -webkit-text-fill-color: #1b2140 !important;
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
 }
 html:not(#sgl)[data-rows="classic"] body .data-table tbody tr[class*="estado-"] td .name-cell.nombre-pend-parpadeo * { background-color: transparent !important; }
 
@@ -656,6 +656,7 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .sidebar-modulo.m-peticiones-comunas { --punto-excel: #bef264; }
 .sidebar-modulo.m-peticiones-estadisticas { --punto-excel: #d946ef; }
 .sidebar-modulo.m-peticiones-configuracion { --punto-excel: #4ade80; }
+.sidebar-modulo.m-sincronizar-correo { --punto-excel: #38bdf8; }
 
 /* Lupa "buscar repetidos": red when the carpeta really is a duplicate, neutral everywhere else. */
 .icono-buscar-dup.icono-buscar-dup--neutro { border-color: #64748b; color: #334155 !important; }

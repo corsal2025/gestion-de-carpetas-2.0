@@ -11,6 +11,8 @@
 
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <!-- Secrets (e.g. Peticion:Ews:Password) live in the user-secrets store of the account running the app. -->
+    <UserSecretsId>sgl-web-gestion-licencias</UserSecretsId>
   </PropertyGroup>
 
 </Project>

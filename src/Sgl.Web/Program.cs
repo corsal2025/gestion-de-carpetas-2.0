@@ -15,6 +15,9 @@ builder.Host.UseWindowsService();
 // Machine-specific overrides (connection strings, provider). Never committed.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
 
+// Secrets (Peticion:Ews:Password) via `dotnet user-secrets`, in every environment; they override the JSON files.
+builder.Configuration.AddUserSecrets<Program>(optional: true, reloadOnChange: false);
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

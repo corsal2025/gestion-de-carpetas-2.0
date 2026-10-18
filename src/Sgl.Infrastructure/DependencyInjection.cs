@@ -35,6 +35,8 @@ public static class DependencyInjection
         // "Pedir" mail to Dirección / Secretaría: no mail until the real adapter is configured.
         services.AddSingleton<INotificadorPeticion, PeticionSinCorreo>();
         services.AddScoped<DuplicadosService>();
+        // Mail sync of the change-of-address module (reader / comuna ports are registered with the Peticiones module).
+        services.AddScoped<Sgl.Application.SincronizacionCorreo.ICorreoCambioDomicilioRepository, CorreoCambioDomicilioRepository>();
         // F8 and Certificado / Oficio modules. All repositories share the scoped DbContext (one unit of work).
         services.AddScoped<ISolicitudF8Repository, SolicitudF8Repository>();
         services.AddScoped<ICertificadoRepository, CertificadoRepository>();

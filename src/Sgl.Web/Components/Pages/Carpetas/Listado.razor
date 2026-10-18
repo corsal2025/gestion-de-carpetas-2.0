@@ -10,6 +10,7 @@
 @inject DuplicadosNotifier DuplicadosNotifier
 @inject DuplicadosService Duplicados
 @inject Sgl.Application.Solicitudes.SolicitudesF8Service SolicitudesF8
+@inject Sgl.Web.Services.UltimaSincronizacionCorreo UltimaSincronizacion
 
 <PageTitle>@TituloPagina.De(TituloModuloPdf)</PageTitle>
 
@@ -54,7 +55,10 @@
                     <span class="panel-toggle-resumen">@(filtroSede is null ? "TODAS" : Labels.Of(filtroSede.Value)) · @(seleccionadas.Count) MARCADAS</span>
                 }
             </button>
-            <div class="panel-barra-buscador"><Sgl.Web.Components.Layout.BuscadorGlobal /><a href="importar" class="btn-excel-destacado" title="Cargar planilla Excel masiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Cargar Excel Masivo</a></div>
+            <div class="panel-barra-buscador"><Sgl.Web.Components.Layout.BuscadorGlobal /><a href="importar" class="btn-excel-destacado" title="Cargar planilla Excel masiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Cargar Excel Masivo</a>@if (bandejaActiva == Bandeja.CambioDomicilio)
+{
+    <button type="button" class="btn-sync-correo" disabled="@sincronizandoCorreo" @onclick="SincronizarCorreoAsync" title="Traer las solicitudes nuevas del buzón (CARP. PARA PEDIR)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M21 4v5h-5M3 20v-5h5"/></svg>@(sincronizandoCorreo ? "Sincronizando…" : "Sincronizar correo")</button>
+}<a class="btn-primary btn-nueva-barra" href="carpetas/nueva">@((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>") Nueva carpeta</a></div>
             @if (bandejaActiva is Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43)
             {
                 <div class="busqueda-acciones" role="region" aria-label="Listado para búsqueda">
@@ -92,7 +96,7 @@
                 </button>
             </div>
 
-            @if (bandejaActiva != Bandeja.PorClasificar)
+            @if (!SinPdfSector)
             {
             <!-- Pestañas PDF Sector: Archivo y Oficina 43 (se activan al seleccionar carpetas) -->
             <div class="pdf-sector-pills" title="Generar e imprimir listado oficial de carpetas según sector">
@@ -135,7 +139,7 @@
             </div>
             }
 
-            <div class="quick-actions @(bandejaActiva == Bandeja.PorClasificar ? "quick-actions-centro" : null)">
+            <div class="quick-actions @(SinPdfSector ? "quick-actions-centro" : null)">
                 <button class="btn-toggle-filters @(mostrarFiltros ? "active" : "")" @onclick="ToggleFiltros" type="button" title="Mostrar u ocultar panel de filtros y búsqueda">
                     @((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0\"/><circle cx=\"16\" cy=\"6\" r=\"2\"/><circle cx=\"10\" cy=\"12\" r=\"2\"/><circle cx=\"18\" cy=\"18\" r=\"2\"/></svg>")<span>@(mostrarFiltros ? "Ocultar filtros" : "Filtros y búsqueda")</span>
                     @if (FiltrosActivosCount > 0)
@@ -143,10 +147,6 @@
                         <span class="badge-filtros-activos" title="@FiltrosActivosCount filtros activos">@FiltrosActivosCount</span>
                     }
                 </button>
-                <a class="btn-secondary btn-import-link" href="importar" title="Cargar planilla Excel masiva para integrar datos">
-                    @((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 15V3\"/><path d=\"M7 8l5-5 5 5\"/><path d=\"M5 21h14\"/></svg>") Cargar Excel
-                </a>
-                <a class="btn-primary" href="carpetas/nueva">@((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>") Nueva carpeta</a>
             </div>
         </div>
         }
@@ -568,6 +568,10 @@
                 }
                 <button type="button" class="btn-clear" aria-label="Descartar oferta" @onclick="() => ofertaListado.Clear()">✕</button>
             </div>
+        }
+        @if (!string.IsNullOrEmpty(avisoSincronizacion) && bandejaActiva == Bandeja.CambioDomicilio)
+        {
+            <div class="alert @(errorSincronizacion ? "error" : "info") aviso-sync" role="status">@avisoSincronizacion</div>
         }
         @if (!string.IsNullOrEmpty(errorClasif))
         {
@@ -1091,7 +1095,7 @@
     private static readonly string[] ColumnasUbicacion = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "EN PROCESO DE BÚSQUEDA", "MOVER A"];
     // REVISIÓN submodules (except Citadas, unchanged): the problem that keeps the carpeta out of Entrantes.
     private static readonly string[] ColumnasRevision = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "PROBLEMA"];
-    private static readonly string[] ColumnasCambioDomicilio = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "ESTADO", "ÚLTIMO MOVIMIENTO"];
+    private static readonly string[] ColumnasCambioDomicilio = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "EN PROCESO DE BÚSQUEDA"];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
     {
@@ -1169,6 +1173,10 @@
         }
         virtualizador = null;
     }
+
+    /// <summary>The sede bar is identical in every module: no PDF Archivo / Oficina 43 buttons
+    /// (the printable list stays available through "Listado para búsqueda").</summary>
+    private static bool SinPdfSector => true;
 
     /// <summary>Licencias para clasificar has no row checkboxes: each row is classified on its own.</summary>
     private bool MuestraCasillas => bandejaActiva != Bandeja.PorClasificar;
@@ -1304,8 +1312,7 @@
                                                value="@c.Comuna" @onchange="(e) => CambiarComunaRapidaAsync(c.Id, e)" placeholder="—"
                                                title="Comuna de origen: escribe o elige de la lista" />
                                     </td>
-                                    <td class="excel-cell" @ondblclick:stopPropagation>@SelectEstado(c)</td>
-                                    <td class="date-cell">@(c.Indicadores?.UltimoMovimiento is { } um ? $"{HoraChile.ALocal(um):dd-MM-yyyy} · {c.Indicadores.UltimoUsuario}" : "—")</td>
+                                    @CeldaEnProceso(c)
                                     break;
                                 case Bandeja.SinCarpetaF8:
                                     <td class="date-cell" @ondblclick:stopPropagation><CampoFecha @key="@($"fcit-{c.Id}-{revEdicion}")" Valor="c.FechaCitacion" Titulo="Fecha de citación" ValorCambiado="v => GuardarFechaCitacionAsync(c, v)" /></td>
@@ -1377,10 +1384,6 @@
                                             }
                                         }
                                     }
-                                    else if (c.PendienteBusqueda)
-                                    {
-                                        <button class="btn-action-caja" title="Gestionado: quita la marca de pendiente de búsqueda" @onclick="() => MarcarEncontradaAsync(c)">Gestionado</button>
-                                    }
                                     else if (bandejaActiva == Bandeja.CrearCertificado)
                                     {
                                         @* "Pedir": request mail to Dirección and Secretaría (automatic once the mail is configured). *@
@@ -1406,11 +1409,7 @@
                                     {
                                         <span class="badge warn" title="En cola para la próxima caja">En cola</span>
                                     }
-                                    @* In 1° Licencia, No existe and Crear certificado the only actions are their own buttons; double-click on the row still opens the panel. *@
-                                    @if (bandejaActiva is not (Bandeja.PorPreparar or Bandeja.SinCarpetaF8 or Bandeja.CrearCertificado or Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43))
-                                    {
-                                        <button class="btn-detail" @onclick="() => AbrirDrawerAsync(c.Id)" title="Abrir panel lateral de detalle e historial">Abrir →</button>
-                                    }
+                                    @* No "Abrir" button in the trays: double-click on the row opens the detail panel. *@
                                 </td>
                             }
                         </tr>;
@@ -2398,6 +2397,46 @@
         DateOnly.TryParseExact(v, "yyyy-MM-dd", out _);
 
     // Destination chosen in "MOVER A" (Archivos / Of. 43) and not yet applied: the ACCIÓN button applies it.
+    private bool sincronizandoCorreo;
+    private bool errorSincronizacion;
+    private string? avisoSincronizacion;
+
+    /// <summary>"Sincronizar correo" inside the change-of-address tray: same use case as the Sincronizar correo page.</summary>
+    private async Task SincronizarCorreoAsync()
+    {
+        if (sincronizandoCorreo) return;
+        sincronizandoCorreo = true;
+        avisoSincronizacion = null;
+        StateHasChanged();
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var caso = scope.ServiceProvider.GetRequiredService<Sgl.Application.SincronizacionCorreo.SincronizarCorreoCambioDomicilio>();
+            var r = await UltimaSincronizacion.EjecutarAsync(caso);
+            errorSincronizacion = !r.Configurado || r.Error is not null;
+            avisoSincronizacion = !r.Configurado
+                ? "Correo no configurado: falta la conexión al buzón de Outlook."
+                : r.Error is not null
+                    ? $"No se pudo sincronizar: {r.Error}"
+                    : $"Sincronizado: {r.Nuevas} nuevas · {r.YaExistentes} ya existentes · {r.ParaRevision} para revisar nombre · {r.Descartados.Count} descartadas · {r.MovidasASubidas} pasadas a subidas.";
+            if (r.Nuevas > 0 || r.MovidasASubidas > 0)
+            {
+                _ = Modulos.RefrescarAsync();
+                await CargarAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Falló la sincronización del correo desde la bandeja.");
+            errorSincronizacion = true;
+            avisoSincronizacion = "No se pudo sincronizar el correo. Intente de nuevo en unos minutos.";
+        }
+        finally
+        {
+            sincronizandoCorreo = false;
+        }
+    }
+
     // Rows being moved/classified: hidden at once (optimistic) and shown again if the save fails.
     private readonly HashSet<Guid> trasladando = [];
 

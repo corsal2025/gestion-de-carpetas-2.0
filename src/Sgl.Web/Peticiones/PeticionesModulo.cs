@@ -51,6 +51,17 @@ public static class PeticionesModulo
         builder.Services.AddHostedService<PeticionBackupService>();
 
         builder.Services.AddSingleton<IMailSender, EwsMailSender>();
+
+        // Lectura del buzón para "Sincronizar correo" (Cambio de domicilio): misma conexión Peticion:Ews, solo lectura.
+        builder.Services.AddSingleton<Sgl.Application.SincronizacionCorreo.IEmailReader, EwsEmailReader>();
+        builder.Services.AddSingleton<Sgl.Application.SincronizacionCorreo.IComunaRemitente, ComunaRemitente>();
+        builder.Services.AddSingleton(new Sgl.Application.SincronizacionCorreo.CorreoCambioDomicilioOptions
+        {
+            CarpetaParaPedir = NoVacio(options.Ews?.CarpetaParaPedir, Sgl.Application.SincronizacionCorreo.CorreoCambioDomicilioOptions.CarpetaParaPedirPorDefecto),
+            CarpetaYaSubidas = NoVacio(options.Ews?.CarpetaYaSubidas, Sgl.Application.SincronizacionCorreo.CorreoCambioDomicilioOptions.CarpetaYaSubidasPorDefecto),
+        });
+        builder.Services.AddScoped<Sgl.Application.SincronizacionCorreo.SincronizarCorreoCambioDomicilio>();
+        builder.Services.AddSingleton<Sgl.Web.Services.UltimaSincronizacionCorreo>();
         builder.Services.AddSingleton<ExcelPeticionImporter>();
         builder.Services.AddSingleton<PeticionSender>();
         builder.Services.AddSingleton<Sgl.Peticiones.IMenuSistema, MenuSistemaCatalogo>();
@@ -59,4 +70,7 @@ public static class PeticionesModulo
         builder.Services.AddRazorPages()
             .AddApplicationPart(typeof(PeticionCambioDomicilio.Pages.IndexModel).Assembly);
     }
+
+    private static string NoVacio(string? valor, string porDefecto) =>
+        string.IsNullOrWhiteSpace(valor) ? porDefecto : valor.Trim();
 }

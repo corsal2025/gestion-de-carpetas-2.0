@@ -87,4 +87,22 @@ public sealed class EwsOptions
     /// Vacio = sale como la cuenta autenticada.
     /// </summary>
     public string? SendAsAddress { get; set; }
+
+    /// <summary>
+    /// Carpeta del buzón (nombre visible en Outlook) con las solicitudes de cambio de domicilio por pedir.
+    /// La sincronización crea una carpeta en "Cambios de domicilio que nos solicitan por correo" por cada RUT válido.
+    /// </summary>
+    public string CarpetaParaPedir { get; set; } = "CARP. PARA PEDIR";
+
+    /// <summary>
+    /// Carpeta del buzón con las solicitudes ya subidas: la sincronización pasa la carpeta correspondiente a
+    /// "Cambio dom. subido con correo". Nunca crea carpetas desde aquí.
+    /// </summary>
+    public string CarpetaYaSubidas { get; set; } = "CARP. YA SUBIDAS";
+
+    /// <summary>
+    /// Buzón a leer cuando la cuenta autenticada no es el buzón del departamento (buzón compartido).
+    /// Vacío = SendAsAddress, y si tampoco hay, el buzón de la cuenta autenticada.
+    /// </summary>
+    public string? MailboxToRead { get; set; }
 }
