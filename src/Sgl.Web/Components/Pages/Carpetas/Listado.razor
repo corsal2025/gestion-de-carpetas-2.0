@@ -272,7 +272,7 @@
 
         @if (avisoPeticion is not null)
         {
-            <div class="alert success" role="status">@avisoPeticion @if (avisoConEnlaceF8) { <a href="f8" class="btn-small">Ir a F8 →</a> } @if (avisoConEnlaceCertificados) { <a href="certificados" class="btn-small">Ir a Certificado / Oficio →</a> } <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => { avisoPeticion = null; avisoConEnlaceF8 = false; avisoConEnlaceCertificados = false; }">✕</button></div>
+            <div class="alert success" role="status">@avisoPeticion @if (avisoConEnlaceF8) { <a href="carpetas?bandeja=SinCarpetaF8" class="btn-small">Ir a Creación de F8 →</a> } @if (avisoConEnlaceCertificados) { <a href="certificados" class="btn-small">Ir a Certificado / Oficio →</a> } <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => { avisoPeticion = null; avisoConEnlaceF8 = false; avisoConEnlaceCertificados = false; }">✕</button></div>
         }
         @if (errorEdicion is not null)
         {
@@ -1356,10 +1356,21 @@
                                 <td class="action-cell" @ondblclick:stopPropagation>
                                     @if (bandejaActiva is Bandeja.CambioDomicilio or Bandeja.CambioDomicilioSolicitado)
                                     {
-                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                title="Pedir que se genere el F8 de esta carpeta (queda en el módulo F8)" @onclick="() => SolicitarF8Async(c)">Solicitar F8</button>
+                                        @if (c.PendienteBusqueda)
+                                        {
+                                            <button class="btn-action-caja" title="Subido: pasa la carpeta a «Cambio dom. subido a Conaset»"
+                                                    disabled="@(guardandoId == c.Id)"
+                                                    @onclick="() => GestionarAsync(c)">Subido</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                    title="Pasa la carpeta al módulo «Creación de F8»" @onclick="() => PedirF8CambioDomicilioAsync(c)">Pedir F8</button>
+                                            <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                    title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => PedirCertificadoAsync(c)">Certificado / Oficio</button>
+                                        }
                                     }
-                                    @if (bandejaActiva == Bandeja.PorPreparar)
+                                    else if (bandejaActiva == Bandeja.PorPreparar)
                                     {
                                         @* 1° Licencia has no physical carpetas: only the resolution, nothing to box or open. *@
                                         <button class="btn-decision btn-otorgada btn-decision-otorgada" type="button" disabled="@(guardandoId == c.Id)"
@@ -1380,9 +1391,20 @@
                                             else if (destinoUb == EstadoCarpeta.NoExisteCarpeta)
                                             {
                                                 <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                        title="Pide el F8: la carpeta pasa a «No existe carpeta» y la solicitud queda en el módulo F8" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Pedir F8</button>
+                                                        title="Pide el F8: la carpeta pasa a «Creación de F8»" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Pedir F8</button>
+                                            }
+                                            else if (destinoUb == EstadoCarpeta.CrearCertificado)
+                                            {
+                                                <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                        title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Certificado / Oficio</button>
                                             }
                                         }
+                                    }
+                                    else if (c.PendienteBusqueda)
+                                    {
+                                        <button class="btn-action-caja" title="Subido: pasa la carpeta a «Cambio dom. subido a Conaset»"
+                                                disabled="@(guardandoId == c.Id)"
+                                                @onclick="() => GestionarAsync(c)">Subido</button>
                                     }
                                     else if (bandejaActiva == Bandeja.CrearCertificado)
                                     {
@@ -1395,7 +1417,7 @@
                                     {
                                         @* A missing carpeta asks for an F8 or is sent with an oficio. *@
                                         <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pasa la carpeta al módulo Subida con F8 y cierra su solicitud de F8" @onclick="() => SubidaConF8Async(c)">Subida con F8</button>
-                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)" title="Enviar a «Subida con oficio»" @onclick="() => MoverAAsync(c.Id, EstadoCarpeta.SubidaConOficio)">Solicitar oficio</button>
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => PedirCertificadoAsync(c)">Certificado / Oficio</button>
                                     }
                                     else if (bandejaActiva == Bandeja.RevisionDuplicadas && MuestraAlerta(c))
                                     {
@@ -1846,6 +1868,80 @@
             }
         </select>
     };
+
+    /// <summary>
+    /// Gestión de carpeta en búsqueda finalizada: en Cambio de Domicilio se traslada a «Cambio dom. subido a Conaset»;
+    /// en otras bandejas se quita la marca de búsqueda pendiente.
+    /// </summary>
+    private async Task GestionarAsync(CarpetaResumenDto c)
+    {
+        if (c.Estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado)
+        {
+            await MoverAAsync(c.Id, EstadoCarpeta.CambioDomSubidoConaset);
+        }
+        else
+        {
+            await MarcarEncontradaAsync(c);
+        }
+    }
+
+    private async Task PedirF8CambioDomicilioAsync(CarpetaResumenDto c)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        guardandoId = c.Id;
+        trasladando.Add(c.Id);
+        StateHasChanged();
+        try
+        {
+            try { await SolicitudesF8.SolicitarF8Async(c.Id, autor); }
+            catch (Exception ex) { Logger.LogWarning(ex, "No se pudo crear solicitud F8 previa."); }
+            await Carpetas.ForzarEstadoAsync(c.Id, EstadoCarpeta.NoExisteCarpeta, autor);
+            _ = InvokeAsync(async () =>
+            {
+                try { await CargarAsync(); await CargarMetricasAsync(); _ = Modulos.RefrescarAsync(); }
+                finally { trasladando.Remove(c.Id); }
+            });
+        }
+        catch (Exception ex)
+        {
+            trasladando.Remove(c.Id);
+            MostrarErrorEdicion(ex, "No se pudo solicitar el F8");
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
+
+    private async Task PedirCertificadoAsync(CarpetaResumenDto c)
+    {
+        if (AutorRequerido() is not { } autor) return;
+        guardandoId = c.Id;
+        trasladando.Add(c.Id);
+        StateHasChanged();
+        try
+        {
+            await Carpetas.ForzarEstadoAsync(c.Id, EstadoCarpeta.CrearCertificado, autor);
+            await Carpetas.PedirAsync(c.Id, autor);
+            avisoConEnlaceF8 = false;
+            avisoConEnlaceCertificados = true;
+            DuplicadosNotifier.Notify();
+            _ = InvokeAsync(async () =>
+            {
+                try { await CargarAsync(); await CargarMetricasAsync(); _ = Modulos.RefrescarAsync(); }
+                finally { trasladando.Remove(c.Id); }
+            });
+        }
+        catch (Exception ex)
+        {
+            trasladando.Remove(c.Id);
+            MostrarErrorEdicion(ex, "No se pudo solicitar el certificado");
+        }
+        finally
+        {
+            guardandoId = null;
+        }
+    }
 
     /// <summary>La carpeta buscada apareció: solo se quita la marca (recordatorio del día); el estado no cambia.</summary>
     private async Task MarcarEncontradaAsync(CarpetaResumenDto c)
@@ -2490,10 +2586,16 @@
                 avisoConEnlaceF8 = true; avisoConEnlaceCertificados = false;
                 DuplicadosNotifier.Notify();
             }
+            else if (nuevoEstado == EstadoCarpeta.CrearCertificado)
+            {
+                await Carpetas.PedirAsync(id, autor);
+                avisoConEnlaceF8 = false; avisoConEnlaceCertificados = true;
+                DuplicadosNotifier.Notify();
+            }
             // Table and side totals refresh in the background: the official does not wait for them.
             _ = InvokeAsync(async () =>
             {
-                try { await CargarAsync(); await CargarMetricasAsync(); }
+                try { await CargarAsync(); await CargarMetricasAsync(); _ = Modulos.RefrescarAsync(); }
                 catch (Exception ex) { Logger.LogWarning(ex, "No se pudo refrescar la bandeja tras mover."); }
                 finally { trasladando.Remove(id); }
             });

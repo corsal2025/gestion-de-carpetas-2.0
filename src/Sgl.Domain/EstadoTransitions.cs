@@ -1,4 +1,4 @@
-﻿namespace Sgl.Domain;
+namespace Sgl.Domain;
 
 /// <summary>
 /// State machine for a carpeta. Mirrors exactly the "Flujo de carpeta" stateDiagram
@@ -15,17 +15,17 @@ public static class EstadoTransitions
             [EstadoCarpeta.SubidaConaset] = [EstadoCarpeta.EsperaExamen],
             [EstadoCarpeta.PrimeraLicencia] = [EstadoCarpeta.EsperaExamen],
             // CambioDomSubidoCorreo: the requesting comuna's email was filed in "CARP. YA SUBIDAS" (mail sync).
-            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado, EstadoCarpeta.CambioDomSubidoCorreo],
+            [EstadoCarpeta.CambioDomicilio] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio, EstadoCarpeta.CrearCertificado, EstadoCarpeta.CambioDomSubidoCorreo, EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.NoExisteCarpeta],
             // An F8 can be requested from here too: uploaded -> SubidaConF8; not generated -> Crear certificado.
-            [EstadoCarpeta.CambioDomicilioSolicitado] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.CrearCertificado],
+            [EstadoCarpeta.CambioDomicilioSolicitado] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio, EstadoCarpeta.CrearCertificado, EstadoCarpeta.CambioDomSubidoConaset, EstadoCarpeta.NoExisteCarpeta],
             [EstadoCarpeta.EsperaExamen] = [EstadoCarpeta.ClasePendiente, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ClasePendiente] = [EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado, EstadoCarpeta.ParaDenegar],
             [EstadoCarpeta.ParaDenegar] = [EstadoCarpeta.Denegado],
             [EstadoCarpeta.Otorgado] = [],
             [EstadoCarpeta.Denegado] = [],
-            // Physical search (phase 3, R8): found -> uploaded to Conaset; not found -> F8 tray.
-            [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
-            [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta],
+            // Physical search (phase 3, R8): found -> uploaded to Conaset; not found -> F8 tray; or certificate requested.
+            [EstadoCarpeta.SeEncuentraEnArchivos] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado],
+            [EstadoCarpeta.SeEncuentraEnOf43] = [EstadoCarpeta.SubidaConaset, EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CrearCertificado],
             // A carpeta declared missing is uploaded with F8 or with an oficio; it never goes back to the shelves.
             // F8 not generated -> Crear certificado; the signed certificate / oficio then uploads it (SubidaConOficio).
             [EstadoCarpeta.NoExisteCarpeta] = [EstadoCarpeta.SubidaConF8, EstadoCarpeta.SubidaConOficio, EstadoCarpeta.CrearCertificado],

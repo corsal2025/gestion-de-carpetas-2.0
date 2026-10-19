@@ -40,8 +40,8 @@ public static class Labels
         EstadoCarpeta.SeEncuentraEnOf43 => "SE ENCUENTRA EN OF. 43",
         EstadoCarpeta.CambioDomicilioSolicitado => "CAMBIO DE DOMICILIO SOLICITADO",
         EstadoCarpeta.CambioDomicilio => "CAMBIO DE DOMICILIO",
-        EstadoCarpeta.NoExisteCarpeta => "NO EXISTE CARPETA",
-        EstadoCarpeta.CrearCertificado => "CREAR CERTIFICADO / OFICIO",
+        EstadoCarpeta.NoExisteCarpeta => "CREACIÓN DE F8",
+        EstadoCarpeta.CrearCertificado => "CERTIFICADO / OFICIO",
         EstadoCarpeta.CanjeLicExtranjera => "CANJE LIC. EXTRANJERA",
 
         EstadoCarpeta.PorClasificar => "POR CLASIFICAR",
