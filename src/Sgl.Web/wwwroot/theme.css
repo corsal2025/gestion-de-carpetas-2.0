@@ -1814,3 +1814,11 @@ html[data-theme="dark"] {
     --shell-hover: color-mix(in srgb, var(--brand-primary) 14%, transparent);
 }
 @media (max-width: 1024px) { html { --shell-gap: 12px; } }
+
+/* Botón OK en el selector de clase rápido: siempre texto blanco */
+html body .clase-rapida-listo,
+html body .data-table button.clase-rapida-listo,
+html body details.clase-rapida button.clase-rapida-listo {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}

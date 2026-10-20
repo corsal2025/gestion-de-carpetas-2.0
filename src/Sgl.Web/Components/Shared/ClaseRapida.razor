@@ -3,7 +3,7 @@
     <summary title="Clase de licencia (obligatoria para clasificar)">@(Value == ClaseLicencia.Ninguna ? "Clase ▾" : ClasesLicencia.Format(Value))</summary>
     <div class="clase-rapida-panel">
         <ClasesSelector Value="Value" ValueChanged="ValueChanged" Disabled="Disabled" AriaLabel="Clase de licencia de esta fila" />
-        <button type="button" class="clase-rapida-listo" onclick="this.closest('details').removeAttribute('open')">Listo</button>
+        <button type="button" class="clase-rapida-listo" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;" onclick="this.closest('details').removeAttribute('open')">OK</button>
     </div>
 </details>
 

@@ -1124,6 +1124,7 @@ html body details.clase-rapida > .clase-rapida-panel .clase-rapida-listo {
     margin: 0.35rem auto 0 !important;
     min-height: 0 !important;
     padding: 0.25rem 1rem !important;
+    color: #ffffff !important;
 }
 
 /* Sin sombra en el borde de las columnas fijas (casilla, nombre, RUT). */
