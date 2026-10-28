@@ -1,5 +1,7 @@
 @page "/carpetas/{Id:guid}"
 @inject CarpetaService Carpetas
+@inject Sgl.Application.Solicitudes.SolicitudesF8Service SolicitudesF8
+@inject Sgl.Application.Solicitudes.CertificadosService Certificados
 @inject AutorState Autor
 @inject ILogger<Detalle> Logger
 @inject IJSRuntime JS
@@ -130,6 +132,61 @@ else
     </div>
     </fieldset>
 
+    @if (solicitudF8 is not null || certificadosAsociados.Count > 0)
+    {
+        <section class="card det-solicitudes" style="margin-top: 1rem;">
+            <h2>Solicitudes especiales vinculadas</h2>
+            @if (solicitudF8 is not null)
+            {
+                <div class="info-block" style="margin-bottom: 0.8rem; background: var(--surface-alt); padding: 0.8rem; border-radius: 8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>Solicitud de Creación de F8</strong>
+                        <span class="pill-status @(solicitudF8.Estado == EstadoSolicitudF8.Subido ? "ok" : solicitudF8.Estado == EstadoSolicitudF8.NoSeGenero ? "bad" : "warn")">
+                            @solicitudF8.Estado
+                        </span>
+                    </div>
+                    <p style="margin: 0.3rem 0 0; font-size: 0.85rem;">
+                        Pedida por: <strong>@solicitudF8.SolicitadoPor</strong> el @Sgl.Domain.HoraChile.ALocal(solicitudF8.SolicitadoEn).ToString("dd-MM-yyyy HH:mm")
+                        @if (!string.IsNullOrEmpty(solicitudF8.Observacion))
+                        {
+                            <span> · Obs: @solicitudF8.Observacion</span>
+                        }
+                    </p>
+                    <div style="margin-top: 0.5rem;">
+                        <a href="carpetas?bandeja=SinCarpetaF8&buscar=@Uri.EscapeDataString(carpeta.Rut)" class="btn-small" style="text-decoration:none;">Ver en módulo F8 →</a>
+                    </div>
+                </div>
+            }
+            @if (certificadosAsociados.Count > 0)
+            {
+                <div class="info-block" style="background: var(--surface-alt); padding: 0.8rem; border-radius: 8px;">
+                    <strong>Certificados / Oficios (@certificadosAsociados.Count)</strong>
+                    <ul style="list-style:none; padding:0; margin:0.5rem 0 0;">
+                        @foreach (var c in certificadosAsociados)
+                        {
+                            <li style="display:flex; justify-content:space-between; align-items:center; padding: 0.4rem 0; border-bottom: 1px solid var(--border-color);">
+                                <div>
+                                    <span style="font-weight:600;">@c.Tipo</span>
+                                    @if (!string.IsNullOrEmpty(c.NumeroOficio))
+                                    {
+                                        <span> · Oficio N° @c.NumeroOficio</span>
+                                    }
+                                    <span style="font-size:0.8rem; color:var(--text-muted); margin-left:0.5rem;">
+                                        (@Sgl.Domain.HoraChile.ALocal(c.SolicitadoEn).ToString("dd-MM-yyyy"))
+                                    </span>
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <span class="pill-status @(c.Estado == EstadoCertificado.Firmado ? "ok" : "warn")">@c.Estado</span>
+                                    <a href="/certificados/@c.Id/documento" class="btn-small" target="_blank" title="Descargar documento Word">Descargar Word</a>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        </section>
+    }
+
     <section class="card det-historial">
         <h2>Historial de cambios</h2>
         <table class="hist-tabla">
@@ -160,6 +217,8 @@ else
     public Guid Id { get; set; }
 
     private CarpetaDetalleDto? carpeta;
+    private Sgl.Application.Solicitudes.SolicitudF8Dto? solicitudF8;
+    private IReadOnlyList<Sgl.Application.Solicitudes.SolicitudCertificadoDto> certificadosAsociados = [];
     private EstadoCarpeta? nuevoEstado;
     private EditModel edit = new();
     private string editRut = "";
@@ -213,6 +272,19 @@ else
                 FechaSubida = carpeta.FechaSubida,
                 IdoneidadMoral = carpeta.IdoneidadMoral,
             };
+
+            try
+            {
+                var f8Res = await SolicitudesF8.ListarAsync(new Sgl.Application.Solicitudes.ListarSolicitudesF8Query(Texto: carpeta.Rut, Take: 5));
+                solicitudF8 = f8Res.Items.FirstOrDefault(s => s.CarpetaId == Id);
+
+                var certRes = await Certificados.ListarAsync(new Sgl.Application.Solicitudes.ListarCertificadosQuery(Texto: carpeta.Rut, Take: 10));
+                certificadosAsociados = certRes.Items.Where(c => c.CarpetaId == Id).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "No se pudieron cargar solicitudes vinculadas de la carpeta {Id}.", Id);
+            }
         }
         catch (NotFoundException)
         {

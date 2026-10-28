@@ -100,8 +100,14 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapGet("/certificados/{id:guid}/documento", async (Guid id, Sgl.Application.Solicitudes.DocumentoCertificadoService documentos, CancellationToken ct) =>
+app.MapGet("/certificados/{id:guid}/documento", async (Guid id, HttpContext context, Sgl.Application.Solicitudes.DocumentoCertificadoService documentos, CancellationToken ct) =>
 {
+    // Restricción de seguridad: no permitir llamadas cruzadas sin origen válido
+    if (context.Request.Headers.TryGetValue("Origin", out var origin) && !string.IsNullOrEmpty(origin) && !origin.ToString().Contains("localhost", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
     try
     {
         var documento = await documentos.GenerarAsync(id, ct);
@@ -120,8 +126,13 @@ app.MapGet("/certificados/{id:guid}/documento", async (Guid id, Sgl.Application.
         return Results.Text(ex.Message, "text/plain; charset=utf-8", statusCode: StatusCodes.Status422UnprocessableEntity);
     }
 });
-app.MapGet("/estadisticas/exportar", async (EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
+app.MapGet("/estadisticas/exportar", async (HttpContext context, EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
 {
+    if (context.Request.Headers.TryGetValue("Origin", out var origin) && !string.IsNullOrEmpty(origin) && !origin.ToString().Contains("localhost", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
     var filtro = new FiltroEstadisticas(
         Enum.TryParse<Sede>(sede, ignoreCase: true, out var s) && Enum.IsDefined(s) ? s : null,
         desde,
