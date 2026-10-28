@@ -11,6 +11,8 @@
 @inject DuplicadosService Duplicados
 @inject Sgl.Application.Solicitudes.SolicitudesF8Service SolicitudesF8
 @inject Sgl.Web.Services.UltimaSincronizacionCorreo UltimaSincronizacion
+@inject PeticionCambioDomicilio.Domain.PeticionSender PeticionSender
+@inject PeticionCambioDomicilio.Data.PeticionRepository PeticionRepo
 
 <PageTitle>@TituloPagina.De(TituloModuloPdf)</PageTitle>
 
@@ -55,21 +57,31 @@
                     <span class="panel-toggle-resumen">@(filtroSede is null ? "TODAS" : Labels.Of(filtroSede.Value)) · @(seleccionadas.Count) MARCADAS</span>
                 }
             </button>
-            <div class="panel-barra-buscador">
-                <Sgl.Web.Components.Layout.BuscadorGlobal />
-                @if (bandejaActiva == Bandeja.PorClasificar)
-                {
-                    <a href="importar" class="btn-excel-destacado" title="Cargar planilla Excel masiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Cargar Excel Masivo</a>
-                }
-                @if (bandejaActiva == Bandeja.CambioDomicilio)
-                {
-                    <button type="button" class="btn-sync-correo" disabled="@sincronizandoCorreo" @onclick="SincronizarCorreoAsync" title="Traer las solicitudes nuevas del buzón (CARP. PARA PEDIR)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M21 4v5h-5M3 20v-5h5"/></svg>@(sincronizandoCorreo ? "Sincronizando…" : "Sincronizar correo")</button>
-                }
-                @if (bandejaActiva == Bandeja.PorClasificar)
-                {
-                    <a class="btn-primary btn-nueva-barra" href="carpetas/nueva">@((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>") Nueva carpeta</a>
-                }
-            </div>
+            <div class="panel-barra-buscador"><Sgl.Web.Components.Layout.BuscadorGlobal />@if (bandejaActiva == Bandeja.PorClasificar)
+{
+    <a href="importar" class="btn-excel-destacado" title="Cargar planilla Excel masiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Cargar Excel Masivo</a>
+}@if (bandejaActiva == Bandeja.CambioDomicilio)
+{
+    <button type="button" class="btn-sync-correo" disabled="@sincronizandoCorreo" @onclick="SincronizarCorreoAsync" title="Traer las solicitudes nuevas del buzón (CARP. PARA PEDIR)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M21 4v5h-5M3 20v-5h5"/></svg>@(sincronizandoCorreo ? "Sincronizando…" : "Sincronizar correo")</button>
+}<a class="btn-primary btn-nueva-barra" href="carpetas/nueva">@((MarkupString)"<svg class=\"ico\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>") Nueva carpeta</a></div>
+            @if (bandejaActiva is Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43)
+            {
+                <div class="busqueda-acciones" role="region" aria-label="Listado para búsqueda">
+                    @if (!string.IsNullOrEmpty(errorListado))
+                    {
+                        <span class="clasif-error" role="alert">@errorListado</span>
+                    }
+                    @if (seleccionadas.Count > 0)
+                    {
+                        <button type="button" class="btn-secondary btn-small" disabled="@cargandoListado" @onclick="() => AbrirListadoBusquedaAsync(bandejaActiva!.Value, seleccionadas.ToList())">
+                            Solo las @seleccionadas.Count marcadas
+                        </button>
+                    }
+                    <button type="button" class="btn-primary btn-small" disabled="@(total is null or 0 || cargandoListado)" @onclick="() => AbrirListadoBusquedaAsync(bandejaActiva!.Value, null)">
+                        @(cargandoListado ? "Preparando…" : "Listado para búsqueda")
+                    </button>
+                </div>
+            }
         </div>
         @if (mostrarPanelSuperior)
         {
@@ -1087,7 +1099,7 @@
     private static readonly string[] ColumnasSubida = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "SUBIDA"];
     private static readonly string[] ColumnasUbicacion = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "FECHA ÚLT. CARPETA", "EN PROCESO DE BÚSQUEDA", "MOVER A"];
     // REVISIÓN submodules (except Citadas, unchanged): the problem that keeps the carpeta out of Entrantes.
-    private static readonly string[] ColumnasRevision = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE"];
+    private static readonly string[] ColumnasRevision = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "PROBLEMA"];
     private static readonly string[] ColumnasCambioDomicilio = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "COMUNA", "EN PROCESO DE BÚSQUEDA"];
 
     private static readonly IReadOnlyDictionary<Bandeja, string[]> ColumnasPorBandeja = new Dictionary<Bandeja, string[]>
@@ -1124,17 +1136,22 @@
     private async Task SeleccionarBandeja(Bandeja? b)
     {
         if (b == bandejaActiva) return;
-        // Se cancela selección y se limpia orden previo
+        // Los conteos por bandeja no dependen de la bandeja activa: solo se recalcula el total.
+        // Se consulta ANTES de cambiar de pestaña para que la tabla nueva (que se vuelve a montar
+        // con @key y pide su propio rango) no comparta el DbContext con otra consulta en curso.
         InvalidarIds();
+        var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0) with { Bandeja = b });
         CancelarSeleccion();
+        var eraDirecta = filasDirectas is not null;
         bandejaActiva = b;
-        var conteo = await Carpetas.ListarAsync(ConsultaActual(take: 0));
+        // The old table may have requested its ids while we awaited above (query still pointing to the old tray):
+        // drop them now that the active tray changed, or the new tray would be read with the old tray's ids.
         InvalidarIds();
         await CargarFilasDirectasAsync(conteo.Total);
+        // The Virtualize is keyed by tray, so every tray switch mounts a fresh one that loads its own rows.
         virtualizador = null;
         total = conteo.Total;
         pedirFilasTrasMontar = false;
-        StateHasChanged();
     }
 
     private bool pedirFilasTrasMontar;
@@ -1166,8 +1183,8 @@
     /// (the printable list stays available through "Listado para búsqueda").</summary>
     private static bool SinPdfSector => true;
 
-    /// <summary>Licencias para clasificar has no row checkboxes: each row is classified on its own.</summary>
-    private bool MuestraCasillas => bandejaActiva != Bandeja.PorClasificar;
+    /// <summary>Licencias para clasificar and Revisión trays have no row checkboxes: carpetas with problems cannot be batch-transferred.</summary>
+    private bool MuestraCasillas => bandejaActiva != Bandeja.PorClasificar && !EsBandejaRevision;
 
     private RenderFragment<CarpetaResumenDto> FilaBandeja => c =>
                         @<tr @key="c.Id" class="@(trasladando.Contains(c.Id) ? "fila-trasladada" : null) @Labels.EstadoRowCss(c.Estado) @(EsBandejaConAlerta && MuestraAlerta(c) ? "fila-duplicada" : "") @(seleccionadas.Contains(c.Id) ? "row-selected" : "") @(guardandoId == c.Id ? "fila-guardando" : "") @(guardadoOkId == c.Id ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
@@ -1231,12 +1248,14 @@
                                         @{
                                             SembrarFechaGuardada(c.Id, c.TramiteAgenda, c.FechaUltimaCarpeta);
                                             var elegido = DestinoElegido(c.Id, c.TramiteAgenda);
+                                            var esPrimera = elegido == EstadoCarpeta.PrimeraLicencia;
                                         }
-                                        <input type="date" class="date-input-inline"
-                                               @key="@($"fc-{c.Id}")"
-                                               value="@FechaClasif(c.Id)"
+                                        <input type="date" class="date-input-inline @(esPrimera ? "date-solo-lectura" : null)"
+                                               @key="@($"fc-{c.Id}-{esPrimera}")"
+                                               value="@(esPrimera ? null : FechaClasif(c.Id))"
+                                               disabled="@esPrimera"
                                                @onchange="(e) => FechaElegidaAsync(c.Id, e.Value?.ToString())"
-                                               title="Fecha de la última carpeta" />
+                                               title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : "Fecha de la última carpeta")" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => ClaseElegidaAsync(c.Id, c.TramiteAgenda, v)" Disabled="clasificando" />
@@ -1288,6 +1307,7 @@
                                 case Bandeja.RevisionSinRut:
                                 case Bandeja.RevisionNoIdentificada:
                                 case Bandeja.RevisionNoEvaluadas:
+                                    <td>@ProblemaRevision(c)</td>
                                     break;
                                 case Bandeja.CambioDomicilio:
                                 case Bandeja.CambioDomicilioSolicitado:
@@ -1340,19 +1360,9 @@
                                 <td class="action-cell" @ondblclick:stopPropagation>
                                     @if (bandejaActiva is Bandeja.CambioDomicilio or Bandeja.CambioDomicilioSolicitado)
                                     {
-                                        @if (c.PendienteBusqueda)
-                                        {
-                                            <button class="btn-action-caja" title="Subido: pasa la carpeta a «Cambio dom. subido a Conaset»"
-                                                    disabled="@(guardandoId == c.Id)"
-                                                    @onclick="() => GestionarAsync(c)">Subido</button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                    title="Pasa la carpeta al módulo «Creación de F8»" @onclick="() => PedirF8CambioDomicilioAsync(c)">Pedir F8</button>
-                                            <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                    title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => PedirCertificadoAsync(c)">Certificado / Oficio</button>
-                                        }
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                title="Subido: pasa la carpeta al módulo «Cambio dom. subido a Conaset»"
+                                                @onclick="() => GestionarAsync(c)">Subido</button>
                                     }
                                     else if (bandejaActiva == Bandeja.PorPreparar)
                                     {
@@ -1364,52 +1374,39 @@
                                     }
                                     else if (EsBandejaDeUbicacion(bandejaActiva))
                                     {
-                                        @* The choice made in "MOVER A" shows its own button here; pressing it closes the process in this module. *@
-                                        @if (destinoUbicacion.TryGetValue(c.Id, out var destinoUb))
-                                        {
-                                            @if (destinoUb == EstadoCarpeta.SubidaConaset)
-                                            {
-                                                <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                        title="Pasa la carpeta al módulo «Subida a Conaset»; el proceso queda cerrado aquí" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Subir</button>
-                                            }
-                                            else if (destinoUb == EstadoCarpeta.NoExisteCarpeta)
-                                            {
-                                                <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                        title="Pide el F8: la carpeta pasa a «Creación de F8»" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Pedir F8</button>
-                                            }
-                                            else if (destinoUb == EstadoCarpeta.CrearCertificado)
-                                            {
-                                                <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
-                                                        title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => ConfirmarUbicacionAsync(c, destinoUb)">Certificado / Oficio</button>
-                                            }
-                                        }
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)"
+                                                    title="Encontrada: pasa la carpeta a «Subida a Conaset»" @onclick="() => ConfirmarUbicacionAsync(c, EstadoCarpeta.SubidaConaset)">Subir</button>
+                                            <button class="btn-decision btn-secondary" type="button" disabled="@(guardandoId == c.Id)"
+                                                    title="No encontrada: deriva a «Creación de F8»" @onclick="() => PedirF8CambioDomicilioAsync(c)">Pedir F8</button>
+                                            <button class="btn-decision btn-secondary" type="button" disabled="@(guardandoId == c.Id)"
+                                                    title="No encontrada: deriva a «Certificado / Oficio»" @onclick="() => PedirCertificadoAsync(c)">Certificado</button>
+                                        </div>
                                     }
                                     else if (c.PendienteBusqueda)
                                     {
-                                        <button type="button" class="btn-action-caja" title="Subido: pasa la carpeta a «Cambio dom. subido a Conaset»"
+                                        <button class="btn-action-caja" title="Subido: pasa la carpeta a «Cambio dom. subido a Conaset»"
                                                 disabled="@(guardandoId == c.Id)"
                                                 @onclick="() => GestionarAsync(c)">Subido</button>
                                     }
                                     else if (bandejaActiva == Bandeja.CrearCertificado)
                                     {
                                         @* "Pedir": request mail to Dirección and Secretaría (automatic once the mail is configured). *@
-                                        <button type="button" class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)"
+                                        <button class="btn-decision btn-enviar" disabled="@(guardandoId == c.Id)"
                                                 title="Pedir: la carpeta pasa a Solicitudes · Certificado / Oficio, donde termina el proceso del certificado"
                                                 @onclick="() => PedirAsync(c)">Pedir</button>
                                     }
                                     else if (bandejaActiva == Bandeja.SinCarpetaF8)
                                     {
-                                        @* A missing carpeta asks for an F8 or is sent with an oficio. *@
-                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pasa la carpeta al módulo Subida con F8 y cierra su solicitud de F8" @onclick="() => SubidaConF8Async(c)">Subida con F8</button>
-                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pasa la carpeta a «Certificado / Oficio» en Solicitudes especiales" @onclick="() => PedirCertificadoAsync(c)">Certificado / Oficio</button>
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(guardandoId == c.Id)" title="Pasa la carpeta al módulo Subida con F8 y cierra su solicitud de F8" @onclick="() => SubidaConF8Async(c)">Subir</button>
                                     }
                                     else if (bandejaActiva == Bandeja.RevisionDuplicadas && MuestraAlerta(c))
                                     {
-                                        <button class="btn-action-caja" type="button" title="Comparar con las otras carpetas abiertas del RUT: reagendar, anular o mantener ambas" @onclick="() => AbrirRevisionDup(c)">Revisar</button>
+                                        <button class="btn-decision btn-enviar" type="button" disabled="@(resolviendoDup || guardandoId == c.Id)" title="Marcar caso como solucionado para retornar la carpeta a Inicio" @onclick="() => SolucionarDuplicadoFilaAsync(c)">Solucionado</button>
                                     }
                                     else if (bandejaActiva is { } bAct && bAct != Bandeja.Archivadas && !RevisionEntrada.EsDeEntrada(bAct) && string.IsNullOrEmpty(c.CajaArchivo))
                                     {
-                                        <button type="button" class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
+                                        <button class="btn-action-caja" title="Enviar directamente a la cola de Caja" @onclick="() => EnviarACajaDirectoAsync(c)"><span>Caja</span></button>
                                     }
                                     else if (c.CajaArchivo == Carpeta.ColaDeCaja)
                                     {
@@ -1531,6 +1528,31 @@
             "¿Mantener ambas carpetas? Quedará marcado como revisado hasta que se registre otra carpeta abierta de este RUT.",
             autor => Duplicados.MarcarRevisadoAsync(alerta.CiudadanoId, autor));
 
+    private async Task SolucionarDuplicadoFilaAsync(CarpetaResumenDto c)
+    {
+        if (c.AlertaDuplicado is { } alerta)
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre : "Operador";
+            resolviendoDup = true;
+            try
+            {
+                await Duplicados.MarcarRevisadoAsync(alerta.CiudadanoId, autor);
+                DuplicadosNotifier.Notify();
+                await CargarTotalPorArreglarAsync();
+                await CargarMetricasAsync();
+                await CargarAsync();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Logger.LogError(ex, "No se pudo solucionar el duplicado para la carpeta {CarpetaId}.", c.Id);
+            }
+            finally
+            {
+                resolviendoDup = false;
+            }
+        }
+    }
+
     // ---- Errores de edición en línea: siempre registrados (sin datos personales) y visibles ----
     private string? errorEdicion;
 
@@ -1641,12 +1663,8 @@
         return ClasificarUnaAsync(id, tramite);
     }
 
-    private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite)
-    {
-        if (destinoClasif.TryGetValue(id, out var e)) return e;
-        if (!string.IsNullOrWhiteSpace(fechaClasif.GetValueOrDefault(id))) return null;
-        return tramite == TramiteAgenda.PrimeraVezExtension ? EstadoCarpeta.PrimeraLicencia : null;
-    }
+    private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite) =>
+        destinoClasif.TryGetValue(id, out var e) ? e : (tramite == TramiteAgenda.PrimeraVezExtension ? EstadoCarpeta.PrimeraLicencia : null);
 
     private readonly HashSet<Guid> intentoAplicar = [];
 
@@ -2023,7 +2041,7 @@
             return;
         }
         queryBandejaAplicada = QueryBandeja;
-        var destino = QueryBandeja is null ? (bandejaActiva ?? Bandeja.PorClasificar)
+        var destino = QueryBandeja is null ? Bandeja.PorClasificar
             : QueryBandeja.Equals("todas", StringComparison.OrdinalIgnoreCase) ? (Bandeja?)null
             : Enum.TryParse<Bandeja>(QueryBandeja, true, out var b) && Enum.IsDefined(b) ? b : bandejaActiva;
         await SeleccionarBandeja(destino);
@@ -2464,12 +2482,54 @@
         try
         {
             if (AutorRequerido() is not { } autor) return;
-            await Carpetas.MarcarPendienteBusquedaAsync(c.Id, !c.PendienteBusqueda, autor);
+
+            var activando = !c.PendienteBusqueda;
+            await Carpetas.MarcarPendienteBusquedaAsync(c.Id, activando, autor);
+
+            // En el módulo de Cambio de Domicilio, presionar la lupa envía el correo solicitando la carpeta a la comuna
+            if (activando && c.Estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado)
+            {
+                if (string.IsNullOrWhiteSpace(c.Comuna))
+                {
+                    await JS.InvokeVoidAsync("alert", "Para solicitar la carpeta por correo, ingrese primero la Comuna de origen.");
+                }
+                else
+                {
+                    var p = new PeticionCambioDomicilio.Domain.Peticion
+                    {
+                        NombreCompleto = c.NombreCompleto,
+                        Rut = c.Rut,
+                        Comuna = c.Comuna.Trim(),
+                        FechaSolicitud = c.FechaCitacion,
+                        Oficina = Labels.Of(c.Sede),
+                        Estado = PeticionCambioDomicilio.Domain.EstadoPeticion.Borrador
+                    };
+
+                    PeticionRepo.AddIfNew(p);
+
+                    // Envío en segundo plano: no congela el renderizado de Blazor ni el circuito SignalR
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var res = await PeticionSender.SendComunaAsync(p.Comuna, CancellationToken.None);
+                            if (res.Estado == PeticionCambioDomicilio.Domain.EstadoPeticion.Error)
+                            {
+                                Logger.LogWarning("Envío de petición para {Comuna} con advertencia: {Mensaje}", p.Comuna, res.Mensaje);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError(ex, "Fallo al enviar correo a comuna {Comuna} para el RUT {Rut}.", p.Comuna, p.Rut);
+                        }
+                    });
+                }
+            }
         }
         catch (Exception ex)
         {
             MostrarErrorEdicion(ex, "Error al marcar pendiente de búsqueda");
-            await JS.InvokeVoidAsync("alert", $"No se pudo marcar la búsqueda pendiente: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"No se pudo procesar la solicitud: {ex.Message}");
         }
         await CargarAsync();
     }

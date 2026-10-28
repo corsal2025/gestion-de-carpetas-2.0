@@ -51,11 +51,24 @@
             @foreach (var regla in Enum.GetValues<ReglaIntegridad>())
             {
                 var n = r.PorRegla.GetValueOrDefault(regla);
+                var linkBandeja = regla switch
+                {
+                    ReglaIntegridad.DuplicadoMismaClase => "carpetas?bandeja=RevisionDuplicadas",
+                    ReglaIntegridad.AnuladaVisible => "anuladas",
+                    _ => "carpetas?bandeja=todas"
+                };
+
                 <article class="integridad-regla @(n > 0 ? "falla" : "cumple")">
                     <span class="integridad-regla-estado" aria-hidden="true">@(n > 0 ? "!" : "✓")</span>
                     <div>
                         <h2>@ReglasIntegridadInfo.Titulo(regla)</h2>
-                        <p>@(n > 0 ? $"{n.ToString("N0", new System.Globalization.CultureInfo("es-CL"))} caso(s)" : "Se cumple")</p>
+                        <p>
+                            @(n > 0 ? $"{n.ToString("N0", new System.Globalization.CultureInfo("es-CL"))} caso(s)" : "Se cumple")
+                            @if (n > 0)
+                            {
+                                <a href="@linkBandeja" class="btn-small ml-2" style="margin-left: 0.5rem; text-decoration: none;">Ver en módulo →</a>
+                            }
+                        </p>
                     </div>
                 </article>
             }

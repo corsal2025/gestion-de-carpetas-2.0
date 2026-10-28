@@ -9,146 +9,163 @@
     var vencidas = Model.Peticiones.Count(p => PlazoInfo.Para(p).Vencido);
 }
 
+<div class="page-container peticiones-page">
+
 @if (Model.ModoPruebaEmail is not null)
 {
-    <div class="alert alert-danger">
-        <strong>MODO PRUEBA ACTIVO.</strong> Ningún correo sale hacia las municipalidades.
-        Todo se desvía a <code>@Model.ModoPruebaEmail</code>.
-        Para enviar de verdad, vaciar <code>Peticion:TestModeEmail</code> en appsettings.Local.json.
+    <div class="peticiones-alert danger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+            <strong>MODO PRUEBA ACTIVO.</strong> Ningún correo sale hacia las municipalidades.
+            Todo se desvía a <code>@Model.ModoPruebaEmail</code>.
+            Para enviar de verdad, vaciar <code>Peticion:TestModeEmail</code> en appsettings.Local.json.
+        </div>
     </div>
 }
 
 @if (Model.ComunasSinCorreo.Count > 0)
 {
-    <div class="alert alert-warning">
-        <strong>⚠ @Model.ComunasSinCorreo.Count comuna(s) sin correo en el directorio:</strong>
-        @string.Join(", ", Model.ComunasSinCorreo).
-        Esas peticiones quedan en espera. Cargá el correo en
-        <a asp-page="/Comunas">Comunas</a> y volvé a enviar — se retoman solas.
+    <div class="peticiones-alert warn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+            <strong>@Model.ComunasSinCorreo.Count comuna(s) sin correo en el directorio:</strong>
+            @string.Join(", ", Model.ComunasSinCorreo).
+            Esas peticiones quedan en espera. Cargá el correo en
+            <a asp-page="/Comunas">Comunas</a> y volvé a enviar — se retoman solas.
+        </div>
     </div>
 }
 
-<div class="toolbar mb-2">
-    <form method="post">
-        <button asp-page-handler="Importar" id="btn-importar" class="btn btn-sm btn-primary"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Cargar cambios de domicilio</span></button>
-    </form>
-    <form method="post">
-        <button asp-page-handler="ActualizarCarpetas" id="btn-actualizar-carpetas" class="btn btn-sm btn-outline-primary"
-                title="Busca en el libro el estado de la carpeta de cada persona (por RUT) y lo actualiza si figura más avanzado">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg><span>Actualizar estado solicitud</span>
+<div class="peticiones-toolbar-panel">
+    <div class="toolbar-row">
+        <form method="post" class="d-inline">
+            <button asp-page-handler="Importar" id="btn-importar" class="btn-action btn-action-primary">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                <span>Cargar cambios de domicilio</span>
+            </button>
+        </form>
+        <form method="post" class="d-inline">
+            <button asp-page-handler="ActualizarCarpetas" id="btn-actualizar-carpetas" class="btn-action btn-action-secondary"
+                    title="Busca en el libro el estado de la carpeta de cada persona (por RUT) y lo actualiza si figura más avanzado">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>
+                <span>Actualizar estado solicitud</span>
+            </button>
+        </form>
+        <form method="post" class="d-inline">
+            <button asp-page-handler="CrearRespaldo" id="btn-respaldar" class="btn-action btn-action-secondary"
+                    title="Guarda una copia de la base local fuera de la carpeta de la aplicación">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+                <span>Respaldar ahora</span>
+            </button>
+        </form>
+        <span class="toolbar-divider"></span>
+        <form method="post" class="js-enviar-marcadas d-inline"
+              onsubmit="return confirm('Se envía UN correo por comuna con las personas MARCADAS (✓) de esa comuna@(Model.ModoPruebaEmail is null ? "" : " (MODO PRUEBA: nada llega a las municipalidades)"). ¿Continuar?');">
+            <button asp-page-handler="EnviarMarcadas" id="btn-enviar-marcadas"
+                    class="btn-action btn-action-primary"
+                    data-count="@Model.MarcadasPendientes"
+                    disabled="@(Model.MarcadasPendientes == 0 ? "disabled" : null)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+                <span class="js-enviar-label">Enviar marcadas</span>
+                <span class="badge-count js-marcadas-n">@Model.MarcadasPendientes</span>
+            </button>
+        </form>
+        <form method="post" class="js-marcar-enviadas-sin-correo d-inline"
+              onsubmit="return confirm('¿Registrar las filas marcadas como ENVIADAS sin mandar correo a la comuna?');">
+            <button asp-page-handler="MarcarMarcadasComoEnviadasSinCorreo" id="btn-marcar-sin-correo"
+                    class="btn-action btn-action-secondary"
+                    disabled="@(Model.MarcadasPendientes == 0 ? "disabled" : null)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 2"/><path d="M20 7v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+                <span>Marcar enviadas (sin correo)</span>
+                <span class="badge-count js-marcadas-n">@Model.MarcadasPendientes</span>
+            </button>
+        </form>
+        <form method="post" class="js-reenviar d-inline-flex align-items-center gap-1"
+              onsubmit="return confirm('Se reenvía una COPIA de las marcadas (✓) a ' + this.destinatario.value + ' — UN correo por comuna. Los estados no cambian. ¿Continuar?');">
+            <input type="email" name="destinatario" class="form-control form-control-sm" style="width:190px;min-height:36px;border-radius:10px;"
+                   placeholder="correo@destino.cl" required aria-label="Correo al que reenviar" />
+            <button asp-page-handler="ReenviarMarcadas" id="btn-reenviar-marcadas"
+                    class="btn-action btn-action-secondary" title="Reenvía las marcadas al correo indicado"
+                    data-count="@Model.MarcadasReenviables"
+                    disabled="@(Model.MarcadasReenviables == 0 ? "disabled" : null)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 17l5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>
+                <span>Reenviar</span>
+                <span class="badge-count js-reenvio-n">@Model.MarcadasReenviables</span>
+            </button>
+        </form>
+        <form method="post" class="d-inline" onsubmit="return confirm('¿Dejar TODAS las peticiones pendientes como YA SUBIDAS sin mandar correo a las comunas?');">
+            <button asp-page-handler="MarcarTodoComoEnviadasSinCorreo" id="btn-ver-ya-subidas" class="btn-action btn-action-secondary"
+                    disabled="@(Model.Peticiones.Count(p => p.Estado is EstadoPeticion.Borrador or EstadoPeticion.SinCorreoComuna or EstadoPeticion.Error) == 0 ? "disabled" : null)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span>Ver todas como ya subidas</span>
+            </button>
+        </form>
+        <form method="post" asp-page-handler="BorrarSeleccion" class="js-borrar-seleccion d-inline"
+              onsubmit="return confirm('¿BORRAR las ' + document.querySelector('.js-seleccion-n').textContent.trim() + ' peticiones seleccionadas? Se borra también su historial de envío. Se guarda un respaldo automático antes. El Excel NO se toca.');">
+            <button asp-page-handler="BorrarSeleccion" id="btn-borrar-seleccion"
+                    class="btn-action btn-action-danger" title="Borra las peticiones seleccionadas"
+                    data-count="@Model.MarcadasTotal"
+                    disabled="@(Model.MarcadasTotal == 0 ? "disabled" : null)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg>
+                <span>Borrar selección</span>
+                <span class="badge-count js-seleccion-n">@Model.MarcadasTotal</span>
+            </button>
+        </form>
+        <button class="btn-action btn-action-secondary" id="btn-peticion-manual" type="button"
+                data-bs-toggle="collapse" data-bs-target="#panel-manual" aria-expanded="false" aria-controls="panel-manual">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Petición manual</span>
         </button>
-    </form>
-    <form method="post">
-        <button asp-page-handler="CrearRespaldo" id="btn-respaldar" class="btn btn-sm btn-outline-success"
-                title="Guarda una copia de la base local fuera de la carpeta de la aplicación">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg><span>Respaldar ahora</span>
-        </button>
-    </form>
-    <span class="divider"></span>
-    <form method="post" class="js-enviar-marcadas"
-          onsubmit="return confirm('Se envía UN correo por comuna con las personas MARCADAS (✓) de esa comuna@(Model.ModoPruebaEmail is null ? "" : " (MODO PRUEBA: nada llega a las municipalidades)"). ¿Continuar?');">
-        <button asp-page-handler="EnviarMarcadas" id="btn-enviar-marcadas"
-                class="btn btn-sm btn-primary"
-                data-count="@Model.MarcadasPendientes"
-                disabled="@(Model.MarcadasPendientes == 0 ? "disabled" : null)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg><span class="js-enviar-label">Enviar marcadas</span> <span class="badge-count js-marcadas-n">@Model.MarcadasPendientes</span>
-        </button>
-    </form>
-    <form method="post" class="js-marcar-enviadas-sin-correo"
-          onsubmit="return confirm('¿Registrar las filas marcadas como ENVIADAS sin mandar correo a la comuna?');">
-        <button asp-page-handler="MarcarMarcadasComoEnviadasSinCorreo" id="btn-marcar-sin-correo"
-                class="btn btn-sm btn-outline-secondary"
-                disabled="@(Model.MarcadasPendientes == 0 ? "disabled" : null)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 2"/><path d="M20 7v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>Marcar como enviadas (sin correo)</span> <span class="badge-count js-marcadas-n">@Model.MarcadasPendientes</span>
-        </button>
-    </form>
-    <form method="post" class="js-reenviar d-inline-flex align-items-center gap-1"
-          onsubmit="return confirm('Se reenvía una COPIA de las marcadas (✓) a ' + this.destinatario.value + ' — UN correo por comuna. Los estados no cambian. ¿Continuar?');">
-        <input type="email" name="destinatario" class="form-control form-control-sm" style="width:210px"
-               placeholder="correo@destino.cl" required aria-label="Correo al que reenviar" />
-        <button asp-page-handler="ReenviarMarcadas" id="btn-reenviar-marcadas"
-                class="btn btn-sm btn-outline-primary" title="Reenvía las marcadas al correo indicado"
-                data-count="@Model.MarcadasReenviables"
-                disabled="@(Model.MarcadasReenviables == 0 ? "disabled" : null)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 17l5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg><span>Reenviar marcadas</span> <span class="badge-count js-reenvio-n">@Model.MarcadasReenviables</span>
-        </button>
-    </form>
-    <form method="post" onsubmit="return confirm('¿Dejar TODAS las peticiones pendientes como YA SUBIDAS sin mandar correo a las comunas?');">
-        <button asp-page-handler="MarcarTodoComoEnviadasSinCorreo" id="btn-ver-ya-subidas" class="btn btn-sm btn-outline-dark"
-                disabled="@(Model.Peticiones.Count(p => p.Estado is EstadoPeticion.Borrador or EstadoPeticion.SinCorreoComuna or EstadoPeticion.Error) == 0 ? "disabled" : null)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Ver todas como ya subidas</span>
-        </button>
-    </form>
-    <form method="post" asp-page-handler="BorrarSeleccion" class="js-borrar-seleccion"
-          onsubmit="return confirm('¿BORRAR las ' + document.querySelector('.js-seleccion-n').textContent.trim() + ' peticiones seleccionadas? Se borra también su historial de envío. Se guarda un respaldo automático antes. El Excel NO se toca.');">
-        <button asp-page-handler="BorrarSeleccion" id="btn-borrar-seleccion"
-                class="btn btn-sm btn-outline-danger" title="Borra las peticiones seleccionadas"
-                data-count="@Model.MarcadasTotal"
-                disabled="@(Model.MarcadasTotal == 0 ? "disabled" : null)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg><span>Borrar selección</span> <span class="badge-count js-seleccion-n">@Model.MarcadasTotal</span>
-        </button>
-    </form>
-    <button class="btn btn-sm btn-outline-secondary" id="btn-peticion-manual" type="button"
-            data-bs-toggle="collapse" data-bs-target="#panel-manual" aria-expanded="false" aria-controls="panel-manual">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Petición manual</span>
-    </button>
-    <span class="spacer"></span>
-    <a href="/peticiones/Imprimir" target="_blank" id="btn-imprimir-lista" class="btn btn-sm btn-outline-secondary"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg><span>Imprimir lista</span></a>
-    <a href="/peticiones/Imprimir?marcadas=true" target="_blank" id="btn-imprimir-marcadas" class="btn btn-sm btn-outline-secondary"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg><span>Imprimir marcadas</span></a>
-    <form method="post" onsubmit="return confirm('¿BORRAR las @Model.Peticiones.Count peticiones cargadas? Esto borra también el HISTORIAL DE ENVÍO (qué se mandó y cuándo). Se guarda un respaldo automático de la base antes. El Excel NO se toca.');">
-        <button asp-page-handler="BorrarTodo" id="btn-borrar-todo" class="btn btn-sm btn-outline-danger" disabled="@(Model.Peticiones.Count == 0 ? "disabled" : null)">
-            Borrar todos los datos
-        </button>
-    </form>
+        <span class="toolbar-spacer"></span>
+        <a href="/peticiones/Imprimir" target="_blank" id="btn-imprimir-lista" class="btn-action btn-action-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg>
+            <span>Imprimir</span>
+        </a>
+        <a href="/peticiones/Imprimir?marcadas=true" target="_blank" id="btn-imprimir-marcadas" class="btn-action btn-action-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg>
+            <span>Imprimir marcadas</span>
+        </a>
+        <form method="post" class="d-inline" onsubmit="return confirm('¿BORRAR las @Model.Peticiones.Count peticiones cargadas? Esto borra también el HISTORIAL DE ENVÍO (qué se mandó y cuándo). Se guarda un respaldo automático de la base antes. El Excel NO se toca.');">
+            <button asp-page-handler="BorrarTodo" id="btn-borrar-todo" class="btn-action btn-action-danger" disabled="@(Model.Peticiones.Count == 0 ? "disabled" : null)">
+                Borrar todo
+            </button>
+        </form>
+    </div>
 </div>
 
-@* Carga manual: para personas que la importación automática no trae. Mismas columnas que la tabla. *@
+@* Carga manual *@
 <div class="collapse mb-3" id="panel-manual">
     <form method="post" asp-page-handler="AgregarManual">
-        <div class="table-responsive">
-        <table class="table align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th class="col-rut-centrado">RUT</th>
-                    <th class="text-center">Comuna</th>
-                    <th style="width:1%"></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre completo" required /></td>
-                    <td><input type="text" name="rut" class="form-control form-control-sm" placeholder="12.345.678-9" required /></td>
-                    <td>
-                        <select name="comuna" class="form-select form-select-sm" required>
-                            <option value="" selected disabled>Elegir comuna…</option>
-                            @foreach (var c in Model.ComunaNombres)
-                            {
-                                <option value="@c">@c</option>
-                            }
-                        </select>
-                    </td>
-                    <td><button type="submit" class="btn btn-sm btn-primary text-nowrap">Agregar</button></td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="table-container p-3">
+            <div class="d-flex align-items-center gap-3">
+                <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre completo" required />
+                <input type="text" name="rut" class="form-control form-control-sm" placeholder="12.345.678-9" required />
+                <select name="comuna" class="form-select form-select-sm" required>
+                    <option value="" selected disabled>Elegir comuna…</option>
+                    @foreach (var c in Model.ComunaNombres)
+                    {
+                        <option value="@c">@c</option>
+                    }
+                </select>
+                <button type="submit" class="btn-action btn-action-primary text-nowrap">Agregar</button>
+            </div>
         </div>
     </form>
 </div>
 
-<div class="table-responsive" id="tabla-peticiones">
-<table class="table data-table table-hover align-middle">
+<div class="table-container standard-table" id="tabla-peticiones">
+<table class="data-table bandeja-table">
     <thead>
         <tr>
-            <th class="text-center" style="width:1%"></th>
-            <th>Nombre de contribuyente</th>
-            <th class="col-rut-centrado">RUT</th>
-            <th>Sede</th>
-            <th class="text-center">Comuna</th>
-            <th>Fecha de solicitud</th>
-            <th>Envío</th>
-            <th>Plazo · 15 d. háb.</th>
-            <th>Acción</th>
+            <th class="th-check col-sticky-check"></th>
+            <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+            <th class="col-sticky-rut">RUT</th>
+            <th>SEDE</th>
+            <th>COMUNA</th>
+            <th>FECHA DE SOLICITUD</th>
+            <th>ENVÍO</th>
+            <th>PLAZO · 15 D. HÁB.</th>
+            <th>ACCIÓN</th>
         </tr>
     </thead>
     <tbody>
@@ -186,90 +203,95 @@
             ? 0
             : Math.Clamp(plazo.DiasTranscurridos * 100 / DeadlineCalculator.PlazoDiasHabiles, 0, 100);
         var plazoClase = plazo.Inicio is null
-            ? "plazo--idle"
-            : plazo.Vencido ? "plazo--bad" : plazo.DiasRestantes <= 3 ? "plazo--warn" : "plazo--ok";
+            ? "idle"
+            : plazo.Vencido ? "bad" : plazo.DiasRestantes <= 3 ? "warn" : "ok";
         var envioTitulo = !string.IsNullOrEmpty(p.DetalleEstado) ? p.DetalleEstado : null;
 
         var rutBusqueda = new string(p.Rut.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
 
         <tr id="fila-@p.Id" class="@claseFila" data-pendiente="@(esEnviada ? "0" : "1")" data-finalizada="@(finalizada ? "1" : "0")"
             data-nombre="@TextNormalization.Fold(p.NombreCompleto)" data-rut="@rutBusqueda">
-            <td class="text-center">
+            <td class="td-check col-sticky-check">
                 @if (finalizada)
                 {
-                    @* Caso terminado (carpeta subida): no se puede seleccionar. *@
                     <span class="sin-seleccion" title="Caso terminado: no se puede seleccionar" aria-label="Caso terminado, no seleccionable">—</span>
                 }
                 else
                 {
                     <form method="post" class="d-inline js-marcar" data-id="@p.Id">
                         <input type="hidden" name="id" value="@p.Id" />
-                        <button asp-page-handler="Marcar" class="btn btn-sm btn-link p-0 text-decoration-none js-marcar-btn"
+                        <button asp-page-handler="Marcar" class="chk-fila-btn js-marcar-btn"
                                 title="Marcar / desmarcar">@(p.Marcada ? "☑" : "☐")</button>
                     </form>
                 }
             </td>
-            <td class="dato">
-                <div class="d-flex align-items-center justify-content-between gap-2">
-                    <span class="nombre-persona" title="@p.NombreCompleto">@p.NombreCompleto</span>
-                    <a class="icono-buscar-dup icono-buscar-dup--neutro" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
+            <td class="col-sticky-nombre">
+                <div class="nombre-wrapper-cell">
+                    <span class="name-cell" title="@p.NombreCompleto">@p.NombreCompleto</span>
+                    <a class="icono-buscar-dup" href="/carpetas?bandeja=todas&amp;buscar=@Uri.EscapeDataString(p.Rut)"
                        title="Buscar otras carpetas de este RUT (repetidos)" aria-label="Buscar en el sistema las otras carpetas de este RUT">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                     </a>
                 </div>
             </td>
-            <td class="dato num col-rut-centrado">@p.Rut @(p.RutInvalido ? "⚠" : "")</td>
-            <td class="text-muted celda-una-linea" title="@p.Origen" style="cursor:help;">@p.Oficina</td>
-            <td class="text-center"><span class="comuna-chip">@p.Comuna</span></td>
-            <td class="num" title="Fecha en que se pidió la carpeta a la comuna">@(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")</td>
+            <td class="col-sticky-rut">
+                <span class="rut-mono">@p.Rut</span> @(p.RutInvalido ? "⚠" : "")
+            </td>
             <td>
-                <span class="fila-inline">
+                <span class="sede-tag" title="@p.Origen">@p.Oficina</span>
+            </td>
+            <td>
+                <span class="comuna-pill">@p.Comuna</span>
+            </td>
+            <td class="date-cell" title="Fecha en que se pidió la carpeta a la comuna">
+                @(p.EnviadaEn?.LocalDateTime.ToString("dd-MM-yyyy") ?? "— sin pedir")
+            </td>
+            <td>
                 @if (p.Estado == EstadoPeticion.Enviada && p.EnviadaEn is not null)
                 {
-                    <span class="pill pill--ok" title="@envioTitulo" style="cursor:help">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5" /></svg>Enviado
+                    <span class="pill-status ok" title="@envioTitulo">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5" /></svg>Enviado
                     </span>
-                    <span class="pill-time num">@p.EnviadaEn.Value.ToString("dd-MM HH:mm")</span>
+                    <span class="pill-time-sub">@p.EnviadaEn.Value.ToString("dd-MM HH:mm")</span>
                 }
                 else if (p.Estado == EstadoPeticion.SinCorreoComuna)
                 {
-                    <span class="pill pill--warn" title="@envioTitulo" style="cursor:help">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 17h.01" /></svg>Sin correo comuna
+                    <span class="pill-status warn" title="@envioTitulo">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 17h.01" /></svg>Sin correo comuna
                     </span>
                 }
                 else if (p.Estado == EstadoPeticion.Error)
                 {
-                    <span class="pill pill--bad" title="@envioTitulo" style="cursor:help">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>Error
+                    <span class="pill-status bad" title="@envioTitulo">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>Error
                     </span>
                 }
                 else
                 {
-                    <span class="pill pill--idle">Sin enviar</span>
+                    <span class="pill-status idle">Sin enviar</span>
                 }
-                </span>
             </td>
             <td>
                 @if (esResuelta)
                 {
-                    <span class="plazo-txt" style="color:var(--done-ink);font-weight:700;" title="Carpeta subida el @p.SubidaEn!.Value.ToString("dd-MM-yyyy")">
+                    <span class="pill-status ok" title="Carpeta subida el @p.SubidaEn!.Value.ToString("dd-MM-yyyy")">
                         ✓ Cerrada@(diasCierre is not null ? $" · {diasCierre} d. háb." : "")
                     </span>
                 }
                 else if (plazo.Inicio is null)
                 {
-                    <span class="plazo-txt text-muted" title="El reloj parte al enviar" style="cursor:help">—</span>
+                    <span class="text-muted" title="El reloj parte al enviar">—</span>
                 }
                 else
                 {
-                    <div class="plazo @plazoClase" title="Día @plazo.DiasTranscurridos de 15 · vence @plazo.Vence?.ToString("dd-MM-yyyy")" style="cursor:help">
-                        <div class="plazo-bar"><i style="width:@(pct)%"></i></div>
-                        <span class="plazo-txt">@(plazo.Vencido ? $"Vencido hace {-plazo.DiasRestantes} d." : $"Quedan {plazo.DiasRestantes} d.")</span>
+                    <div class="plazo-widget @plazoClase" title="Día @plazo.DiasTranscurridos de 15 · vence @plazo.Vence?.ToString("dd-MM-yyyy")">
+                        <div class="plazo-track"><i class="plazo-fill" style="width:@(pct)%"></i></div>
+                        <span class="plazo-label">@(plazo.Vencido ? $"Vencido hace {-plazo.DiasRestantes} d." : $"Quedan {plazo.DiasRestantes} d.")</span>
                     </div>
                 }
             </td>
-            <td class="col-acciones">
-                <span class="fila-inline fila-inline--acciones">
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
                 @if (!esEnviada && pendientesComuna > 0)
                 {
                     var rutDudoso = Model.Peticiones.Any(x =>
@@ -280,30 +302,34 @@
                     <form method="post" class="d-inline"
                           onsubmit="return confirm('@p.Comuna: @pendientesComuna persona(s) pendiente(s).\nSe envía 1 correo con todas.@(aviso) ¿Continuar?');">
                         <input type="hidden" name="id" value="@p.Id" />
-                        <button asp-page-handler="EnviarComuna" class="btn btn-sm btn-outline-primary text-nowrap"
+                        <button asp-page-handler="EnviarComuna" class="btn-decision btn-decision-enviar text-nowrap"
                                 title="Enviar a la comuna de @p.Comuna: 1 correo con las @pendientesComuna petición(es) pendiente(s)">
                             Enviar (@pendientesComuna)
                         </button>
                     </form>
                 }
+                <a href="/carpetas?bandeja=CambioDomicilio&buscar=@Uri.EscapeDataString(p.Rut)" 
+                   class="btn-decision btn-secondary text-nowrap" style="text-decoration:none;"
+                   title="Ver esta carpeta en el módulo de Carpetas">Carpeta →</a>
                 <form method="post" class="d-inline" onsubmit="return confirm('¿Eliminar esta petición?');">
                     <input type="hidden" name="id" value="@p.Id" />
-                    <button asp-page-handler="Eliminar" class="btn btn-sm btn-outline-danger" title="Eliminar">✕</button>
+                    <button asp-page-handler="Eliminar" class="btn-del-fila" title="Eliminar">✕</button>
                 </form>
-                </span>
+                </div>
             </td>
         </tr>
     }
     @if (Model.Peticiones.Count == 0)
     {
-        <tr><td colspan="10" class="text-center text-muted py-4">Sin peticiones. Importá desde el Excel.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-4">Sin peticiones. Importá desde el Excel.</td></tr>
     }
     </tbody>
 </table>
 </div>
-<div class="d-flex justify-content-between text-muted mt-2 txt-ayuda">
+<div class="peticiones-footer-notes">
     <span>Pendientes arriba en el orden del Excel · enviadas abajo por fecha de envío, la más nueva primero</span>
     <span>Respaldo automático de la base antes de importar o borrar</span>
+</div>
 </div>
 
 @section Scripts {

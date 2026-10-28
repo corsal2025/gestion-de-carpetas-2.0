@@ -1404,3 +1404,12 @@ html body .panel-barra .btn-sync-correo {
 html body .panel-barra .btn-sync-correo:hover:not(:disabled) { background: #5b21b6; }
 html body .panel-barra .btn-sync-correo:disabled { opacity: 0.7; cursor: progress; }
 html body .panel-barra .btn-sync-correo:focus-visible { outline: 2px solid #f6d23c; outline-offset: 2px; }
+
+/* Microinteracciones visuales: Pulso suave en semáforos rojos y carpetas atrasadas */
+.semaforo-rojo, .semaforo.semaforo-rojo, .sidebar-contador.contador-rojo, .pill-status.bad {
+    animation: sgl-pulso-alerta 2.2s infinite ease-in-out;
+}
+@keyframes sgl-pulso-alerta {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { transform: scale(1.06); box-shadow: 0 0 8px 3px rgba(220, 38, 38, 0.35); }
+}

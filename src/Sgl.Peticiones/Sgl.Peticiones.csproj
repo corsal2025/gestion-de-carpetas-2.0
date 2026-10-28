@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);RAZORSDK1004</NoWarn>
+  </PropertyGroup>
+
   <!-- Módulo Peticiones de cambio de domicilio: páginas Razor del proyecto PeticionCambioDomicilio, tal cual. -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

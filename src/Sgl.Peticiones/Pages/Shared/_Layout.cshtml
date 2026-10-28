@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="~/polish.css" />
     <link rel="stylesheet" href="~/shell.css" />
     <link rel="stylesheet" href="~/paginas.css" />
+    <link rel="stylesheet" href="~/listado.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/peticiones.css" asp-append-version="true" />
     <link rel="icon" type="image/png" href="~/favicon.png" />
@@ -53,10 +54,6 @@
             <a href="/cajas" class="nav-item nav-cajas">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
                 Cajas de Archivo
-            </a>
-            <a href="/importar" class="nav-item nav-importar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-                Cargar Excel Masivo
             </a>
             <a href="/estadisticas" class="nav-item nav-estadisticas">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
@@ -146,15 +143,11 @@
                         MODO PRUEBA — nada llega a las municipalidades (todo va a @Options.TestModeEmail)
                     </div>
                 }
-                <div class="container-fluid px-3">
-                    <div class="pb-3">
-                        @if (TempData["Flash"] is string flash)
-                        {
-                            <div class="alert alert-info">@flash</div>
-                        }
-                        @RenderBody()
-                    </div>
-                </div>
+                @if (TempData["Flash"] is string flash)
+                {
+                    <div class="alert info mx-3 mb-2">@flash</div>
+                }
+                @RenderBody()
             </div>
         </div>
     </main>

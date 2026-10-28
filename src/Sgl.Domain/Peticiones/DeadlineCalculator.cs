@@ -61,7 +61,7 @@ public sealed record PlazoInfo(
     /// El conteo arranca cuando se envió la solicitud (EnviadaEn) — el plazo legal de 15 días
     /// hábiles corre desde que se pide, no antes. Mientras no se haya enviado, no hay reloj.
     /// </summary>
-    public static PlazoInfo Para(Peticion p)
+    public static PlazoInfo Para(Peticion p, DateOnly? fechaReferencia = null)
     {
         var inicio = p.EnviadaEn is { } e ? DateOnly.FromDateTime(e.LocalDateTime) : (DateOnly?)null;
 
@@ -70,7 +70,7 @@ public sealed record PlazoInfo(
             return new PlazoInfo(null, null, 0, DeadlineCalculator.PlazoDiasHabiles, false);
         }
 
-        var hoy = DateOnly.FromDateTime(DateTime.Now);
+        var hoy = fechaReferencia ?? Sgl.Domain.HoraChile.Fecha(DateTime.UtcNow);
         var vence = DeadlineCalculator.AddBusinessDays(inicio.Value, DeadlineCalculator.PlazoDiasHabiles);
         var transcurridos = DeadlineCalculator.BusinessDaysBetween(inicio.Value, hoy);
         var restantes = DeadlineCalculator.PlazoDiasHabiles - transcurridos;

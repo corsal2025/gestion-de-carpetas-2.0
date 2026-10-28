@@ -3,6 +3,9 @@
    Rendered inside the tray's <tbody>, so it shares header and columns with the carpeta rows. *@
 @inject DuplicadosService Revision
 @inject ILogger<DuplicadosFilasTabla> Logger
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
 
 @if (total > 0)
 {
@@ -25,8 +28,7 @@
             <td colspan="@(Columnas - 4)">
                 <div class="dup-caso-resumen">
                     <span class="dup-motivo @(g.Motivo.StartsWith("RUT") ? "dup-motivo-alerta" : null)" title="@g.Motivo">@g.Motivo</span>
-                    <span class="dup-badge" title="Carpetas abiertas">@g.CarpetasAbiertas</span>
-                    <button type="button" class="btn-small" aria-expanded="@(abierto ? "true" : "false")" @onclick="() => Alternar(g.CiudadanoId)">@(abierto ? "Cerrar" : "Resolver")</button>
+                    <button type="button" class="btn-decision btn-enviar" disabled="@resolviendoId.HasValue" title="Marcar caso como solucionado para retornar la carpeta a Inicio" @onclick="() => MarcarSolucionadoAsync(g.CiudadanoId)">Solucionado</button>
                 </div>
             </td>
         </tr>
@@ -156,7 +158,28 @@
         await OnCambio.InvokeAsync();
     }
 
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private Guid? resolviendoId;
+
+    private async Task MarcarSolucionadoAsync(Guid ciudadanoId)
+    {
+        if (resolviendoId.HasValue) return;
+        resolviendoId = ciudadanoId;
+        try
+        {
+            var autor = Autor.HasNombre ? Autor.Nombre : "Operador";
+            await Revision.MarcarRevisadoAsync(ciudadanoId, autor);
+            DuplicadosNotifier.Notify();
+            await TrasResolverAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "No se pudo marcar como solucionado el caso de duplicado {CiudadanoId}.", ciudadanoId);
+        }
+        finally
+        {
+            resolviendoId = null;
+        }
+    }
 
     private async Task IrAPorClasificarAsync() =>
         await JS.InvokeVoidAsync("eval", "document.getElementById('dup-por-clasificar-sep')?.scrollIntoView({block:'start'})");

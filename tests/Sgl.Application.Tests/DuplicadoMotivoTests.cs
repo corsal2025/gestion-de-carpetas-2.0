@@ -19,7 +19,7 @@ public sealed class DuplicadoMotivoTests
     {
         var motivo = DuplicadoMotivo.Describir(rutValido: true, Dia, Dia, mismaSede: true);
 
-        Assert.Equal("Misma cita repetida (11-10-2026)", motivo);
+        Assert.Equal("Misma cita repetida", motivo);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class DuplicadoMotivoTests
     {
         var motivo = DuplicadoMotivo.Describir(rutValido: true, Dia, Dia, mismaSede: false);
 
-        Assert.Equal("Misma fecha en sedes distintas (11-10-2026)", motivo);
+        Assert.Equal("Misma fecha en sedes distintas", motivo);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class DuplicadoMotivoTests
     {
         var motivo = DuplicadoMotivo.Describir(rutValido: true, Dia, Dia.AddDays(5), mismaSede: true);
 
-        Assert.Equal("Citas en fechas distintas (11-10-2026 a 16-10-2026)", motivo);
+        Assert.Equal("Citas en fechas distintas", motivo);
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public sealed class DuplicadoMotivoTests
     {
         var motivo = DuplicadoMotivo.Describir(rutValido: true, Dia, Dia.AddDays(5), mismaSede: false);
 
-        Assert.Equal("Fechas y sedes distintas (11-10-2026 a 16-10-2026)", motivo);
+        Assert.Equal("Fechas y sedes distintas", motivo);
     }
 }
