@@ -302,13 +302,6 @@ html:not(#sgl):not([data-design="institucional"]) body .listado-page .table-cont
     border-radius: 22px;
     box-shadow: var(--glass-shadow);
 }
-html:not(#sgl):not([data-design="institucional"]) body .listado-page .data-table thead th {
-    background: var(--surface);
-    color: var(--text-secondary);
-    font: 700 0.6875rem var(--font-ui);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
 
 /* Gap between cards is a transparent bottom border (keeps Virtualize row maths simple);
    the background stops at the padding box so the gap shows the container behind. */

@@ -622,12 +622,6 @@ html body .dup-tabla tbody td {
 html body .data-table tbody td:last-child,
 html body .table tbody td:last-child,
 html body .dup-tabla tbody td:last-child { border-right: 0 !important; }
-html body .data-table thead th,
-html body .table thead th,
-html body .dup-tabla thead th { border-right: 1px solid rgba(255, 255, 255, 0.55) !important; }
-html body .data-table thead th:last-child,
-html body .table thead th:last-child,
-html body .dup-tabla thead th:last-child { border-right: 0 !important; }
 html[data-theme="dark"] body .data-table tbody td,
 html[data-theme="dark"] body .table tbody td,
 html[data-theme="dark"] body .dup-tabla tbody td {
@@ -664,12 +658,6 @@ html body .dup-tabla tbody td {
 html body .data-table tbody td:last-child,
 html body .table tbody td:last-child,
 html body .dup-tabla tbody td:last-child { border-right: 0 !important; box-shadow: none; }
-html body .data-table thead th,
-html body .table thead th,
-html body .dup-tabla thead th { border-right: 2px solid rgba(255, 255, 255, 0.85) !important; }
-html body .data-table thead th:last-child,
-html body .table thead th:last-child,
-html body .dup-tabla thead th:last-child { border-right: 0 !important; }
 html[data-theme="dark"] body .data-table tbody td,
 html[data-theme="dark"] body .table tbody td,
 html[data-theme="dark"] body .dup-tabla tbody td {
@@ -878,21 +866,6 @@ html body .page-container .header-section h1 {
     letter-spacing: -0.02em;
 }
 
-/* Encabezados de tabla: banda uniforme. Claro: superficie + texto muted. Institucional: banda azul + subrayado amarillo. */
-html:not([data-theme="dark"]):not([data-design="institucional"]) body .data-table thead th {
-    background: var(--surface) !important;
-    color: var(--text-muted) !important;
-    -webkit-text-fill-color: var(--text-muted) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    height: 40px;
-}
-html[data-design="institucional"]:not([data-theme="dark"]) body .data-table thead th {
-    background: var(--brand-primary) !important;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    border-bottom: 3px solid #f6d23c !important;
-    height: 40px;
-}
 
 /* Filas por estado: fondo neutro + barra izquierda de 3px del color del estado (el texto y el chip indican el estado). */
 html[data-rows="soft"]:not([data-theme="dark"]) body .data-table tbody tr[class*="estado-"] { --estado-acc: #94a3b8; }
@@ -1134,14 +1107,6 @@ html body .data-table.data-table :is(th, td):is(.col-sticky-check, .col-sticky-n
 html body .table-container { background: var(--surface, #fff) !important; }
 html body .table-container table.data-table { min-width: 100% !important; }
 
-/* Encabezados de tabla: línea fina visible entre cada columna y bajo la fila de encabezados. */
-html body .data-table.data-table:not(#x) thead th {
-    border-left: 0 !important;
-    border-right: 1px solid #cbd5e1 !important;
-    border-bottom: 1px solid #cbd5e1 !important;
-}
-html body .data-table.data-table:not(#x) thead th:last-child { border-right: 0 !important; }
-html[data-theme="dark"] body .data-table.data-table:not(#x) thead th { border-right-color: #475569 !important; border-bottom-color: #475569 !important; }
 /* Buscador universal centrado en el espacio libre de la barra. */
 html body .panel-barra .panel-barra-buscador { margin-left: auto; margin-right: auto; }
 html body .panel-barra > .btn-panel-toggle { flex: 0 0 auto !important; width: auto !important; }

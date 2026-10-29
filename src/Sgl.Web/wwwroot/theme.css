@@ -350,24 +350,7 @@ html body .data-table a {
     text-transform: none !important;
 }
 
-html body .data-table thead th {
-    background: var(--surface-alt) !important;
-    color: var(--text-muted) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    font-size: 0.68rem !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.07em;
-    text-transform: uppercase !important;
-    height: 44px;
-}
-html body .data-table thead th.col-sticky-check,
-html body .data-table thead th.col-sticky-pend,
-html body .data-table thead th.col-sticky-rut,
-html body .data-table thead th.col-sticky-nombre {
-    background: var(--surface-alt) !important;
-    color: var(--text-muted) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
+html body .data-table thead th { height: 44px; } /* color y tipografia: encabezados.css */
 
 html body .data-table td {
     font-size: 0.82rem !important;
@@ -852,27 +835,7 @@ html .quick-add-accordion, html .active-filters-summary,
 html .caja-queue-card, html .cajas-sugeridas { border-radius: 22px; }
 html .sede-tabs-container, html .table-container { box-shadow: var(--shadow-md); }
 
-/* ---------- Encabezado de tabla: azul con borde cian de 4px ---------- */
-html body .data-table thead th,
-html body .data-table thead th.col-sticky-check,
-html body .data-table thead th.col-sticky-pend,
-html body .data-table thead th.col-sticky-rut,
-html body .data-table thead th.col-sticky-nombre {
-    background: var(--lico-accent) !important;
-    color: #fff !important;
-    -webkit-text-fill-color: #fff !important;
-    border-bottom: 4px solid var(--lico-cyan) !important;
-    font-size: 0.92rem !important;
-    letter-spacing: 0.04em;
-    height: 52px;
-}
-html[data-theme="dark"] body .data-table thead th,
-html[data-theme="dark"] body .data-table thead th.col-sticky-check,
-html[data-theme="dark"] body .data-table thead th.col-sticky-pend,
-html[data-theme="dark"] body .data-table thead th.col-sticky-rut,
-html[data-theme="dark"] body .data-table thead th.col-sticky-nombre { background: var(--topbar-bg) !important; }
-html .content .card table:not(.data-table) th { color: var(--lico-accent); border-bottom: 3px solid var(--lico-cyan); }
-html[data-theme="dark"] .content .card table:not(.data-table) th { color: var(--brand-primary); }
+/* Encabezado de tabla: ver encabezados.css (regla canonica unica). */
 
 /* ---------- Titulos de pantalla ---------- */
 html .page-container .header-section h1,

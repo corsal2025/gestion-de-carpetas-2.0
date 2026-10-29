@@ -2093,10 +2093,7 @@ table.acta-table tfoot td {
         break-inside: avoid;
         page-break-inside: avoid;
     }
-    table.acta-table thead th {
-        background: #1c3f60 !important;
-        color: #ffffff !important;
-    }
+    /* Encabezado impreso: ver @media print de encabezados.css (fondo claro, texto y linea marino). */
 }
 
 /* MODAL */

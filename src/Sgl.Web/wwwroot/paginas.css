@@ -795,15 +795,7 @@ html:not([data-design="institucional"]) body .integridad .card > h2,
 html:not([data-design="institucional"]) body .firmantes .sol-panel > h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
 html:not([data-design="institucional"]) body .integridad .integridad-regla-estado { border-radius: 12px; }
 
-/* Tables inside the cards: transparent rows, uppercase small header. */
-html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla thead th {
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
-    color: var(--text-secondary);
-    font: 700 0.6875rem var(--font-ui);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--glass-line);
-}
+/* Table header: see encabezados.css (single canonical rule). */
 html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla tbody tr:hover > td { background: var(--pg-row-hover); }
 html:not(#sgl):not([data-design="institucional"]) body .integridad .dup-tabla tbody td { border-bottom: 1px solid var(--glass-line); }
 

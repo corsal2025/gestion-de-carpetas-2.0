@@ -1,0 +1,95 @@
+/* =====================================================================
+   Encabezado de tabla UNICO para toda la app (Blazor y Razor Pages).
+   Fuente de verdad: tokens --th-* y la regla canonica de este archivo.
+   Se carga al final en App.razor y en Pages/Shared/_Layout.cshtml.
+   Gana a las reglas historicas por especificidad (2 :not(#id) + !important),
+   por eso no depende de la paleta ni del orden de carga. En modo oscuro el
+   navy contrasta igual, asi que no se redefine.
+   Impresion: ver bloque @media print al final.
+   ===================================================================== */
+:root {
+    --th-bg: #26388c;
+    --th-fg: #ffffff;
+    --th-accent: #1fb5d9;
+    --th-sep: #5664a5;
+    --th-radius: var(--radius-lg, 22px);
+    --th-fs: 12.8px; /* = 0.8rem de la app Blazor; fijo en px porque Peticiones usa raiz 13.5px y asi ambas se ven igual */
+}
+
+/* Regla canonica. Excluye el <thead> oculto visualmente (BarrasTabla: solo lectores de pantalla). */
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th {
+    background: var(--th-bg) !important;
+    background-image: none !important;
+    color: var(--th-fg) !important;
+    -webkit-text-fill-color: var(--th-fg) !important;
+    font-family: var(--font-ui, inherit) !important;
+    font-size: var(--th-fs) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    height: 46px;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 1px solid var(--th-sep) !important;
+    border-bottom: 4px solid var(--th-accent) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th:last-child { border-right: 0 !important; }
+
+/* Esquinas superiores redondeadas con el radio de las tarjetas de tabla. */
+html:not(#th-a):not(#th-b) body table:has(> thead:not(.visually-hidden)) { border-collapse: separate; border-spacing: 0; }
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr:first-child > th:first-child { border-top-left-radius: calc(var(--th-radius) - 2px); }
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr:first-child > th:last-child { border-top-right-radius: calc(var(--th-radius) - 2px); }
+
+/* Contenedor: borde azul marino. .table-container ya es el recuadro; el resto de tablas lo lleva en la propia tabla. */
+html:not(#th-a):not(#th-b) body .table-container { border: 2px solid var(--th-bg) !important; }
+html:not(#th-a):not(#th-b) body table:has(> thead:not(.visually-hidden)):not(.table-container table) {
+    border: 2px solid var(--th-bg) !important;
+    border-radius: var(--th-radius) !important;
+}
+/* Integridad (.dup-tabla) se apila como tarjetas en movil y oculta el thead: sin marco. */
+@media (max-width: 640px) {
+    html:not(#th-a):not(#th-b) body table.dup-tabla { border: 0 !important; border-radius: 0 !important; }
+}
+
+/* Textos del encabezado: enlaces, botones de orden, iconos y hijos heredan el blanco. */
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th :is(a, button, label, span, small, i, svg) {
+    color: inherit !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th input[type="checkbox"] { accent-color: var(--th-accent); }
+
+/* Foco visible sobre fondo navy (th ordenables, botones, enlaces e inputs dentro del th). */
+html:not(#th-a):not(#th-b) body table > thead > tr > th :is(a, button, input, select, textarea, [tabindex]):focus-visible,
+html:not(#th-a):not(#th-b) body table > thead > tr > th:focus-visible {
+    outline: 2px solid var(--th-fg) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--th-accent) !important;
+}
+
+/* Filtros/inputs dentro del encabezado (Listado): conservan su fondo claro y texto oscuro. */
+html:not(#th-a):not(#th-b) body table > thead > tr > th :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    color: #1e293b !important;
+    -webkit-text-fill-color: #1e293b !important;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 500;
+}
+
+/* Impresion: sin relleno navy (ahorra tinta); texto y linea inferior marino, legible en B/N. */
+@media print {
+    html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th {
+        background: #fff !important;
+        color: var(--th-bg) !important;
+        -webkit-text-fill-color: var(--th-bg) !important;
+        border-right: 1px solid #94a3b8 !important;
+        border-bottom: 2px solid var(--th-bg) !important;
+        border-radius: 0 !important;
+    }
+    html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th:last-child { border-right: 0 !important; }
+    html:not(#th-a):not(#th-b) body .table-container { border-color: #94a3b8 !important; }
+}
