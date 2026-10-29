@@ -489,8 +489,6 @@ body {
     height: calc(100vh - 215px);
     min-height: 380px;
     max-height: calc(100vh - 215px);
-    scrollbar-width: thin;
-    scrollbar-color: #2563eb #f1f5f9;
 }
 
 .table-container.standard-table {
@@ -505,31 +503,7 @@ body {
     min-height: 480px;
 }
 
-/* ESTILO DEL SCROLL LATERAL (SIEMPRE VISIBLE Y FÁCIL DE ARRASTRAR) */
-.table-container::-webkit-scrollbar {
-    height: 16px;
-    width: 10px;
-}
-
-.table-container::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 6px;
-    border-top: 2px solid #cbd5e1;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-    background: #2563eb !important;
-    border-radius: 6px;
-    border: 3px solid #f1f5f9;
-}
-
-.table-container::-webkit-scrollbar-thumb:hover {
-    background: #1d4ed8 !important;
-}
-
-.table-container::-webkit-scrollbar-thumb:active {
-    background: #1e40af !important;
-}
+/* Barra de scroll y marco de las tablas: ver encabezados.css (bloque "Marco y barra de scroll"). */
 
 .data-table {
     width: 100%;

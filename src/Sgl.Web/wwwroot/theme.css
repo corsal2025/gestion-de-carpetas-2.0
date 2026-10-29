@@ -333,8 +333,6 @@ html .table-container {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
 }
-html .table-container::-webkit-scrollbar-track { background: var(--surface-alt); }
-html .table-container::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 8px; }
 
 html body .data-table,
 html body .data-table th,

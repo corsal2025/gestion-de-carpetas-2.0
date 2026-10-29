@@ -80,6 +80,115 @@ html:not(#th-a):not(#th-b) body table > thead > tr > th :is(input:not([type="che
     font-weight: 500;
 }
 
+/* =====================================================================
+   Marco y barra de scroll de las tablas (un solo bloque para toda la app).
+   Marco = contenedor con scroll (.table-container, .dup-scroll de Integridad,
+   .cajas-table-wrapper de Cajas): borde navy uniforme, radio --th-radius y recorte
+   (overflow) para que nada sobresalga de las esquinas. El encabezado navy + franja cian
+   se pinta tambien como fondo del contenedor (alto --th-head), asi llega de lado a lado
+   y cubre el canal de la barra vertical. La barra queda DENTRO del marco, solo a lo largo
+   del cuerpo (margen superior = encabezado), delgada, sin flechas ni pista visible.
+   Chromium/Safari: ::-webkit-scrollbar (hay que anular scrollbar-width/color, que en
+   Chrome 121+ desactivan los pseudo-elementos). Firefox: scrollbar-width thin + color.
+   ===================================================================== */
+:root {
+    --th-head: 46px;          /* alto total del encabezado (celda 42px + franja cian) */
+    --th-strip: 4px;          /* grosor de la franja cian */
+    --sb-thumb: rgb(38 56 140 / 0.5);
+    --sb-thumb-hover: rgb(38 56 140 / 0.8);
+    --sb-size: 12px;
+    --frame-radius: 22px;     /* radio del marco de las tablas (fijo: --radius-lg cambia segun el diseño) */
+}
+html[data-theme="dark"] {
+    --sb-thumb: rgb(147 164 255 / 0.5);
+    --sb-thumb-hover: rgb(147 164 255 / 0.85);
+}
+
+/* Marco + fondo del encabezado (solo contenedores cuyo hijo directo es una tabla con thead visible). */
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper:not(:has(.caja-row))):has(> table > thead:not(.visually-hidden)) {
+    border: 2px solid var(--th-bg) !important;
+    border-radius: var(--frame-radius) !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    overflow: auto !important;
+    background:
+        linear-gradient(to bottom,
+            var(--th-bg) 0, var(--th-bg) calc(var(--th-head) - var(--th-strip)),
+            var(--th-accent) calc(var(--th-head) - var(--th-strip)), var(--th-accent) var(--th-head),
+            transparent var(--th-head)) top / 100% var(--th-head) no-repeat scroll,
+        var(--surface, #fff) !important;
+}
+/* La tabla no lleva marco propio dentro del contenedor y el recorte redondea el encabezado. */
+html:not(#th-a):not(#th-b):not(#th-c) body :is(.dup-scroll, .cajas-table-wrapper) > table:has(> thead) {
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper) > table > thead:not(.visually-hidden) > tr > th {
+    border-radius: 0 !important;
+    box-sizing: border-box;
+    height: var(--th-head) !important;   /* mismo valor que el degradado del contenedor: franja cian continua */
+    padding-block: 5px !important;
+}
+
+/* Barra de scroll: Firefox (y navegadores sin ::-webkit-scrollbar). */
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-thumb) transparent;
+}
+/* Chromium / Safari: pseudo-elementos webkit (anulan scrollbar-width/color para que apliquen). */
+@supports selector(::-webkit-scrollbar) {
+    html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive) {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar {
+    width: var(--sb-size);
+    height: var(--sb-size);
+    background: transparent;
+}
+/* Pista invisible; los margenes la separan del encabezado y de las esquinas redondeadas. */
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-track {
+    background: transparent;
+    border: 0;
+    margin-inline: calc(var(--frame-radius) * 0.6);
+    margin-block: 6px calc(var(--frame-radius) * 0.6);
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper):has(> table > thead:not(.visually-hidden))::-webkit-scrollbar-track:vertical {
+    margin-block-start: calc(var(--th-head) + 4px); /* ~7px de aire bajo la franja (3px mas del borde del pulgar) */
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-thumb {
+    background: var(--sb-thumb);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    min-height: 36px;
+    min-width: 36px;
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-thumb:hover,
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-thumb:active {
+    background: var(--sb-thumb-hover);
+    background-clip: padding-box;
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .est-card, .table-responsive)::-webkit-scrollbar-corner {
+    background: transparent;
+}
+/* Integridad se apila como tarjetas en movil: sin marco ni encabezado. */
+@media (max-width: 640px) {
+    html:not(#th-a):not(#th-b) body .dup-scroll:has(> table.dup-tabla) {
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: none !important;
+    }
+}
+
 /* Impresion: sin relleno navy (ahorra tinta); texto y linea inferior marino, legible en B/N. */
 @media print {
     html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th {
@@ -92,4 +201,9 @@ html:not(#th-a):not(#th-b) body table > thead > tr > th :is(input:not([type="che
     }
     html:not(#th-a):not(#th-b) body table > thead:not(.visually-hidden) > tr > th:last-child { border-right: 0 !important; }
     html:not(#th-a):not(#th-b) body .table-container { border-color: #94a3b8 !important; }
+    html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper):has(> table > thead:not(.visually-hidden)) {
+        border-color: #94a3b8 !important;
+        background: #fff !important;
+        overflow: visible !important;
+    }
 }
