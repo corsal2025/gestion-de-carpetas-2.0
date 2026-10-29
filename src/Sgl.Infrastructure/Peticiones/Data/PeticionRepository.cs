@@ -55,7 +55,7 @@ public sealed class PeticionRepository : IDisposable
             var grupos = todos.GroupBy(f => f.Name.EndsWith("-automatico.db", StringComparison.OrdinalIgnoreCase));
             foreach (var viejo in grupos.SelectMany(g => g.OrderByDescending(f => f.Name).Skip(MaxBackups)))
             {
-                try { viejo.Delete(); } catch { /* respaldo viejo, no crítico */ }
+                BorrarConReintento(viejo);
             }
 
             return destino;
@@ -63,6 +63,26 @@ public sealed class PeticionRepository : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// En Windows un respaldo recién creado puede quedar bloqueado un instante (antivirus, indexador):
+    /// se reintenta antes de dejarlo, para que la retención no se quede corta sin avisar.
+    /// </summary>
+    private static void BorrarConReintento(FileInfo archivo)
+    {
+        for (var intento = 0; intento < 5; intento++)
+        {
+            try
+            {
+                archivo.Delete();
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Thread.Sleep(40);
+            }
         }
     }
 

@@ -1,0 +1,56 @@
+@* Name / RUT cell of a carpeta that is corrected with one click. Saves through CarpetaService (same rules and audit as the Listado)
+   and tells the host to reload its rows. Read-only cells (e.g. annulled carpetas) are rendered as plain text. *@
+@inject CarpetaService Carpetas
+@inject AutorState Autor
+@inject IJSRuntime JS
+@inject ILogger<CeldaCarpeta> Logger
+
+@if (Editable)
+{
+    <CeldaEditable @key="@($"{CarpetaId}-{EsRut}-{rev}")" Valor="@Valor" Titulo="@(EsRut ? "RUT" : "nombre")" EsRut="EsRut"
+                   CssClass="@CssClass" Title="@Title" Guardar="GuardarAsync" />
+}
+else
+{
+    <span class="@CssClass" title="@(Title ?? Valor)">@Valor</span>
+}
+
+@code {
+    private const string MensajeSinNombre = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.";
+
+    [Parameter, EditorRequired] public Guid CarpetaId { get; set; }
+    [Parameter, EditorRequired] public string Valor { get; set; } = string.Empty;
+    [Parameter] public bool EsRut { get; set; }
+    [Parameter] public bool Editable { get; set; } = true;
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string? Title { get; set; }
+
+    /// <summary>Raised after a successful save so the host reloads its rows.</summary>
+    [Parameter] public EventCallback OnGuardado { get; set; }
+
+    private int rev;
+
+    private async Task GuardarAsync(string nuevo)
+    {
+        if (!Autor.HasNombre)
+        {
+            await JS.InvokeVoidAsync("showRutToast", MensajeSinNombre);
+            return;
+        }
+
+        try
+        {
+            if (EsRut) await Carpetas.ModificarRutAsync(CarpetaId, nuevo, Autor.Nombre);
+            else await Carpetas.ModificarNombreAsync(CarpetaId, nuevo, Autor.Nombre);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var contexto = EsRut ? "No se pudo actualizar el RUT" : "No se pudo corregir el nombre";
+            await JS.InvokeVoidAsync("showRutToast", $"{contexto}: {ErroresUi.Mensaje(ex, Logger, contexto)}");
+            rev++;
+            return;
+        }
+
+        await OnGuardado.InvokeAsync();
+    }
+}

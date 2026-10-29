@@ -1,5 +1,6 @@
-@* Inline-editable table cell: double-click (or the small pencil) turns the text into an input.
-   Enter or leaving the field saves (only when the value changed); Escape cancels. *@
+@* Inline-editable table cell: one click on the text turns it into an input (Enter/Space on the focused text also opens it).
+   Enter or leaving the field saves (only when the value changed); Escape cancels.
+   Click, double-click and keys never reach the row (row double-click opens the detail; here it must not). *@
 
 @if (editando)
 {
@@ -11,16 +12,18 @@
            aria-label="@Titulo"
            title="Enter para guardar · Esc para cancelar"
            oninput="@(EsRut ? "formatRutInput(this)" : null)"
-           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();this.value=this.dataset.original;this.blur();}"
+           onkeydown="event.stopPropagation();if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key==='Escape'){event.preventDefault();this.value=this.dataset.original;this.blur();}"
            @onchange="OnChangeAsync"
-           @onblur="Cerrar" />
+           @onblur="Cerrar"
+           @onclick:stopPropagation @ondblclick:stopPropagation />
 }
 else
 {
-    <span class="@CssClass celda-editable-texto" title="@(Title ?? Valor)" @ondblclick="Abrir" @ondblclick:stopPropagation>@Valor</span>
-    <button type="button" class="celda-editable-btn" title="@($"Corregir {Titulo}")" aria-label="@($"Corregir {Titulo}")" @onclick="Abrir">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
-    </button>
+    <span class="@CssClass celda-editable-texto" role="button" tabindex="0"
+          title="@($"{Title ?? Valor} · Clic para corregir {Titulo}")"
+          aria-label="@($"Corregir {Titulo}: {Valor}")"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();this.click();}"
+          @onclick="Abrir" @onclick:stopPropagation @ondblclick:stopPropagation>@Valor</span>
 }
 
 @code {
@@ -42,7 +45,6 @@ else
     }
 
     private void Cerrar() => editando = false;
-
     private async Task OnChangeAsync(ChangeEventArgs e)
     {
         var nuevo = e.Value?.ToString()?.Trim() ?? string.Empty;

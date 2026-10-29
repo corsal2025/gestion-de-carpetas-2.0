@@ -431,11 +431,8 @@
                             </td>
                             <td class="col-sticky-rut" @ondblclick:stopPropagation>
                                 <div class="rut-wrapper-cell">
-                                    <input class="excel-rut-input rut-input"
-                                           value="@c.Rut"
-                                           @onchange="(e) => CambiarRutRapidoAsync(c.Id, e)"
-                                           oninput="formatRutInput(this)"
-                                           title="Modificar RUT directamente (Enter para guardar)" />
+                                    <CeldaEditable @key="@($"rut-{c.Id}-{revEdicion}")" Valor="@c.Rut" Titulo="RUT" EsRut="true"
+                                                   Guardar="v => CambiarRutRapidoAsync(c.Id, v)" />
                                 </div>
                             </td>
                             <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
@@ -3142,8 +3139,6 @@
         if (string.IsNullOrWhiteSpace(rut)) return;
         await JS.InvokeVoidAsync("copyRutCasChile", rut);
     }
-
-    private Task CambiarRutRapidoAsync(Guid id, ChangeEventArgs e) => CambiarRutRapidoAsync(id, e.Value?.ToString());
 
     private async Task CambiarNombreRapidoAsync(Guid id, string? nuevoNombre)
     {

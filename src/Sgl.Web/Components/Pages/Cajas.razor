@@ -311,8 +311,8 @@
                                             <input type="checkbox" checked="@sel" @onchange="() => ToggleSelectCola(c.Id)" />
                                         </td>
                                         <td>@nro</td>
-                                        <td><span class="name-cell">@c.NombreCompleto</span></td>
-                                        <td class="col-rut-centrado"><span class="rut-cell">@c.Rut</span></td>
+                                        <td><CeldaCarpeta CarpetaId="c.Id" Valor="@c.NombreCompleto" CssClass="name-cell" OnGuardado="CargarDatosAsync" /></td>
+                                        <td class="col-rut-centrado"><CeldaCarpeta CarpetaId="c.Id" Valor="@c.Rut" EsRut="true" CssClass="rut-cell" OnGuardado="CargarDatosAsync" /></td>
                                         <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
                                         <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
                                         <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>

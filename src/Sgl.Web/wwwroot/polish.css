@@ -1143,12 +1143,10 @@ html body header.topbar > .main-nav .nav-item { font-size: 1.05rem !important; g
 html body header.topbar > .main-nav .nav-item svg { width: 20px !important; height: 20px !important; }
 
 /* Inline name/RUT correction (CeldaEditable): same height as the text, no width jumps */
-.celda-editable-texto { cursor: text; }
-.celda-editable-btn {
-  border: 0; background: none; padding: 0 2px; margin-left: 2px; color: var(--muted, #888);
-  opacity: 0; cursor: pointer; line-height: 1; vertical-align: middle; flex: 0 0 auto;
+.celda-editable-texto { cursor: pointer; border-radius: 3px; }
+.celda-editable-texto:hover, .celda-editable-texto:focus-visible {
+  background: rgba(14, 116, 144, .10); text-decoration: underline dotted; text-underline-offset: 3px; outline: none;
 }
-td:hover > .celda-editable-btn, td:hover .celda-editable-btn, .celda-editable-btn:focus-visible { opacity: .75; }
 .celda-editable-input {
   width: 100%; min-width: 0; box-sizing: border-box; font: inherit; height: 1.7em;
   padding: 0 4px; margin: 0; text-transform: uppercase;
@@ -1311,9 +1309,6 @@ html body .data-table.data-table:not(#x) :is(th, td) { vertical-align: middle !i
 html body .data-table.data-table:not(#x) tbody td :is(.date-input-inline, input[type="date"]) { max-width: 7.6rem !important; width: 7.6rem !important; font-size: 0.8rem !important; padding-left: 0.2rem !important; padding-right: 0.2rem !important; }
 html body .data-table.data-table:not(#x) td select.excel-select:not(.clasif-cell select) { width: 9rem !important; max-width: 9rem; }
 html body .data-table.data-table:not(#x) tbody td :is(.date-input-inline, input[type="date"]) { min-width: 0 !important; width: 6.9rem !important; max-width: 6.9rem !important; }
-/* El lápiz pequeño de edición rápida no ocupa ancho propio: aparece superpuesto al pasar el mouse. */
-html body .data-table .celda-editable { position: relative; }
-html body .data-table .celda-editable .celda-editable-btn { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); }
 html body .listado-page .data-table.data-table:not(#x) :is(th, td) { padding-left: 0.35rem !important; padding-right: 0.35rem !important; }
 
 /* Barra superior de la bandeja: buscador, Cargar Excel Masivo, Nueva carpeta y Listado para búsqueda
