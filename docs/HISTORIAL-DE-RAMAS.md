@@ -16,6 +16,10 @@ El detalle de cada cambio está en el historial de `main` (`git log`), con commi
 | 2026-10-16 | `integracion/remoto-peticiones` (solo local) | `archivo/2026-10-16-local-integracion-remoto-peticiones` | Integración intermedia con el módulo Peticiones | Dentro de `main` |
 | 2026-10-17 | `feat/clase-licencia-duplicados` | `archivo/2026-10-17-feat-clase-licencia-duplicados` | Trabajo principal: duplicados, F8, certificados, Revisión y diseño | Fusionada en `main` |
 
+## Ramas locales que aún existen
+
+`feat/clase-licencia-duplicados` y `feat/lico-comunas-pendiente` siguen como ramas locales (además de sus etiquetas `archivo/…`). Sus commits ya están en `main` (`git rev-list --count main..<rama>` da 0 en ambas), así que se pueden borrar con `git branch -d` sin perder nada. `main` es la única rama de trabajo.
+
 ## Cómo seguir trabajando
 
 - Todo cambio nuevo se hace en `main`, con commits pequeños y convencionales.

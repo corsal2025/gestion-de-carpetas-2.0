@@ -7,17 +7,19 @@ Módulo independiente de **gestión de carpetas** del Depto. de Licencias de Con
 > ⚠️ Este repositorio contiene SOLO código. Los datos personales (RUT, nombres), bases de datos (`*.db`) y planillas (`*.xlsx`) nunca se versionan.
 
 ## Alcance (v0.3.0)
-Módulo de carpetas, sin autenticación (uso local de prueba):
+Módulo de carpetas, módulo de Peticiones de cambio de domicilio y módulo de Solicitudes (F8 y Certificado / Oficio). Sin autenticación por defecto; el login con Windows es opcional (ver «Seguridad y despliegue»):
 - Registrar carpeta (ciudadano con RUT validado por dígito verificador, sede, fecha de citación), también en línea desde el listado.
 - Listado con búsqueda por RUT o nombre, filtros por sede, estado, trámite y caja, paginado, columnas congeladas, edición en línea y panel lateral de detalle.
 - Detalle: cambio de estado con lista cerrada de **solo** los estados siguientes válidos, edición de datos e historial de cambios.
 - Cada cambio queda registrado en el historial (fecha, autor, campo, valor anterior y nuevo). El autor se ingresa como texto en el campo «Funcionario».
 - **Cajas de archivo**: asignar carpetas a cajas (individual o por lote), cola de caja, acta imprimible y reapertura de cajas.
-- **Importador Excel** masivo (planillas multihoja por sede) que normaliza estados y valores.
+- **Importador Excel** masivo (planillas multihoja por sede) que normaliza estados y valores. Ya no está en la barra superior: se abre desde el botón «Cargar Excel Masivo» del listado o desde Estadísticas (`/importar`). Las filas sin citación válida o con RUT de dígito verificador incorrecto se reportan y se saltan; las fechas fuera de rango (2015 a hoy + 1 año) se avisan.
+- **Peticiones** (`/peticiones`): peticiones de cambio de domicilio a otras comunas (importación de planilla, directorio de comunas y correos, envío por EWS, estadísticas, configuración de correo). Con `Peticion:TestModeEmail` el envío va solo a la casilla de prueba y ninguna petición cambia de estado. El reenvío manual se limita a los dominios de `Peticion:DominiosPermitidos` (si está vacío no se restringe y se avisa).
+- **Solicitudes**: «Solicitudes de F8» (`/f8`) y «Certificado / Oficio» (`/certificados`, firmantes en `/configuracion/firmantes`). El correo al Director arranca en modo prueba (`Certificados:EnvioCorreoActivo` = false).
 - Listados PDF por sector (Archivo y Oficina 43) y guía interactiva «Cómo usar el sistema».
 - **Interfaz**: tema claro/oscuro y dos estilos de fila (suaves, o los colores originales del Excel), configurables desde la barra superior y recordados por navegador. Los estilos viven en `src/Sgl.Web/wwwroot/theme.css`, que se carga después de `app.css` (ver «Diseño y paletas»).
 
-Fuera de alcance (ya existen en otros sistemas): autenticación, usuarios, roles, filtrado por sede según usuario y dashboard.
+Fuera de alcance (ya existen en otros sistemas): usuarios y roles propios, filtrado por sede según usuario y dashboard.
 
 ## Stack
 - .NET 10 · Blazor Server (render interactivo en servidor)
@@ -27,17 +29,18 @@ Fuera de alcance (ya existen en otros sistemas): autenticación, usuarios, roles
 ## Estructura
 ```
 src/Sgl.Domain          Entidades y reglas puras (Carpeta, Ciudadano, Rut, máquina de estados, historial)
-src/Sgl.Application     Casos de uso (CarpetaService) y puerto ICarpetaRepository
+src/Sgl.Application     Casos de uso (CarpetaService, Solicitudes, Integridad) y puerto ICarpetaRepository
 src/Sgl.Infrastructure  EF Core: SglDbContext, repositorio, migraciones, selección de proveedor
+src/Sgl.Peticiones      Razor Pages del módulo Peticiones (/peticiones)
 src/Sgl.Web             UI Blazor Server
-tests/                  Sgl.Domain.Tests, Sgl.Application.Tests (SQLite en memoria)
+tests/                  Sgl.Domain.Tests, Sgl.Application.Tests, Sgl.Peticiones.Tests (SQLite en memoria)
 ```
 
 ## Ejecutar
 ```bash
 dotnet run --project src/Sgl.Web
 ```
-Abrir http://localhost:5020 (el puerto 5010 lo usa otra aplicación). La base SQLite `sgl.db` se crea y migra automáticamente al iniciar.
+Abrir http://localhost:5030 (puerto de `launchSettings.json`). La base SQLite `sgl.db` se crea y migra automáticamente al iniciar.
 
 ## Pruebas
 ```bash
@@ -51,6 +54,16 @@ Configuración en `appsettings.json` (o `appsettings.Local.json`, no versionado)
 ```
 Para SQL Server: `"Provider": "SqlServer"` y la cadena de conexión correspondiente. Las migraciones incluidas son de SQLite; antes de usar SQL Server hay que generar un set de migraciones para ese proveedor y aplicarlo (`dotnet ef database update`). La migración automática al inicio solo se ejecuta con SQLite.
 
+## Seguridad y despliegue
+
+- **Autenticación opcional**: `Seguridad:RequerirAutenticacion` (por defecto `false`). Con `true` se usa autenticación Windows (Negotiate), todo el sitio exige usuario y el autor del historial pasa a ser el usuario de Windows. Falta verificarlo en el servidor de producción.
+- **Cabeceras y descargas**: todas las respuestas llevan `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: same-origin`; `/certificados/{id}/documento` y `/estadisticas/exportar` van con `Cache-Control: no-store`, comparan el origen de la petición con el host y la exportación valida `dias` (1 a 3650) y `desde <= hasta`. `AllowedHosts` se configura en `appsettings.json`.
+- **Errores y render**: sin prerender (el circuito arma cada página una vez) y con `ErrorBoundary` en el layout con botón de reintento; los errores inesperados se muestran con mensaje genérico y el detalle va al log. Sin fuentes externas (Google Fonts retirado).
+- **SQLite**: cada conexión activa WAL, `busy_timeout=5000` y `synchronous=NORMAL`; las escrituras de un circuito pasan por un único `UnidadDeTrabajoGate`.
+- **Servicio de Windows**: `scripts/install_windows_service.ps1` (como administrador). Por defecto escucha solo en `localhost`; `-BindTodas` lo publica en la red (la aplicación no tiene login salvo que se active `Seguridad:RequerirAutenticacion`: restrinja con firewall). Parámetros: `-Port` (por defecto 5000), `-Credential` (cuenta de servicio dedicada; sin ella corre como LocalSystem y se advierte) y `-Force` (continuar sin `sgl.db` en la carpeta publicada). Al correr como servicio el directorio de trabajo es el de la aplicación publicada.
+- **Carga inicial por script**: `python scripts/import_excel.py <excel.xlsx> <sgl.db> --force` BORRA Carpetas, Ciudadanos e HistorialCambios, hace respaldo previo y deja la fecha de subida vacía si no se puede leer (ya no usa 2026-01-02 por defecto).
+- **Configuración nueva**: `Seguridad:RequerirAutenticacion`, `Peticion:DominiosPermitidos`, `Peticion:TestModeEmail`, `Certificados:EnvioCorreoActivo`, y `ListadoBusqueda:Solicitante` (vacío en `appsettings.json`; el nombre real va en `appsettings.Local.json`, no versionado). La URL de EWS debe ser https.
+
 ## Fase 2: módulos, clasificación sin duplicados e inicio
 
 Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
@@ -58,14 +71,14 @@ Contrato: `docs/spec-fase2-reorganizacion.md`. Decisiones de diseño:
 - **Clase obligatoria (R1)**: `Carpeta.Clasificar` exige al menos una clase; el servicio bloquea si el RUT ya tiene una carpeta abierta con una clase en común (también entre filas del mismo lote). Las carpetas antiguas no se tocan.
 - **Alerta de duplicado (R2)**: se calcula en vivo al listar "Por clasificar" (carpeta abierta = sin decisión final, no anulada y sin caja real), así desaparece sola al resolverse. La importación informa cuántas filas entran con alerta. Reagendar = la carpeta conservada toma fecha y sede de la otra, que se anula con motivo "Reagendamiento".
 - **Anulación (R3)**: flag `Anulada` + motivo/fecha/funcionario e historial; filtro global de EF (`HasQueryFilter`) la saca de módulos, contadores, estadísticas y duplicados. Solo la vista *Anuladas*, restaurar y la idempotencia de importadores usan `IgnoreQueryFilters()`. Nunca hay borrado físico.
-- **Navegación (R4)**: Inicio (`/`) con tarjetas por módulo; dentro de un módulo, menú lateral (`ModuloLayout`) plegable a 56 px con estado en `localStorage`. La barra superior queda para herramientas globales: Inicio, Cajas, Cargar Excel y Estadísticas; *Posibles duplicados* y *Anuladas* viven en el menú lateral (grupos Entrada y Cierre).
+- **Navegación (R4)**: Inicio (`/`) con tarjetas por módulo; dentro de un módulo, menú lateral (`ModuloLayout`) plegable a 56 px con estado en `localStorage`. La barra superior queda para herramientas globales: Inicio, Cajas y Estadísticas (la carga de Excel se abre desde el listado); *Anuladas* vive en el menú lateral (grupo Cierre). *Posibles duplicados* ya no existe: se resuelve en Por clasificar.
 - **Semáforo por módulo**: rojo si alguna carpeta alcanzó el umbral rojo (días desde citación, `Bandejas:Umbrales`), amarillo si alguna alcanzó el amarillo. Cerradas/Archivadas no llevan semáforo. Por clasificar: 1/3 días.
 - **Serie de 7 días**: entradas diarias al módulo según el historial (agenda, registro, cambio de estado, caja real).
 - **Alerta con varias abiertas**: si el RUT tiene 2+ carpetas abiertas se muestra la más reciente, el total y (al pasar el mouse) la lista completa. Dos filas del mismo RUT dentro de Por clasificar se alertan entre sí a propósito.
 - **Reimportación**: una fila ya importada y luego anulada (p. ej. por reagendamiento) cuenta como "ya existía" y además se informa aparte como "ya existían (anuladas)"; nunca se vuelve a crear.
 - **Restaurar**: bloqueado si el RUT tiene otra carpeta abierta (no archivada) con una clase en común; si solo coincide el RUT, se pide confirmación. Reagendar solo acepta como destino una carpeta abierta.
 - **Unidad de trabajo**: el DbContext vive por circuito Blazor; toda mutación de `CarpetaService`, `DuplicadosService` e importadores descarta los cambios rastreados si falla (`ChangeTracker.Clear()`), y la clasificación en lote valida todas las filas antes de modificar alguna. Las carpetas anuladas solo admiten Restaurar (servicio y dominio lo exigen).
-- **Escrituras serializadas por circuito**: `CarpetaService` serializa sus mutaciones con un semáforo (un `Clear()` nunca corre durante otro `SaveChanges`); el formulario de detalle se guarda con un solo comando y un solo `SaveChanges`.
+- **Escrituras serializadas por circuito**: un único `UnidadDeTrabajoGate` por circuito (compartido por `CarpetaService`, F8, Certificados, Duplicados y la sincronización de correo) serializa las mutaciones (un `Clear()` nunca corre durante otro `SaveChanges`); el formulario de detalle se guarda con un solo comando y un solo `SaveChanges`.
 - **PDF por sector**: sigue en el panel «Mostrar sedes y acciones» arriba de la tabla de cada módulo (se activa al marcar carpetas de Archivo u Of. 43).
 - **Contraste AA**: auditado en claro/oscuro × filas suaves/Excel en todos los módulos (≥ 4,5:1). Cuatro colores Excel con texto blanco se oscurecieron un tono (Cambio de domicilio, En Archivos, No existe carpeta, Of. 43).
 - **Meta del día**: clasificadas hoy (hora de Chile) frente a las que siguen en Por clasificar.

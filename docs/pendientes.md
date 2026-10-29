@@ -1,4 +1,31 @@
-# Pendientes (cierre de fase 3)
+# Pendientes
+
+## Ronda de auditoría (2026-10-29)
+
+Commits desde el 20 de octubre: `1008b45` (20-10, restringir acciones de barra y pulir tablas), `346e3cb` (27-10, interacciones entre módulos, diseño y cálculo de plazos), `4c5250e` (27-10, solicitudes especiales en la ficha de carpeta y exportaciones seguras) y `c556bd0` (29-10, cabecera compacta y contraste). Los cambios de esta ronda siguen sin commit en el árbol de trabajo.
+
+Resuelto en esta ronda (la verificación con `dotnet build` y `dotnet test` la hace quien integra):
+- **Concurrencia**: un solo `UnidadDeTrabajoGate` por circuito compartido por Carpetas, F8, Certificados, Duplicados, Panel y la sincronización de correo (antes cada servicio tenía su semáforo sobre el mismo DbContext).
+- **Datos**: editar desde el drawer del listado ya no borra la idoneidad moral; la sincronización de correo no cierra carpetas por correos anteriores a su registro; Deshacer cierra la solicitud F8 automática; F8 subido / no generado y firmar certificado no mueven una carpeta que ya salió del estado de origen; `ForzarEstado` valida el estado; el punto de restauración incluye la fecha de petición; fechas de reagendar/registrar validadas; fechas ambiguas mes-primero eliminadas.
+- **Peticiones**: el modo prueba no marca Enviada ni cambia el estado; estado intermedio «Enviando» con actualización atómica (sin doble envío), un correo por comuna, sin cancelación a mitad de envío; la importación no borra obsoletas si se omitió una hoja; el reenvío manual se restringe a `Peticion:DominiosPermitidos`; EWS solo https y sin caracteres de control; escritura atómica del directorio de comunas; ZIP validado antes de abrir el Excel.
+- **Importación**: filas sin citación válida o con DV incorrecto se reportan y se saltan; rango de fechas compartido; `scripts/import_excel.py` exige `--force`, respalda y ya no inventa la fecha 2026-01-02.
+- **Base de datos**: WAL + `busy_timeout`, índices de `FechaSubida` e `HistorialCambios` (migración `AgregarIndicesFechaSubidaYHistorial`), `EtapaBackfill` sin trabajo si no hay pendientes.
+- **Seguridad y despliegue**: cabeceras, `no-store` en descargas, validación de origen y de `dias`, autenticación Windows opcional (`Seguridad:RequerirAutenticacion`), instalador en `localhost` por defecto (`-BindTodas` para la red), sin Google Fonts, sin nombre real en `appsettings.json`, descarga del certificado y firmantes con auditoría (ver README, «Seguridad y despliegue»).
+- **Interfaz**: `ErrorBoundary`, sin prerender, mensajes de error genéricos, accesibilidad básica, código muerto retirado (`CertificadoSinCorreo`, `UndoToast`, JS y logo duplicados, `update_css.py`).
+
+Pendientes que requieren decisión o verificación (no se tocaron):
+
+| ID | Qué pasa | Qué hace falta |
+|---|---|---|
+| F3-01 | Causa raíz encontrada: el propio Excel ya trae unas 3.754 filas con subida anterior a la citación (pico a 14 días); es un tema de negocio, no de lectura del archivo. Además hay 63 carpetas con fecha de subida 2026-01-02 puesta por defecto por la versión antigua del script. | Decidir con Gilda si se corrigen o se aceptan; las 63 carpetas con 2026-01-02 son datos inventados y conviene vaciarlas. |
+| A-04 / F3-02 | R9 sigue en la opción A (la carpeta se queda en su pestaña «Subida…»; no se mueve a Cerradas). | Confirmar con el usuario si es abierta (A) o cerrada (B). |
+| M-03 | Transiciones sin definir en `EstadoTransitions`: NoExisteCarpeta, CanjeLicExtranjera y Citada. | Definir las aristas con el departamento. |
+| M-16 | Los feriados no se descuentan del plazo legal. | Decidir si se incorporan y desde qué calendario. |
+| M-04 / M-17 | Reglas de las fechas de cierre y de subida (cuándo se estampan y cuándo se limpian). | Decisión de negocio. |
+| Auth | La autenticación con Windows no se ha probado en producción. | Activar `Seguridad:RequerirAutenticacion` en el servidor y verificar usuarios, cuenta de servicio y autor del historial. |
+| Navegadores | Solo se probó el navegador integrado/Edge. | Revisar en Chrome y Firefox reales, bandejas de más de 200 filas e impresión a PDF. |
+
+## Cierre de fase 3
 
 Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparación de comunas en el registro de importaciones), ARB6-04 (campo Funcionario fluido), ARB6-05 (títulos «<Módulo> · Gestión de Carpetas 2.0») y R6–R12 de `spec-fase3-interacciones.md`.
 
@@ -21,7 +48,6 @@ Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparac
 - **Datos de CAS Chile** (el usuario los extrae por años): importar como tabla de consulta por RUT (última carpeta, lugar, clases).
 - **Pendientes de revisión visual**: probar en Chrome real las bandejas grandes (> 200 filas); el navegador de pruebas no cargaba sus filas.
 - **App**: Soporte de Servicio de Windows integrado (`builder.Host.UseWindowsService()`, `scripts/install_windows_service.ps1`, `scripts/uninstall_windows_service.ps1`).
-- **Opus**: los agentes con modelo Opus fallaban con «modelo no encontrado»; la última auditoría fue con Sonnet (aprobación provisional).
 
 ## Duplicados en Por clasificar (2026-10-14)
 
@@ -62,7 +88,6 @@ Revisión adversarial: 1 alto (corregido: F8 no puede pisar una carpeta ya Otorg
 - **MEDIA — descarga del certificado** (`GET /certificados/{id}/documento`): sin autenticación, cualquiera en la red con el id obtiene el .docx con datos personales. Agregar `Cache-Control: no-store`; resolver de fondo cuando exista inicio de sesión.
 - **MEDIA — Firmantes** (`/configuracion/firmantes`): se pueden editar sin indicar el funcionario ni dejar registro. Si se activa `Certificados:EnvioCorreoActivo`, alguien podría cambiar el correo del Director. Exigir nombre de funcionario y auditar.
 - **BAJA — caracteres de control** en nombre o motivo podrían hacer fallar el armado del correo EWS (el certificado igual se crea; el Director no recibe aviso).
-- **BAJA — código muerto:** `CertificadoSinCorreo.cs` ya no se registra en ningún lado.
 - **Pendiente de producto:** probar la generación real en Word (no se abrió un .docx generado) y el envío EWS contra Exchange.
 
 ## Rediseño de interfaz — Etapa 6 (2026-10-17)

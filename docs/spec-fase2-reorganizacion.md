@@ -2,6 +2,8 @@
 
 Acordado con el usuario (protocolo Fase 1, 2026-10-12). Proyecto: "Gestión de Carpetas 2.0" (no confundir con "SGL", sistema del Estado).
 
+> **Nota (2026-10-14):** el módulo «Posibles Duplicados» (`/duplicados`) que menciona este contrato fue reemplazado: los duplicados se muestran y resuelven dentro de «Por clasificar» (ver `docs/pendientes.md`). La barra superior ya no incluye «Cargar Excel» ni «Duplicados» (R4).
+
 ## Contexto de negocio
 - Javiera no atiende público: revisa otros sistemas (CAS Chile, SGL del Estado) y clasifica en este sistema.
 - La agenda diaria (Excel de Gilda / descargada de agendas) entra a "Por clasificar".

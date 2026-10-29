@@ -45,21 +45,22 @@ footer{color:var(--mut);font-size:13px;border-top:1px solid var(--bd)}
 /* =====================================================================
    PARA ACTUALIZAR: editar solo este bloque DATA y agregar entrada en CHANGELOG.
    ===================================================================== */
-const VERSION = "v0.2.0 (módulo carpetas)";
+const VERSION = "v0.3.0 (2026-10-29)";
 const CHANGELOG = [
   ["v0.1.0","2026-09-25","Arquitectura inicial: .NET 10, ASP.NET Core, EF Core, SQL Server, 3 sedes."],
-  ["v0.2.0","2026-09-27","Módulo núcleo de carpetas implementado: dominio con máquina de estados y RUT, casos de uso, EF Core con SQLite (proveedor configurable), UI Blazor. Sin autenticación, dashboard ni importador (existen en otros sistemas)."]
+  ["v0.2.0","2026-09-27","Módulo núcleo de carpetas implementado: dominio con máquina de estados y RUT, casos de uso, EF Core con SQLite (proveedor configurable), UI Blazor. Sin autenticación, dashboard ni importador (existen en otros sistemas)."],
+  ["v0.3.0","2026-10-29","Módulos actuales: Carpetas (bandejas, cajas, importador Excel, anuladas, integridad, estadísticas), Solicitudes (F8 y Certificado / Oficio) y Peticiones de cambio de domicilio (Razor Pages, EWS). Autenticación Windows opcional (Seguridad:RequerirAutenticacion). Detalle en README.md."]
 ];
 const INFO = {
   U:"Funcionarios de las 3 sedes. En v0.2.0 el autor de cada cambio se ingresa como texto (sin login).",
   WEB:"Interfaz web (Blazor Server). Formularios con listas cerradas para estado y decisión.",
-  AUTH:"Fuera de este módulo: autenticación, usuarios y roles viven en otros sistemas.",
+  AUTH:"Autenticación Windows (Negotiate) opcional con Seguridad:RequerirAutenticacion (por defecto desactivada). Usuarios y roles propios viven en otros sistemas.",
   API:"Capa de aplicación: registrar carpeta, cambiar estado, editar, listar (búsqueda/filtros/paginado), obtener.",
   DOM:"Dominio: Carpeta, Ciudadano (RUT con dígito verificador), Sede, Estado (máquina de estados), Decisión, Historial. Reglas puras.",
   INF:"Infraestructura: EF Core + repositorios. Único lugar que conoce la base de datos.",
   DB:"SQLite por ahora (sgl.db local, no versionado). Proveedor configurable (Database:Provider = Sqlite|SqlServer); SQL Server requiere su propio set de migraciones.",
   AUD:"Historial por carpeta: fecha, autor (texto), campo, valor anterior y nuevo. Se escribe en cada cambio.",
-  IMP:"Importador Excel: pendiente, fuera de v0.2.0.",
+  IMP:"Importador Excel masivo (/importar) y agenda del día; también scripts/import_excel.py para la carga inicial.",
   DASH:"Dashboard: fuera de este módulo (existe en otro sistema).",
   XLS:"Excel histórico. NUNCA en el repositorio (datos personales)."
 };
