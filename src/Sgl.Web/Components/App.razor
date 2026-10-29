@@ -16,7 +16,7 @@
             try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); g = localStorage.getItem('sgl-design'); p = localStorage.getItem('sgl-palette'); } catch (e) { }
             if (t !== 'light' && t !== 'dark') t = 'light';
             d.setAttribute('data-theme', t);
-            d.setAttribute('data-rows', r === 'soft' ? 'soft' : 'classic');
+            d.setAttribute('data-rows', r === 'classic' ? 'classic' : 'soft');
             d.setAttribute('data-design', g === 'institucional' ? 'institucional' : 'claro');
             d.setAttribute('data-palette', ['inst', 'ocea', 'bosq', 'atar', 'viol', 'graf'].indexOf(p) >= 0 ? p : 'inst');
         })();

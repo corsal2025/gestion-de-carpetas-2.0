@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject NavigationManager Nav
@@ -34,10 +34,6 @@
         <button id="btn-guia-global" class="btn-guia-accion" type="button" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
             <span class="guia-avatar lico-slot" data-lico="explica" aria-hidden="true"></span>
             <span>Cómo usar el sistema</span>
-        </button>
-        <button class="head-lico" type="button" aria-label="Lico, tu asistente: abrir la guía de uso del sistema" title="Lico: abrir la guía de uso" onclick="document.getElementById('btn-guia-global').click()">
-            <span class="lico-slot" data-lico="saluda" aria-hidden="true"></span>
-            <span class="head-lico-burbuja" aria-hidden="true">¡Hola! Me llamo Lico</span>
         </button>
         <div class="pal-wrap">
         <button type="button" class="pal-toggle" id="btn-paleta" aria-expanded="false" aria-controls="pal-panel" aria-label="Elegir paleta de color" title="Elegir paleta de color"><i aria-hidden="true"></i></button>

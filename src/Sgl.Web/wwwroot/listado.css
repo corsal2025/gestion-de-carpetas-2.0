@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    LISTADO · Stage 3 of the UI redesign (Components/Pages/Carpetas/Listado.razor).
    Loaded LAST (after shell.css). Restyle only: header bar, sede/state chips,
    quick-add, bulk bars, table rows as soft cards, days pill, hero and the
@@ -37,10 +37,10 @@ html:not([data-design="institucional"]) .listado-hero {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 28px;
-    min-height: 72px;
-    max-height: 140px;
+    min-height: 48px;
+    max-height: 80px;
     margin: 0 0 8px;
-    padding: 10px 22px;
+    padding: 6px 16px;
     position: relative;
     overflow: hidden;
     background: var(--glass);
@@ -71,7 +71,7 @@ html:not([data-design="institucional"]) .listado-hero > * { position: relative; 
 }
 .listado-hero .hero-titulo {
     margin: 0;
-    font: 700 1.5rem/1.1 'Bricolage Grotesque', var(--font-ui);
+    font: 700 1.2rem/1.1 'Bricolage Grotesque', var(--font-ui);
     letter-spacing: -0.02em;
     color: var(--text-primary);
 }
@@ -79,7 +79,7 @@ html:not([data-design="institucional"]) .listado-hero > * { position: relative; 
 .listado-hero .hero-kpis { display: flex; align-items: center; gap: 22px; }
 .listado-hero .hero-kpi { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.1; }
 .listado-hero .hero-kpi-n {
-    font: 700 1.75rem/1 'Bricolage Grotesque', var(--font-ui);
+    font: 700 1.35rem/1 'Bricolage Grotesque', var(--font-ui);
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
     color: var(--text-primary);
@@ -138,16 +138,19 @@ html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-tabs-
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     border: 1px solid var(--glass-line);
-    border-radius: 22px;
+    border-radius: 16px;
     box-shadow: var(--glass-shadow);
-    gap: 10px 14px;
+    padding: 6px 12px;
+    gap: 8px 12px;
 }
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills {
     background: color-mix(in srgb, var(--surface) 70%, transparent);
     border: 1px solid var(--glass-line);
 }
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .sede-pills .pill {
-    min-height: 40px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--text-secondary);
     transition: background 0.15s, color 0.15s;
@@ -165,7 +168,9 @@ html:not([data-design="institucional"]) .listado-page .badge-count { font: 600 0
 
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-pdf-pill,
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters {
-    min-height: 40px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 0.82rem;
     border-radius: 999px;
 }
 html:not(#sgl):not([data-design="institucional"]) body .listado-page .btn-toggle-filters {

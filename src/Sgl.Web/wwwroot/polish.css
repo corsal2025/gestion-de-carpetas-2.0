@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    POLISH · Capa final de pulido visual (fase 3). Se carga después de modulos.css.
    Un solo lenguaje: grupos con color de etapa, tarjetas compactas, avisos contenidos,
    barra superior neutra con un único acento, movimiento mínimo y respeta
@@ -714,14 +714,14 @@ html body .data-table.data-table thead th:is(.th-check, .col-sticky-check) { whi
 html body .data-table.data-table :is(th, td).col-sticky-check { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
 /* NOMBRE: one line, as wide as the longest name up to 30rem (then an ellipsis; the full name is in the tooltip). Lupa sits right next to the pencil. */
 html body .data-table.data-table :is(th, td).col-sticky-nombre { text-align: left !important; }
-html body .data-table.data-table td.col-sticky-nombre { max-width: 34rem; }
-html body .data-table.data-table td.col-sticky-nombre .nombre-wrapper-cell { width: auto; max-width: 34rem; }
+html body .data-table.data-table td.col-sticky-nombre { max-width: 22rem; }
+html body .data-table.data-table td.col-sticky-nombre .nombre-wrapper-cell { width: auto; max-width: 22rem; }
 html body .data-table.data-table td.col-sticky-nombre .name-cell {
     white-space: nowrap !important;
     overflow-wrap: normal;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 30rem;
+    max-width: 19rem;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -763,14 +763,14 @@ html body .celda-una-linea {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-html body td.celda-trunca--nombre { max-width: 30rem; }
+html body td.celda-trunca--nombre { max-width: 19rem; }
 html body td.celda-trunca > .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 html body .integridad .dup-tabla td:nth-child(2).celda-trunca { min-width: 18rem; max-width: 24rem; }
 html body .data-table .name-cell,
 html body .table .nombre-persona,
 html body .data-table .nombre-persona {
     display: block;
-    max-width: 30rem;
+    max-width: 19rem;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -809,7 +809,7 @@ html body .dup-seccion-cab-fila { flex-wrap: nowrap; white-space: nowrap; }
 /* Printable acta table inside the box modal: single-line rows on screen only */
 @media screen {
     html body table.acta-table tbody td { white-space: nowrap; }
-    html body table.acta-table td.nom { max-width: 30rem; overflow: hidden; text-overflow: ellipsis; }
+    html body table.acta-table td.nom { max-width: 19rem; overflow: hidden; text-overflow: ellipsis; }
 }
 html body .table .barra-track { min-width: 6rem; }
 html body .table td form.d-flex { flex-wrap: nowrap; }
@@ -1016,12 +1016,12 @@ html body .est-grid .est-card table.est-tabla thead th { font-size: 0.68rem !imp
 
 /* Borde azul destacado alrededor de las tablas de bandeja. */
 html body .table-container {
-    border: 2px solid #1d4ed8 !important;
-    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+    border: 1px solid var(--border-color, #d9def0) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(27 33 80 / 0.06)) !important;
 }
 html[data-theme="dark"] body .table-container {
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+    border-color: var(--border-color, #2b3566) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.4)) !important;
 }
 
 /* Clase de licencia en la fila: círculo ajustado a la letra (antes 40px de alto). */
@@ -1036,8 +1036,8 @@ html:not(#sgl) body .listado-page .data-table tbody details.clase-rapida > summa
 
 /* Borde azul destacado en todas las cuadrículas: tarjetas, paneles y tablas sueltas (mismo estilo que .table-container). */
 html body :is(.card, .est-card, .table-responsive, .panel-card, .est-kpi, .sol-panel, .kpi-card, .imp-box, .doc-table-card, .dup-card, .caja-queue-card) {
-    border: 2px solid #1d4ed8 !important;
-    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+    border: 1px solid var(--border-color, #d9def0) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(27 33 80 / 0.06)) !important;
 }
 html body table:is(.data-table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-barras, .table):not(:is(.table-container, .card, .est-card, .table-responsive, .panel-card) table) {
     outline: 2px solid #1d4ed8;
@@ -1045,8 +1045,8 @@ html body table:is(.data-table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .
     box-shadow: 0 0 0 5px rgb(29 78 216 / 0.15);
 }
 html[data-theme="dark"] body :is(.card, .est-card, .table-responsive, .panel-card, .est-kpi, .sol-panel, .kpi-card, .imp-box, .doc-table-card, .dup-card, .caja-queue-card) {
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+    border-color: var(--border-color, #2b3566) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.4)) !important;
 }
 html[data-theme="dark"] body table:is(.data-table, .dup-tabla, .dup-revision-tabla, .aviso-tabla, .dup-carpetas, .est-barras, .table):not(:is(.table-container, .card, .est-card, .table-responsive, .panel-card) table) {
     outline-color: #60a5fa;
@@ -1064,12 +1064,12 @@ html body .modulos-sidebar .sidebar-cabecera .sidebar-plegar { position: absolut
 
 /* Borde azul destacado en el menú lateral de módulos. */
 html body :is(.modulos-sidebar, header.topbar, .listado-hero, .modulo-hero, .page-hero) {
-    border: 2px solid #1d4ed8 !important;
-    box-shadow: 0 0 0 3px rgb(29 78 216 / 0.15) !important;
+    border: 1px solid var(--border-color, #d9def0) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(27 33 80 / 0.06)) !important;
 }
 html[data-theme="dark"] body :is(.modulos-sidebar, header.topbar, .listado-hero, .modulo-hero, .page-hero) {
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2) !important;
+    border-color: var(--border-color, #2b3566) !important;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.4)) !important;
 }
 
 /* Licencias para clasificar: la tabla cabe en una pantalla sin scroll horizontal. */

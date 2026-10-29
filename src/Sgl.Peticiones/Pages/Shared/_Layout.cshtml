@@ -1,4 +1,4 @@
-@inject PeticionCambioDomicilio.AppOptions Options
+﻿@inject PeticionCambioDomicilio.AppOptions Options
 @inject PeticionCambioDomicilio.Ews.IMailSender Mail
 @inject Sgl.Peticiones.IMenuSistema Menu
 @* Marco del sistema (Gestión de Carpetas 2.0): mismo encabezado, menú lateral y tema que el resto de los módulos. *@
@@ -19,7 +19,7 @@
             try { t = localStorage.getItem('sgl-theme'); r = localStorage.getItem('sgl-rows'); g = localStorage.getItem('sgl-design'); p = localStorage.getItem('sgl-palette'); } catch (e) { }
             if (t !== 'light' && t !== 'dark') t = 'light';
             d.setAttribute('data-theme', t);
-            d.setAttribute('data-rows', r === 'soft' ? 'soft' : 'classic');
+            d.setAttribute('data-rows', r === 'classic' ? 'classic' : 'soft');
             d.setAttribute('data-design', g === 'institucional' ? 'institucional' : 'claro');
             d.setAttribute('data-palette', ['inst', 'ocea', 'bosq', 'atar', 'viol', 'graf'].indexOf(p) >= 0 ? p : 'inst');
         })();
