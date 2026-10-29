@@ -1,3 +1,15 @@
+"""Carga INICIAL / de emergencia del Excel DETALLE CARPETAS a una base SQLite del sistema.
+
+ATENCIÓN: borra Carpetas, Ciudadanos e HistorialCambios de la base indicada antes de insertar.
+No es el flujo normal (para eso está Importar en la aplicación). Por eso:
+  - la ruta del Excel y de la base son argumentos obligatorios (no hay valores por defecto),
+  - exige --force,
+  - hace una copia consistente de la base antes de tocarla.
+
+Uso:
+  python scripts/import_excel.py "C:/ruta/DETALLE CARPETAS.xlsx" "C:/ruta/sgl.db" --force
+"""
+import argparse
 import os
 import re
 import sys
@@ -7,8 +19,6 @@ import unicodedata
 import datetime
 import openpyxl
 
-EXCEL_PATH = r"C:\Users\raul.salazar\Desktop\GESTION DE LICENCIAS\DETALLE CARPETAS DEPTO. LICENCIAS DE CONDUCIR 2026.xlsx"
-DB_PATH = r"src\Sgl.Web\sgl.db"
 
 def normalize_text_for_search(text: str) -> str:
     decomposed = unicodedata.normalize('NFD', text.strip())
@@ -43,7 +53,8 @@ def normalize_rut(raw_val) -> str | None:
     expected_dv = compute_check_digit(body)
     return f"{body}-{expected_dv}"
 
-def parse_date(raw_val, default_date: str = "2026-01-02") -> str | None:
+def parse_date(raw_val) -> str | None:
+    """Fecha ISO o None si no se puede leer. Nunca inventa una fecha por defecto."""
     if not raw_val:
         return None
     if isinstance(raw_val, (datetime.datetime, datetime.date)):
@@ -56,7 +67,7 @@ def parse_date(raw_val, default_date: str = "2026-01-02") -> str | None:
             return datetime.datetime.strptime(s, fmt).strftime("%Y-%m-%d")
         except ValueError:
             pass
-    return default_date
+    return None
 
 def map_estado_and_tramite(col_estado, col_decision):
     estado_raw = str(col_estado).strip().upper() if col_estado else ""
@@ -126,16 +137,42 @@ def map_estado_and_tramite(col_estado, col_decision):
 
     return estado, decision, tipo_tramite
 
+def respaldar(db_path: str) -> str:
+    """Copia consistente de la base (API de backup de SQLite) junto al original."""
+    destino = f"{db_path}.backup-{datetime.datetime.now():%Y%m%d-%H%M%S}-preimport"
+    origen = sqlite3.connect(db_path)
+    copia = sqlite3.connect(destino)
+    try:
+        origen.backup(copia)
+    finally:
+        copia.close()
+        origen.close()
+    return destino
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Carga inicial del Excel DETALLE CARPETAS (BORRA las tablas de carpetas).")
+    ap.add_argument("excel", help="Ruta del libro .xlsx")
+    ap.add_argument("db", help="Ruta de la base SQLite (sgl.db) a reemplazar")
+    ap.add_argument("--force", action="store_true", help="Confirma que se borrarán Carpetas, Ciudadanos e HistorialCambios")
+    return ap.parse_args()
+
+
 def main():
-    if not os.path.exists(EXCEL_PATH):
-        print(f"Error: no se encuentra el Excel en {EXCEL_PATH}")
+    args = parse_args()
+    excel_path, db_path = args.excel, args.db
+    if not args.force:
+        print("Error: esta carga BORRA Carpetas, Ciudadanos e HistorialCambios. Repita el comando con --force.")
+        sys.exit(2)
+    if not os.path.exists(excel_path):
+        print(f"Error: no se encuentra el Excel en {excel_path}")
         sys.exit(1)
-    if not os.path.exists(DB_PATH):
-        print(f"Error: no se encuentra la base de datos SQLite en {DB_PATH}")
+    if not os.path.exists(db_path):
+        print(f"Error: no se encuentra la base de datos SQLite en {db_path}")
         sys.exit(1)
 
-    print(f"Abriendo libro Excel: {EXCEL_PATH} ...")
-    wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
+    print(f"Abriendo libro Excel: {excel_path} ...")
+    wb = openpyxl.load_workbook(excel_path, data_only=True)
 
     sheet_names = [
         s for s in wb.sheetnames 
@@ -148,6 +185,7 @@ def main():
     ciudadanos_map = {}  # rut -> dict con datos de Ciudadano
     carpetas_list = []
     historial_list = []
+    sin_citacion = 0
 
     now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -208,7 +246,11 @@ def main():
                 cid = ciudadanos_map[rut]["Id"]
 
             # Fechas y Comuna
-            fecha_citacion = parse_date(r[0] if len(r) > 0 else None, "2026-01-02") or "2026-01-02"
+            fecha_citacion = parse_date(r[0] if len(r) > 0 else None)
+            if fecha_citacion is None:
+                # Sin citación legible no se inventa una fecha: la fila se omite y se cuenta.
+                sin_citacion += 1
+                continue
             fecha_subida = parse_date(r[1] if len(r) > 1 else None)
             
             raw_ult_carp = r[2] if len(r) > 2 and r[2] is not None else None
@@ -277,9 +319,13 @@ def main():
 
     print(f"\nTotal ciudadanos únicos: {len(ciudadanos_map)}")
     print(f"Total carpetas a insertar: {len(carpetas_list)}")
+    if sin_citacion:
+        print(f"Filas omitidas por no tener fecha de citación legible: {sin_citacion}")
 
     # Conectar a SQLite e insertar
-    con = sqlite3.connect(DB_PATH)
+    copia = respaldar(db_path)
+    print(f"Respaldo previo creado: {copia}")
+    con = sqlite3.connect(db_path)
     try:
         cur = con.cursor()
         cur.execute("PRAGMA foreign_keys = OFF;")

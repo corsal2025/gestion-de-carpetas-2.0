@@ -44,13 +44,27 @@ public sealed class TestDb : IDisposable
         return new(new CarpetaRepository(ctx), new CertificadoRepository(ctx), new FirmantesRepository(ctx), Clock, notificador);
     }
 
-    public FirmantesService NewFirmantesService() => new(new FirmantesRepository(NewContext()));
+    public FirmantesService NewFirmantesService() => new(new FirmantesRepository(NewContext()), Clock);
 
     public DuplicadosService NewDuplicadosService() => new(new DuplicadoRepository(NewContext()), Clock);
 
     public void AdvanceClock(TimeSpan delta) => Clock.Advance(delta);
 
+    /// <summary>Service over the given context, sharing the given gate with the other services of the same circuit.</summary>
+    public CarpetaService NewServiceCompartido(SglDbContext ctx, UnidadDeTrabajoGate gate) =>
+        new(new CarpetaRepository(ctx), Clock, solicitudesF8: new SolicitudF8Repository(ctx), certificados: new CertificadoRepository(ctx), gate: gate);
+
     public void Dispose() => _connection.Dispose();
+}
+
+public static class CarpetaServiceTestExtensions
+{
+    /// <summary>Sets the license classes through the detail edit (the only production path that changes them).</summary>
+    public static async Task AsignarClasesAsync(this CarpetaService svc, Guid id, Sgl.Domain.ClaseLicencia clases, string autor)
+    {
+        var d = await svc.ObtenerAsync(id);
+        await svc.EditarAsync(new EditarCarpetaCommand(id, d.Sede, d.FechaCitacion, d.FechaSubida, d.IdoneidadMoral, autor, Clases: clases));
+    }
 }
 
 public sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

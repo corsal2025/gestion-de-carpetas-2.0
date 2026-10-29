@@ -6,6 +6,7 @@ using PeticionCambioDomicilio.Data;
 using PeticionCambioDomicilio.Domain;
 using PeticionCambioDomicilio.Excel;
 using PeticionCambioDomicilio.Ews;
+using Microsoft.Extensions.Logging;
 
 namespace PeticionCambioDomicilio.Pages;
 
@@ -20,6 +21,7 @@ public sealed class IndexModel : PageModel
     private readonly ComunaDirectory _directory;
     private readonly IMailSender _mail;
     private readonly AppOptions _options;
+    private readonly ILogger<IndexModel> _logger;
 
     public IndexModel(
         PeticionRepository repository,
@@ -27,8 +29,10 @@ public sealed class IndexModel : PageModel
         PeticionSender sender,
         ComunaDirectory directory,
         IMailSender mail,
-        AppOptions options)
+        AppOptions options,
+        ILogger<IndexModel> logger)
     {
+        _logger = logger;
         _repository = repository;
         _importer = importer;
         _sender = sender;
@@ -110,7 +114,13 @@ public sealed class IndexModel : PageModel
             return RedirectToPage();
         }
 
-        _repository.Backup("import");
+        // La importación puede dar de baja peticiones: sin respaldo previo no se arriesga.
+        if (_repository.Backup("import") is null)
+        {
+            TempData["Flash"] = "No se pudo crear el respaldo previo; la importación se canceló para no arriesgar datos. " +
+                                "Revisá el espacio y los permisos de la carpeta de respaldo.";
+            return RedirectToPage();
+        }
 
         try
         {
@@ -125,6 +135,11 @@ public sealed class IndexModel : PageModel
                       $"Actualizadas: {result.Duplicadas} · Carpetas sincronizadas: {result.CarpetasSincronizadas} · " +
                       $"Quitadas (ya no están en el Excel): {result.Obsoletas} · " +
                       $"RUT inválidos: {result.RutInvalidos} · Comuna no reconocida: {result.ComunaNoReconocida}";
+            if (result.HojasOmitidas > 0)
+            {
+                msg += $" · Hojas omitidas: {result.HojasOmitidas} (no se pudieron leer; no se quitó ninguna petición obsoleta)";
+            }
+
             if (result.Avisos.Count > 0)
             {
                 msg += $" · Avisos ({result.Avisos.Count}): " + string.Join(" | ", result.Avisos.Take(8));
@@ -132,13 +147,17 @@ public sealed class IndexModel : PageModel
 
             TempData["Flash"] = msg;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            TempData["Flash"] = $"Error leyendo el Excel: {ex.Message}";
+            _logger.LogError(ex, "Error al importar el Excel de peticiones.");
+            TempData["Flash"] = ExcelNoLegible;
         }
 
         return RedirectToPage();
     }
+
+    private const string ExcelNoLegible =
+        "No se pudo leer el Excel. Revise que sea un .xlsx válido, que no esté abierto en otro programa y que la ruta sea correcta.";
 
     /// <summary>Envía en UN correo todas las pendientes de la comuna de esa fila.</summary>
     public async Task<IActionResult> OnPostEnviarComuna(long id)
@@ -151,7 +170,9 @@ public sealed class IndexModel : PageModel
         }
 
         var result = await _sender.SendComunaAsync(p.Comuna, HttpContext.RequestAborted);
-        TempData["Flash"] = result.Mensaje;
+        TempData["Flash"] = result.EsPrueba
+            ? "MODO PRUEBA: nada llegó a la comuna y las peticiones siguen pendientes. " + result.Mensaje
+            : result.Mensaje;
         return RedirectToPage();
     }
 
@@ -179,7 +200,7 @@ public sealed class IndexModel : PageModel
             .OrderBy(c => c, StringComparer.CurrentCulture)
             .ToList();
 
-        int correos = 0, personas = 0, sinCorreo = 0, conError = 0;
+        int correos = 0, personas = 0, sinCorreo = 0, conError = 0, enCurso = 0, pruebas = 0;
         var primera = true;
         foreach (var comuna in comunas)
         {
@@ -190,8 +211,18 @@ public sealed class IndexModel : PageModel
 
             primera = false;
             var result = await _sender.SendComunaAsync(comuna, HttpContext.RequestAborted, ids);
+            if (result.EsPrueba)
+            {
+                // Modo prueba: el correo salió a la casilla de prueba y ninguna petición cambió de estado.
+                if (result.Estado == EstadoPeticion.Error) conError++; else pruebas++;
+                continue;
+            }
+
             switch (result.Estado)
             {
+                case EstadoPeticion.Enviando:
+                    enCurso++;
+                    break;
                 case EstadoPeticion.Enviada:
                     correos++;
                     personas += result.Personas;
@@ -205,8 +236,11 @@ public sealed class IndexModel : PageModel
             }
         }
 
-        TempData["Flash"] = $"Marcadas enviadas — Correos: {correos} ({personas} persona/s) · " +
-                            $"Comunas sin correo: {sinCorreo} · Con error: {conError}.";
+        var resumen = $"Marcadas enviadas — Correos: {correos} ({personas} persona/s) · " +
+                      $"Comunas sin correo: {sinCorreo} · Con error: {conError}";
+        if (enCurso > 0) resumen += $" · Ya se estaban enviando: {enCurso} comuna(s)";
+        if (pruebas > 0) resumen += $" · MODO PRUEBA: {pruebas} comuna(s) enviadas solo a la casilla de prueba, siguen pendientes";
+        TempData["Flash"] = resumen + ".";
         return RedirectToPage();
     }
 
@@ -227,10 +261,24 @@ public sealed class IndexModel : PageModel
             return RedirectToPage();
         }
 
+        if (!_options.DestinatarioPermitido(destinatario))
+        {
+            _logger.LogWarning("Reenvío rechazado: destinatario fuera de los dominios permitidos ({Usuario}).", Usuario);
+            TempData["Flash"] = "Ese correo no pertenece a un dominio permitido para reenviar (Peticion:DominiosPermitidos).";
+            return RedirectToPage();
+        }
+
         var result = await _sender.ReenviarAsync(ids, destinatario, HttpContext.RequestAborted);
+        _logger.LogInformation("Reenvío de {Cantidad} petición(es) a un destinatario del dominio {Dominio} por {Usuario}: {Resultado}.",
+            ids.Count, DominioDe(destinatario), Usuario, result.Estado);
         TempData["Flash"] = result.Mensaje;
         return RedirectToPage();
     }
+
+    private string Usuario => User?.Identity?.Name ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocido";
+
+    private static string DominioDe(string correo) =>
+        System.Net.Mail.MailAddress.TryCreate(correo?.Trim(), out var a) ? a.Host : "?";
 
     /// <summary>
     /// Marca como enviadas las peticiones marcadas sin disparar correo externo a la comuna.
@@ -296,9 +344,10 @@ public sealed class IndexModel : PageModel
                 ? $"{n} carpeta(s) actualizada(s) desde el Excel."
                 : "Ninguna carpeta cambió — en el Excel están igual o menos avanzadas que acá.";
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            TempData["Flash"] = $"Error leyendo el Excel: {ex.Message}";
+            _logger.LogError(ex, "Error al actualizar carpetas desde el Excel de peticiones.");
+            TempData["Flash"] = ExcelNoLegible;
         }
 
         return RedirectToPage();

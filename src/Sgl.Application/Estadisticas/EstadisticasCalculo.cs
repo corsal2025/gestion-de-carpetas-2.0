@@ -210,7 +210,7 @@ public static class EstadisticasCalculo
         var lista = movimientos.ToList();
         var porMes = lista
             .Where(m => EsCajaReal(m.Nuevo))
-            .GroupBy(m => (m.Fecha.Year, m.Fecha.Month))
+            .GroupBy(m => (HoraChile.ALocal(m.Fecha).Year, HoraChile.ALocal(m.Fecha).Month))
             .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
             .Select(g => new ArchivoMesDto(
                 g.Key.Year,

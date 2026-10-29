@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace PeticionCambioDomicilio.Excel;
@@ -37,6 +38,44 @@ public static class WorkbookSanitizer
         }
     }
 
+    /// <summary>Tope de lo que puede ocupar un .xlsx ya descomprimido (un libro real pesa unos pocos MB).</summary>
+    public const long MaxBytesDescomprimidos = 200L * 1024 * 1024;
+
+    /// <summary>
+    /// Comprueba, antes de abrir el libro con ClosedXML, que sea un .xlsx (zip con firma "PK") y que no
+    /// descomprima a más de <paramref name="maxBytesDescomprimidos"/> (zip bomb). Lanza <see cref="InvalidDataException"/>.
+    /// </summary>
+    public static void ValidarArchivo(string path, long maxBytesDescomprimidos = MaxBytesDescomprimidos)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        ValidarStream(stream, maxBytesDescomprimidos);
+    }
+
+    /// <summary>Igual que <see cref="ValidarArchivo"/> sobre un stream con búsqueda; lo deja en la posición 0.</summary>
+    public static void ValidarStream(Stream stream, long maxBytesDescomprimidos = MaxBytesDescomprimidos)
+    {
+        stream.Position = 0;
+        Span<byte> firma = stackalloc byte[2];
+        if (stream.Read(firma) < 2 || firma[0] != (byte)'P' || firma[1] != (byte)'K')
+        {
+            throw new InvalidDataException("El archivo no es un Excel válido (.xlsx).");
+        }
+
+        stream.Position = 0;
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+        long total = 0;
+        foreach (var entrada in zip.Entries)
+        {
+            total += entrada.Length;
+            if (total > maxBytesDescomprimidos)
+            {
+                throw new InvalidDataException("El archivo Excel ocupa demasiado al descomprimirse; no se abrirá.");
+            }
+        }
+
+        stream.Position = 0;
+    }
+
     /// <summary>Quita los nodos dataValidation de un .xlsx ya existente (in situ).</summary>
     public static void StripDataValidationsInPlace(string xlsxPath)
     {
@@ -52,8 +91,9 @@ public static class WorkbookSanitizer
 
             XDocument document;
             using (var reader = entry.Open())
+            using (var xml = XmlReader.Create(reader, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null }))
             {
-                document = XDocument.Load(reader);
+                document = XDocument.Load(xml);
             }
 
             var validations = document.Descendants()

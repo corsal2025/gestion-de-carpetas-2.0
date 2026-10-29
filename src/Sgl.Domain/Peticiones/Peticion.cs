@@ -5,7 +5,9 @@ public enum EstadoPeticion
     Borrador,
     Enviada,
     SinCorreoComuna,
-    Error
+    Error,
+    /// <summary>Reservada por un envío en curso (evita el doble envío). Solo existe durante el envío.</summary>
+    Enviando
 }
 
 /// <summary>
@@ -51,7 +53,7 @@ public sealed class Peticion
 
     public EstadoPeticion Estado { get; set; } = EstadoPeticion.Borrador;
     public string? DetalleEstado { get; set; }
-    public DateTimeOffset CreadaEn { get; set; } = DateTimeOffset.Now;
+    public DateTimeOffset CreadaEn { get; set; } = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Sgl.Domain.HoraChile.Zona);
     public DateTimeOffset? EnviadaEn { get; set; }
 
     /// <summary>Direcciones a las que se envió (coma-separadas), para mostrar en la lista.</summary>

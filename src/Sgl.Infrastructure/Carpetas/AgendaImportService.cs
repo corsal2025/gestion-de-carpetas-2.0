@@ -41,6 +41,7 @@ public sealed class AgendaImportService(
         ArgumentNullException.ThrowIfNull(stream);
         try
         {
+            PeticionCambioDomicilio.Excel.WorkbookSanitizer.ValidarStream(stream);
             using var wb = new XLWorkbook(stream);
             return wb.Worksheets.Count > 0 && DetectarColumnas(wb.Worksheet(1), out _, out _);
         }

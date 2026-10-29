@@ -96,7 +96,15 @@ public sealed class IntegridadService(IIntegridadRepository repositorio, TimePro
         {
             // The failure is recorded (type only, never data) so the home banner cannot claim "all clear".
             var corrida = new IntegridadCorrida(fecha, origen, 0, true, (int)reloj.ElapsedMilliseconds, $"Error: {ex.GetType().Name}");
-            await repositorio.GuardarCorridaAsync(corrida, CancellationToken.None);
+            try
+            {
+                await repositorio.GuardarCorridaAsync(corrida, CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                // Recording the failure must never hide the original exception (e.g. the database itself is down).
+            }
+
             throw;
         }
     }

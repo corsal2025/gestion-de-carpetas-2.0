@@ -549,3 +549,12 @@ html:not(#sgl):not([data-design="institucional"]) body .topbar .user-block .auto
 .busq-global-rut { font-size: 0.8rem; color: var(--text-secondary); text-align: right; }
 .busq-global-bandeja { grid-column: 1 / -1; font-size: 0.76rem; color: var(--text-muted); }
 @media (max-width: 640px) { .busq-global-input { width: 9rem; } }
+
+/* Moviles (<= 760px): las herramientas del topbar (tema, Estadisticas, guia) pasan a otra linea en vez de quedar recortadas,
+   y la navegacion se desplaza horizontalmente dentro de su propia fila. */
+@media (max-width: 760px) {
+    html .topbar { max-width: 100%; box-sizing: border-box; }
+    html .topbar .topbar-tools { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; max-width: 100%; min-width: 0; margin-left: 0; gap: 6px; }
+    html .topbar .main-nav { flex: 1 1 100%; max-width: 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: thin; }
+    html .topbar .main-nav > * { flex: 0 0 auto; white-space: nowrap; }
+}

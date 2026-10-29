@@ -24,8 +24,9 @@ public sealed class SincronizarCorreoCambioDomicilioTests : IDisposable
             _db.Clock);
     }
 
-    private static CorreoEntrante Correo(string id, string cuerpo, string asunto = "Solicitud carpeta", string remitente = Remitente) =>
-        new(id, asunto, remitente, cuerpo, new DateTimeOffset(2026, 5, 2, 15, 0, 0, TimeSpan.Zero));
+    private static CorreoEntrante Correo(
+        string id, string cuerpo, string asunto = "Solicitud carpeta", string remitente = Remitente, DateTimeOffset? recibido = null) =>
+        new(id, asunto, remitente, cuerpo, recibido ?? new DateTimeOffset(2026, 5, 2, 15, 0, 0, TimeSpan.Zero));
 
     private List<Carpeta> Carpetas()
     {
@@ -180,11 +181,29 @@ public sealed class SincronizarCorreoCambioDomicilioTests : IDisposable
         await NewCaso().EjecutarAsync();
 
         _correo.Carpetas[_opciones.CarpetaParaPedir] = [];
-        _correo.Carpetas[_opciones.CarpetaYaSubidas] = [Correo("<respuesta@x>", "Carpeta subida: RUT 18.785.387-7")];
+        // The reply arrives after the carpeta was registered (clock: 2026-05-04 10:00 UTC).
+        _correo.Carpetas[_opciones.CarpetaYaSubidas] =
+            [Correo("<respuesta@x>", "Carpeta subida: RUT 18.785.387-7", recibido: new DateTimeOffset(2026, 5, 4, 12, 0, 0, TimeSpan.Zero))];
         var r = await NewCaso().EjecutarAsync();
 
         Assert.Equal(1, r.MovidasASubidas);
         Assert.Equal(EstadoCarpeta.CambioDomSubidoCorreo, Assert.Single(Carpetas()).Estado);
+    }
+
+    [Fact]
+    public async Task YaSubidas_UnCorreoViejoPorRut_NoCierraUnaCarpetaRegistradaDespues()
+    {
+        _correo.Carpetas[_opciones.CarpetaParaPedir] = [Correo("<a@x>", "PEDRO SOTO LARA RUN 18785387-7")];
+        await NewCaso().EjecutarAsync();
+
+        // Another message (not the one that created the carpeta) from before the carpeta existed names the same RUT.
+        _correo.Carpetas[_opciones.CarpetaParaPedir] = [];
+        _correo.Carpetas[_opciones.CarpetaYaSubidas] =
+            [Correo("<viejo@x>", "Carpeta subida: RUT 18.785.387-7", recibido: new DateTimeOffset(2026, 5, 3, 12, 0, 0, TimeSpan.Zero))];
+        var r = await NewCaso().EjecutarAsync();
+
+        Assert.Equal(0, r.MovidasASubidas);
+        Assert.Equal(EstadoCarpeta.CambioDomicilio, Assert.Single(Carpetas()).Estado);
     }
 
     [Fact]
@@ -207,7 +226,8 @@ public sealed class SincronizarCorreoCambioDomicilioTests : IDisposable
         var r = await NewCaso().EjecutarAsync();
 
         Assert.True(r.Configurado);
-        Assert.StartsWith("No se pudo leer el correo", r.Error);
+        Assert.Equal(SincronizarCorreoCambioDomicilio.ErrorGenerico, r.Error);
+        Assert.DoesNotContain("sin red", r.Error);
     }
 
     public void Dispose() => _db.Dispose();

@@ -66,12 +66,12 @@ public class CarpetaTests
         var carpeta = CarpetaFactory.New();
         var before = carpeta.Historial.Count;
 
-        carpeta.Editar(Sede.AvArgentina, new DateOnly(2026, 3, 10), new DateOnly(2026, 3, 15), "Favorable", "ana", CarpetaFactory.Now);
+        carpeta.Editar(Sede.AvArgentina, new DateOnly(2026, 3, 10), new DateOnly(2026, 3, 10), "Favorable", "ana", CarpetaFactory.Now);
 
         Assert.Equal(before + 2, carpeta.Historial.Count);
-        Assert.Contains(carpeta.Historial, h => h.Campo == "FechaSubida" && h.Anterior == null && h.Nuevo == "2026-03-15");
+        Assert.Contains(carpeta.Historial, h => h.Campo == "FechaSubida" && h.Anterior == null && h.Nuevo == "2026-03-10");
         Assert.Contains(carpeta.Historial, h => h.Campo == "IdoneidadMoral" && h.Nuevo == "Favorable");
-        Assert.Equal(new DateOnly(2026, 3, 15), carpeta.FechaSubida);
+        Assert.Equal(new DateOnly(2026, 3, 10), carpeta.FechaSubida);
     }
 
     [Fact]

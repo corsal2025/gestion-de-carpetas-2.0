@@ -2,6 +2,8 @@
 @layout ModuloLayout
 @using Sgl.Application.Solicitudes
 @inject FirmantesService FirmantesSvc
+@inject AutorState Autor
+@inject ILogger<FirmantesConfig> Logger
 
 <PageTitle>@TituloPagina.De("Firmantes")</PageTitle>
 
@@ -124,13 +126,13 @@
         try
         {
             var guardado = await FirmantesSvc.GuardarAsync(
-                new Firmantes(directorNombre, directorCargo, directorCorreo, secretariaNombre, secretariaCargo));
+                new Firmantes(directorNombre, directorCargo, directorCorreo, secretariaNombre, secretariaCargo), Autor.Nombre);
             Aplicar(guardado);
             mensaje = "Firmantes guardados.";
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            error = ex.Message;
+            error = ErroresUi.Mensaje(ex, Logger, "Error al guardar los firmantes");
         }
         finally
         {

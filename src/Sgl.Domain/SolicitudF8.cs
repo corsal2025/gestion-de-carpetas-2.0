@@ -10,6 +10,9 @@ public enum EstadoSolicitudF8
 
     /// <summary>The F8 could not be generated; the carpeta moved to Crear certificado and a certificate was opened.</summary>
     NoSeGenero = 3,
+
+    /// <summary>The request no longer applies (the carpeta left the states an F8 makes sense in, or the move that opened it was undone).</summary>
+    Cancelada = 4,
 }
 
 /// <summary>
@@ -87,6 +90,10 @@ public sealed class SolicitudF8
     public void MarcarNoSeGenero(string autor, DateTime now, string? observacion = null) =>
         Resolver(EstadoSolicitudF8.NoSeGenero, autor, now, observacion);
 
+    /// <summary>Closes the request without any effect on the carpeta (obsolete request or undone move).</summary>
+    public void Cancelar(string autor, DateTime now, string? observacion = null) =>
+        Resolver(EstadoSolicitudF8.Cancelada, autor, now, observacion);
+
     private void Resolver(EstadoSolicitudF8 destino, string autor, DateTime now, string? observacion)
     {
         if (!EstaAbierta)
@@ -108,7 +115,7 @@ public sealed class SolicitudF8
 }
 
 /// <summary>Shared author validation for the request entities (same rule as the carpeta audit trail).</summary>
-internal static class Autores
+public static class Autores
 {
     public static string Requerir(string? autor)
     {

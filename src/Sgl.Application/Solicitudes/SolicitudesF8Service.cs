@@ -13,11 +13,14 @@ public sealed class SolicitudesF8Service(
     ICertificadoRepository certificados,
     IFirmantesRepository firmantes,
     TimeProvider clock,
-    INotificadorCertificado? notificador = null)
+    INotificadorCertificado? notificador = null,
+    UnidadDeTrabajoGate? gate = null)
 {
-    // Same rationale as CarpetaService: the circuit shares this service and its DbContext, so writes (and the discard
-    // on failure) are serialized.
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    // Same rationale as CarpetaService: the circuit shares one DbContext among its services, so every read and write
+    // (and the discard on failure) goes through the circuit's gate.
+    private readonly UnidadDeTrabajoGate _gate = gate ?? new UnidadDeTrabajoGate();
+
+    private const string ObservacionObsoleta = "La carpeta ya no estaba en un estado que requiera F8.";
 
     private readonly EnvioCertificadoDirector _envio = new(carpetas, certificados, firmantes, notificador, clock);
 
@@ -36,6 +39,7 @@ public sealed class SolicitudesF8Service(
             var resultado = await SolicitudF8Creacion.SolicitarAsync(solicitudes, carpeta.Id, carpeta.Estado, autor, Now, ct);
             if (resultado.Creada)
             {
+                carpeta.RegistrarEvento("F8", null, "Solicitado", autor, Now);
                 await carpetas.SaveChangesAsync(ct);
             }
             return resultado;
@@ -51,8 +55,12 @@ public sealed class SolicitudesF8Service(
         }
     }
 
-    /// <summary>The F8 was generated and uploaded: closes the request and sends the carpeta to SubidaConF8 (audited).</summary>
-    public async Task MarcarSubidoAsync(Guid solicitudId, string autor, string? observacion = null, CancellationToken ct = default)
+    /// <summary>
+    /// The F8 was generated and uploaded: closes the request and sends the carpeta to SubidaConF8 (audited). When the
+    /// carpeta already left the states an F8 applies to, the request is closed as obsolete and the carpeta is NOT moved.
+    /// </summary>
+    /// <returns>True when the carpeta was moved; false when the request was obsolete.</returns>
+    public async Task<bool> MarcarSubidoAsync(Guid solicitudId, string autor, string? observacion = null, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
@@ -61,9 +69,18 @@ public sealed class SolicitudesF8Service(
             var carpeta = await LoadActivaAsync(solicitud.CarpetaId, ct);
             RequireNoFinal(carpeta, "Subida con F8");
             var now = Now;
-            solicitud.MarcarSubido(autor, now, observacion);
-            carpeta.ForzarEstado(EstadoCarpeta.SubidaConF8, autor, now);
+            var vigente = SolicitudF8.PuedeSolicitarseDesde(carpeta.Estado);
+            if (vigente)
+            {
+                solicitud.MarcarSubido(autor, now, observacion);
+                carpeta.ForzarEstado(EstadoCarpeta.SubidaConF8, autor, now);
+            }
+            else
+            {
+                solicitud.Cancelar(autor, now, ObservacionObsoleta);
+            }
             await carpetas.SaveChangesAsync(ct);
+            return vigente;
         }
         catch
         {
@@ -123,8 +140,16 @@ public sealed class SolicitudesF8Service(
             var carpeta = await LoadActivaAsync(solicitud.CarpetaId, ct);
             RequireNoFinal(carpeta, "Crear certificado / oficio");
             var now = Now;
+            if (!SolicitudF8.PuedeSolicitarseDesde(carpeta.Estado))
+            {
+                solicitud.Cancelar(autor, now, ObservacionObsoleta);
+                await carpetas.SaveChangesAsync(ct);
+                return new NoSeGeneroResultado(Guid.Empty, false, false, null, Obsoleta: true);
+            }
+
             solicitud.MarcarNoSeGenero(autor, now, observacion);
             carpeta.ForzarEstado(EstadoCarpeta.CrearCertificado, autor, now);
+            carpeta.RegistrarEvento("F8", EstadoSolicitudF8.Solicitado.ToString(), EstadoSolicitudF8.NoSeGenero.ToString(), autor, now);
 
             var abierto = await certificados.GetAbiertoAsync(carpeta.Id, TipoCertificado.SinCarpeta, ct);
             yaExistia = abierto is not null;
@@ -161,14 +186,15 @@ public sealed class SolicitudesF8Service(
         ArgumentNullException.ThrowIfNull(query);
         var (rut, nombre) = TextoBusqueda.Parse(query.Texto);
         var (skip, take) = ListadoSolicitudes.Acotar(query.Skip, query.Take);
-        var (items, total) = await solicitudes.ListarAsync(new FiltroSolicitudesF8(query.Estado, rut, nombre, skip, take), ct);
+        var (items, total) = await _gate.LeerAsync(
+            () => solicitudes.ListarAsync(new FiltroSolicitudesF8(query.Estado, rut, nombre, skip, take), ct), ct);
         return new ListResult<SolicitudF8Dto>(items, total);
     }
 
     /// <summary>Requests per state for the menu badge; every state is present (zero when empty).</summary>
     public async Task<IReadOnlyDictionary<EstadoSolicitudF8, int>> ContarPorEstadoAsync(CancellationToken ct = default)
     {
-        var cuentas = await solicitudes.ContarPorEstadoAsync(ct);
+        var cuentas = await _gate.LeerAsync(() => solicitudes.ContarPorEstadoAsync(ct), ct);
         return Enum.GetValues<EstadoSolicitudF8>().ToDictionary(e => e, e => cuentas.GetValueOrDefault(e));
     }
 

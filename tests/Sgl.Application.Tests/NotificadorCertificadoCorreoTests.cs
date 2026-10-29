@@ -160,7 +160,7 @@ public sealed class NotificadorCertificadoCorreoTests : IDisposable
     [Fact]
     public async Task Through_the_service_a_real_send_sets_EnviadoADirectorEn()
     {
-        await _db.NewFirmantesService().GuardarAsync(Firma);
+        await _db.NewFirmantesService().GuardarAsync(Firma, "javiera");
         var carpeta = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
 
         var creado = await _db.NewCertificadosService(Crear()).CrearManualAsync(new CrearCertificadoManualCommand(
@@ -176,7 +176,7 @@ public sealed class NotificadorCertificadoCorreoTests : IDisposable
     [Fact]
     public async Task Through_the_service_a_failing_sender_keeps_the_request_with_a_generic_error()
     {
-        await _db.NewFirmantesService().GuardarAsync(Firma);
+        await _db.NewFirmantesService().GuardarAsync(Firma, "javiera");
         _mail.Falla = new InvalidOperationException("secreto del transporte");
         var carpeta = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
 

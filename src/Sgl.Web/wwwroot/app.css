@@ -4,7 +4,7 @@
     --surface-alt: #f1f5f9;
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #64748b;
+    --text-muted: #556178;
     --border-color: #e2e8f0;
     --border-hover: #cbd5e1;
     
@@ -452,9 +452,9 @@ body {
 }
 
 .search-input-wrapper input:focus {
-    outline: none;
+    outline: 2px solid var(--ring, #2563eb);
+    outline-offset: 1px;
     border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .btn-clear {
@@ -1141,9 +1141,9 @@ body {
 }
 
 .obs-textarea-input:focus {
-    outline: none;
+    outline: 2px solid var(--ring, #2563eb);
+    outline-offset: 1px;
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* ACTION CELL & CAJA BUTTONS */
@@ -1749,9 +1749,9 @@ body {
 }
 
 .input-rotulo:focus {
-    outline: none;
+    outline: 2px solid var(--ring, #2563eb);
+    outline-offset: 1px;
     border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* ACTA DE CAJA PARA IMPRESIÓN Y PDF (ESTILO OFICIAL MUNICIPALIDAD DE VALPARAÍSO) */
@@ -2006,7 +2006,7 @@ table.acta-table tfoot td {
 
 .acta-signs small {
     display: block;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin-top: 2px;
 }
 
@@ -2017,7 +2017,7 @@ table.acta-table tfoot td {
     display: flex;
     justify-content: space-between;
     font-size: 7.5pt;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .caja-empty {
@@ -2256,8 +2256,8 @@ table.acta-table tfoot td {
     background: #ffffff !important;
     color: #0f172a !important;
     border-color: #2563eb !important;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-    outline: none;
+    outline: 2px solid var(--ring, #2563eb);
+    outline-offset: 1px;
 }
 
 .btn-copy-rut {
@@ -2526,9 +2526,9 @@ table.acta-table tfoot td {
 .drawer-field input:focus,
 .drawer-field select:focus,
 .drawer-field textarea:focus {
-    outline: none;
+    outline: 2px solid var(--ring, #2563eb);
+    outline-offset: 1px;
     border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .drawer-audit-list {
@@ -3059,7 +3059,7 @@ table.cases.doc-table td:first-child {
     padding-top: 12px;
     border-top: 1px solid #e2e8f0;
     font-size: 0.74rem;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 /* ==========================================================================

@@ -78,19 +78,12 @@ public sealed class ComunaDirectory
                 return exact.Comuna;
             }
 
-            string? best = null;
-            var bestDistance = int.MaxValue;
-            foreach (var name in _byComuna.Select(g => g.Key).Distinct())
-            {
-                var d = Levenshtein(folded, name, 2);
-                if (d < bestDistance)
-                {
-                    bestDistance = d;
-                    best = _byComuna[name].First().Comuna;
-                }
-            }
-
-            return bestDistance <= 2 ? best : null;
+            // Un tipeo (1 edición) y solo si hay una única candidata: con 2 ediciones o con dos comunas
+            // igual de cerca se adivinaba la comuna equivocada y el correo salía a otra municipalidad.
+            var candidatas = _byComuna.Select(g => g.Key).Distinct()
+                .Where(name => Levenshtein(folded, name, 1) <= 1)
+                .ToList();
+            return candidatas.Count == 1 ? _byComuna[candidatas[0]].First().Comuna : null;
         }
     }
 
@@ -105,7 +98,7 @@ public sealed class ComunaDirectory
             return (false, "Nombre de comuna inválido.");
         }
 
-        if (!email.Contains('@') || email.Length < 5)
+        if (!CorreoValido(email))
         {
             return (false, "Correo inválido.");
         }
@@ -135,7 +128,7 @@ public sealed class ComunaDirectory
     public (bool Ok, string Mensaje) EditarCorreo(string comuna, string correoViejo, string correoNuevo)
     {
         correoNuevo = correoNuevo.Trim();
-        if (!correoNuevo.Contains('@') || correoNuevo.Length < 5)
+        if (!CorreoValido(correoNuevo))
         {
             return (false, "Correo inválido.");
         }
@@ -214,7 +207,7 @@ public sealed class ComunaDirectory
                 }
 
                 var folded = TextNormalization.Fold(muni);
-                if (folded is "municipio" or "" || !mail.Contains('@'))
+                if (folded is "municipio" or "" || !CorreoValido(mail))
                 {
                     continue;
                 }
@@ -279,8 +272,25 @@ public sealed class ComunaDirectory
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(_csvPath)!);
-        File.WriteAllText(_csvPath, sb.ToString(), new UTF8Encoding(true));
+
+        // Escritura atómica: un corte a mitad de File.WriteAllText dejaba el directorio truncado y sin correos.
+        var temporal = _csvPath + ".tmp";
+        File.WriteAllText(temporal, sb.ToString(), new UTF8Encoding(true));
+        if (File.Exists(_csvPath))
+        {
+            File.Replace(temporal, _csvPath, null);
+        }
+        else
+        {
+            File.Move(temporal, _csvPath);
+        }
     }
+
+    /// <summary>true si es una única dirección bien formada ("a@b.cl"), sin nombre visible ni listas.</summary>
+    internal static bool CorreoValido(string? correo) =>
+        !string.IsNullOrWhiteSpace(correo)
+        && System.Net.Mail.MailAddress.TryCreate(correo.Trim(), out var addr)
+        && addr.Address == correo.Trim();
 
     private static string Escape(string v) => v.Replace("\"", "\"\"");
 
@@ -302,7 +312,7 @@ public sealed class ComunaDirectory
             }
 
             var fields = SplitCsv(line);
-            if (fields.Count < 2 || !fields[1].Contains('@'))
+            if (fields.Count < 2 || !CorreoValido(fields[1]))
             {
                 continue;
             }

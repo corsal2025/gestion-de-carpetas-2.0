@@ -143,28 +143,6 @@ public sealed class ClaseLicenciaRegistroTests : IDisposable
     }
 
     [Fact]
-    public async Task VerificarDuplicado_classifies_open_carpetas()
-    {
-        await _db.NewService().RegistrarAsync(Cmd(ClaseLicencia.B, Sede.Placilla));
-        await _db.NewService().RegistrarAsync(Cmd(ClaseLicencia.A2, confirmar: true));
-
-        var v = await _db.NewService().VerificarDuplicadoAsync(RutA, ClaseLicencia.B);
-
-        Assert.True(v.Bloquea);
-        Assert.Single(v.Bloqueantes);
-        Assert.Single(v.Advertencias);
-    }
-
-    [Fact]
-    public async Task VerificarDuplicado_for_unknown_rut_is_empty()
-    {
-        var v = await _db.NewService().VerificarDuplicadoAsync(RutA, ClaseLicencia.B);
-
-        Assert.False(v.Bloquea);
-        Assert.False(v.RequiereConfirmacion);
-    }
-
-    [Fact]
     public async Task AsignarClases_persists_and_audits()
     {
         var id = await _db.NewService().RegistrarAsync(Cmd());

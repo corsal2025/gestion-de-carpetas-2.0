@@ -337,7 +337,7 @@
 @if (mostrarModalCaja && carpetaModal is not null)
 {
     <div class="modal-overlay" @onclick="CerrarModalCaja">
-        <div class="modal-card" @onclick:stopPropagation>
+        <div class="modal-card" @onclick:stopPropagation role="dialog" aria-modal="true" aria-label="Almacenamiento en caja física">
             <h3>📦 Almacenamiento en Caja Física</h3>
             <p>Carpeta: <strong class="nombre-persona">@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
             <div class="modal-form">
@@ -460,7 +460,9 @@
 
         carpetasCola = listaCombinada;
         filasCola = listaCombinada.Select((c, i) => new FilaCola(i + 1, c)).ToList();
-        totalSinCaja = resEnCola.Total + resSinCaja.Total;
+        // Una carpeta puede estar en "Cola de Caja" y a la vez sin caja: no se cuenta dos veces.
+        var repetidas = resEnCola.Items.Count + resSinCaja.Items.Count - listaCombinada.Count;
+        totalSinCaja = resEnCola.Total + resSinCaja.Total - repetidas;
 
         if (string.IsNullOrWhiteSpace(nuevoRotuloCaja))
         {

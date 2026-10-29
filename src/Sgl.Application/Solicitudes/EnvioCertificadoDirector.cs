@@ -22,7 +22,7 @@ internal sealed class EnvioCertificadoDirector(
 {
     public const string ErrorGenerico = "No se pudo enviar el correo al director.";
 
-    public async Task<EnvioCertificadoResultado> EnviarAsync(Guid certificadoId, SemaphoreSlim gate, CancellationToken ct)
+    public async Task<EnvioCertificadoResultado> EnviarAsync(Guid certificadoId, UnidadDeTrabajoGate gate, CancellationToken ct)
     {
         if (notificador is null)
         {
@@ -66,7 +66,7 @@ internal sealed class EnvioCertificadoDirector(
         }
     }
 
-    private async Task<NotificacionCertificado> CargarNotificacionAsync(Guid certificadoId, SemaphoreSlim gate, CancellationToken ct)
+    private async Task<NotificacionCertificado> CargarNotificacionAsync(Guid certificadoId, UnidadDeTrabajoGate gate, CancellationToken ct)
     {
         await gate.WaitAsync(ct);
         try

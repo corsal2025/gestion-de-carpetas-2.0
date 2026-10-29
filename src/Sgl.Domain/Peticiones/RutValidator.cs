@@ -6,7 +6,7 @@ namespace PeticionCambioDomicilio.Domain;
 /// Normaliza un RUT chileno (con o sin puntos, K en mayúscula o minúscula) a la forma
 /// canónica con puntos (ej. "18.785.387-7") y valida el dígito verificador.
 /// Devuelve null si la entrada no tiene forma de RUT o el dígito no calza.
-/// Copiado tal cual de LicenciasCarpetas/CambioDomicilio/Extraction/RutValidator.cs.
+/// El dígito verificador se calcula con <see cref="Sgl.Domain.Rut.ComputeCheckDigit"/> (una sola implementación).
 /// </summary>
 public static class RutValidator
 {
@@ -39,7 +39,7 @@ public static class RutValidator
             return null;
         }
 
-        if (ComputeCheckDigit(body) != checkDigit)
+        if (Sgl.Domain.Rut.ComputeCheckDigit(body) != checkDigit)
         {
             return null;
         }
@@ -50,25 +50,6 @@ public static class RutValidator
         }
 
         return Format(body, checkDigit);
-    }
-
-    private static char ComputeCheckDigit(string body)
-    {
-        var sum = 0;
-        var multiplier = 2;
-        for (var i = body.Length - 1; i >= 0; i--)
-        {
-            sum += (body[i] - '0') * multiplier;
-            multiplier = multiplier == 7 ? 2 : multiplier + 1;
-        }
-
-        var remainder = 11 - (sum % 11);
-        return remainder switch
-        {
-            11 => '0',
-            10 => 'K',
-            _ => (char)('0' + remainder)
-        };
     }
 
     private static string Format(string body, char checkDigit)

@@ -2,6 +2,7 @@
 @using System.ComponentModel.DataAnnotations
 @inject CarpetaService Carpetas
 @inject AutorState Autor
+@inject ILogger<Nueva> Logger
 @inject NavigationManager Nav
 @inject DuplicadosNotifier DuplicadosNotifier
 
@@ -86,9 +87,9 @@
         {
             duplicado = ex.Verificacion;
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            error = ex.Message;
+            error = ErroresUi.Mensaje(ex, Logger, "Error al crear la carpeta");
         }
         finally
         {

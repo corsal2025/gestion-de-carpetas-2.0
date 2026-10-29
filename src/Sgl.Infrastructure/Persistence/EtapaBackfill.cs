@@ -24,6 +24,12 @@ public static class EtapaBackfill
     /// <returns>Number of carpetas filled.</returns>
     public static async Task<int> EjecutarAsync(SglDbContext db, DateTime ahoraUtc, CancellationToken ct = default)
     {
+        // Every startup calls this: with nothing pending, skip the three aggregations over the whole audit trail.
+        if (await PendientesAsync(db, ct) == 0)
+        {
+            return 0;
+        }
+
         var estado = nameof(Carpeta.Estado);
         var decision = nameof(Carpeta.Decision);
 

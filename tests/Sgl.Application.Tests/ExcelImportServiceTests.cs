@@ -56,7 +56,7 @@ public sealed class ExcelImportServiceTests
         // Arrange
         using var db = new TestDb();
         var rows = Enumerable.Range(1, 25)
-            .Select(i => ("2026-01-15", (string?)null, $"{1000000 + i}-0"))
+            .Select(i => ("2026-01-15", (string?)null, ConDv(1000000 + i)))
             .Append(("2026-01-15", null, "11111111-1"))
             .ToArray();
         using var stream = BuildWorkbook(rows);
@@ -78,7 +78,7 @@ public sealed class ExcelImportServiceTests
         using var db = new TestDb();
         using var cts = new CancellationTokenSource();
         var rows = Enumerable.Range(1, 600)
-            .Select(i => ("2026-01-15", (string?)null, $"{2000000 + i}-0"))
+            .Select(i => ("2026-01-15", (string?)null, ConDv(2000000 + i)))
             .ToArray();
         using var stream = BuildWorkbook(rows);
         var options = new DbContextOptionsBuilder<SglDbContext>()
@@ -95,6 +95,9 @@ public sealed class ExcelImportServiceTests
         Assert.Equal(0, check.Carpetas.Count());
         Assert.Equal(0, check.Ciudadanos.Count());
     }
+
+    /// <summary>RUT con dígito verificador correcto (el importador ya no acepta DV erróneos).</summary>
+    private static string ConDv(int cuerpo) => $"{cuerpo}-{Sgl.Domain.Rut.ComputeCheckDigit(cuerpo.ToString())}";
 
     private static ExcelImportService NewServiceFailingOn(TestDb db, IEnumerable<string> rutBodies)
     {

@@ -115,7 +115,7 @@ public sealed partial class Carpeta
 
     /// <summary>The values a state change may alter, captured before it to be able to undo it.</summary>
     public PuntoRestauracionEstado PuntoRestauracion() =>
-        new(Estado, Decision, FechaSubida, FechaCierre, FechaEstadoActual, PendienteBusqueda, FechaImpresion);
+        new(Estado, Decision, FechaSubida, FechaCierre, FechaEstadoActual, PendienteBusqueda, FechaImpresion, FechaPeticion);
 
     /// <summary>
     /// Undoes a state change: returns the carpeta to <paramref name="punto"/> (state and every side effect of the
@@ -135,7 +135,6 @@ public sealed partial class Carpeta
         Audit(now, usuario, nameof(Estado), Estado.ToString(), punto.Estado.ToString());
         Estado = punto.Estado;
         FechaEstadoActual = punto.FechaEstadoActual;
-        LimpiarPeticionSiEntraACertificado(usuario, now);
 
         if (Decision != punto.Decision)
         {
@@ -161,6 +160,11 @@ public sealed partial class Carpeta
         {
             Audit(now, usuario, nameof(FechaImpresion), FormatImpresion(FechaImpresion), FormatImpresion(punto.FechaImpresion));
             FechaImpresion = punto.FechaImpresion;
+        }
+        if (FechaPeticion != punto.FechaPeticion)
+        {
+            Audit(now, usuario, nameof(FechaPeticion), FormatImpresion(FechaPeticion), FormatImpresion(punto.FechaPeticion));
+            FechaPeticion = punto.FechaPeticion;
         }
 
         Audit(now, usuario, "Deshacer", null, $"Estado revertido a {punto.Estado}");
@@ -219,4 +223,5 @@ public sealed record PuntoRestauracionEstado(
     DateOnly? FechaCierre,
     DateTime FechaEstadoActual,
     bool PendienteBusqueda,
-    DateTime? FechaImpresion);
+    DateTime? FechaImpresion,
+    DateTime? FechaPeticion = null);

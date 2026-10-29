@@ -87,6 +87,11 @@ public sealed partial class Carpeta
             throw new DomainException("No se puede reagendar una carpeta anulada.");
         }
 
+        if (FechaSubida is { } subida && subida < nuevaFecha)
+        {
+            throw new DomainException("La fecha de subida no puede ser anterior a la nueva fecha de citación.");
+        }
+
         var linea = string.Create(CultureInfo.InvariantCulture, $"Reagendada desde {FechaCitacion:dd-MM} a {nuevaFecha:dd-MM}");
         Audit(now, usuario, CampoReagendamiento, null, linea);
         if (nuevaFecha != FechaCitacion)

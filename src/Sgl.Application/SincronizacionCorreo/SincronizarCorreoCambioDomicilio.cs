@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
 
@@ -40,8 +41,15 @@ public sealed class SincronizarCorreoCambioDomicilio(
     ICarpetaRepository carpetas,
     ICorreoCambioDomicilioRepository correos,
     CorreoCambioDomicilioOptions opciones,
-    TimeProvider clock)
+    TimeProvider clock,
+    UnidadDeTrabajoGate? gate = null,
+    ILogger<SincronizarCorreoCambioDomicilio>? logger = null)
 {
+    private readonly UnidadDeTrabajoGate _gate = gate ?? new UnidadDeTrabajoGate();
+
+    /// <summary>Text shown to the user when the run fails (the cause goes to the log, never to the screen).</summary>
+    public const string ErrorGenerico = "No se pudo leer el correo.";
+
     /// <summary>Author recorded in the audit trail of every automatic change.</summary>
     public const string Autor = "Sistema · correo";
 
@@ -79,7 +87,18 @@ public sealed class SincronizarCorreoCambioDomicilio(
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not DomainException)
         {
-            return conteo.Resultado(Now, $"No se pudo leer el correo: {ex.Message}");
+            await _gate.WaitAsync(CancellationToken.None);
+            try
+            {
+                carpetas.DescartarCambios();
+            }
+            finally
+            {
+                _gate.Release();
+            }
+
+            logger?.LogError(ex, "Falló la sincronización del correo de cambio de domicilio.");
+            return conteo.Resultado(Now, ErrorGenerico);
         }
 
         return conteo.Resultado(Now, null);
@@ -97,6 +116,7 @@ public sealed class SincronizarCorreoCambioDomicilio(
         var comuna = comunas.ComunaDe(correo.Remitente);
         foreach (var (rut, nombre) in personas)
         {
+            await _gate.WaitAsync(ct);
             try
             {
                 await CrearSiNoExisteAsync(correo, rut, nombre, comuna, conteo, ct);
@@ -105,6 +125,10 @@ public sealed class SincronizarCorreoCambioDomicilio(
             {
                 carpetas.DescartarCambios();
                 conteo.Descartar(correo, $"RUT {rut.Formatted}: {ex.Message}");
+            }
+            finally
+            {
+                _gate.Release();
             }
         }
     }
@@ -149,36 +173,53 @@ public sealed class SincronizarCorreoCambioDomicilio(
         }
     }
 
+    /// <summary>
+    /// Moves to "subido por correo" the carpetas of that email: the ones linked to its Message-Id, plus the open ones of the
+    /// RUTs it names that were registered no later than the email arrived (an old email never closes a newer carpeta).
+    /// </summary>
     private async Task ProcesarSubidoAsync(CorreoEntrante correo, Conteo conteo, CancellationToken ct)
     {
-        var ids = new HashSet<Guid>(await correos.CarpetasDeMensajeAsync(correo.MessageId, ct));
-        foreach (var (rut, _) in Personas(correo))
+        await _gate.WaitAsync(ct);
+        try
         {
-            if (await carpetas.FindCiudadanoAsync(rut, ct) is { } ciudadano)
+            var vinculadas = (await correos.CarpetasDeMensajeAsync(correo.MessageId, ct)).ToHashSet();
+            var porRut = new HashSet<Guid>();
+            foreach (var (rut, _) in Personas(correo))
             {
-                ids.UnionWith(await correos.CarpetasEnCambioDomicilioAsync(ciudadano.Id, ct));
+                if (await carpetas.FindCiudadanoAsync(rut, ct) is { } ciudadano)
+                {
+                    porRut.UnionWith(await correos.CarpetasEnCambioDomicilioAsync(ciudadano.Id, ct));
+                }
+            }
+
+            foreach (var id in vinculadas.Union(porRut))
+            {
+                var carpeta = await carpetas.GetAsync(id, ct);
+                if (carpeta is not { Estado: EstadoCarpeta.CambioDomicilio, EstaAbierta: true })
+                {
+                    continue;
+                }
+                if (!vinculadas.Contains(id) && carpeta.FechaRegistro > correo.RecibidoEn.UtcDateTime)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    carpeta.CambiarEstado(EstadoCarpeta.CambioDomSubidoCorreo, Autor, Now);
+                    await carpetas.SaveChangesAsync(ct);
+                    conteo.MovidasASubidas++;
+                }
+                catch (DomainException)
+                {
+                    // Cancelled or otherwise locked carpeta: left as it is for a person to look at.
+                    carpetas.DescartarCambios();
+                }
             }
         }
-
-        foreach (var id in ids)
+        finally
         {
-            var carpeta = await carpetas.GetAsync(id, ct);
-            if (carpeta is not { Estado: EstadoCarpeta.CambioDomicilio, EstaAbierta: true })
-            {
-                continue;
-            }
-
-            try
-            {
-                carpeta.CambiarEstado(EstadoCarpeta.CambioDomSubidoCorreo, Autor, Now);
-                await carpetas.SaveChangesAsync(ct);
-                conteo.MovidasASubidas++;
-            }
-            catch (DomainException)
-            {
-                // Cancelled or otherwise locked carpeta: left as it is for a person to look at.
-                carpetas.DescartarCambios();
-            }
+            _gate.Release();
         }
     }
 

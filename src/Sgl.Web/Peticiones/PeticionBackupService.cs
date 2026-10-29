@@ -20,19 +20,37 @@ public sealed class PeticionBackupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Cede el hilo de inmediato: el respaldo (E/S de disco, síncrono) no debe frenar el arranque del host.
+        await Task.Yield();
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            var backup = _repository.BackupDiario();
-            if (backup is null)
+            try
             {
-                _logger.LogWarning("No se pudo crear el respaldo diario de la base local.");
+                var backup = _repository.BackupDiario();
+                if (backup is null)
+                {
+                    _logger.LogWarning("No se pudo crear el respaldo diario de la base local.");
+                }
+                else
+                {
+                    _logger.LogInformation("Respaldo diario disponible en {BackupPath}.", backup);
+                }
             }
-            else
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogInformation("Respaldo diario disponible en {BackupPath}.", backup);
+                // Un fallo del respaldo no puede tumbar la aplicación: se registra y se reintenta en la próxima vuelta.
+                _logger.LogError(ex, "Falló el respaldo diario de la base local.");
             }
 
-            await Task.Delay(CheckInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(CheckInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 }

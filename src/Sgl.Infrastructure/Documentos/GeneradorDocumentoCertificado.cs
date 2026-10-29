@@ -104,7 +104,8 @@ public sealed partial class GeneradorDocumentoCertificado(TimeProvider clock) : 
         v["DIRECTOR_CARGO"] = mayusculas ? cargo.ToUpperInvariant() : cargo.ToLowerInvariant();
     }
 
-    private static string Limpiar(string? valor) => Regex.Replace(valor ?? string.Empty, @"\s+", " ").Trim();
+    private static string Limpiar(string? valor) =>
+        Regex.Replace(PeticionCambioDomicilio.Ews.TextoSeguro.SinControl(valor), @"\s+", " ").Trim();
 
     private static string Requerido(string? valor, string que)
     {
@@ -217,7 +218,7 @@ public sealed partial class GeneradorDocumentoCertificado(TimeProvider clock) : 
                 continue;
             }
 
-            t.Text = string.Concat(s.AsSpan(0, a - lo), primero ? valor : string.Empty, s.AsSpan(b - lo));
+            t.Text = string.Concat(s.AsSpan(0, a - lo), primero ? PeticionCambioDomicilio.Ews.TextoSeguro.SinControl(valor) : string.Empty, s.AsSpan(b - lo));
             t.Space = SpaceProcessingModeValues.Preserve;
             primero = false;
         }

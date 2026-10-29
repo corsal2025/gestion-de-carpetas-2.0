@@ -22,8 +22,6 @@ public sealed record EditarCarpetaCommand(
     string? IdoneidadMoral,
     string Autor,
     string? Rut = null,
-    string? FechaUltimaCarpeta = null,
-    string? Comuna = null,
     string? Caja = null,
     bool CambiarCaja = false,
     ClaseLicencia? Clases = null);

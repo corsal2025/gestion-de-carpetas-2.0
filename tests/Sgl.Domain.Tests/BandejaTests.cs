@@ -157,14 +157,17 @@ public class BandejaTests
     {
         var c = CarpetaFactory.InEstado(EstadoCarpeta.CrearCertificado);
         c.RegistrarPeticion("javiera", CarpetaFactory.Now);
+        var peticion = c.FechaPeticion;
+        var bandejaAntes = c.Bandeja;
         var punto = c.PuntoRestauracion();
         c.ForzarEstado(EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
 
         c.RestaurarEstado(punto, EstadoCarpeta.SubidaConOficio, "javiera", CarpetaFactory.Now);
 
+        // The undo puts back exactly what the move found: the request it had is neither erased nor invented.
         Assert.Equal(EstadoCarpeta.CrearCertificado, c.Estado);
-        Assert.Null(c.FechaPeticion);
-        Assert.Equal(Bandeja.CrearCertificado, c.Bandeja);
+        Assert.Equal(peticion, c.FechaPeticion);
+        Assert.Equal(bandejaAntes, c.Bandeja);
     }
 
     [Fact]

@@ -42,6 +42,22 @@ public sealed class AppOptions
     /// </summary>
     public string? TestModeEmail { get; set; }
 
+    /// <summary>
+    /// Dominios (p. ej. "munivalpo.cl") a los que se puede reenviar una copia de las peticiones.
+    /// Vacío = sin restricción (la pantalla lo avisa). Un subdominio de uno permitido también vale.
+    /// </summary>
+    public string[] DominiosPermitidos { get; set; } = [];
+
+    /// <summary>true si no hay restricción configurada o si el correo pertenece a un dominio permitido.</summary>
+    public bool DestinatarioPermitido(string? correo)
+    {
+        var dominios = DominiosPermitidos.Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d.Trim().TrimStart('@').ToLowerInvariant()).ToList();
+        if (dominios.Count == 0) return true;
+        if (!System.Net.Mail.MailAddress.TryCreate(correo?.Trim(), out var addr)) return false;
+        var host = addr.Host.ToLowerInvariant();
+        return dominios.Any(d => host == d || host.EndsWith("." + d, StringComparison.Ordinal));
+    }
+
     public EwsOptions? Ews { get; set; }
 }
 

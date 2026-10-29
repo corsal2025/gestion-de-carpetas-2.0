@@ -178,6 +178,13 @@
         try
         {
             var lista = await F8Service.ListarAsync(new ListarSolicitudesF8Query(estado, texto, skip, PorPagina));
+            if (lista.Items.Count == 0 && lista.Total > 0 && skip > 0)
+            {
+                // La página quedó vacía (se movieron o resolvieron filas): se retrocede a la última que existe.
+                skip = (lista.Total - 1) / PorPagina * PorPagina;
+                lista = await F8Service.ListarAsync(new ListarSolicitudesF8Query(estado, texto, skip, PorPagina));
+            }
+
             conteos = await F8Service.ContarPorEstadoAsync();
             items = lista.Items;
             total = lista.Total;
@@ -230,8 +237,8 @@
         ocupadoId = s.Id;
         try
         {
-            await F8Service.MarcarSubidoAsync(s.Id, Autor.Nombre!);
-            mensaje = $"F8 de {s.NombreCompleto} marcado como subido.";
+            var movida = await F8Service.MarcarSubidoAsync(s.Id, Autor.Nombre!);
+            mensaje = movida ? $"F8 de {s.NombreCompleto} marcado como subido." : $"No se subió el F8 de {s.NombreCompleto}. {MensajesSolicitudes.SubidoObsoleto}";
             await CargarAsync();
             DuplicadosNotifier.Notify();
         }
@@ -256,7 +263,7 @@
         {
             var resultado = await F8Service.MarcarNoSeGeneroAsync(s.Id, Autor.Nombre!);
             mensaje = MensajesSolicitudes.NoSeGenero(resultado);
-            enlaceCertificados = true;
+            enlaceCertificados = !resultado.Obsoleta;
             await CargarAsync();
             DuplicadosNotifier.Notify();
         }

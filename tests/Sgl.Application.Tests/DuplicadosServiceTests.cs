@@ -125,20 +125,6 @@ public sealed class DuplicadosServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ObtenerCarpetas_returns_open_carpetas_of_citizen()
-    {
-        await Registrar(RutA, clases: ClaseLicencia.B);
-        await Registrar(RutA, Sede.Placilla);
-        var row = Assert.Single((await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery())).Items);
-
-        var carpetas = await _db.NewDuplicadosService().ObtenerCarpetasAsync(row.CiudadanoId);
-
-        Assert.Equal(2, carpetas.Count);
-        Assert.Contains(carpetas, c => c.Clases == ClaseLicencia.B);
-        Assert.Contains(carpetas, c => c.Sede == Sede.Placilla);
-    }
-
-    [Fact]
     public async Task MarcarRevisado_hides_case_until_new_open_carpeta_is_added()
     {
         await Registrar(RutA);

@@ -33,7 +33,7 @@ public sealed class EwsEmailReader : IEmailReader, IDisposable
         var ews = options.Ews;
         _url = ews?.Url;
         _buzon = FirstNonBlank(ews?.MailboxToRead, ews?.SendAsAddress);
-        if (!string.IsNullOrWhiteSpace(ews?.Url) && !string.IsNullOrWhiteSpace(ews.Username) && !string.IsNullOrWhiteSpace(ews.Password))
+        if (EwsMailSender.EsUrlHttps(ews?.Url) && !string.IsNullOrWhiteSpace(ews!.Username) && !string.IsNullOrWhiteSpace(ews.Password))
         {
             _http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
             var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{ews.Username}:{ews.Password}"));
@@ -130,7 +130,7 @@ public sealed class EwsEmailReader : IEmailReader, IDisposable
                 switch (EwsRetryPolicy.Classify(response.StatusCode))
                 {
                     case EwsAction.Accept:
-                        return XDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+                        return EwsXml.Parsear(await response.Content.ReadAsStringAsync(ct));
                     case EwsAction.FailAuth:
                         throw new EwsAuthException(
                             $"Exchange rechazó las credenciales (HTTP {(int)response.StatusCode}). " +

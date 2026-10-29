@@ -837,7 +837,7 @@ html:not([data-theme="dark"]):not([data-design="institucional"]) {
     --surface-alt: #f6f7f9;
     --text-primary: #0f172a;
     --text-secondary: #334155;
-    --text-muted: #64748b;
+    --text-muted: #556178;
     --border-color: #e5e7eb;
     --border-hover: #cbd5e1;
     --brand-primary: #14306e;
@@ -1413,3 +1413,6 @@ html body .panel-barra .btn-sync-correo:focus-visible { outline: 2px solid #f6d2
     0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
     50% { transform: scale(1.06); box-shadow: 0 0 8px 3px rgba(220, 38, 38, 0.35); }
 }
+
+.drawer-guardado-ok { align-self: center; margin-right: 10px; font-size: .85rem; font-weight: 600; color: #15803d; }
+.est-aviso-rango { grid-column: 1 / -1; margin: 0; }

@@ -24,6 +24,7 @@
 </datalist>
 
 <div class="page-container listado-page">
+    <h1 class="visually-hidden">@TituloModuloPdf</h1>
     @if (bandejaActiva == Bandeja.PorClasificar && Modulos.Panel is { } panelDia && ModulosCatalogo.DeBandeja(Bandeja.PorClasificar) is { } moduloPorClasificar)
     {
         @* Presentation only: greeting plus figures ModulosState already holds (no extra queries). *@
@@ -222,10 +223,10 @@
 
                 <!-- Acordeón para Agregar Caso Rápido a la agenda -->
                 <div class="quick-add-accordion card">
-                    <div class="quick-add-summary" @onclick="() => mostrarAcordeonNuevo = !mostrarAcordeonNuevo" role="button" tabindex="0">
+                    <button type="button" class="quick-add-summary" @onclick="() => mostrarAcordeonNuevo = !mostrarAcordeonNuevo" aria-expanded="@(mostrarAcordeonNuevo ? "true" : "false")">
                         <span>Agregar nueva carpeta a la agenda</span>
                         <span class="quick-add-hint">@(mostrarAcordeonNuevo ? "Ocultar formulario" : "Registro rápido sin salir de la lista")</span>
-                    </div>
+                    </button>
                     @if (mostrarAcordeonNuevo)
                     {
                         <div class="quick-add-body">
@@ -400,7 +401,7 @@
                         <tr class="@estadoClass @(isSelected ? "row-selected" : "") @(isSaving ? "fila-guardando" : "") @(isSaved ? "fila-guardada-ok" : "") @(drawerCarpetaId == c.Id ? "row-drawer-active" : "")"
                             @ondblclick="() => AbrirDrawerAsync(c.Id)">
                             <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
-                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" />
+                                <input type="checkbox" checked="@isSelected" @onchange="() => ToggleSelect(c)" aria-label="@($"Marcar a {c.NombreCompleto}")" />
                             </td>
                             <td class="col-sticky-nombre" @ondblclick:stopPropagation>
                                 @{
@@ -641,7 +642,7 @@
 @if (mostrarModalObs && carpetaParaObs is not null)
 {
     <div class="modal-overlay" @onclick="CerrarModalObs">
-        <div class="modal-card modal-obs-card" @onclick:stopPropagation>
+        <div class="modal-card modal-obs-card" @onclick:stopPropagation role="dialog" aria-modal="true" aria-label="Observaciones de la carpeta">
             <div class="modal-obs-header">
                 <span class="modal-obs-icon">📝</span>
                 <div>
@@ -677,7 +678,7 @@
                     <button class="btn-primary" @onclick="GuardarObservacionModalAsync" disabled="@guardandoObs">
                         @(guardandoObs ? "Guardando..." : "💾 Guardar Observación")
                     </button>
-                    <button class="btn-secondary" @onclick="CerrarModalObs" disabled="@guardandoObs">
+                    <button class="btn-secondary" data-esc-cierra @onclick="CerrarModalObs" disabled="@guardandoObs">
                         Cancelar
                     </button>
                 </div>
@@ -690,7 +691,7 @@
 @if (mostrarModalCaja)
 {
     <div class="modal-overlay" @onclick="CerrarModalCaja">
-        <div class="modal-card" @onclick:stopPropagation>
+        <div class="modal-card" @onclick:stopPropagation role="dialog" aria-modal="true" aria-label="Almacenamiento en caja física">
             <h3>📦 Almacenamiento en Caja Física</h3>
             @if (esModoLote)
             {
@@ -723,7 +724,7 @@
                     <button class="btn-primary" @onclick="GuardarCajaAsync" disabled="@string.IsNullOrWhiteSpace(nuevaCajaTexto)">
                         Confirmar almacenamiento
                     </button>
-                    <button class="btn-secondary" @onclick="CerrarModalCaja">
+                    <button class="btn-secondary" data-esc-cierra @onclick="CerrarModalCaja">
                         Cancelar
                     </button>
                 </div>
@@ -735,7 +736,7 @@
 <!-- Modal de Vista Previa e Impresión Oficial de Documento PDF (Sector Archivo / Oficina 43) -->
 @if (mostrarModalPdf)
 {
-    <div class="pdf-modal-overlay">
+    <div class="pdf-modal-overlay" role="dialog" aria-modal="true" aria-label="Listado de carpetas para imprimir">
         <div class="pdf-modal-container">
             <div class="pdf-modal-toolbar no-print">
                 <div class="pdf-toolbar-actions">
@@ -757,7 +758,7 @@
                 <div class="pdf-toolbar-hint">
                     Este listado muestra solo los nombres marcados (checkbox "Marcar") en la pantalla de Casos.
                 </div>
-                <button type="button" class="btn-close-pdf-modal" @onclick="CerrarModalPdf" title="Volver a la tabla">
+                <button type="button" class="btn-close-pdf-modal" data-esc-cierra @onclick="CerrarModalPdf" title="Volver a la tabla">
                     ✕ Cerrar
                 </button>
             </div>
@@ -773,7 +774,7 @@
                             </div>
                         </div>
                         <div class="doc-meta">
-                            <div>Folio: <strong>@(EsSectorArchivo ? "Archivo" : "Oficina43")-@HoraChile.ALocal(DateTime.UtcNow).ToString("yyyyMMdd-HHmm")</strong></div>
+                            <div>Folio: <strong>@FolioPdf</strong></div>
                             <div>Generado: <strong>@FechaImpresa.De(DateOnly.FromDateTime(HoraChile.ALocal(DateTime.UtcNow))) @HoraChile.ALocal(DateTime.UtcNow).ToString("HH:mm")</strong></div>
                         </div>
                     </div>
@@ -854,7 +855,7 @@
 <!-- Backdrop y Side Drawer (Master-Detail interactivo) -->
 <div class="drawer-backdrop @(drawerAbierto ? "open" : "")" @onclick="CerrarDrawer"></div>
 
-<aside class="case-drawer @(drawerAbierto ? "open" : "")" aria-hidden="@(!drawerAbierto)">
+<aside class="case-drawer @(drawerAbierto ? "open" : "")" aria-hidden="@(drawerAbierto ? "false" : "true")" role="@(drawerAbierto ? "dialog" : null)" aria-label="@(drawerAbierto ? "Detalle de la carpeta" : null)">
     @if (drawerCargando)
     {
         <div class="drawer-loading">
@@ -876,7 +877,7 @@
                     }
                 </div>
             </div>
-            <button class="drawer-close-btn" type="button" @onclick="CerrarDrawer" title="Cerrar panel" aria-label="Cerrar panel">✕</button>
+            <button class="drawer-close-btn" type="button" data-esc-cierra @onclick="CerrarDrawer" title="Cerrar panel" aria-label="Cerrar panel">✕</button>
         </div>
 
         <div class="drawer-body">
@@ -890,8 +891,8 @@
                 <h3 class="drawer-section-title">⚡ Estado y Decisión Operativa</h3>
                 <div class="drawer-grid-2">
                     <div class="drawer-field">
-                        <label>ESTADO DE LA CARPETA</label>
-                        <select class="excel-select" value="@drawerDetalle.Estado" @onchange="OnDrawerEstadoChangedAsync">
+                        <label for="drawer-estado">ESTADO DE LA CARPETA</label>
+                        <select id="drawer-estado" class="excel-select" value="@drawerDetalle.Estado" @onchange="OnDrawerEstadoChangedAsync">
                             @if (!Labels.OpcionesDesplegable.Contains(drawerDetalle.Estado))
                             {
                                 <option value="@drawerDetalle.Estado" disabled>@Labels.Of(drawerDetalle.Estado)</option>
@@ -903,10 +904,10 @@
                         </select>
                     </div>
                     <div class="drawer-field">
-                        <label>Decisión</label>
+                        <label for="drawer-decision">Decisión</label>
                         @if (drawerDetalle.Decision == Decision.Pendiente)
                         {
-                            <select class="excel-select" value="@drawerDetalle.Decision" @onchange="OnDrawerDecisionChangedAsync">
+                            <select id="drawer-decision" class="excel-select" value="@drawerDetalle.Decision" @onchange="OnDrawerDecisionChangedAsync">
                                 @foreach (var d in Enum.GetValues<Decision>())
                                 {
                                     <option value="@d">@Labels.Of(d)</option>
@@ -926,9 +927,9 @@
                 <h3 class="drawer-section-title">📅 Parámetros de la Carpeta y Ciudadano</h3>
                 <div class="drawer-grid-2">
                     <div class="drawer-field">
-                        <label>RUT del Ciudadano (Modificable)</label>
+                        <label for="drawer-rut">RUT del Ciudadano (Modificable)</label>
                         <div style="display: flex; gap: 5px;">
-                            <input class="rut-input"
+                            <input id="drawer-rut" class="rut-input"
                                    @bind="drawerRut"
                                    oninput="formatRutInput(this)"
                                    placeholder="12.345.678-9" />
@@ -941,30 +942,31 @@
                         </div>
                     </div>
                     <div class="drawer-field">
-                        <label>Sede Operativa</label>
-                        <select @bind="drawerSede">
+                        <label for="drawer-sede">Sede Operativa</label>
+                        <select id="drawer-sede" @bind="drawerSede">
                             <option value="@Sede.AvArgentina">Av. Argentina</option>
                             <option value="@Sede.Placilla">Placilla</option>
                             <option value="@Sede.MercadoPuerto">Mercado Puerto</option>
                         </select>
                     </div>
                     <div class="drawer-field">
-                        <label>Fecha Citación</label>
-                        <input type="date" @bind="drawerFechaCitacion" />
+                        <label for="drawer-citacion">Fecha Citación</label>
+                        <input id="drawer-citacion" type="date" @bind="drawerFechaCitacion" />
                     </div>
                     <div class="drawer-field">
-                        <label>Fecha Subida</label>
-                        <input type="date" @bind="drawerFechaSubida" />
+                        <label for="drawer-subida">Fecha Subida</label>
+                        <input id="drawer-subida" type="date" @bind="drawerFechaSubida" />
                     </div>
                     <div class="drawer-field">
-                        <label>Caja de Archivo</label>
-                        <input @bind="drawerCaja" placeholder="Ej: CAJA AA-01" />
+                        <label for="drawer-caja">Caja de Archivo</label>
+                        <input id="drawer-caja" @bind="drawerCaja" placeholder="Ej: CAJA AA-01" />
                     </div>
                 </div>
                 <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
                     <button class="btn-primary" @onclick="GuardarDrawerEdicionAsync" disabled="@drawerGuardando">
                         @(drawerGuardando ? "Guardando..." : "💾 Guardar Parámetros")
                     </button>
+                    <span class="drawer-guardado-ok" role="status" aria-live="polite">@(drawerGuardadoOk ? "✓ Parámetros guardados" : "")</span>
                 </div>
             </div>
 
@@ -1023,6 +1025,10 @@
     private EstadisticasGlobalesDto? stats;
     private IReadOnlyList<CajaResumenDto> cajasDisponibles = [];
     private Sede? filtroSede;
+
+    // Mismo formato que ListadoBusquedaBuilder: Archivo|Oficina43[-Sede]-yyyyMMdd-HHmmss (hora de Chile).
+    private string FolioPdf =>
+        $"{(EsSectorArchivo ? "Archivo" : "Oficina43")}{(filtroSede is { } s ? $"-{s}" : string.Empty)}-{HoraChile.ALocal(DateTime.UtcNow):yyyyMMdd-HHmmss}";
     private string? filtroTramite;
     private string? filtroCaja;
     private bool? filtroSinCaja;
@@ -1192,7 +1198,7 @@
                             @if (MuestraCasillas)
                             {
                                 <td class="td-check col-sticky-check" @ondblclick:stopPropagation>
-                                    <input type="checkbox" checked="@seleccionadas.Contains(c.Id)" @onchange="() => ToggleSelect(c)" />
+                                    <input type="checkbox" checked="@seleccionadas.Contains(c.Id)" @onchange="() => ToggleSelect(c)" aria-label="@($"Marcar a {c.NombreCompleto}")" />
                                 </td>
                             }
                             <td class="col-sticky-nombre" @ondblclick:stopPropagation>
@@ -1984,7 +1990,9 @@
 
     /// <summary>Permite enlazar desde otros módulos (p. ej. Estadísticas) a una carpeta concreta.</summary>
     [SupplyParameterFromQuery(Name = "abrir")]
-    public Guid? AbrirCarpetaId { get; set; }
+    public string? QueryAbrir { get; set; }
+
+    private Guid? AbrirCarpetaId => Guid.TryParse(QueryAbrir, out var g) ? g : null;
 
     // Filtros preseleccionados por query string (p. ej. desde Estadísticas): bandeja, sede, estado, desde, hasta, caja.
     [SupplyParameterFromQuery(Name = "bandeja")] public string? QueryBandeja { get; set; }
@@ -2003,7 +2011,7 @@
     private async Task AlCambiarPorArreglarAsync() => await CargarTotalPorArreglarAsync();
 
     private async Task IrASeccionPorArreglarAsync() =>
-        await JS.InvokeVoidAsync("eval", "document.getElementById('dup-seccion')?.scrollIntoView({block:'start'})");
+        await JS.InvokeVoidAsync("sglUi.irA", "dup-seccion");
 
     private async Task CargarTotalPorArreglarAsync()
     {
@@ -2452,7 +2460,7 @@
         }
         catch (Exception ex)
         {
-            errorObs = $"Error al guardar: {ex.Message}";
+            errorObs = ErroresUi.Mensaje(ex, Logger, "Error al guardar la observación");
         }
         finally
         {
@@ -2484,14 +2492,36 @@
             if (AutorRequerido() is not { } autor) return;
 
             var activando = !c.PendienteBusqueda;
+
+            // En el módulo de Cambio de Domicilio, presionar la lupa también pide la carpeta a la comuna por correo.
+            var pideCarpeta = activando && c.Estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado
+                && !string.IsNullOrWhiteSpace(c.Comuna);
+            var comuna = c.Comuna?.Trim() ?? string.Empty;
+            PeticionCambioDomicilio.Domain.Peticion? previa = pideCarpeta
+                ? PeticionRepo.All().FirstOrDefault(x => x.Rut == c.Rut && x.Comuna.Equals(comuna, StringComparison.OrdinalIgnoreCase))
+                : null;
+            var yaPedida = previa?.Estado is PeticionCambioDomicilio.Domain.EstadoPeticion.Enviada
+                or PeticionCambioDomicilio.Domain.EstadoPeticion.Enviando;
+
+            if (pideCarpeta)
+            {
+                var pregunta = yaPedida
+                    ? $"La carpeta ya se pidió a {comuna}{(previa!.EnviadaEn is { } envio ? $" el {envio.LocalDateTime:dd-MM-yyyy}" : string.Empty)}. ¿Marcar como en proceso de búsqueda SIN volver a enviar el correo?"
+                    : $"Se enviará un correo a {comuna} pidiendo la carpeta de {c.NombreCompleto}, junto con las demás peticiones pendientes de esa comuna. ¿Continuar?";
+                if (!await JS.InvokeAsync<bool>("confirm", pregunta)) return;
+            }
+
             await Carpetas.MarcarPendienteBusquedaAsync(c.Id, activando, autor);
 
-            // En el módulo de Cambio de Domicilio, presionar la lupa envía el correo solicitando la carpeta a la comuna
             if (activando && c.Estado is EstadoCarpeta.CambioDomicilio or EstadoCarpeta.CambioDomicilioSolicitado)
             {
                 if (string.IsNullOrWhiteSpace(c.Comuna))
                 {
                     await JS.InvokeVoidAsync("alert", "Para solicitar la carpeta por correo, ingrese primero la Comuna de origen.");
+                }
+                else if (yaPedida)
+                {
+                    Logger.LogInformation("Lupa en {Comuna}: la carpeta ya estaba pedida; no se reenvió el correo.", comuna);
                 }
                 else
                 {
@@ -2499,7 +2529,7 @@
                     {
                         NombreCompleto = c.NombreCompleto,
                         Rut = c.Rut,
-                        Comuna = c.Comuna.Trim(),
+                        Comuna = comuna,
                         FechaSolicitud = c.FechaCitacion,
                         Oficina = Labels.Of(c.Sede),
                         Estado = PeticionCambioDomicilio.Domain.EstadoPeticion.Borrador
@@ -2520,7 +2550,7 @@
                         }
                         catch (Exception ex)
                         {
-                            Logger.LogError(ex, "Fallo al enviar correo a comuna {Comuna} para el RUT {Rut}.", p.Comuna, p.Rut);
+                            Logger.LogError(ex, "Fallo al enviar correo a comuna {Comuna}.", p.Comuna);
                         }
                     });
                 }
@@ -2529,7 +2559,7 @@
         catch (Exception ex)
         {
             MostrarErrorEdicion(ex, "Error al marcar pendiente de búsqueda");
-            await JS.InvokeVoidAsync("alert", $"No se pudo procesar la solicitud: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", "No se pudo procesar la solicitud. Intente nuevamente.");
         }
         await CargarAsync();
     }
@@ -3001,7 +3031,7 @@
         }
         catch (Exception ex)
         {
-            errorNuevo = ex.Message;
+            errorNuevo = ErroresUi.Mensaje(ex, Logger, "Error al crear la carpeta");
         }
         finally
         {
@@ -3013,6 +3043,7 @@
     private bool drawerAbierto;
     private bool drawerCargando;
     private bool drawerGuardando;
+    private bool drawerGuardadoOk;
     private Guid? drawerCarpetaId;
     private CarpetaDetalleDto? drawerDetalle;
     private string drawerRut = "";
@@ -3041,7 +3072,7 @@
         }
         catch (Exception ex)
         {
-            errorDrawer = ex.Message;
+            errorDrawer = ErroresUi.Mensaje(ex, Logger, "Error en el panel de edición");
         }
         finally
         {
@@ -3072,7 +3103,7 @@
                 drawerSede,
                 drawerFechaCitacion,
                 drawerFechaSubida,
-                null,
+                drawerDetalle.IdoneidadMoral,
                 autor,
                 drawerRut));
 
@@ -3088,10 +3119,17 @@
             drawerRut = drawerDetalle.Rut;
             await CargarMetricasAsync();
             await CargarAsync();
+            drawerGuardadoOk = true;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2500);
+                drawerGuardadoOk = false;
+                await InvokeAsync(StateHasChanged);
+            });
         }
         catch (Exception ex)
         {
-            errorDrawer = ex.Message;
+            errorDrawer = ErroresUi.Mensaje(ex, Logger, "Error en el panel de edición");
         }
         finally
         {
@@ -3167,7 +3205,7 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("showRutToast", $"Error al actualizar RUT: {ex.Message}");
+            await JS.InvokeVoidAsync("showRutToast", $"Error al actualizar RUT: {ErroresUi.Mensaje(ex, Logger, "Error al actualizar RUT")}");
             await CargarAsync();
         }
         finally
@@ -3182,8 +3220,7 @@
         if (Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var nuevoEstado))
         {
             if (AutorRequerido() is not { } autor) return;
-            var punto = await Carpetas.ForzarEstadoAsync(drawerDetalle.Id, nuevoEstado, autor);
-            await AnunciarCambioDeEstadoAsync(drawerDetalle.Id, nuevoEstado, punto);
+            await Carpetas.ForzarEstadoAsync(drawerDetalle.Id, nuevoEstado, autor);
             drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
             await CargarMetricasAsync();
             await CargarAsync();
@@ -3207,50 +3244,6 @@
             drawerDetalle = await Carpetas.ObtenerAsync(drawerDetalle.Id);
             await CargarMetricasAsync();
             await CargarAsync();
-        }
-    }
-
-    // ---- R11: aviso "Pasó a <módulo>" con deshacer durante 10 s ----
-    private UndoToast.AvisoDeshacer? toast;
-
-    private async Task AnunciarCambioDeEstadoAsync(Guid id, EstadoCarpeta nuevo, PuntoRestauracionEstado anterior)
-    {
-        // The box decides the tray (an archived carpeta stays in Archivadas whatever its state), so read it live.
-        string? caja = null;
-        try { caja = (await Carpetas.ObtenerAsync(id)).CajaArchivo; }
-        catch (NotFoundException) { }
-        var antes = Carpeta.ClasificarBandeja(anterior.Estado, anterior.Decision, caja);
-        var despues = Carpeta.ClasificarBandeja(nuevo, EstadoTransitions.DecisionFor(nuevo), caja);
-        var modulo = ModulosCatalogo.DeBandeja(despues);
-        var mensaje = despues != antes && modulo is not null
-            ? $"Pasó a {modulo.Nombre}"
-            : $"Estado cambiado a {Labels.Of(nuevo)}";
-        toast = new UndoToast.AvisoDeshacer(Guid.NewGuid(), mensaje, id, anterior, nuevo);
-    }
-
-    private void CerrarToast(UndoToast.AvisoDeshacer aviso)
-    {
-        if (toast?.Token == aviso.Token) toast = null;
-    }
-
-    private async Task DeshacerToastAsync(UndoToast.AvisoDeshacer aviso)
-    {
-        try
-        {
-            if (AutorRequerido() is not { } autor) return;
-            await Carpetas.DeshacerEstadoAsync(aviso.CarpetaId, aviso.Punto, aviso.EstadoNuevo, autor);
-            if (drawerCarpetaId == aviso.CarpetaId) drawerDetalle = await Carpetas.ObtenerAsync(aviso.CarpetaId);
-            revEdicion++;
-            await CargarMetricasAsync();
-            await CargarAsync();
-        }
-        catch (Exception ex)
-        {
-            MostrarErrorEdicion(ex, "No se pudo deshacer el cambio");
-        }
-        finally
-        {
-            CerrarToast(aviso);
         }
     }
 

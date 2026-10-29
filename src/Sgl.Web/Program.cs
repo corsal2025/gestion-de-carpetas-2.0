@@ -9,6 +9,13 @@ using Sgl.Infrastructure.Persistence;
 using Sgl.Web.Components;
 using Sgl.Web.Services;
 
+// Como servicio de Windows el directorio actual es System32: toda ruta relativa (sgl.db, data/, backups)
+// caería ahí. Se fija al directorio de la aplicación antes de crear el host.
+if (Microsoft.Extensions.Hosting.WindowsServices.WindowsServiceHelpers.IsWindowsService())
+{
+    Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseWindowsService();
 
@@ -20,6 +27,20 @@ builder.Configuration.AddUserSecrets<Program>(optional: true, reloadOnChange: fa
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Autenticación opt-in (Seguridad:RequerirAutenticacion, por defecto false): Windows (Negotiate) y todo
+// el sitio exige usuario autenticado; el autor del historial pasa a ser User.Identity.Name.
+var requerirAutenticacion = builder.Configuration.GetValue<bool>("Seguridad:RequerirAutenticacion");
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthorization(o =>
+{
+    if (requerirAutenticacion) o.FallbackPolicy = o.DefaultPolicy;
+});
+if (requerirAutenticacion)
+{
+    builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Negotiate.NegotiateDefaults.AuthenticationScheme)
+        .AddNegotiate();
+}
 
 builder.Services.AddSglInfrastructure(builder.Configuration);
 
@@ -96,17 +117,26 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
+app.UseCabecerasSeguridad();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+if (requerirAutenticacion)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapGet("/certificados/{id:guid}/documento", async (Guid id, HttpContext context, Sgl.Application.Solicitudes.DocumentoCertificadoService documentos, CancellationToken ct) =>
 {
-    // Restricción de seguridad: no permitir llamadas cruzadas sin origen válido
-    if (context.Request.Headers.TryGetValue("Origin", out var origin) && !string.IsNullOrEmpty(origin) && !origin.ToString().Contains("localhost", StringComparison.OrdinalIgnoreCase))
+    // Restricción de seguridad: no permitir llamadas cruzadas (el Origin debe ser exactamente este servidor).
+    if (!SeguridadWeb.OrigenPermitido(context.Request.Headers.Origin.ToString(), context.Request.Host.Value))
     {
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
+
+    // Documento con datos personales: que ningún navegador ni proxy lo conserve.
+    context.Response.Headers.CacheControl = "no-store";
 
     try
     {
@@ -128,16 +158,24 @@ app.MapGet("/certificados/{id:guid}/documento", async (Guid id, HttpContext cont
 });
 app.MapGet("/estadisticas/exportar", async (HttpContext context, EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
 {
-    if (context.Request.Headers.TryGetValue("Origin", out var origin) && !string.IsNullOrEmpty(origin) && !origin.ToString().Contains("localhost", StringComparison.OrdinalIgnoreCase))
+    if (!SeguridadWeb.OrigenPermitido(context.Request.Headers.Origin.ToString(), context.Request.Host.Value))
     {
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
+
+    var invalido = SeguridadWeb.ValidarFiltroEstadisticas(dias, desde, hasta);
+    if (invalido is not null)
+    {
+        return Results.Text(invalido, "text/plain; charset=utf-8", statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    context.Response.Headers.CacheControl = "no-store";
 
     var filtro = new FiltroEstadisticas(
         Enum.TryParse<Sede>(sede, ignoreCase: true, out var s) && Enum.IsDefined(s) ? s : null,
         desde,
         hasta,
-        dias ?? 30);
+        dias ?? SeguridadWeb.DiasPorDefecto);
     var datos = await estadisticas.ObtenerAsync(filtro, ct);
     return Results.File(
         EstadisticasExcel.Generar(datos),

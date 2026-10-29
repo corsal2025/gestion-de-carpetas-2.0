@@ -864,3 +864,21 @@ html:not(#sgl):not([data-design="institucional"]) body .anuladas-page .table-con
     border-radius: 22px;
     box-shadow: var(--glass-shadow);
 }
+
+.error-limite {
+    max-width: 36rem;
+    margin: 3rem auto;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--line, #d0d7e2);
+    border-radius: 12px;
+}
+.error-limite h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+
+/* El encabezado del acordeón "Agregar nueva carpeta" ahora es un <button>: sin borde ni ancho propio del navegador. */
+button.quick-add-summary {
+    width: 100%;
+    border: 0;
+    text-align: left;
+    font-family: inherit;
+}

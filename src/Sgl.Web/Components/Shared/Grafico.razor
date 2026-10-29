@@ -18,19 +18,19 @@
                 {
                     if (fin - inicio >= 2 * Math.PI - 0.0001)
                     {
-                        <circle cx="150" cy="150" r="120" fill="@Color(i)"><title>@Etiquetas[i]: @N(Series[0].Valores[i])</title></circle>
+                        <circle cx="150" cy="150" r="120" fill="@Color(i)"><title>@Etiquetas[i]: @N(Valor(Series[0], i))</title></circle>
                         <circle cx="150" cy="150" r="70" fill="var(--surface, #ffffff)" />
                     }
                     else
                     {
-                        <path d="@Trazo(inicio, fin)" fill="@Color(i)"><title>@Etiquetas[i]: @N(Series[0].Valores[i])</title></path>
+                        <path d="@Trazo(inicio, fin)" fill="@Color(i)"><title>@Etiquetas[i]: @N(Valor(Series[0], i))</title></path>
                     }
                 }
             </svg>
             <ul class="grafico-leyenda grafico-leyenda-col">
                 @for (var i = 0; i < Etiquetas.Count; i++)
                 {
-                    <li><span class="sw" style="background:@Color(i)"></span>@Etiquetas[i] <strong>@N(Series[0].Valores[i])</strong></li>
+                    <li><span class="sw" style="background:@Color(i)"></span>@Etiquetas[i] <strong>@N(Valor(Series[0], i))</strong></li>
                 }
             </ul>
         </div>

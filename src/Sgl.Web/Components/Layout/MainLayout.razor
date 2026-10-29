@@ -1,7 +1,8 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
 
 <header class="topbar">
     <div class="brand-group">
@@ -76,7 +77,16 @@
 }
 
 <main class="content">
-    @Body
+    <ErrorBoundary @ref="limite">
+        <ChildContent>@Body</ChildContent>
+        <ErrorContent Context="error">
+            <div class="error-limite" role="alert">
+                <h1>No se pudo mostrar esta pantalla</h1>
+                <p>Ocurrió un error inesperado. Sus datos guardados no se perdieron.</p>
+                <button type="button" class="btn-primary" @onclick="Reintentar">Reintentar</button>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
 </main>
 
 <footer class="footer">Desarrollado por Raúl Salazar</footer>
@@ -110,6 +120,23 @@
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException) { }
     }
+
+    private ErrorBoundary? limite;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Con Seguridad:RequerirAutenticacion el autor del historial es el usuario de Windows.
+        var estado = await AuthState.GetAuthenticationStateAsync();
+        if (estado.User.Identity is { IsAuthenticated: true, Name: { } usuario })
+        {
+            Autor.FijarAutenticado(usuario);
+        }
+    }
+
+    // Al navegar a otra pantalla el límite de error se limpia solo.
+    protected override void OnParametersSet() => limite?.Recover();
+
+    private void Reintentar() => limite?.Recover();
 
     private bool pedirNombre;
     private string nombreNuevo = string.Empty;

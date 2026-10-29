@@ -206,13 +206,4 @@ public sealed class PanelServiceTests : IDisposable
         Assert.Equal(1, archivos.Pendientes);
         Assert.Equal(new MetaDelDiaDto(0, 0), panel.ActividadHoy[Bandeja.SeEncuentraEnOf43]);
     }
-
-    [Fact]
-    public async Task ObtenerMetaAsync_matches_panel_meta()
-    {
-        var meta = await NewPanel().ObtenerMetaAsync();
-
-        Assert.Equal(0, meta.Total);
-        Assert.True(meta.Completa);
-    }
 }

@@ -75,7 +75,7 @@ public static class ListadoBusquedaBuilder
                 x.Carpeta.FechaImpresion))
             .ToList();
 
-        var folio = $"{(esArchivo ? "Archivo" : "Oficina43")}-{HoraChile.ALocal(ahoraUtc):yyyyMMdd-HHmm}";
+        var folio = $"{(esArchivo ? "Archivo" : "Oficina43")}{(sede is { } s ? $"-{s}" : string.Empty)}-{HoraChile.ALocal(ahoraUtc):yyyyMMdd-HHmmss}";
         return new ListadoBusquedaDto(
             folio,
             ahoraUtc,

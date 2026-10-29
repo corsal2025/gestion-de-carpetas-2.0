@@ -32,7 +32,7 @@ public class ComunaDirectoryTests : IDisposable
     }
 
     [Fact]
-    public void Resuelve_con_tolerancia_a_tipeos_de_hasta_dos()
+    public void Resuelve_con_tolerancia_a_un_tipeo()
     {
         Assert.Equal("VIÑA DEL MAR", _dir.ResolveComunaName("VIÑA DELA MAR")); // 1 edición
         Assert.Equal("CONCÓN", _dir.ResolveComunaName("CONCON"));
@@ -86,5 +86,69 @@ public class ComunaDirectoryTests : IDisposable
     {
         var (ok, _) = _dir.AddOrUpdate("ALGARROBO", "no-es-correo");
         Assert.False(ok);
+    }
+
+    [Theory]
+    [InlineData("a@@b.cl")]
+    [InlineData("uno@x.cl, dos@x.cl")]
+    [InlineData("Nombre <a@x.cl>")]
+    [InlineData("con espacio@x.cl")]
+    public void AddOrUpdate_y_EditarCorreo_rechazan_correos_mal_formados(string correo)
+    {
+        Assert.False(_dir.AddOrUpdate("ALGARROBO", correo).Ok);
+        Assert.False(_dir.EditarCorreo("CONCÓN", "a@municoncon.cl", correo).Ok);
+        Assert.Contains("a@municoncon.cl", _dir.EmailsFor("CONCÓN"));
+    }
+
+    [Fact]
+    public void No_resuelve_con_dos_ediciones_de_distancia()
+    {
+        Assert.Null(_dir.ResolveComunaName("VIÑA DLA MAR")); // 2 ediciones
+    }
+
+    [Fact]
+    public void No_resuelve_si_el_tipeo_es_ambiguo_entre_dos_comunas()
+    {
+        var csv = Path.Combine(Path.GetTempPath(), $"comunas-amb-{Guid.NewGuid():N}.csv");
+        try
+        {
+            File.WriteAllText(csv, string.Join("\n",
+                "Comuna,ContactEmail,Domain",
+                "\"TALCA\",\"a@talca.cl\",\"talca.cl\"",
+                "\"TALCO\",\"a@talco.cl\",\"talco.cl\""));
+            var dir = new ComunaDirectory(csv);
+
+            Assert.Null(dir.ResolveComunaName("TALCX")); // a 1 edición de las dos
+            Assert.Equal("TALCA", dir.ResolveComunaName("TALCA"));
+        }
+        finally
+        {
+            try { File.Delete(csv); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Persistir_no_deja_temporales_y_el_CSV_queda_completo()
+    {
+        _dir.AddOrUpdate("ALGARROBO", "transito@munialgarrobo.cl");
+        _dir.Eliminar("ALGARROBO", "transito@munialgarrobo.cl");
+
+        var carpeta = Path.GetDirectoryName(_csv)!;
+        Assert.Empty(Directory.GetFiles(carpeta, Path.GetFileName(_csv) + "*.tmp"));
+        Assert.Equal(4, new ComunaDirectory(_csv).Count);
+    }
+
+    [Fact]
+    public void Al_cargar_se_ignoran_filas_con_correo_invalido()
+    {
+        File.WriteAllText(_csv, string.Join("\n",
+            "Comuna,ContactEmail,Domain",
+            "\"MAL\",\"a@@b\",\"b\"",
+            "\"BIEN\",\"ok@bien.cl\",\"bien.cl\""));
+
+        var recargado = new ComunaDirectory(_csv);
+
+        Assert.Equal(1, recargado.Count);
+        Assert.Empty(recargado.EmailsFor("MAL"));
     }
 }

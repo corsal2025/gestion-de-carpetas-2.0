@@ -28,7 +28,7 @@ public static class SectorFisico
     /// <summary>
     /// Reads a date typed by an official or inherited from Excel. Day-first (Chile) always wins over month-first, so
     /// "02-07-2023" is 2 July (Oficina 43), never 7 February: ISO first, then dd-MM-yyyy / dd/MM/yyyy, then Spanish
-    /// words, and only then the invariant culture for anything else.
+    /// words. There is no month-first fallback, and a future date is never valid for a folder that already exists.
     /// </summary>
     public static bool TryParseFecha(string? input, out DateOnly date)
     {
@@ -36,10 +36,16 @@ public static class SectorFisico
         if (string.IsNullOrWhiteSpace(input)) return false;
 
         var texto = input.Trim();
-        return DateOnly.TryParseExact(texto, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+        var reconocida = DateOnly.TryParseExact(texto, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
             || DateOnly.TryParse(texto, CultureInfo.GetCultureInfo("es-CL"), DateTimeStyles.None, out date)
-            || TryParseEspanol(texto, out date)
-            || DateOnly.TryParse(texto, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+            || TryParseEspanol(texto, out date);
+        if (reconocida && date > HoraChile.Fecha(DateTime.UtcNow))
+        {
+            date = default;
+            return false;
+        }
+
+        return reconocida;
     }
 
     /// <summary>The recognized date as <c>yyyy-MM-dd</c>, or null when the text is not a date.</summary>

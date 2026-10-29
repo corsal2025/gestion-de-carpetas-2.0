@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PeticionCambioDomicilio;
+using Microsoft.Extensions.Logging;
 using PeticionCambioDomicilio.Comunas;
 
 namespace PeticionCambioDomicilio.Pages;
@@ -9,9 +10,11 @@ public sealed class ComunasModel : PageModel
 {
     private readonly ComunaDirectory _directory;
     private readonly AppOptions _options;
+    private readonly ILogger<ComunasModel> _logger;
 
-    public ComunasModel(ComunaDirectory directory, AppOptions options)
+    public ComunasModel(ComunaDirectory directory, AppOptions options, ILogger<ComunasModel> logger)
     {
+        _logger = logger;
         _directory = directory;
         _options = options;
     }
@@ -72,9 +75,10 @@ public sealed class ComunasModel : PageModel
             TempData["Flash"] = $"Comunas del Excel — leídas: {r.Leidos} · nuevas: {r.Nuevos} · ya estaban: {r.Actualizados}."
                 + (r.Avisos.Count > 0 ? " " + string.Join(" | ", r.Avisos) : "");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            TempData["Flash"] = $"Error importando comunas: {ex.Message}";
+            _logger.LogError(ex, "Error al importar las comunas desde el Excel.");
+            TempData["Flash"] = "No se pudieron importar las comunas. Revise que el Excel sea un .xlsx válido y no esté abierto en otro programa.";
         }
 
         return RedirectToPage();

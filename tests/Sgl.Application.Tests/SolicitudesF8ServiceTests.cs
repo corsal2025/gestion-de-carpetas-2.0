@@ -144,7 +144,7 @@ public sealed class SolicitudesF8ServiceTests : IDisposable
     public async Task MarcarNoSeGenero_notifies_through_the_port_and_stays_unsent_when_nothing_was_sent()
     {
         var notificador = new NotificadorFalso(resultado: false);
-        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Director", "Director (s)", "director@example.test", "Sara", "Secretaria"));
+        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Director", "Director (s)", "director@example.test", "Sara", "Secretaria"), "javiera");
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
         var solicitud = await _db.NewF8Service(notificador).SolicitarF8Async(id, "ana");
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 using PeticionCambioDomicilio.Comunas;
 using PeticionCambioDomicilio.Data;
 using PeticionCambioDomicilio.Domain;
@@ -16,13 +17,16 @@ public sealed class ConfiguracionModel : PageModel
     private readonly IMailSender _mail;
     private readonly ComunaDirectory _directory;
     private readonly PeticionRepository _repository;
+    private readonly ILogger<ConfiguracionModel> _logger;
 
     public ConfiguracionModel(
         AppOptions options,
         IMailSender mail,
         ComunaDirectory directory,
-        PeticionRepository repository)
+        PeticionRepository repository,
+        ILogger<ConfiguracionModel> logger)
     {
+        _logger = logger;
         _options = options;
         _mail = mail;
         _directory = directory;
@@ -104,9 +108,10 @@ public sealed class ConfiguracionModel : PageModel
                 HttpContext.RequestAborted);
             TempData["Flash"] = $"OK: correo de prueba enviado a {destino}. Es identico al que recibiria la comuna (con [PRUEBA] adelante).";
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            TempData["Flash"] = $"FALLO el envio: {ex.Message}";
+            _logger.LogError(ex, "Falló el envío del correo de prueba.");
+            TempData["Flash"] = "FALLO el envío del correo de prueba. Revise la configuración de Peticion:Ews (el detalle quedó en el registro del servidor).";
         }
 
         return RedirectToPage();

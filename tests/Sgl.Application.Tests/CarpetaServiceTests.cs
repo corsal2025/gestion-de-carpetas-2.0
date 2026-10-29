@@ -128,11 +128,11 @@ public sealed class CarpetaServiceTests : IDisposable
         var id = await _db.NewService().RegistrarAsync(Cmd());
 
         await _db.NewService().EditarAsync(new EditarCarpetaCommand(
-            id, Sede.MercadoPuerto, new DateOnly(2026, 5, 4), new DateOnly(2026, 5, 10), "Favorable", "pedro"));
+            id, Sede.MercadoPuerto, new DateOnly(2026, 5, 4), new DateOnly(2026, 5, 4), "Favorable", "pedro"));
 
         var detalle = await _db.NewService().ObtenerAsync(id);
         Assert.Equal(Sede.MercadoPuerto, detalle.Sede);
-        Assert.Equal(new DateOnly(2026, 5, 10), detalle.FechaSubida);
+        Assert.Equal(new DateOnly(2026, 5, 4), detalle.FechaSubida);
         Assert.Equal("Favorable", detalle.IdoneidadMoral);
         Assert.Equal(4, detalle.Historial.Count);
     }

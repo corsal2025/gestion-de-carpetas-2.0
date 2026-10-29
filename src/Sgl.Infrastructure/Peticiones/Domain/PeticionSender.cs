@@ -4,7 +4,8 @@ using PeticionCambioDomicilio.Ews;
 
 namespace PeticionCambioDomicilio.Domain;
 
-public sealed record SendResult(EstadoPeticion Estado, string Mensaje, int Personas = 0);
+/// <param name="EsPrueba">true si fue envío en modo prueba: salió a la casilla de prueba y ninguna petición cambió de estado.</param>
+public sealed record SendResult(EstadoPeticion Estado, string Mensaje, int Personas = 0, bool EsPrueba = false);
 
 /// <summary>
 /// Envía las peticiones de cambio de domicilio. Regla central: <b>una comuna recibe un solo
@@ -170,31 +171,52 @@ public sealed class PeticionSender
 
         // MODO PRUEBA: nada sale hacia la municipalidad. Un solo correo a la casilla de prueba,
         // marcado, diciendo a dónde habría ido de verdad y a cuántas personas incluye.
-        var modoPrueba = !string.IsNullOrWhiteSpace(_options.TestModeEmail);
-        var envioA = destinatarios;
-        if (modoPrueba)
+        // No se toca el estado de ninguna petición ni de la carpeta.
+        if (!string.IsNullOrWhiteSpace(_options.TestModeEmail))
         {
-            subject = $"[PRUEBA] {subject}";
-            var cabecera = new[]
-            {
-                "*** CORREO DE PRUEBA - NO SE ENVIO A LA MUNICIPALIDAD ***",
-                $"Comuna destino real: {comuna}",
-                $"Habria ido a: {string.Join(", ", destinatarios)}",
-                $"Personas en este correo: {grupo.Count}",
-                new string('-', 60),
-                string.Empty,
-                string.Empty,
-            };
-            body = string.Join("\n", cabecera) + body;
-            envioA = new[] { _options.TestModeEmail!.Trim() };
+            return await EnviarPruebaAsync(comuna, grupo, destinatarios, subject, body, cancellationToken);
         }
 
+        var candado = CandadoDe(comuna);
+        await candado.WaitAsync(cancellationToken);
         try
         {
-            foreach (var to in envioA)
+            // Reserva atómica: solo las que siguen pendientes pasan a "Enviando". Un segundo clic o
+            // un segundo operador no reserva nada y por lo tanto no manda otro correo.
+            var reservadas = grupo.Where(p => _repository.TryMarcarEnviando(p.Id)).ToList();
+            if (reservadas.Count == 0)
             {
-                await _mail.SendAsync(to, subject, body, cancellationToken);
+                return new SendResult(EstadoPeticion.Enviando,
+                    $"{comuna}: esas peticiones ya se están enviando o ya fueron enviadas.");
             }
+
+            if (reservadas.Count != grupo.Count)
+            {
+                body = EmailTemplate.Body(reservadas, _options.MailboxAddress);
+            }
+
+            return await EnviarYRegistrarAsync(comuna, reservadas, destinatarios, subject, body);
+        }
+        finally
+        {
+            candado.Release();
+        }
+    }
+
+    /// <summary>
+    /// Fase crítica: una vez reservada la petición, el envío y el registro del resultado no se
+    /// cancelan (<see cref="CancellationToken.None"/>). Cancelar entre "el correo salió" y "quedó
+    /// anotado" dejaba la petición pendiente y la próxima pasada la mandaba otra vez.
+    /// </summary>
+    private async Task<SendResult> EnviarYRegistrarAsync(
+        string comuna, IReadOnlyList<Peticion> grupo, IReadOnlyList<string> destinatarios,
+        string subject, string body)
+    {
+        var joined = string.Join(", ", destinatarios);
+        try
+        {
+            // Un solo correo con todas las direcciones de la comuna en "Para".
+            await _mail.SendAsync(string.Join("; ", destinatarios), subject, body, CancellationToken.None);
         }
         catch (EwsAuthException ex)
         {
@@ -202,17 +224,21 @@ public sealed class PeticionSender
             return new SendResult(EstadoPeticion.Error, $"{comuna}: {ex.Message}");
         }
         catch (Exception ex) when (ex is EwsSendException or HttpRequestException
-                                       or System.Net.Sockets.SocketException or TaskCanceledException)
+                                       or System.Net.Sockets.SocketException or OperationCanceledException)
         {
-            MarcarGrupo(grupo, EstadoPeticion.Error, ex.Message, null, null);
-            return new SendResult(EstadoPeticion.Error, $"{comuna}: falló el envío — {ex.Message}");
+            var mensaje = ex is OperationCanceledException ? "El envío se interrumpió por tiempo de espera." : ex.Message;
+            MarcarGrupo(grupo, EstadoPeticion.Error, mensaje, null, null);
+            return new SendResult(EstadoPeticion.Error, $"{comuna}: falló el envío — {mensaje}");
+        }
+        catch (Exception)
+        {
+            const string generico = "Error inesperado al enviar el correo.";
+            MarcarGrupo(grupo, EstadoPeticion.Error, generico, null, null);
+            return new SendResult(EstadoPeticion.Error, $"{comuna}: {generico}");
         }
 
-        var joined = string.Join(", ", envioA);
         var ahora = DateTimeOffset.Now;
-        var detalle = modoPrueba
-            ? $"MODO PRUEBA — desviada desde {string.Join(", ", destinatarios)} · {grupo.Count} persona(s)"
-            : $"1 correo con {grupo.Count} persona(s) de {comuna}";
+        var detalle = $"1 correo con {grupo.Count} persona(s) de {comuna}";
 
         foreach (var p in grupo)
         {
@@ -227,11 +253,47 @@ public sealed class PeticionSender
         }
 
         return new SendResult(EstadoPeticion.Enviada,
-            modoPrueba
-                ? $"[PRUEBA] {comuna}: {grupo.Count} persona(s) en 1 correo a {joined} (habría ido a la comuna)."
-                : $"{comuna}: {grupo.Count} persona(s) enviadas en 1 correo a {joined}.",
+            $"{comuna}: {grupo.Count} persona(s) enviadas en 1 correo a {joined}.",
             grupo.Count);
     }
+
+    private async Task<SendResult> EnviarPruebaAsync(
+        string comuna, IReadOnlyList<Peticion> grupo, IReadOnlyList<string> destinatarios,
+        string subject, string body, CancellationToken cancellationToken)
+    {
+        var cabecera = new[]
+        {
+            "*** CORREO DE PRUEBA - NO SE ENVIO A LA MUNICIPALIDAD ***",
+            $"Comuna destino real: {comuna}",
+            $"Habria ido a: {string.Join(", ", destinatarios)}",
+            $"Personas en este correo: {grupo.Count}",
+            new string('-', 60),
+            string.Empty,
+            string.Empty,
+        };
+        var destino = _options.TestModeEmail!.Trim();
+
+        try
+        {
+            await _mail.SendAsync(destino, $"[PRUEBA] {subject}", string.Join("\n", cabecera) + body, cancellationToken);
+        }
+        catch (Exception ex) when (ex is EwsSendException or HttpRequestException
+                                       or System.Net.Sockets.SocketException or OperationCanceledException)
+        {
+            return new SendResult(EstadoPeticion.Error, $"[PRUEBA] {comuna}: falló el envío — {ex.Message}", 0, true);
+        }
+
+        return new SendResult(EstadoPeticion.Borrador,
+            $"[PRUEBA] {comuna}: {grupo.Count} persona(s) en 1 correo a {destino} (habría ido a la comuna). " +
+            "Las peticiones siguen pendientes.",
+            grupo.Count, true);
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> Candados = new();
+
+    /// <summary>Un candado por comuna: dos envíos de la misma comuna nunca corren a la vez.</summary>
+    private static SemaphoreSlim CandadoDe(string comuna) =>
+        Candados.GetOrAdd(TextNormalization.Fold(comuna), _ => new SemaphoreSlim(1, 1));
 
     private void MarcarGrupo(
         IReadOnlyList<Peticion> grupo, EstadoPeticion estado, string? detalle,

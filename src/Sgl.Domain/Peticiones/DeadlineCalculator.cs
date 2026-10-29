@@ -63,7 +63,7 @@ public sealed record PlazoInfo(
     /// </summary>
     public static PlazoInfo Para(Peticion p, DateOnly? fechaReferencia = null)
     {
-        var inicio = p.EnviadaEn is { } e ? DateOnly.FromDateTime(e.LocalDateTime) : (DateOnly?)null;
+        var inicio = p.EnviadaEn is { } e ? Sgl.Domain.HoraChile.Fecha(e.UtcDateTime) : (DateOnly?)null;
 
         if (inicio is null)
         {

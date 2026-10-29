@@ -314,7 +314,7 @@
         ocupadoId = s.Id;
         try
         {
-            await CertificadosSvc.ActualizarDatosAsync(s.Id, parametros, null, s.Observacion);
+            await CertificadosSvc.ActualizarDatosAsync(s.Id, parametros, null, s.Observacion, Autor.Nombre!);
             anios.Remove(s.Id);
             mensaje = $"Año de la última renovación guardado para {s.NombreCompleto}.";
             await CargarAsync();
@@ -340,6 +340,13 @@
         try
         {
             var lista = await CertificadosSvc.ListarAsync(new ListarCertificadosQuery(estado, tipoFiltro, texto, skip, PorPagina));
+            if (lista.Items.Count == 0 && lista.Total > 0 && skip > 0)
+            {
+                // La página quedó vacía (se movieron o resolvieron filas): se retrocede a la última que existe.
+                skip = (lista.Total - 1) / PorPagina * PorPagina;
+                lista = await CertificadosSvc.ListarAsync(new ListarCertificadosQuery(estado, tipoFiltro, texto, skip, PorPagina));
+            }
+
             conteos = await CertificadosSvc.ContarPorEstadoAsync(tipoFiltro);
             items = lista.Items;
             total = lista.Total;
@@ -402,8 +409,10 @@
         ocupadoId = s.Id;
         try
         {
-            await CertificadosSvc.MarcarFirmadoAsync(s.Id, Autor.Nombre!);
-            mensaje = $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta pasó a «Subida con oficio».";
+            var movida = await CertificadosSvc.MarcarFirmadoAsync(s.Id, Autor.Nombre!);
+            mensaje = movida
+                ? $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta pasó a «Subida con oficio»."
+                : $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta ya no estaba en el estado que esperaba este certificado (alguien la cambió mientras tanto), así que se dejó como está.";
             await CargarAsync();
             DuplicadosNotifier.Notify();
         }

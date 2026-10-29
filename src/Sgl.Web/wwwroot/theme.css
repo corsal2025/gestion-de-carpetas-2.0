@@ -318,7 +318,7 @@ html .quick-add-field select {
 }
 html .search-input-wrapper input:focus,
 html .state-select-wrapper select:focus,
-html .select-caja:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(91 140 255 / 0.25); outline: none; }
+html .select-caja:focus { border-color: var(--brand-primary); outline: 2px solid var(--ring); outline-offset: 1px; }
 
 html .quick-add-accordion, html .active-filters-summary {
     background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: none;
@@ -633,7 +633,7 @@ html .content .form input:not([type="checkbox"]), html .content .form select, ht
     background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-color);
     font: 500 0.95rem var(--font-ui); letter-spacing: 0; text-transform: none;
 }
-html .content .form input:focus, html .content .form select:focus, html .content .inline select:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(91 140 255 / .25); outline: none; }
+html .content .form input:focus, html .content .form select:focus, html .content .inline select:focus { border-color: var(--brand-primary); outline: 2px solid var(--ring); outline-offset: 1px; }
 html .content .form input::placeholder { color: var(--text-muted); opacity: .75; }
 html .content .info-block, html .content .form .actions { grid-column: 1 / -1; }
 html .content .info-block { padding: .9rem 1rem; border-radius: 12px; background: var(--surface-alt); border: 1px solid var(--border-color); font-size: .88rem; color: var(--text-secondary); }

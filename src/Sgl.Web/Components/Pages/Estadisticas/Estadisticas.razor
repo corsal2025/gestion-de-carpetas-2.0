@@ -42,6 +42,10 @@
         <button type="submit" class="btn-primary">Aplicar</button>
         <button type="button" class="btn-secondary" @onclick="LimpiarAsync">Limpiar</button>
     </div>
+    @if (desde is { } dAviso && hasta is { } hAviso && dAviso > hAviso)
+    {
+        <p class="alert-banner est-aviso-rango" role="alert">La fecha "desde" es posterior a "hasta": al aplicar se intercambiarán.</p>
+    }
     <p class="est-nota">El rango de fechas filtra carpetas por fecha de citación y los indicadores del historial (búsquedas, cajas, uso) por fecha del movimiento.</p>
 </form>
 
@@ -474,7 +478,7 @@ else
     [SupplyParameterFromQuery(Name = "sede")] public string? QuerySede { get; set; }
     [SupplyParameterFromQuery(Name = "desde")] public string? QueryDesde { get; set; }
     [SupplyParameterFromQuery(Name = "hasta")] public string? QueryHasta { get; set; }
-    [SupplyParameterFromQuery(Name = "dias")] public int? QueryDias { get; set; }
+    [SupplyParameterFromQuery(Name = "dias")] public string? QueryDias { get; set; }
 
     private string sedeTexto = string.Empty;
     private DateOnly? desde;
@@ -489,12 +493,24 @@ else
     private DateOnly InicioMes => new(Hoy.Year, Hoy.Month, 1);
     private Sede? SedeSeleccionada => Enum.TryParse<Sede>(sedeTexto, out var s) && Enum.IsDefined(s) ? s : null;
 
-    protected override async Task OnInitializedAsync()
+    // OnParametersSet (no OnInitialized): atrás/adelante del navegador y los enlaces a esta misma página
+    // cambian la consulta sin recrear el componente, y los filtros deben seguirla.
+    protected override async Task OnParametersSetAsync()
     {
-        if (Enum.TryParse<Sede>(QuerySede, true, out var s) && Enum.IsDefined(s)) sedeTexto = s.ToString();
-        if (DateOnly.TryParseExact(QueryDesde, "yyyy-MM-dd", out var d)) desde = d;
-        if (DateOnly.TryParseExact(QueryHasta, "yyyy-MM-dd", out var h)) hasta = h;
-        if (QueryDias is > 0) diasSinSubir = QueryDias.Value;
+        var sedeUrl = Enum.TryParse<Sede>(QuerySede, true, out var s) && Enum.IsDefined(s) ? s.ToString() : string.Empty;
+        DateOnly? desdeUrl = DateOnly.TryParseExact(QueryDesde, "yyyy-MM-dd", out var d) ? d : null;
+        DateOnly? hastaUrl = DateOnly.TryParseExact(QueryHasta, "yyyy-MM-dd", out var h) ? h : null;
+        var diasUrl = long.TryParse(QueryDias, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var dd)
+            ? (int)Math.Clamp(dd, SeguridadWeb.DiasMinimo, SeguridadWeb.DiasMaximo)
+            : SeguridadWeb.DiasPorDefecto;
+
+        // Si la URL ya coincide con lo mostrado (p. ej. la puso AplicarAsync) no se vuelve a consultar.
+        if (datos is not null && sedeUrl == sedeTexto && desdeUrl == desde && hastaUrl == hasta && diasUrl == diasSinSubir) return;
+
+        sedeTexto = sedeUrl;
+        desde = desdeUrl;
+        hasta = hastaUrl;
+        diasSinSubir = diasUrl;
         await CargarAsync();
     }
 

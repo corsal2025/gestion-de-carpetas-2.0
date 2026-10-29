@@ -12,7 +12,7 @@
     @foreach (var g in filas)
     {
         var abierto = abiertoId == g.CiudadanoId;
-        <tr class="fila-duplicada dup-caso @(abierto ? "abierto" : null)" @key="g.CiudadanoId">
+        <tr class="fila-duplicada dup-caso @(abierto ? "abierto" : null)" @key="g.CiudadanoId" id="@(ReferenceEquals(g, filas[0]) ? "dup-seccion" : null)">
             <td class="td-check col-sticky-check"><input type="checkbox" disabled title="Los casos por arreglar no se clasifican en lote" /></td>
             <td class="col-sticky-nombre">
                 <div class="nombre-wrapper-cell">
@@ -182,5 +182,5 @@
     }
 
     private async Task IrAPorClasificarAsync() =>
-        await JS.InvokeVoidAsync("eval", "document.getElementById('dup-por-clasificar-sep')?.scrollIntoView({block:'start'})");
+        await JS.InvokeVoidAsync("sglUi.irA", "dup-por-clasificar-sep");
 }

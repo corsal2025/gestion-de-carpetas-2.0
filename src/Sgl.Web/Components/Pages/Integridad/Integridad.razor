@@ -27,7 +27,24 @@
 
     @if (resultado is null && cargando)
     {
-        <div class="loading-state"><div class="spinner"></div><p>Revisando las reglas…</p></div>
+        <div class="loading-state"><div class="spinner"></div><p>Cargando la última revisión…</p></div>
+    }
+    else if (resultado is null)
+    {
+        <section class="integridad-estado @(ultima is { TieneProblemas: true } ? "con-problemas" : "sin-problemas")" role="status">
+            <div>
+                @if (ultima is null)
+                {
+                    <strong>Todavía no hay revisiones</strong>
+                    <p>Pulse «Revisar ahora» para ver el detalle de cada regla.</p>
+                }
+                else
+                {
+                    <strong>Última revisión: @FechaChile(ultima.Fecha) (@OrigenTexto(ultima.Origen))</strong>
+                    <p>@(ultima.Fallo ? "No se pudo completar." : ultima.Problemas > 0 ? $"{ultima.Problemas.ToString("N0", new System.Globalization.CultureInfo("es-CL"))} problema(s) por resolver." : "Las cinco reglas se cumplían.") Pulse «Revisar ahora» para ver el detalle actualizado.</p>
+                }
+            </div>
+        </section>
     }
     else if (resultado is { } r)
     {
@@ -141,6 +158,7 @@
 
 @code {
     private ResultadoIntegridadDto? resultado;
+    private CorridaIntegridadDto? ultima;
     private IReadOnlyList<CorridaIntegridadDto> historial = [];
     private bool cargando = true;
     private bool revisando;
@@ -148,9 +166,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Entering the view always shows the live state, not an old run.
-        await RevisarAsync();
-        cargando = false;
+        // Abrir la vista solo lee la última revisión: no guarda una corrida nueva cada vez que se entra.
+        try
+        {
+            ultima = await Vigilante.UltimaAsync();
+            historial = await Vigilante.HistorialAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "No se pudo leer el historial de integridad.");
+            error = "No se pudo cargar el historial de revisiones.";
+        }
+        finally
+        {
+            cargando = false;
+        }
     }
 
     private async Task RevisarAsync()

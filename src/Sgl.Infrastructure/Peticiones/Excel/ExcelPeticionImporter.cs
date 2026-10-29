@@ -1,4 +1,7 @@
+using System.Globalization;
 using ClosedXML.Excel;
+using Sgl.Domain;
+using Sgl.Infrastructure;
 using PeticionCambioDomicilio.Comunas;
 using PeticionCambioDomicilio.Domain;
 
@@ -14,7 +17,8 @@ public sealed record ImportResult(
     int ComunaNoReconocida,
     int Obsoletas,
     int CarpetasSincronizadas,
-    IReadOnlyList<string> Avisos);
+    IReadOnlyList<string> Avisos,
+    int HojasOmitidas = 0);
 
 /// <summary>
 /// Lee el libro DETALLE CARPETAS (todas las hojas de agenda mensual: Av. Argentina, Placilla y
@@ -31,12 +35,16 @@ public sealed class ExcelPeticionImporter
 {
     private readonly AppOptions _options;
     private readonly ComunaDirectory _directory;
+    private readonly TimeProvider _clock;
 
-    public ExcelPeticionImporter(AppOptions options, ComunaDirectory directory)
+    public ExcelPeticionImporter(AppOptions options, ComunaDirectory directory, TimeProvider? clock = null)
     {
         _options = options;
         _directory = directory;
+        _clock = clock ?? TimeProvider.System;
     }
+
+    private DateOnly Hoy => HoraChile.Fecha(_clock.GetUtcNow().UtcDateTime);
 
     public ImportResult Import(
         string excelPath,
@@ -123,7 +131,7 @@ public sealed class ExcelPeticionImporter
                     continue;
                 }
 
-                var fecha = cFechaSubida is null ? null : ReadDate(row.Cell(cFechaSubida.Value));
+                var fecha = cFechaSubida is null ? null : ReadDate(row.Cell(cFechaSubida.Value), Hoy);
                 if (!enExcel.TryGetValue(clave, out var actual) || rango > actual.Rango)
                 {
                     enExcel[clave] = (estadoCrudo, fecha, rango);
@@ -141,7 +149,7 @@ public sealed class ExcelPeticionImporter
             }
 
             var subida = hit.Rango >= 3
-                ? (hit.Fecha ?? DateOnly.FromDateTime(DateTime.Today))
+                ? (hit.Fecha ?? Hoy)
                 : (DateOnly?)null;
             if (sincronizarCarpeta(p.Id, hit.Estado, subida))
             {
@@ -171,6 +179,7 @@ public sealed class ExcelPeticionImporter
         var ordenObjetivo = TextNormalization.Fold(_options.EstadoCambioDomicilio);
         var ignoradas = _options.HojasIgnoradas.Select(TextNormalization.Fold).ToArray();
 
+        int hojasOmitidas = 0;
         int hojas = 0, filas = 0, cd = 0, nuevas = 0, dup = 0, rutInv = 0, comunaNo = 0, sincro = 0;
         long orden = 0; // posicion global: hojas en el orden del libro, filas de arriba abajo
 
@@ -191,6 +200,7 @@ public sealed class ExcelPeticionImporter
             var (headerRowNumber, headers) = FindHeaderRow(used);
             if (headerRowNumber is null)
             {
+                hojasOmitidas++;
                 avisos.Add($"Hoja \"{sheet.Name}\": no se encontró la fila de encabezados (con \"RUT\"), se omite.");
                 continue;
             }
@@ -224,6 +234,7 @@ public sealed class ExcelPeticionImporter
 
             if (cNombre is null || cRut is null || cEstado is null || cComuna is null)
             {
+                hojasOmitidas++;
                 avisos.Add($"Hoja \"{sheet.Name}\": faltan columnas obligatorias " +
                            $"(Nombre/{cNombre}, RUT/{cRut}, Estado/{cEstado}, Comuna/{cComuna}), se omite.");
                 continue;
@@ -263,15 +274,15 @@ public sealed class ExcelPeticionImporter
 
                 // Si la celda de comuna es una fecha real (formato DateTime o texto de fecha),
                 // significa que no es un cambio de domicilio donde anotaron la comuna en esa columna:
-                if (comunaCell.DataType == XLDataType.DateTime || ReadDate(comunaCell) != null)
+                if (comunaCell.DataType == XLDataType.DateTime || ReadDate(comunaCell, Hoy) != null)
                 {
                     continue;
                 }
 
                 var comunaRaw = comunaCell.GetString().Trim();
                 var clases = cClases is null ? null : row.Cell(cClases.Value).GetString().Trim();
-                var fecha = cFecha is null ? null : ReadDate(row.Cell(cFecha.Value));
-                var fechaSubida = cFechaSubida is null ? null : ReadDate(row.Cell(cFechaSubida.Value));
+                var fecha = cFecha is null ? null : ReadDate(row.Cell(cFecha.Value), Hoy);
+                var fechaSubida = cFechaSubida is null ? null : ReadDate(row.Cell(cFechaSubida.Value), Hoy);
 
                 var rutNormalizado = RutValidator.NormalizeAndValidate(rutRaw);
                 var rutInvalido = rutNormalizado is null;
@@ -289,7 +300,7 @@ public sealed class ExcelPeticionImporter
                         && porClave.TryGetValue(clave, out var existente))
                     {
                         var subida = rangoExcel >= 3
-                            ? (fechaSubida ?? DateOnly.FromDateTime(DateTime.Today))
+                            ? (fechaSubida ?? Hoy)
                             : (DateOnly?)null;
                         if (sincronizarCarpeta(existente.Id, estadoCrudo, subida))
                         {
@@ -362,8 +373,15 @@ public sealed class ExcelPeticionImporter
 
         // Historial completo: sólo se da de baja lo que ya estaba cargado y no reaparece en el libro
         // actual. Las peticiones cargadas a mano quedan protegidas aunque no estén en el Excel.
+        // Si alguna hoja se omitió (encabezado roto, columnas faltantes) sus filas no se leyeron: no se puede
+        // saber qué desapareció del libro y borrar "obsoletas" eliminaría peticiones que siguen vigentes.
         var obsoletas = 0;
-        if (existentes is not null && borrar is not null)
+        if (hojasOmitidas > 0 && existentes is not null && borrar is not null)
+        {
+            avisos.Add($"Se omitieron {hojasOmitidas} hoja(s): no se borró ninguna petición obsoleta. " +
+                       "Corrija los encabezados del Excel y vuelva a importar.");
+        }
+        else if (existentes is not null && borrar is not null)
         {
             foreach (var existente in existentes)
             {
@@ -381,7 +399,7 @@ public sealed class ExcelPeticionImporter
             }
         }
 
-        return new ImportResult(hojas, filas, cd, nuevas, dup, rutInv, comunaNo, obsoletas, sincro, avisos);
+        return new ImportResult(hojas, filas, cd, nuevas, dup, rutInv, comunaNo, obsoletas, sincro, avisos, hojasOmitidas);
     }
 
     /// <summary>
@@ -424,14 +442,25 @@ public sealed class ExcelPeticionImporter
         return (null, new Dictionary<string, int>());
     }
 
-    private static DateOnly? ReadDate(IXLCell cell)
+    private static readonly CultureInfo Chile = CultureInfo.GetCultureInfo("es-CL");
+
+    // Día primero, como se escribe en Chile. No hay formato mes-primero: "12/31/2024" no se adivina.
+    private static readonly string[] FormatosFecha =
+        ["d/M/yyyy", "d-M-yyyy", "d.M.yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "d/M/yy", "d-M-yy"];
+
+    /// <summary>Fecha de una celda (real o texto es-CL) dentro del rango creíble; null si no se puede leer con certeza.</summary>
+    private static DateOnly? ReadDate(IXLCell cell, DateOnly hoy)
     {
+        DateOnly? fecha = null;
         if (cell.DataType == XLDataType.DateTime && cell.TryGetValue<DateTime>(out var dt))
         {
-            return DateOnly.FromDateTime(dt);
+            fecha = DateOnly.FromDateTime(dt);
+        }
+        else if (DateOnly.TryParseExact(cell.GetString().Trim(), FormatosFecha, Chile, DateTimeStyles.None, out var parsed))
+        {
+            fecha = parsed;
         }
 
-        var text = cell.GetString().Trim();
-        return DateOnly.TryParse(text, out var parsed) ? parsed : null;
+        return fecha is { } f && RangoFechasImportacion.EsPlausible(f, hoy) ? f : null;
     }
 }

@@ -107,11 +107,11 @@ public class EtapaYCierreTests
     public void An_existing_FechaSubida_is_never_overwritten_by_a_state_change()
     {
         var c = Agenda();
-        c.Editar(c.Sede, c.FechaCitacion, new DateOnly(2026, 3, 11), null, "ana", Alta);
+        c.Editar(c.Sede, c.FechaCitacion, new DateOnly(2026, 3, 10), null, "ana", Alta);
 
         c.ForzarEstado(EstadoCarpeta.SubidaConaset, "ana", Despues);
 
-        Assert.Equal(new DateOnly(2026, 3, 11), c.FechaSubida);
+        Assert.Equal(new DateOnly(2026, 3, 10), c.FechaSubida);
         Assert.Equal(new DateOnly(2026, 3, 12), c.FechaCierre);
     }
 

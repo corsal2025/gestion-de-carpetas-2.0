@@ -13,9 +13,11 @@ public sealed class CertificadosService(
     ICertificadoRepository certificados,
     IFirmantesRepository firmantes,
     TimeProvider clock,
-    INotificadorCertificado? notificador = null)
+    INotificadorCertificado? notificador = null,
+    UnidadDeTrabajoGate? gate = null,
+    IGeneradorDocumentoCertificado? generador = null)
 {
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly UnidadDeTrabajoGate _gate = gate ?? new UnidadDeTrabajoGate();
 
     private readonly EnvioCertificadoDirector _envio = new(carpetas, certificados, firmantes, notificador, clock);
 
@@ -37,6 +39,7 @@ public sealed class CertificadosService(
 
             var certificado = SolicitudCertificado.CrearManual(carpeta.Id, cmd.Tipo, cmd.Parametros, cmd.NumeroOficio, cmd.Autor, Now);
             await certificados.AddAsync(certificado, ct);
+            carpeta.RegistrarEvento("Certificado", null, $"Solicitado: {EtiquetasSolicitudes.Of(cmd.Tipo)}", cmd.Autor, Now);
             await carpetas.SaveChangesAsync(ct);
             id = certificado.Id;
         }
@@ -54,20 +57,23 @@ public sealed class CertificadosService(
         return new CertificadoCreado(id, envio.Enviado, envio.Error);
     }
 
-    /// <summary>Edits parameters / oficio number / note while the certificate is still waiting for the signature.</summary>
+    /// <summary>Edits parameters / oficio number / note while the certificate is still waiting for the signature (audited on the carpeta).</summary>
     public async Task ActualizarDatosAsync(
         Guid id,
         IReadOnlyDictionary<string, string>? parametros,
         string? numeroOficio,
         string? observacion,
+        string autor,
         CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
         {
+            var usuario = Autores.Requerir(autor);
             var certificado = await LoadAsync(id, ct);
-            await LoadActivaAsync(certificado.CarpetaId, ct);
+            var carpeta = await LoadActivaAsync(certificado.CarpetaId, ct);
             certificado.ActualizarDatos(parametros, numeroOficio, observacion);
+            carpeta.RegistrarEvento("Certificado", null, $"Datos actualizados: {EtiquetasSolicitudes.Of(certificado.Tipo)}", usuario, Now);
             await carpetas.SaveChangesAsync(ct);
         }
         catch
@@ -81,8 +87,13 @@ public sealed class CertificadosService(
         }
     }
 
-    /// <summary>Marks the certificate as signed and sends the carpeta to SubidaConOficio (audited, with the actor).</summary>
-    public async Task MarcarFirmadoAsync(Guid id, string autor, string? numeroOficio = null, CancellationToken ct = default)
+    /// <summary>
+    /// Marks the certificate as signed and sends the carpeta to SubidaConOficio (audited, with the actor). A SinCarpeta
+    /// certificate whose carpeta is no longer in Crear certificado is signed but the carpeta is NOT moved. When a document
+    /// generator is available the document must be ready (signers and parameters) before the signature is recorded.
+    /// </summary>
+    /// <returns>True when the carpeta was moved to Subida con oficio.</returns>
+    public async Task<bool> MarcarFirmadoAsync(Guid id, string autor, string? numeroOficio = null, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
@@ -94,11 +105,29 @@ public sealed class CertificadosService(
                 throw new DomainException(
                     $"La carpeta ya está en un estado final ({carpeta.Estado}): no se puede enviar a «Subida con oficio».");
             }
+            if (generador is not null)
+            {
+                var datos = new DatosCertificado(
+                    certificado.Tipo,
+                    carpeta.Ciudadano.Rut.Formatted,
+                    carpeta.Ciudadano.NombreCompleto.ToUpperInvariant(),
+                    string.IsNullOrWhiteSpace(numeroOficio) ? certificado.NumeroOficio : numeroOficio.Trim(),
+                    certificado.Parametros);
+                if (generador.MotivoNoGenerable(datos, await firmantes.ObtenerAsync(ct)) is { } motivo)
+                {
+                    throw new DomainException(motivo);
+                }
+            }
 
             var now = Now;
+            var mueve = certificado.Tipo != TipoCertificado.SinCarpeta || carpeta.Estado == EstadoCarpeta.CrearCertificado;
             certificado.MarcarFirmado(autor, now, numeroOficio);
-            carpeta.ForzarEstado(EstadoCarpeta.SubidaConOficio, autor, now);
+            if (mueve)
+            {
+                carpeta.ForzarEstado(EstadoCarpeta.SubidaConOficio, autor, now);
+            }
             await carpetas.SaveChangesAsync(ct);
+            return mueve;
         }
         catch
         {
@@ -114,7 +143,8 @@ public sealed class CertificadosService(
     /// <summary>One certificate with its carpeta data (for the document download).</summary>
     public async Task<SolicitudCertificadoDto> ObtenerAsync(Guid id, CancellationToken ct = default)
     {
-        var (items, _) = await certificados.ListarAsync(new FiltroCertificados(null, null, null, null, 0, 1, id), ct);
+        var (items, _) = await _gate.LeerAsync(
+            () => certificados.ListarAsync(new FiltroCertificados(null, null, null, null, 0, 1, id), ct), ct);
         return items.Count == 1 ? items[0] : throw new NotFoundException($"Certificado {id} no encontrado.");
     }
 
@@ -123,14 +153,15 @@ public sealed class CertificadosService(
         ArgumentNullException.ThrowIfNull(query);
         var (rut, nombre) = TextoBusqueda.Parse(query.Texto);
         var (skip, take) = ListadoSolicitudes.Acotar(query.Skip, query.Take);
-        var (items, total) = await certificados.ListarAsync(new FiltroCertificados(query.Estado, query.Tipo, rut, nombre, skip, take), ct);
+        var (items, total) = await _gate.LeerAsync(
+            () => certificados.ListarAsync(new FiltroCertificados(query.Estado, query.Tipo, rut, nombre, skip, take), ct), ct);
         return new ListResult<SolicitudCertificadoDto>(items, total);
     }
 
     /// <summary>Certificates per state for the menu badge (optionally of one tipo); every state is present.</summary>
     public async Task<IReadOnlyDictionary<EstadoCertificado, int>> ContarPorEstadoAsync(TipoCertificado? tipo = null, CancellationToken ct = default)
     {
-        var cuentas = await certificados.ContarPorEstadoAsync(tipo, ct);
+        var cuentas = await _gate.LeerAsync(() => certificados.ContarPorEstadoAsync(tipo, ct), ct);
         return Enum.GetValues<EstadoCertificado>().ToDictionary(e => e, e => cuentas.GetValueOrDefault(e));
     }
 
@@ -162,16 +193,17 @@ public sealed class DocumentoCertificadoService(
 }
 
 /// <summary>Settings use cases for the signers (director and secretaría).</summary>
-public sealed class FirmantesService(IFirmantesRepository repository)
+public sealed class FirmantesService(IFirmantesRepository repository, TimeProvider clock)
 {
     public Task<Firmantes> ObtenerAsync(CancellationToken ct = default) => repository.ObtenerAsync(ct);
 
-    /// <summary>Validates, normalizes and stores the signers; returns what was stored.</summary>
-    public async Task<Firmantes> GuardarAsync(Firmantes firmantes, CancellationToken ct = default)
+    /// <summary>Validates, normalizes and stores the signers (recording who changed them); returns what was stored.</summary>
+    public async Task<Firmantes> GuardarAsync(Firmantes firmantes, string autor, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(firmantes);
+        var usuario = Autores.Requerir(autor);
         var normalizados = firmantes.Normalizar();
-        await repository.GuardarAsync(normalizados, ct);
+        await repository.GuardarAsync(normalizados, usuario, clock.GetUtcNow().UtcDateTime, ct);
         return normalizados;
     }
 }

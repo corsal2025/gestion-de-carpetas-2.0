@@ -231,13 +231,9 @@
             await action();
             mensaje = ok;
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            error = ex.Message;
-        }
-        catch (NotFoundException ex)
-        {
-            error = ex.Message;
+            error = ErroresUi.Mensaje(ex, Logger, "Error al resolver la carpeta duplicada");
         }
         finally
         {

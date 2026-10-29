@@ -27,6 +27,7 @@ public static class EtiquetasSolicitudes
         EstadoSolicitudF8.Solicitado => "Solicitado",
         EstadoSolicitudF8.Subido => "Subido",
         EstadoSolicitudF8.NoSeGenero => "No se generó",
+        EstadoSolicitudF8.Cancelada => "Cancelada",
         _ => estado.ToString(),
     };
 
@@ -56,6 +57,9 @@ public static class EtiquetasSolicitudes
 /// <summary>User-facing messages after a request action (trays and modules show the same text).</summary>
 public static class MensajesSolicitudes
 {
+    /// <summary>The request no longer applied (the carpeta had already left the F8 states): it was closed, nothing moved.</summary>
+    public const string SubidoObsoleto = "La carpeta ya no estaba en un estado que requiera F8 (alguien la cambió mientras tanto). La solicitud se cerró como cancelada y la carpeta se dejó como está.";
+
     public static string F8Solicitada(SolicitarF8Resultado resultado, string nombre)
     {
         ArgumentNullException.ThrowIfNull(resultado);
@@ -70,6 +74,11 @@ public static class MensajesSolicitudes
     public static string NoSeGenero(NoSeGeneroResultado resultado)
     {
         ArgumentNullException.ThrowIfNull(resultado);
+        if (resultado.Obsoleta)
+        {
+            return SubidoObsoleto;
+        }
+
         var baseMsg = resultado.CertificadoYaExistia
             ? "El F8 quedó como «No se generó»; la solicitud de certificado ya existía."
             : "El F8 quedó como «No se generó» y se abrió una solicitud de certificado.";

@@ -227,6 +227,8 @@ public sealed class FirmantesRepository(SglDbContext db) : IFirmantesRepository
     private const string DirectorCorreo = "Firmantes.DirectorCorreo";
     private const string SecretariaNombre = "Firmantes.SecretariaNombre";
     private const string SecretariaCargo = "Firmantes.SecretariaCargo";
+    private const string ModificadoPor = "Firmantes.ModificadoPor";
+    private const string ModificadoEn = "Firmantes.ModificadoEn";
 
     public async Task<Firmantes> ObtenerAsync(CancellationToken ct = default)
     {
@@ -241,7 +243,7 @@ public sealed class FirmantesRepository(SglDbContext db) : IFirmantesRepository
             items.GetValueOrDefault(SecretariaCargo, string.Empty));
     }
 
-    public async Task GuardarAsync(Firmantes firmantes, CancellationToken ct = default)
+    public async Task GuardarAsync(Firmantes firmantes, string modificadoPor, DateTime modificadoEnUtc, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(firmantes);
         var valores = new Dictionary<string, string>
@@ -251,6 +253,8 @@ public sealed class FirmantesRepository(SglDbContext db) : IFirmantesRepository
             [DirectorCorreo] = firmantes.DirectorCorreo,
             [SecretariaNombre] = firmantes.SecretariaNombre,
             [SecretariaCargo] = firmantes.SecretariaCargo,
+            [ModificadoPor] = modificadoPor,
+            [ModificadoEn] = modificadoEnUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
         };
 
         var existentes = await db.Configuracion.Where(i => i.Clave.StartsWith("Firmantes.")).ToDictionaryAsync(i => i.Clave, ct);

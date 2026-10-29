@@ -10,6 +10,7 @@
 }
 
 <div class="page-container peticiones-page">
+<h1 class="visually-hidden">Peticiones de cambio de domicilio a otras comunas</h1>
 
 @if (Model.ModoPruebaEmail is not null)
 {
@@ -18,6 +19,7 @@
         <div>
             <strong>MODO PRUEBA ACTIVO.</strong> Ningún correo sale hacia las municipalidades.
             Todo se desvía a <code>@Model.ModoPruebaEmail</code>.
+            Los envíos quedan registrados como prueba: las peticiones siguen pendientes y <strong>no se marcan como enviadas</strong>.
             Para enviar de verdad, vaciar <code>Peticion:TestModeEmail</code> en appsettings.Local.json.
         </div>
     </div>
@@ -209,7 +211,7 @@
 
         var rutBusqueda = new string(p.Rut.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
 
-        <tr id="fila-@p.Id" class="@claseFila" data-pendiente="@(esEnviada ? "0" : "1")" data-finalizada="@(finalizada ? "1" : "0")"
+        <tr id="fila-@p.Id" class="@claseFila" data-pendiente="@(esEnviada || p.Estado == EstadoPeticion.Enviando ? "0" : "1")" data-finalizada="@(finalizada ? "1" : "0")"
             data-nombre="@TextNormalization.Fold(p.NombreCompleto)" data-rut="@rutBusqueda">
             <td class="td-check col-sticky-check">
                 @if (finalizada)
@@ -254,6 +256,10 @@
                     </span>
                     <span class="pill-time-sub">@p.EnviadaEn.Value.ToString("dd-MM HH:mm")</span>
                 }
+                else if (p.Estado == EstadoPeticion.Enviando)
+                {
+                    <span class="pill-status idle" title="Hay un envío en curso para esta comuna">Enviando…</span>
+                }
                 else if (p.Estado == EstadoPeticion.SinCorreoComuna)
                 {
                     <span class="pill-status warn" title="@envioTitulo">
@@ -292,15 +298,15 @@
             </td>
             <td>
                 <div class="d-inline-flex align-items-center gap-1">
-                @if (!esEnviada && pendientesComuna > 0)
+                @if (!esEnviada && p.Estado != EstadoPeticion.Enviando && pendientesComuna > 0)
                 {
                     var rutDudoso = Model.Peticiones.Any(x =>
                         x.Comuna.Equals(p.Comuna, System.StringComparison.OrdinalIgnoreCase)
                         && x.RutInvalido
                         && x.Estado != EstadoPeticion.Enviada);
-                    var aviso = rutDudoso ? "\\n(incluye 1 o más con RUT NO validado)" : "";
-                    <form method="post" class="d-inline"
-                          onsubmit="return confirm('@p.Comuna: @pendientesComuna persona(s) pendiente(s).\nSe envía 1 correo con todas.@(aviso) ¿Continuar?');">
+                    var aviso = rutDudoso ? "\n(incluye 1 o más con RUT NO validado)" : "";
+                    var textoConfirmar = $"{p.Comuna}: {pendientesComuna} persona(s) pendiente(s).\nSe envía 1 correo con todas.{aviso} ¿Continuar?";
+                    <form method="post" class="d-inline js-confirmar" data-confirmar="@textoConfirmar">
                         <input type="hidden" name="id" value="@p.Id" />
                         <button asp-page-handler="EnviarComuna" class="btn-decision btn-decision-enviar text-nowrap"
                                 title="Enviar a la comuna de @p.Comuna: 1 correo con las @pendientesComuna petición(es) pendiente(s)">

@@ -87,6 +87,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasIndex(c => c.TipoTramite);
             b.HasIndex(c => c.Comuna);
             b.HasIndex(c => new { c.FechaCitacion, c.Id });
+            b.HasIndex(c => c.FechaSubida);
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>
@@ -99,6 +100,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(h => h.Anterior).HasMaxLength(250);
             b.Property(h => h.Nuevo).HasMaxLength(250);
             b.HasIndex(h => h.Fecha);
+            b.HasIndex(h => new { h.Campo, h.CarpetaId, h.Fecha });
         });
 
         modelBuilder.Entity<ImportacionLog>(b =>

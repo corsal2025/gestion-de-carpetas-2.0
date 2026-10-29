@@ -120,6 +120,20 @@ window.showRutToast = function (msg) {
     }, 2400);
 };
 
+// Valida el DV de un RUT chileno (modulo 11) para no reformatear copias de numeros que no son RUT.
+window.rutDvValido = function (text) {
+    var m = String(text || '').replace(/[\.\s]/g, '').match(/^(\d{1,8})-?([0-9kK])$/);
+    if (!m) return false;
+    var suma = 0, mult = 2, i;
+    for (i = m[1].length - 1; i >= 0; i--) {
+        suma += parseInt(m[1].charAt(i), 10) * mult;
+        mult = mult === 7 ? 2 : mult + 1;
+    }
+    var r = 11 - (suma % 11);
+    var dv = r === 11 ? '0' : (r === 10 ? 'K' : String(r));
+    return dv === m[2].toUpperCase();
+};
+
 // Interceptor global del evento copy (Ctrl+C o botón derecho 'Copiar')
 document.addEventListener('copy', function (event) {
     var active = document.activeElement;
@@ -137,12 +151,12 @@ document.addEventListener('copy', function (event) {
     } else {
         var selection = window.getSelection ? window.getSelection().toString().trim() : '';
         var cleanSel = selection.replace(/[\.\s]/g, '');
-        if (/^\d{1,8}-?[\dkK]$/i.test(cleanSel)) {
+        if (window.rutDvValido(cleanSel)) {
             textToFormat = selection;
         }
     }
 
-    if (textToFormat) {
+    if (textToFormat && window.rutDvValido(textToFormat)) {
         var formatted = window.formatRutForClipboard(textToFormat);
         if (formatted) {
             event.clipboardData.setData('text/plain', formatted);
@@ -426,7 +440,8 @@ window.printPdfDocument = function (titulo) {
         if (yaVisible || esPrimerRender) {
             posicionar();
         } else {
-            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            target.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'nearest' });
             setTimeout(posicionar, 100);
         }
     }
@@ -596,6 +611,7 @@ window.printPdfDocument = function (titulo) {
         // Preferencias por navegador (menú lateral, Lico silenciado). Sin almacenamiento: null / no-op.
         leer: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
         guardar: function (k, v) { save(k, v); },
+        irA: function (id) { var el = document.getElementById(id); if (el) el.scrollIntoView({ block: 'start' }); },
         scrollTablaArriba: function () { var t = document.querySelector('.modulo-main .table-container'); if (t) t.scrollTop = 0; },
         // Transición suave de un contador; respeta prefers-reduced-motion.
         animarNumero: function (el, desde, hasta) {
@@ -740,18 +756,13 @@ window.printPdfDocument = function (titulo) {
         // 2) writes
         lecturas.forEach(function (l) {
             st = estado.get(l.t);
-            var monotona = l.t.classList.contains('tabla-virtual');
             var c;
             // Columns size to their content: never pin a min-width (a pinned width only grows and broke the layout).
             // Remove any min-width left by older versions of this script.
             for (c = 0; c < l.celdas.length; c++) {
                 if (l.celdas[c].style.getPropertyValue('min-width')) l.celdas[c].style.removeProperty('min-width');
             }
-            monotona = false;
-            var ancho = function (idx) {
-                var w = Math.ceil(l.anchos[idx]);
-                return monotona ? Math.max(w, st.max[idx] || 0) : w;
-            };
+            var ancho = function (idx) { return Math.ceil(l.anchos[idx]); };
             var check = (l.celdas[0] && l.celdas[0].classList.contains('col-sticky-check')) ? ancho(0) : 0;
             if (check !== st.check) { st.check = check; l.t.style.setProperty('--w-check', check + 'px'); }
             if (l.nombreIdx >= 0) {
@@ -789,4 +800,15 @@ window.printPdfDocument = function (titulo) {
         if (!/\d/.test(v) || !/^[\d\s.\-kK]*$/.test(v)) return;
         window.formatRutInput(el);
     }, true);
+})();
+
+// Escape cierra el modal/panel abierto: pulsa el primer [data-esc-cierra] visible y habilitado (modales antes que el drawer).
+(function () {
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || e.defaultPrevented) return;
+        var btns = document.querySelectorAll('[data-esc-cierra]');
+        for (var i = 0; i < btns.length; i++) {
+            if (!btns[i].disabled && btns[i].getClientRects().length > 0) { btns[i].click(); e.preventDefault(); return; }
+        }
+    });
 })();

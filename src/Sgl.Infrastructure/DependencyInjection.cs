@@ -29,6 +29,8 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException($"Falta la cadena de conexión 'ConnectionStrings:{ConnectionStringName}'.");
 
         services.AddDbContext<SglDbContext>(options => DatabaseProvider.Configure(options, provider, connectionString));
+        // One gate per circuit: every service sharing the scoped DbContext serializes its reads and writes through it.
+        services.AddScoped<UnidadDeTrabajoGate>();
         services.AddScoped<ICarpetaRepository, CarpetaRepository>();
         services.AddScoped<IDuplicadoRepository, DuplicadoRepository>();
         services.AddScoped<CarpetaService>();
@@ -89,10 +91,9 @@ public static class DatabaseProvider
     public static void Configure(DbContextOptionsBuilder options, string provider, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(options);
-        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         _ = provider switch
         {
-            _ when provider.Equals(Sqlite, StringComparison.OrdinalIgnoreCase) => options.UseSqlite(connectionString),
+            _ when provider.Equals(Sqlite, StringComparison.OrdinalIgnoreCase) => options.UseSqlite(connectionString).AddInterceptors(new SqlitePragmasInterceptor()),
             _ when provider.Equals(SqlServer, StringComparison.OrdinalIgnoreCase) => options.UseSqlServer(connectionString),
             _ => throw new InvalidOperationException($"Proveedor de base de datos no soportado: '{provider}'. Use Sqlite o SqlServer."),
         };

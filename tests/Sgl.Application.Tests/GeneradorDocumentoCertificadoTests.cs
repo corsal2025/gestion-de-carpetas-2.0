@@ -250,7 +250,7 @@ public sealed class DocumentoCertificadoServiceTests : IDisposable
     [Fact]
     public async Task Builds_the_document_of_a_stored_request_with_the_configured_signers()
     {
-        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Directora Prueba", "Director", "", "", ""));
+        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Directora Prueba", "Director", "", "", ""), "javiera");
         var id = await CrearOficioAsync();
 
         var doc = await NuevoServicio().GenerarAsync(id);

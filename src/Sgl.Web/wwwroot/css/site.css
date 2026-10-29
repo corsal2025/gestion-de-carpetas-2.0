@@ -10,7 +10,7 @@
   --surface: #ffffff;
   --ink: #23262a;
   --ink-soft: #5b6067;
-  --ink-faint: #878d95;
+  --ink-faint: #5b6477;
   --line: #e4e3dd;
   --line-strong: #d3d2ca;
 
@@ -855,7 +855,7 @@ pre { font-size: .82rem; }
   --line-strong: #c9d2ea;
   --ink: #1b2140;
   --ink-soft: #4d5578;
-  --ink-faint: #7a82a3;
+  --ink-faint: #5b6477;
   --radius: 14px;
   --radius-sm: 10px;
   --shadow-sm: 0 1px 2px rgba(27, 33, 80, .06), 0 4px 12px rgba(27, 33, 80, .06);
@@ -1014,7 +1014,7 @@ body {
 .card, .alert { border-radius: 16px; }
 
 /* Carpeta ya tratada: sin casilla de selección. */
-.sin-seleccion { color: var(--ink-faint); opacity: .55; cursor: not-allowed; user-select: none; }
+.sin-seleccion { color: var(--ink-faint); opacity: 1; cursor: not-allowed; user-select: none; }
 
 /* ---------- Lico travieso (travesuras tras inactividad) ---------- */
 .lico-travieso {
@@ -1062,8 +1062,6 @@ body {
   86%  { transform: translateY(-20px) scale(1.7); opacity: 1; }
   100% { transform: translateY(60px) scale(.2); opacity: 0; }
 }
-@keyframes lt-globo-toc { 0%, 17% { opacity: 0; } 22%, 84% { opacity: 1; } 90%, 100% { opacity: 0; } }
-@keyframes lt-onda { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
 
 /* 2) PELOTA: corre y patea la pelota por el borde inferior */
 .modo-pelota .lt-lico { left: 0; width: 130px; animation: lt-pelota-lico 9.5s linear forwards; }
@@ -1076,10 +1074,6 @@ body {
   border: 3px solid var(--accent); box-shadow: inset -4px -4px 0 rgba(38, 56, 140, .18);
   animation: lt-bote .8s cubic-bezier(.3, .7, .5, 1) infinite alternate;
 }
-@keyframes lt-pelota-lico { 0% { transform: translateX(4vw); opacity: 0; } 4% { opacity: 1; } 88% { transform: translateX(78vw); opacity: 1; } 100% { transform: translateX(80vw); opacity: 0; } }
-@keyframes lt-pelota-x { 0% { transform: translateX(15vw); opacity: 0; } 4% { opacity: 1; } 88% { transform: translateX(90vw); opacity: 1; } 100% { transform: translateX(94vw); opacity: 0; } }
-@keyframes lt-bote { 0% { transform: translateY(0); } 100% { transform: translateY(-110px); } }
-@keyframes lt-globo-gol { 0%, 76% { opacity: 0; } 80%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
 
 /* 3) DUERME: se sienta en la esquina y ronca */
 .modo-duerme .lt-lico { right: 40px; animation: lt-duerme 16s ease-in-out forwards; }
@@ -1089,9 +1083,6 @@ body {
 .modo-duerme .lt-zzz b { position: absolute; left: 0; top: 0; opacity: 0; font-size: 1.1rem; animation: lt-z 3s ease-out infinite; }
 .modo-duerme .lt-zzz b:nth-child(2) { animation-delay: 1s; font-size: 1.4rem; }
 .modo-duerme .lt-zzz b:nth-child(3) { animation-delay: 2s; font-size: 1.8rem; }
-@keyframes lt-duerme { 0% { transform: translateY(190px); opacity: 0; } 8% { transform: translateY(0); opacity: 1; } 94% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(190px); opacity: 0; } }
-@keyframes lt-globo-zzz { 0%, 10% { opacity: 0; } 16%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
-@keyframes lt-z { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-22px, -46px); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) { .lico-travieso { display: none; } }
 
@@ -1112,9 +1103,6 @@ body {
 .lico-svg .lico-cuerpo { transform-origin: 50% 90%; animation: lico-rebote 2.6s ease-in-out infinite; }
 .lico-svg .lico-ojos { transform-box: fill-box; transform-origin: center; animation: lico-parpadeo 4.5s infinite; }
 .lico-svg .lico-saludo { transform-box: fill-box; transform-origin: 20% 90%; animation: lico-saludo 1.4s ease-in-out infinite; }
-@keyframes lico-rebote { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
-@keyframes lico-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-@keyframes lico-saludo { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
 @media (prefers-reduced-motion: reduce) {
   .lico-svg .lico-cuerpo, .lico-svg .lico-ojos, .lico-svg .lico-saludo { animation: none; }
 }
@@ -1183,10 +1171,7 @@ body {
   color: #fff; font-size: 1rem; pointer-events: none; animation: hl-zzz 3s ease-out;
 }
 @keyframes hl-salta  { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.1, .88); } 40% { transform: translateY(-34px) scale(.95, 1.08); } 65% { transform: translateY(0) scale(1.1, .88); } 80% { transform: translateY(-14px); } 92% { transform: translateY(0) scale(1.05, .95); } }
-@keyframes hl-gira   { 0% { transform: rotateY(0) scale(1); } 50% { transform: rotateY(180deg) scale(1.15); } 100% { transform: rotateY(360deg) scale(1); } }
 @keyframes hl-baila  { 0%, 100% { transform: rotate(0); } 12% { transform: rotate(-14deg) translateX(-4px); } 25% { transform: rotate(14deg) translateX(4px); } 38% { transform: rotate(-14deg) translateX(-4px); } 50% { transform: rotate(14deg) translateX(4px); } 62% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } 88% { transform: rotate(0); } }
-@keyframes hl-toc    { 0%, 100% { transform: rotate(0) scale(1); } 15% { transform: scale(1.2) rotate(0); } 25%, 45%, 65% { transform: scale(1.2) rotate(-8deg); } 35%, 55%, 75% { transform: scale(1.2) rotate(0); } 90% { transform: scale(1.05); } }
-@keyframes hl-onda   { 0% { transform: scale(.3); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
 @keyframes hl-duerme { 0% { transform: rotate(0); } 20%, 80% { transform: rotate(11deg) translateY(4px); } 100% { transform: rotate(0); } }
 @keyframes hl-zzz    { 0% { opacity: 0; transform: translateY(8px); } 25%, 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-16px); } }
 @media (prefers-reduced-motion: reduce) {
@@ -1223,7 +1208,6 @@ body {
 .head-lico.hl-domina .hl-bola { display: block; left: 24px; bottom: auto; top: 0; animation: hl-domina .5s ease-out 6 both; }
 .head-lico.hl-domina svg { animation: hl-cabecea .5s ease-in-out 6; }
 @keyframes hl-domina  { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(3px, -15px); } }
-@keyframes hl-cabecea { 0%, 100% { transform: translateY(2px) scale(1.04, .96); } 50% { transform: translateY(0) rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) { .head-lico.hl-domina svg, .head-lico.hl-domina .hl-bola { animation: none; } }
 
 .modo-domina .lt-lico { left: 50%; margin-left: -75px; animation: lt-domina 11s ease-in-out forwards; }
@@ -1231,10 +1215,6 @@ body {
 .modo-domina .lt-pelota { display: block; position: absolute; left: 50%; margin-left: -19px; bottom: 160px; width: 38px; height: 38px; animation: lt-domina-bola 11s linear forwards; }
 .modo-domina .lt-globo { bottom: auto; top: 14px; left: 100%; transform: none; margin-left: 12px; white-space: nowrap; animation: lt-globo-domina 11s ease-in-out forwards; }
 .modo-domina .lt-globo::after { display: none; }
-@keyframes lt-domina { 0% { transform: translateY(190px); opacity: 0; } 7% { transform: translateY(0); opacity: 1; } 93% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(190px); opacity: 0; } }
-@keyframes lt-domina-bola { 0% { opacity: 0; } 9% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes lt-globo-domina { 0%, 12% { opacity: 0; } 18%, 88% { opacity: 1; } 94%, 100% { opacity: 0; } }
-@keyframes lt-cabecea { 0%, 100% { transform: translateY(3px) scale(1.03, .97); } 50% { transform: translateY(-4px) rotate(-1.5deg); } }
 
 /* ---------- Ajuste de ancho: que la tabla entre completa, sin cortar letras ---------- */
 .container { max-width: min(1860px, 100% - 24px); }

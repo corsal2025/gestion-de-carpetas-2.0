@@ -3,7 +3,8 @@
 *.xls
 *.xlsm
 *.csv
-data/
+/data/
+!src/**/Peticiones/Data/
 *.db
 *.db-*
 *.sqlite
@@ -31,3 +32,6 @@ scripts/migrate_estados.py
 scripts/update_listado.py
 .playwright-mcp/
 temp/
+
+# Indice local de herramienta
+.codegraph/

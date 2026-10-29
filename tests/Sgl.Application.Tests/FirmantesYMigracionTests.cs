@@ -25,12 +25,12 @@ public sealed class FirmantesYMigracionTests : IDisposable
     [Fact]
     public async Task Signers_are_saved_trimmed_and_overwritten_on_the_next_save()
     {
-        await _db.NewFirmantesService().GuardarAsync(new Firmantes(" Ana Díaz ", "Director (s)", "ana@example.test", "Sara", "Secretaria"));
+        await _db.NewFirmantesService().GuardarAsync(new Firmantes(" Ana Díaz ", "Director (s)", "ana@example.test", "Sara", "Secretaria"), "javiera");
         var guardados = await _db.NewFirmantesService().ObtenerAsync();
         Assert.Equal("Ana Díaz", guardados.DirectorNombre);
         Assert.Equal("Director (s)", guardados.DirectorCargo);
 
-        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Luis Mora", "Director", "", "", ""));
+        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Luis Mora", "Director", "", "", ""), "javiera");
 
         var nuevos = await _db.NewFirmantesService().ObtenerAsync();
         Assert.Equal("Luis Mora", nuevos.DirectorNombre);
@@ -46,7 +46,7 @@ public sealed class FirmantesYMigracionTests : IDisposable
     public async Task An_invalid_director_email_is_rejected(string correo)
     {
         await Assert.ThrowsAsync<DomainException>(() =>
-            _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana", "Director", correo, "Sara", "Secretaria")));
+            _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana", "Director", correo, "Sara", "Secretaria"), "javiera"));
         Assert.Equal(Firmantes.Vacios, await _db.NewFirmantesService().ObtenerAsync());
     }
 
@@ -54,19 +54,7 @@ public sealed class FirmantesYMigracionTests : IDisposable
     public async Task Overlong_signer_fields_are_rejected()
     {
         await Assert.ThrowsAsync<DomainException>(() =>
-            _db.NewFirmantesService().GuardarAsync(new Firmantes(new string('x', Firmantes.MaxLength + 1), "Director", "", "", "")));
-    }
-
-    [Fact]
-    public async Task The_default_notifier_sends_nothing()
-    {
-        var notificador = new CertificadoSinCorreo(Microsoft.Extensions.Logging.Abstractions.NullLogger<CertificadoSinCorreo>.Instance);
-
-        var enviado = await notificador.EnviarAsync(new NotificacionCertificado(
-            Guid.NewGuid(), Guid.NewGuid(), TipoCertificado.Oficio, OrigenCertificado.Manual, "12.345.678-5", "JUAN",
-            Sede.AvArgentina, "ana", DateTime.UtcNow, null, new Dictionary<string, string>(), Firmantes.Vacios));
-
-        Assert.False(enviado);
+            _db.NewFirmantesService().GuardarAsync(new Firmantes(new string('x', Firmantes.MaxLength + 1), "Director", "", "", ""), "javiera"));
     }
 
     [Fact]

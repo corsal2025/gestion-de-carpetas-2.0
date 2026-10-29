@@ -58,11 +58,11 @@ public static class EstadoCarpetaCatalog
     }
 
     /// <summary>true si el estado significa que la carpeta la subió la comuna vía SGL (no nosotros).</summary>
-    public static bool SubidaPorComuna(string? estado) => estado is
+    public static bool SubidaPorComuna(string? estado) => Normalizar(estado) is
         "CAMBIO DOM. SUBIDO A CONASET" or "SUBIDA A CONASET";
 
     /// <summary>true si el estado significa que la carpeta la tuvimos que subir nosotros (escalamiento).</summary>
-    public static bool SubidaPorNosotros(string? estado) => estado is
+    public static bool SubidaPorNosotros(string? estado) => Normalizar(estado) is
         "CAMBIO DOM. SUBIDO CON CORREO" or "SUBIDA CON F8" or "SUBIDA CON OFICIO";
 
     // --- Vista del dashboard: solo interesan tres situaciones ---

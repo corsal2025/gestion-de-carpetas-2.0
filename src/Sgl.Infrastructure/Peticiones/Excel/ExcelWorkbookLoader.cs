@@ -34,6 +34,7 @@ public sealed class LoadedWorkbook : IDisposable
 
         try
         {
+            WorkbookSanitizer.ValidarArchivo(temp);
             return new LoadedWorkbook(new XLWorkbook(temp), temp);
         }
         catch (ArgumentOutOfRangeException)

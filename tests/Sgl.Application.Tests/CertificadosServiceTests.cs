@@ -92,7 +92,7 @@ public sealed class CertificadosServiceTests : IDisposable
     public async Task Creating_calls_the_notifier_with_the_signers_but_records_no_sending_for_a_noop()
     {
         var notificador = new NotificadorFalso(resultado: false);
-        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Director", "Director", "dir@example.test", "Sara Secretaria", "Secretaria"));
+        await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Director", "Director", "dir@example.test", "Sara Secretaria", "Secretaria"), "javiera");
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
 
         var creado = await CrearManual(id, TipoCertificado.Oficio, new() { ["Clase"] = "A2", ["Motivo"] = "Extravío" }, notificador: notificador);
@@ -187,7 +187,7 @@ public sealed class CertificadosServiceTests : IDisposable
         var sinCarpeta = await _db.NewF8Service().MarcarNoSeGeneroAsync(f8.SolicitudId, "javiera");
 
         await _db.NewCertificadosService().ActualizarDatosAsync(sinCarpeta.CertificadoId,
-            new Dictionary<string, string> { [SolicitudCertificado.ClaveAnioRenovacion] = "2018" }, null, "revisar");
+            new Dictionary<string, string> { [SolicitudCertificado.ClaveAnioRenovacion] = "2018" }, null, "revisar", "javiera");
 
         var fila = (await Todos(tipo: TipoCertificado.SinCarpeta)).Single();
         Assert.Equal("2018", fila.Parametros[SolicitudCertificado.ClaveAnioRenovacion]);

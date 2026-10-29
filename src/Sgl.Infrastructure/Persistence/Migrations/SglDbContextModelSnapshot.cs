@@ -134,6 +134,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Estado");
 
+                    b.HasIndex("FechaSubida");
+
                     b.HasIndex("Sede");
 
                     b.HasIndex("TipoTramite");
@@ -242,6 +244,8 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasIndex("CarpetaId");
 
                     b.HasIndex("Fecha");
+
+                    b.HasIndex("Campo", "CarpetaId", "Fecha");
 
                     b.ToTable("HistorialCambios", (string)null);
                 });

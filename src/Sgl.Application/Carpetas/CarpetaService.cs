@@ -10,13 +10,14 @@ public sealed class CarpetaService(
     LicenciasOptions? options = null,
     INotificadorPeticion? notificador = null,
     ISolicitudF8Repository? solicitudesF8 = null,
-    ICertificadoRepository? certificados = null)
+    ICertificadoRepository? certificados = null,
+    UnidadDeTrabajoGate? gate = null)
 {
     private readonly LicenciasOptions _options = options ?? new LicenciasOptions();
 
-    // One circuit shares this service and its DbContext: writes (and the discard on failure) are serialized so a
-    // ChangeTracker.Clear() can never run in the middle of another operation's SaveChanges.
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    // One circuit shares this service and its DbContext with the other services: every read and write goes through
+    // the circuit's gate, so a ChangeTracker.Clear() can never run in the middle of another operation's SaveChanges.
+    private readonly UnidadDeTrabajoGate _gate = gate ?? new UnidadDeTrabajoGate();
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -53,36 +54,6 @@ public sealed class CarpetaService(
             await repository.AddAsync(carpeta, ct);
             await repository.SaveChangesAsync(ct);
             return carpeta.Id;
-        }
-        catch
-        {
-            // A failed operation must not leave tracked changes for a later save in the same circuit.
-            repository.DescartarCambios();
-            throw;
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
-    /// <summary>Checks a prospective registration against the citizen's open carpetas without saving.</summary>
-    public async Task<VerificacionDuplicadoDto> VerificarDuplicadoAsync(string rutTexto, ClaseLicencia clases, CancellationToken ct = default)
-    {
-        var ciudadano = await repository.FindCiudadanoAsync(Rut.Parse(rutTexto), ct);
-        return ciudadano is null
-            ? VerificacionDuplicadoDto.Vacia
-            : VerificacionDuplicadoDto.Clasificar(await repository.GetCarpetasAbiertasAsync(ciudadano.Id, ct), clases);
-    }
-
-    public async Task AsignarClasesAsync(Guid id, ClaseLicencia clases, string autor, CancellationToken ct = default)
-    {
-        await _gate.WaitAsync(ct);
-        try
-        {
-            var carpeta = await LoadActivaAsync(id, ct);
-            carpeta.AsignarClases(clases, autor, Now);
-            await repository.SaveChangesAsync(ct);
         }
         catch
         {
@@ -216,8 +187,7 @@ public sealed class CarpetaService(
     /// </summary>
     public async Task<VerificacionDuplicadoDto> VerificarRestauracionAsync(Guid id, CancellationToken ct = default)
     {
-        var carpeta = await LoadAsync(id, ct);
-        return await VerificarRestauracionAsync(carpeta, ct);
+        return await _gate.LeerAsync(async () => await VerificarRestauracionAsync(await LoadAsync(id, ct), ct), ct);
     }
 
     private async Task<VerificacionDuplicadoDto> VerificarRestauracionAsync(Carpeta carpeta, CancellationToken ct)
@@ -304,7 +274,7 @@ public sealed class CarpetaService(
     public Task<IReadOnlyList<CarpetaAnuladaDto>> ListarAnuladasAsync(string? texto = null, CancellationToken ct = default)
     {
         var (rutFragment, nameFragment) = TextoBusqueda.Parse(string.IsNullOrWhiteSpace(texto) ? null : texto.Trim());
-        return repository.GetAnuladasAsync(rutFragment, nameFragment, ct);
+        return _gate.LeerAsync(() => repository.GetAnuladasAsync(rutFragment, nameFragment, ct), ct);
     }
 
     public async Task EditarAsync(EditarCarpetaCommand cmd, CancellationToken ct = default)
@@ -479,7 +449,10 @@ public sealed class CarpetaService(
         try
         {
             var carpeta = await LoadActivaAsync(id, ct);
-            carpeta.RestaurarEstado(punto, estadoEsperado, autor, Now);
+            var f8Automatica = await F8AutomaticaDelMovimientoAsync(carpeta, punto, estadoEsperado, ct);
+            var now = Now;
+            carpeta.RestaurarEstado(punto, estadoEsperado, autor, now);
+            f8Automatica?.Cancelar(autor, now, "Se deshizo el movimiento que la originó.");
             await repository.SaveChangesAsync(ct);
         }
         catch
@@ -546,7 +519,20 @@ public sealed class CarpetaService(
             _gate.Release();
         }
 
-        return notificador is not null && await notificador.EnviarAsync(peticion, ct);
+        if (notificador is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return await notificador.EnviarAsync(peticion, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The request is already stored and audited; a failing mail adapter only means "not sent" (it logs the cause).
+            return false;
+        }
     }
 
     /// <summary>Marks the given carpetas as printed in a search listing; all or nothing.</summary>
@@ -588,8 +574,8 @@ public sealed class CarpetaService(
         }
 
         var consulta = filtros.Normalized() with { Bandeja = bandeja, Skip = 0, Take = null, Ids = null };
-        var (items, _) = await repository.SearchAsync(ToSearch(consulta), ct);
-        var elegidas = ids is { Count: > 0 } ? items.Where(i => ids.Contains(i.Id)).ToList() : items;
+        var (items, _) = await _gate.LeerAsync(() => repository.SearchAsync(ToSearch(consulta), ct), ct);
+        var elegidas = ids is { Count: > 0 } ? FiltrarPorIds(items, ids) : items;
         return ListadoBusquedaBuilder.Construir(bandeja, consulta.Sede, elegidas, Now);
     }
 
@@ -801,7 +787,7 @@ public sealed class CarpetaService(
 
     public async Task<CarpetaDetalleDto> ObtenerAsync(Guid id, CancellationToken ct = default)
     {
-        var c = await LoadAsync(id, ct);
+        var c = await _gate.LeerAsync(() => LoadAsync(id, ct), ct);
         var historial = c.Historial
             .OrderByDescending(h => h.Fecha)
             .ThenByDescending(h => h.Id)
@@ -839,6 +825,11 @@ public sealed class CarpetaService(
     public async Task<ListResult<CarpetaResumenDto>> ListarAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        return await _gate.LeerAsync(() => ListarSinGateAsync(query, ct), ct);
+    }
+
+    private async Task<ListResult<CarpetaResumenDto>> ListarSinGateAsync(ListarCarpetasQuery query, CancellationToken ct)
+    {
         var search = ToSearch(query.Normalized());
         var (items, total) = await repository.SearchAsync(search, ct);
         if ((search.Take is null or 0 && search.Ids is null) || items.Count == 0)
@@ -878,24 +869,31 @@ public sealed class CarpetaService(
             return [];
         }
 
-        return await repository.BuscarGlobalAsync(rut, nombre, BusquedaGlobal.Limite, clock.HoyChile(), ct);
+        return await _gate.LeerAsync(() => repository.BuscarGlobalAsync(rut, nombre, BusquedaGlobal.Limite, clock.HoyChile(), ct), ct);
     }
 
     /// <summary>Ids of all matches in list order, to page big trays by primary key (no OFFSET scans).</summary>
     public Task<IReadOnlyList<Guid>> ListarIdsAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        return repository.SearchIdsAsync(ToSearch(query.Normalized() with { Skip = 0, Take = null, Ids = null }), ct);
+        return _gate.LeerAsync(() => repository.SearchIdsAsync(ToSearch(query.Normalized() with { Skip = 0, Take = null, Ids = null }), ct), ct);
     }
 
     /// <summary>Cheap data-version stamp used to validate cached orderings across circuits.</summary>
-    public Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default) => repository.ObtenerVersionDatosAsync(ct);
+    public Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default) =>
+        _gate.LeerAsync(() => repository.ObtenerVersionDatosAsync(ct), ct);
 
     /// <summary>Counts per tray honoring every filter except the tray itself.</summary>
     public Task<IReadOnlyDictionary<Bandeja, int>> ContarPorBandejaAsync(ListarCarpetasQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        return repository.CountByBandejaAsync(ToSearch(query.Normalized() with { Bandeja = null }), ct);
+        return _gate.LeerAsync(() => repository.CountByBandejaAsync(ToSearch(query.Normalized() with { Bandeja = null }), ct), ct);
+    }
+
+    private static IReadOnlyList<CarpetaResumenDto> FiltrarPorIds(IReadOnlyList<CarpetaResumenDto> items, IReadOnlyCollection<Guid> ids)
+    {
+        var conjunto = ids.ToHashSet();
+        return items.Where(i => conjunto.Contains(i.Id)).ToList();
     }
 
     private CarpetaSearch ToSearch(ListarCarpetasQuery q)
@@ -920,16 +918,16 @@ public sealed class CarpetaService(
     }
 
     public Task<EstadisticasGlobalesDto> ObtenerEstadisticasAsync(CancellationToken ct = default) =>
-        repository.GetEstadisticasAsync(ct);
+        _gate.LeerAsync(() => repository.GetEstadisticasAsync(ct), ct);
 
     public Task<IReadOnlyList<CajaResumenDto>> ObtenerCajasAsync(CancellationToken ct = default) =>
-        repository.GetCajasAsync(ct);
+        _gate.LeerAsync(() => repository.GetCajasAsync(ct), ct);
 
     public Task<IReadOnlyList<CarpetaResumenDto>> ObtenerCarpetasDeCajaAsync(string caja, CancellationToken ct = default) =>
-        repository.GetCarpetasByCajaAsync(caja, ct);
+        _gate.LeerAsync(() => repository.GetCarpetasByCajaAsync(caja, ct), ct);
 
     public Task<IReadOnlyList<string>> ObtenerTiposTramiteAsync(CancellationToken ct = default) =>
-        repository.GetTiposTramiteAsync(ct);
+        _gate.LeerAsync(() => repository.GetTiposTramiteAsync(ct), ct);
 
     /// <summary>
     /// The one place of the automatic F8 request: a carpeta searched in Archivos / Of. 43 that turns out not to exist
@@ -946,6 +944,27 @@ public sealed class CarpetaService(
         }
 
         await SolicitudF8Creacion.SolicitarAsync(solicitudesF8, carpeta.Id, estadoAnterior, autor, Now, ct);
+    }
+
+    /// <summary>
+    /// The open F8 request created by <see cref="SolicitarF8AutomaticoAsync"/> in the very move being undone (it was
+    /// requested after the carpeta entered "No existe carpeta"); a request older than the move is the operator's own and stays.
+    /// </summary>
+    private async Task<SolicitudF8?> F8AutomaticaDelMovimientoAsync(
+        Carpeta carpeta, PuntoRestauracionEstado punto, EstadoCarpeta estadoEsperado, CancellationToken ct)
+    {
+        if (solicitudesF8 is null
+            || estadoEsperado != EstadoCarpeta.NoExisteCarpeta
+            || carpeta.Estado != EstadoCarpeta.NoExisteCarpeta
+            || !Carpeta.PermiteBusquedaPendiente(punto.Estado))
+        {
+            return null;
+        }
+
+        var abierta = await solicitudesF8.GetAbiertaPorCarpetaAsync(carpeta.Id, ct);
+        return abierta is not null && abierta.EstadoOrigen == punto.Estado && abierta.SolicitadoEn >= carpeta.FechaEstadoActual
+            ? abierta
+            : null;
     }
 
     /// <summary>Loads a carpeta that may be mutated: cancelled ones are rejected (only restore/inspect may see them).</summary>

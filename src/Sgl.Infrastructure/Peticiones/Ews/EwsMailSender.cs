@@ -10,6 +10,7 @@ public interface IMailSender
     /// <summary>true si el transporte está configurado y listo para enviar.</summary>
     bool IsConfigured { get; }
 
+    /// <param name="toAddress">Una o varias direcciones separadas por coma o punto y coma (un solo correo, todas en "Para").</param>
     Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken);
 }
 
@@ -41,12 +42,18 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
     private readonly EwsOptions? _ews;
     private readonly string? _sendAs;
     private readonly HttpClient? _http;
+    private readonly string? _motivoNoConfigurado;
 
     public EwsMailSender(AppOptions options)
     {
         _ews = options.Ews;
         _sendAs = string.IsNullOrWhiteSpace(options.Ews?.SendAsAddress) ? null : options.Ews!.SendAsAddress!.Trim();
-        if (_ews is { Url: not null, Username: not null, Password: not null })
+        if (_ews is { Url: not null, Username: not null, Password: not null } && !EsUrlHttps(_ews.Url))
+        {
+            // Basic auth sobre http plano expone usuario y clave de dominio: no se envía nada.
+            _motivoNoConfigurado = "Peticion:Ews:Url debe empezar con https:// (con http las credenciales viajarían sin cifrar).";
+        }
+        else if (_ews is { Url: not null, Username: not null, Password: not null })
         {
             _http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
             var credentials = Convert.ToBase64String(
@@ -57,6 +64,10 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
 
     public bool IsConfigured => _http is not null;
 
+    /// <summary>true si la URL es absoluta y usa https.</summary>
+    public static bool EsUrlHttps(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+
     public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken) =>
         SendAsync(toAddress, subject, body, [], cancellationToken);
 
@@ -66,7 +77,7 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
         if (_http is null || _ews?.Url is null)
         {
             throw new EwsSendException(
-                "Falta configurar Peticion:Ews (Url/Username/Password) en appsettings.Local.json.");
+                _motivoNoConfigurado ?? "Falta configurar Peticion:Ews (Url/Username/Password) en appsettings.Local.json.");
         }
 
         var soap = BuildSendMailRequest(toAddress, subject, body, _sendAs, adjuntos);
@@ -91,7 +102,7 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
                 {
                     case EwsAction.Accept:
                         var xml = await response.Content.ReadAsStringAsync(cancellationToken);
-                        return XDocument.Parse(xml);
+                        return EwsXml.Parsear(xml);
 
                     case EwsAction.FailAuth:
                         throw new EwsAuthException(
@@ -111,9 +122,9 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
                             "Probá de nuevo en unos minutos.");
 
                     default: // FailPermanent
-                        var cuerpo = await SafeReadBody(response, cancellationToken);
+                        // El cuerpo de la respuesta no se incluye: puede traer datos internos del servidor.
                         throw new EwsSendException(
-                            $"Exchange devolvió HTTP {(int)response.StatusCode}{cuerpo}.");
+                            $"Exchange devolvió HTTP {(int)response.StatusCode}.");
                 }
             }
             catch (Exception ex) when (IsNetwork(ex) && attempt < MaxAttempts)
@@ -134,24 +145,6 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
     private static bool IsNetwork(Exception ex) =>
         ex is HttpRequestException or System.Net.Sockets.SocketException
             || (ex is TaskCanceledException tce && tce.InnerException is TimeoutException);
-
-    private static async Task<string> SafeReadBody(HttpResponseMessage response, CancellationToken ct)
-    {
-        try
-        {
-            var text = (await response.Content.ReadAsStringAsync(ct)).Trim();
-            if (text.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            return " — " + (text.Length > 300 ? text[..300] + "…" : text);
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
 
     private static void EnsureSuccess(XDocument document)
     {
@@ -190,19 +183,20 @@ public sealed class EwsMailSender : IMailSenderConAdjuntos, IDisposable
                         new XElement(T + "DistinguishedFolderId", new XAttribute("Id", "sentitems"))),
                     new XElement(M + "Items",
                         new XElement(T + "Message",
-                            new XElement(T + "Subject", subject),
-                            new XElement(T + "Body", new XAttribute("BodyType", "Text"), body),
+                            new XElement(T + "Subject", TextoSeguro.SinControl(subject)),
+                            new XElement(T + "Body", new XAttribute("BodyType", "Text"), TextoSeguro.SinControl(body)),
                             // El orden importa: Attachments va después de Body y antes de ToRecipients.
                             adjuntos is { Count: > 0 }
                                 ? new XElement(T + "Attachments",
                                     adjuntos.Select(a => new XElement(T + "FileAttachment",
-                                        new XElement(T + "Name", a.Nombre),
+                                        new XElement(T + "Name", TextoSeguro.SinControl(a.Nombre)),
                                         new XElement(T + "ContentType", a.ContentType),
                                         new XElement(T + "Content", Convert.ToBase64String(a.Contenido)))))
                                 : null,
                             new XElement(T + "ToRecipients",
-                                new XElement(T + "Mailbox",
-                                    new XElement(T + "EmailAddress", toAddress))),
+                                toAddress.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                    .Select(a => new XElement(T + "Mailbox",
+                                        new XElement(T + "EmailAddress", TextoSeguro.SinControl(a))))),
                             // From solo cuando se envia como otro buzon (requiere permiso Send As).
                             // El orden importa: EWS exige ToRecipients antes que From.
                             sendAsAddress is null

@@ -430,3 +430,8 @@
     margin-top: 8px;
     padding: 0 4px;
 }
+
+/* Contraste AA (>= 4.5:1) sobre fondo claro */
+.peticiones-page .text-warning, .text-warning { color: #8a5a00 !important; }
+.btn-outline-primary { --bs-btn-color: #1d4ed8; --bs-btn-border-color: #1d4ed8; --bs-btn-hover-bg: #1d4ed8; --bs-btn-hover-border-color: #1d4ed8; color: #1d4ed8; border-color: #1d4ed8; }
+.btn-outline-primary:hover, .btn-outline-primary:focus-visible { color: #fff; }

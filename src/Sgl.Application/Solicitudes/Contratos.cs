@@ -91,8 +91,11 @@ public static class ListadoSolicitudes
 /// </summary>
 public sealed record SolicitarF8Resultado(Guid SolicitudId, bool Creada, bool YaAbierta, string? Mensaje);
 
-/// <summary>Outcome of "no se generó": the certificate that was opened (or the open one that already existed).</summary>
-public sealed record NoSeGeneroResultado(Guid CertificadoId, bool CertificadoYaExistia, bool EnviadoADirector, string? ErrorEnvio);
+/// <summary>
+/// Outcome of "no se generó": the certificate that was opened (or the open one that already existed). When
+/// <see cref="Obsoleta"/> the carpeta had already left the F8 states: the request was closed, nothing was opened or moved.
+/// </summary>
+public sealed record NoSeGeneroResultado(Guid CertificadoId, bool CertificadoYaExistia, bool EnviadoADirector, string? ErrorEnvio, bool Obsoleta = false);
 
 public sealed record CertificadoCreado(Guid Id, bool EnviadoADirector, string? ErrorEnvio);
 
@@ -212,6 +215,9 @@ public interface IFirmantesRepository
 {
     Task<Firmantes> ObtenerAsync(CancellationToken ct = default);
 
-    /// <summary>Persists the signers (this one commits by itself: it is a settings screen, not part of a workflow).</summary>
-    Task GuardarAsync(Firmantes firmantes, CancellationToken ct = default);
+    /// <summary>
+    /// Persists the signers and who/when changed them (this one commits by itself: it is a settings screen, not part
+    /// of a workflow).
+    /// </summary>
+    Task GuardarAsync(Firmantes firmantes, string modificadoPor, DateTime modificadoEnUtc, CancellationToken ct = default);
 }

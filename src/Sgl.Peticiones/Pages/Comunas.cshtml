@@ -79,7 +79,7 @@
             </td>
             <td class="small text-muted">@c.Domain</td>
             <td>
-                <form method="post" onsubmit="return confirm('¿Eliminar @c.Email de @c.Comuna?');">
+                <form method="post" class="js-confirmar" data-confirmar="@($"¿Eliminar {c.Email} de {c.Comuna}?")">
                     <input type="hidden" name="comuna" value="@c.Comuna" />
                     <input type="hidden" name="correo" value="@c.Email" />
                     <button asp-page-handler="Eliminar" class="btn btn-sm btn-outline-danger" title="Eliminar este correo">✕</button>

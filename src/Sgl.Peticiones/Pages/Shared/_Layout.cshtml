@@ -1,4 +1,4 @@
-﻿@inject PeticionCambioDomicilio.AppOptions Options
+@inject PeticionCambioDomicilio.AppOptions Options
 @inject PeticionCambioDomicilio.Ews.IMailSender Mail
 @inject Sgl.Peticiones.IMenuSistema Menu
 @* Marco del sistema (Gestión de Carpetas 2.0): mismo encabezado, menú lateral y tema que el resto de los módulos. *@
@@ -8,9 +8,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] · Gestión de Carpetas 2.0</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <meta name="color-scheme" content="light dark" />
     <script>
         // Aplica tema y estilo de filas antes del primer pintado (igual que el resto del sistema).
@@ -160,6 +157,13 @@
     <script src="~/lico.js"></script>
     <script src="~/lico-juegos.js"></script>
     <script>
+        // Confirmaciones con texto dinámico (comuna, etc.): el texto viaja en data-confirmar, nunca dentro de un
+        // literal JavaScript, así un apóstrofe en el nombre no rompe el diálogo. Fase de captura: corre antes de guardarScroll.
+        document.addEventListener("submit", function (ev) {
+            var f = ev.target;
+            if (f && f.dataset && f.dataset.confirmar && !confirm(f.dataset.confirmar)) ev.preventDefault();
+        }, true);
+
         // Menú lateral: abrir y cerrar grupos (en el resto del sistema lo hace Blazor).
         document.querySelectorAll(".modulos-sidebar .sidebar-grupo-titulo").forEach(function (btn) {
             btn.addEventListener("click", function () {

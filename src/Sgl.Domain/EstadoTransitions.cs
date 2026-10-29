@@ -1,8 +1,8 @@
 namespace Sgl.Domain;
 
 /// <summary>
-/// State machine for a carpeta. Mirrors exactly the "Flujo de carpeta" stateDiagram
-/// in docs/arquitectura.html; any edge not listed here is rejected.
+/// State machine for a carpeta: any edge not listed here is rejected by <c>CambiarEstado</c>. docs/arquitectura.html
+/// summarizes the main flow only; this table is the source of truth (manual corrections use <c>ForzarEstado</c>).
 /// </summary>
 public static class EstadoTransitions
 {

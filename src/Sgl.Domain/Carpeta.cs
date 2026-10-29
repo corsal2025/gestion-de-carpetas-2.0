@@ -217,6 +217,7 @@ public sealed partial class Carpeta
         ArgumentNullException.ThrowIfNull(ciudadano);
         var usuario = RequireAutor(autor);
         RequireSede(sede);
+        RequireFechaCitacion(fechaCitacion);
         RequireClases(clases);
 
         var carpeta = new Carpeta
@@ -325,6 +326,10 @@ public sealed partial class Carpeta
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
+        if (!Enum.IsDefined(nuevo))
+        {
+            throw new DomainException("Estado inválido.");
+        }
         if (nuevo != Estado)
         {
             AplicarEstado(nuevo, usuario, now);
@@ -377,9 +382,14 @@ public sealed partial class Carpeta
         RequireActiva();
         var usuario = RequireAutor(autor);
         RequireSede(sede);
+        RequireFechaCitacion(fechaCitacion);
         if (fechaSubida is { } subida && subida < fechaCitacion)
         {
             throw new DomainException("La fecha de subida no puede ser anterior a la fecha de citación.");
+        }
+        if (fechaSubida is { } futura && futura > HoraChile.Fecha(now))
+        {
+            throw new DomainException("La fecha de subida no puede ser futura.");
         }
 
         var idoneidad = string.IsNullOrWhiteSpace(idoneidadMoral) ? null : idoneidadMoral.Trim();
@@ -451,17 +461,21 @@ public sealed partial class Carpeta
 
     private static string? Format(DateOnly? date) => date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    private static string RequireAutor(string autor)
-    {
-        if (string.IsNullOrWhiteSpace(autor))
-        {
-            throw new DomainException("El autor del cambio es obligatorio.");
-        }
+    private static string RequireAutor(string autor) => Autores.Requerir(autor);
 
-        var trimmed = autor.Trim();
-        return trimmed.Length > MaxUsuarioLength
-            ? throw new DomainException($"El autor excede {MaxUsuarioLength} caracteres.")
-            : trimmed;
+    /// <summary>Adds a free audit line (e.g. a certificate or F8 event tied to this carpeta) to the history.</summary>
+    public void RegistrarEvento(string campo, string? anterior, string? nuevo, string autor, DateTime now)
+    {
+        RequireActiva();
+        Audit(now, RequireAutor(autor), campo, anterior, nuevo);
+    }
+
+    private static void RequireFechaCitacion(DateOnly fecha)
+    {
+        if (fecha == default)
+        {
+            throw new DomainException("La fecha de citación es obligatoria.");
+        }
     }
 
     private static void RequireSede(Sede sede)

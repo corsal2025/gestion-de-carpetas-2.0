@@ -18,7 +18,7 @@ public sealed record Rut
         .Replace(',', '.') + "-" + CheckDigit;
 
     public static Rut Parse(string? input) =>
-        TryParse(input, out var rut) ? rut! : throw new DomainException($"RUT inválido: '{input}'.");
+        TryParse(input, out var rut) ? rut! : throw new DomainException("RUT inválido.");
 
     public static bool TryParse(string? input, out Rut? rut)
     {

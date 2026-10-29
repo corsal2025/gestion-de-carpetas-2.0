@@ -1,4 +1,5 @@
 @page "/carpetas/{Id:guid}"
+@using Sgl.Application.Solicitudes
 @inject CarpetaService Carpetas
 @inject Sgl.Application.Solicitudes.SolicitudesF8Service SolicitudesF8
 @inject Sgl.Application.Solicitudes.CertificadosService Certificados
@@ -142,7 +143,7 @@ else
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <strong>Solicitud de Creación de F8</strong>
                         <span class="pill-status @(solicitudF8.Estado == EstadoSolicitudF8.Subido ? "ok" : solicitudF8.Estado == EstadoSolicitudF8.NoSeGenero ? "bad" : "warn")">
-                            @solicitudF8.Estado
+                            @EtiquetasSolicitudes.Of(solicitudF8.Estado)
                         </span>
                     </div>
                     <p style="margin: 0.3rem 0 0; font-size: 0.85rem;">
@@ -166,7 +167,7 @@ else
                         {
                             <li style="display:flex; justify-content:space-between; align-items:center; padding: 0.4rem 0; border-bottom: 1px solid var(--border-color);">
                                 <div>
-                                    <span style="font-weight:600;">@c.Tipo</span>
+                                    <span style="font-weight:600;">@EtiquetasSolicitudes.Of(c.Tipo)</span>
                                     @if (!string.IsNullOrEmpty(c.NumeroOficio))
                                     {
                                         <span> · Oficio N° @c.NumeroOficio</span>
@@ -176,7 +177,7 @@ else
                                     </span>
                                 </div>
                                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <span class="pill-status @(c.Estado == EstadoCertificado.Firmado ? "ok" : "warn")">@c.Estado</span>
+                                    <span class="pill-status @(c.Estado == EstadoCertificado.Firmado ? "ok" : "warn")">@EtiquetasSolicitudes.Of(c.Estado)</span>
                                     <a href="/certificados/@c.Id/documento" class="btn-small" target="_blank" title="Descargar documento Word">Descargar Word</a>
                                 </div>
                             </li>
@@ -228,7 +229,6 @@ else
     private bool notFound;
     private string? error;
     private string? mensaje;
-    private UndoToast.AvisoDeshacer? toast;
 
     private static readonly string[] Etapas = ["Entrada", "Preparación", "Subidas", "Cierre"];
 
@@ -239,19 +239,6 @@ else
             or EstadoCarpeta.CambioDomSubidoConaset or EstadoCarpeta.CambioDomSubidoCorreo ? 2
         : carpeta.Estado is EstadoCarpeta.Citada or EstadoCarpeta.PorClasificar ? 0
         : 1;
-
-    private void CerrarToast(UndoToast.AvisoDeshacer aviso)
-    {
-        if (toast?.Token == aviso.Token) toast = null;
-    }
-
-    private async Task DeshacerAsync(UndoToast.AvisoDeshacer aviso)
-    {
-        toast = null;
-        await EjecutarAsync(
-            () => Carpetas.DeshacerEstadoAsync(aviso.CarpetaId, aviso.Punto, aviso.EstadoNuevo, Autor.Nombre),
-            "Cambio de estado deshecho.");
-    }
 
     protected override Task OnParametersSetAsync() => CargarAsync();
 
@@ -296,13 +283,7 @@ else
         nuevoEstado is { } estado
             ? EjecutarAsync(async () =>
             {
-                var punto = await Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre));
-                var bandeja = Carpeta.ClasificarBandeja(estado, EstadoTransitions.DecisionFor(estado), carpeta?.CajaArchivo);
-                var modulo = ModulosCatalogo.DeBandeja(bandeja);
-                toast = new UndoToast.AvisoDeshacer(
-                    Guid.NewGuid(),
-                    modulo is not null ? $"Pasó a {modulo.Nombre}" : $"Estado cambiado a {Labels.Of(estado)}",
-                    Id, punto, estado);
+                await Carpetas.CambiarEstadoAsync(new CambiarEstadoCommand(Id, estado, Autor.Nombre));
             }, "Estado actualizado.")
             : Task.CompletedTask;
 

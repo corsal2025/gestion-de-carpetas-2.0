@@ -6,6 +6,7 @@
 @inject AutorState Autor
 @inject NavigationManager Nav
 @inject ModulosState Modulos
+@inject ILogger<Importar> Logger
 
 <PageTitle>@TituloPagina.De("Cargar Excel")</PageTitle>
 
@@ -36,7 +37,7 @@
             <div class="imp-drop-ico" aria-hidden="true">📊</div>
             <label class="btn-primary imp-browse">
                 Examinar Archivo Excel
-                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx, .xls" class="imp-file" />
+                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx" class="imp-file" />
             </label>
             <p class="imp-drop-note">
                 @(archivoSeleccionado is not null ? $"Archivo listo: {archivoSeleccionado.Name} ({archivoSeleccionado.Size / 1024} KB)" : "o arrastre el archivo .xlsx aquí (hasta 50 MB)")
@@ -140,10 +141,32 @@
                     <div class="imp-sedes imp-note">⚠️ <strong>@resultado.ComunasNoReconocidas.ToString("N0")</strong> fila(s) con comuna no reconocida: se importaron sin comuna (el resto de los datos sí se aplicó).</div>
                 }
 
+                @if (resultado.EstadosNoAplicados > 0)
+                {
+                    <div class="imp-sedes imp-note">⚠️ <strong>@resultado.EstadosNoAplicados.ToString("N0")</strong> carpeta(s) existente(s) conservaron su estado: el del Excel era atrasado o no alcanzable.</div>
+                }
+
+                @if (resultado.Avisos.Count > 0)
+                {
+                    <div class="imp-obs">
+                        <span class="imp-obs-title">Avisos (la fila sí se importó; revise los datos):</span>
+                        <ul class="imp-obs-list">
+                            @foreach (var aviso in resultado.Avisos)
+                            {
+                                <li>@aviso</li>
+                            }
+                            @if (resultado.AvisosTotal > resultado.Avisos.Count)
+                            {
+                                <li>… y @((resultado.AvisosTotal - resultado.Avisos.Count).ToString("N0")) más</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
                 @if (resultado.Errores.Count > 0)
                 {
                     <div class="imp-obs">
-                        <span class="imp-obs-title">Observaciones en algunas filas:</span>
+                        <span class="imp-obs-title">Observaciones en algunas filas (omitidas, no se importaron):</span>
                         <ul class="imp-obs-list">
                             @foreach (var err in resultado.Errores)
                             {
@@ -237,9 +260,9 @@
                 _ = Modulos.RefrescarAsync();
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            error = ex.Message;
+            error = ErroresUi.Mensaje(ex, Logger, "Error al importar el Excel");
         }
         finally
         {

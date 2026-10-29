@@ -4,12 +4,17 @@ using Sgl.Domain;
 namespace Sgl.Application.Panel;
 
 /// <summary>Home panel use cases: module cards (count, traffic light, 7-day series), today's goal and Lico's message.</summary>
-public sealed class PanelService(IPanelQuery query, IDuplicadoRepository duplicados, TimeProvider clock, BandejasOptions opciones)
+public sealed class PanelService(
+    IPanelQuery query, IDuplicadoRepository duplicados, TimeProvider clock, BandejasOptions opciones, UnidadDeTrabajoGate? gate = null)
 {
+    private readonly UnidadDeTrabajoGate _gate = gate ?? new UnidadDeTrabajoGate();
+
     private const string CampoEstado = nameof(Carpeta.Estado);
     private static readonly string PorClasificar = nameof(EstadoCarpeta.PorClasificar);
 
-    public async Task<PanelDto> ObtenerAsync(CancellationToken ct = default)
+    public Task<PanelDto> ObtenerAsync(CancellationToken ct = default) => _gate.LeerAsync(() => ObtenerSinGateAsync(ct), ct);
+
+    private async Task<PanelDto> ObtenerSinGateAsync(CancellationToken ct)
     {
         var hoy = clock.HoyChile();
         // One extra UTC day so every Chile calendar day of the window is complete; filtered by Chile date below.
@@ -62,15 +67,6 @@ public sealed class PanelService(IPanelQuery query, IDuplicadoRepository duplica
 
     private static int SalidasHoy(IEnumerable<MovimientoPanelDto> movimientos, string estado, DateOnly hoy) =>
         movimientos.Count(m => m.Campo == CampoEstado && m.Anterior == estado && HoraChile.Fecha(m.Fecha) == hoy);
-
-    /// <summary>Only today's goal (used by the thin bar in "Por clasificar").</summary>
-    public async Task<MetaDelDiaDto> ObtenerMetaAsync(CancellationToken ct = default)
-    {
-        var hoy = clock.HoyChile();
-        var desde = hoy.AddDays(-1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var movimientos = await query.MovimientosDesdeAsync(desde, ct);
-        return new MetaDelDiaDto(ClasificadasHoy(movimientos, hoy), await query.PendientesPorClasificarAsync(ct));
-    }
 
     private static int ClasificadasHoy(IEnumerable<MovimientoPanelDto> movimientos, DateOnly hoy) =>
         SalidasHoy(movimientos, PorClasificar, hoy);

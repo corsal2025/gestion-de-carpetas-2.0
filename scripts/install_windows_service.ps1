@@ -4,6 +4,9 @@
 .DESCRIPTION
     Publica la aplicación en modo Release y registra el servicio usando New-Service / sc.exe
     con inicio automático y recuperación ante fallos.
+    Por defecto el servicio escucha SOLO en localhost; use -BindTodas para publicarlo en la red (LAN).
+    Sin -Credential el servicio corre como LocalSystem (cuenta con privilegios altos): se recomienda
+    una cuenta de servicio dedicada con permisos solo sobre la carpeta publicada y sus respaldos.
 #>
 
 [CmdletBinding()]
@@ -11,7 +14,13 @@ param(
     [string]$ServiceName = "SglGestionCarpetas",
     [string]$DisplayName = "Gestión de Carpetas 2.0 (SGL)",
     [string]$PublishDir = "$PSScriptRoot\..\publish",
-    [int]$Port = 5000
+    [int]$Port = 5000,
+    # Escucha en todas las interfaces (http://*:puerto). Sin esto, solo http://localhost:puerto.
+    [switch]$BindTodas,
+    # Cuenta con la que corre el servicio (recomendado: una cuenta dedicada, no LocalSystem).
+    [System.Management.Automation.PSCredential]$Credential,
+    # Continuar sin preguntar aunque no exista sgl.db en la carpeta publicada.
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,13 +66,39 @@ if (-not (Test-Path $exePath)) {
     exit 1
 }
 
+# 2b. Verificar la base de datos: el servicio usa sgl.db junto al ejecutable. Si no está, arrancaría
+# con una base NUEVA y vacía y el equipo creería que se perdieron las carpetas.
+$dbPublicada = Join-Path $publishPath "sgl.db"
+if (-not (Test-Path $dbPublicada)) {
+    Write-Warning "No existe $dbPublicada. El servicio crearía una base de datos NUEVA y vacía."
+    Write-Warning "Detenga el sistema actual y copie su sgl.db a esa carpeta antes de continuar."
+    if (-not $Force) {
+        $respuesta = Read-Host "¿Continuar de todos modos? (s/N)"
+        if ($respuesta -notin @("s", "S")) {
+            Write-Host "Instalación cancelada." -ForegroundColor Yellow
+            exit 1
+        }
+    }
+}
+
 # 3. Registrar el servicio
-Write-Host "[3/4] Registrando servicio en Windows..." -ForegroundColor Green
-New-Service -Name $ServiceName `
-            -BinaryPathName "`"$exePath`" --urls=http://*:$Port" `
-            -DisplayName $DisplayName `
-            -Description "Servicio web autónomo para la Gestión de Carpetas 2.0 (Dirección de Tránsito)" `
-            -StartupType Automatic
+$bind = if ($BindTodas) { "*" } else { "localhost" }
+if ($BindTodas) {
+    Write-Warning "El servicio quedará accesible desde toda la red (http://*:$Port) y la aplicación no tiene login: restrinja el acceso con el firewall."
+}
+if (-not $Credential) {
+    Write-Warning "El servicio correrá como LocalSystem. Use -Credential con una cuenta de servicio dedicada para reducir privilegios."
+}
+Write-Host "[3/4] Registrando servicio en Windows (escucha en ${bind}:$Port)..." -ForegroundColor Green
+$serviceArgs = @{
+    Name           = $ServiceName
+    BinaryPathName = "`"$exePath`" --urls=http://${bind}:$Port"
+    DisplayName    = $DisplayName
+    Description    = "Servicio web autónomo para la Gestión de Carpetas 2.0 (Dirección de Tránsito)"
+    StartupType    = "Automatic"
+}
+if ($Credential) { $serviceArgs.Credential = $Credential }
+New-Service @serviceArgs | Out-Null
 
 # Configurar recuperación ante fallos (reinicio automático a los 5 segundos)
 sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null

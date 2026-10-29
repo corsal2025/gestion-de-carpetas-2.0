@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sgl.Application.Integridad;
 using Sgl.Domain;
+using PeticionCambioDomicilio.Excel;
 using Sgl.Infrastructure.Persistence;
 
 namespace Sgl.Infrastructure.Carpetas;
@@ -18,8 +19,15 @@ public sealed record ExcelImportResult(
     IReadOnlyList<string> SedesProcesadas,
     IReadOnlyList<string> Errores,
     int TotalErrores = 0,
-    int ComunasNoReconocidas = 0
-);
+    int ComunasNoReconocidas = 0,
+    IReadOnlyList<string>? AvisosImportacion = null,
+    int AvisosTotal = 0,
+    int EstadosNoAplicados = 0
+)
+{
+    /// <summary>Observaciones que no impiden importar la fila (p. ej. subida anterior a la citación).</summary>
+    public IReadOnlyList<string> Avisos { get; } = AvisosImportacion ?? [];
+}
 
 public sealed class ExcelImportService(
     SglDbContext db, TimeProvider clock, ILogger<ExcelImportService> logger, IntegridadSolicitudes? integridad = null)
@@ -64,7 +72,7 @@ public sealed class ExcelImportService(
     {
         var copy = new MemoryStream();
         await source.CopyToAsync(copy, ct);
-        copy.Position = 0;
+        WorkbookSanitizer.ValidarStream(copy);
 
         using (var doc = SpreadsheetDocument.Open(copy, true))
         {
@@ -101,7 +109,28 @@ public sealed class ExcelImportService(
         var ciudadanosCreados = 0;
         var sedesProcesadas = new HashSet<string>();
         var errores = new List<string>();
+        var avisos = new List<string>();
         var totalErrores = 0;
+        var avisosTotal = 0;
+        var estadosNoAplicados = 0;
+        var hoy = HoraChile.Fecha(now);
+
+        void Rechazar(int fila, string hoja, string motivo)
+        {
+            totalErrores++;
+            if (errores.Count < MaxMensajesError)
+            {
+                errores.Add($"Fila {fila} ({hoja}): {motivo}");
+            }
+        }
+        void Avisar(string mensaje)
+        {
+            avisosTotal++;
+            if (avisos.Count < MaxMensajesError)
+            {
+                avisos.Add(mensaje);
+            }
+        }
         var comunasNoReconocidas = 0;
 
         // Cache existing ciudadanos by Rut to optimize lookups
@@ -134,10 +163,25 @@ public sealed class ExcelImportService(
                 {
                     // 1. Extraer y normalizar RUT
                     var rawRut = ObtenerValorCelda(row, colMap.Rut);
+                    if (string.IsNullOrWhiteSpace(rawRut))
+                    {
+                        continue; // Fila sin RUT, se omite
+                    }
+
                     var rutObj = NormalizarRut(rawRut);
                     if (rutObj is null)
                     {
-                        continue; // Fila sin RUT válido, se omite
+                        // El RUT no se repite en el mensaje: es un dato personal.
+                        Rechazar(rowNum, ws.Name, "RUT con formato o dígito verificador inválido; fila omitida.");
+                        continue;
+                    }
+
+                    // La citación define la carpeta: sin una fecha válida no se inventa "hoy", se reporta y se salta.
+                    var citacionLeida = ParsearFecha(ObtenerValorCelda(row, colMap.FechaCitacion));
+                    if (citacionLeida is not { } fechaCitacion || !RangoFechasImportacion.EsPlausible(fechaCitacion, hoy))
+                    {
+                        Rechazar(rowNum, ws.Name, "sin fecha de citación válida; fila omitida.");
+                        continue;
                     }
 
                     // 2. Extraer Nombres y Apellidos en MAYÚSCULAS
@@ -175,8 +219,17 @@ public sealed class ExcelImportService(
                     }
 
                     // 4. Fechas y Comuna
-                    var fechaCitacion = ParsearFecha(ObtenerValorCelda(row, colMap.FechaCitacion)) ?? HoraChile.Fecha(now);
                     var fechaSubida = ParsearFecha(ObtenerValorCelda(row, colMap.FechaSubida));
+                    if (fechaSubida is { } subida && !RangoFechasImportacion.EsPlausible(subida, hoy))
+                    {
+                        Avisar($"Fila {rowNum} ({ws.Name}): fecha de subida fuera de rango; se ignoró.");
+                        fechaSubida = null;
+                    }
+                    else if (fechaSubida < fechaCitacion)
+                    {
+                        Avisar($"Fila {rowNum} ({ws.Name}): la fecha de subida es anterior a la citación; revisar el Excel.");
+                    }
+
                     var rawUltimaCarpeta = ObtenerValorCelda(row, colMap.UltimaCarpeta);
                     var fechaUltimaCarpeta = string.IsNullOrWhiteSpace(rawUltimaCarpeta) ? null : rawUltimaCarpeta.Trim().ToUpperInvariant();
                     var rawComuna = ObtenerValorCelda(row, colMap.Comuna);
@@ -227,8 +280,20 @@ public sealed class ExcelImportService(
                     }
                     else
                     {
-                        carpetaExistente.ForzarEstado(estado, usuario, now);
-                        carpetaExistente.CambiarDecision(decision, usuario, now);
+                        // El Excel solo hace avanzar la carpeta hacia un estado alcanzable por la máquina de estados.
+                        // Citada nunca es destino (un estado vacío se lee como "Citada" y no debe sacar una carpeta de
+                        // Por clasificar); un estado atrasado o inalcanzable no se aplica y se cuenta. Una decisión
+                        // en blanco no borra la ya tomada.
+                        if (estado != EstadoCarpeta.Citada && EsAvance(carpetaExistente.Estado, estado))
+                        {
+                            carpetaExistente.ForzarEstado(estado, usuario, now);
+                        }
+                        else if (!string.IsNullOrWhiteSpace(rawEstado) && estado != carpetaExistente.Estado)
+                        {
+                            estadosNoAplicados++;
+                        }
+
+                        if (decision != Decision.Pendiente) carpetaExistente.CambiarDecision(decision, usuario, now);
                         if (!string.IsNullOrEmpty(comuna)) carpetaExistente.AsignarComuna(comuna, usuario, now);
                         if (!string.IsNullOrEmpty(fechaUltimaCarpeta)) carpetaExistente.ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, usuario, now);
                         if (!string.IsNullOrEmpty(obs)) carpetaExistente.ModificarObservacion(obs, usuario, now);
@@ -248,11 +313,7 @@ public sealed class ExcelImportService(
                     // Discard everything this row added/modified (previous rows are already flushed).
                     db.ChangeTracker.Clear();
                     if (rutAgregado is not null) rutsInDb.Remove(rutAgregado);
-                    totalErrores++;
-                    if (errores.Count < MaxMensajesError)
-                    {
-                        errores.Add($"Fila {rowNum} ({ws.Name}): {ex.Message}");
-                    }
+                    Rechazar(rowNum, ws.Name, ex.Message);
                 }
             }
 
@@ -267,8 +328,30 @@ public sealed class ExcelImportService(
             sedesProcesadas.ToList(),
             errores,
             totalErrores,
-            comunasNoReconocidas
+            comunasNoReconocidas,
+            avisos,
+            avisosTotal,
+            estadosNoAplicados
         );
+    }
+
+    /// <summary>true si <paramref name="destino"/> es alcanzable desde <paramref name="actual"/> por la máquina de estados.</summary>
+    private static bool EsAvance(EstadoCarpeta actual, EstadoCarpeta destino)
+    {
+        if (actual == destino) return false;
+        var visitados = new HashSet<EstadoCarpeta> { actual };
+        var pendientes = new Queue<EstadoCarpeta>();
+        pendientes.Enqueue(actual);
+        while (pendientes.Count > 0)
+        {
+            foreach (var siguiente in EstadoTransitions.NextStates(pendientes.Dequeue()))
+            {
+                if (siguiente == destino) return true;
+                if (visitados.Add(siguiente)) pendientes.Enqueue(siguiente);
+            }
+        }
+
+        return false;
     }
 
     private static Sede DeterminarSede(string sheetName)
@@ -361,9 +444,9 @@ public sealed class ExcelImportService(
             return null;
         }
 
-        // Calcular dígito verificador automático
-        var expectedDv = Rut.ComputeCheckDigit(body);
-        return Rut.TryParse($"{body}-{expectedDv}", out var rut) ? rut : null;
+        // El dígito verificador del archivo debe coincidir: antes se recalculaba y se aceptaba cualquier RUT
+        // tipeado mal, asociando la carpeta a otra persona.
+        return Rut.TryParse($"{body}-{val[^1]}", out var rut) ? rut : null;
     }
 
     private static DateOnly? ParsearFecha(string? rawVal)
