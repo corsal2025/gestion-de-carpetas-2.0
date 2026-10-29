@@ -1123,7 +1123,7 @@
         [Bandeja.SeEncuentraEnOf43] = ColumnasUbicacion,
         [Bandeja.CambioDomicilio] = ColumnasCambioDomicilio,
         [Bandeja.CambioDomicilioSolicitado] = ColumnasCambioDomicilio,
-        [Bandeja.SinCarpetaF8] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "CÓDIGO F8", "FECHA DE PENÚLTIMA CARPETA", "EN PROCESO DE BÚSQUEDA"],
+        [Bandeja.SinCarpetaF8] = ["NOMBRE DE CONTRIBUYENTE", "RUT", "SEDE", "CITACIÓN", "CÓDIGO F8", "PENÚLTIMA CARPETA", "EN PROCESO DE BÚSQUEDA"],
         [Bandeja.SubidaConaset] = ColumnasSubida,
         [Bandeja.SubidaConF8] = ColumnasSubida,
         [Bandeja.SubidaConOficio] = ColumnasSubida,
@@ -1253,12 +1253,11 @@
                                             var elegido = DestinoElegido(c.Id, c.TramiteAgenda);
                                             var esPrimera = elegido == EstadoCarpeta.PrimeraLicencia;
                                         }
-                                        <input type="date" class="date-input-inline @(esPrimera ? "date-solo-lectura" : null)"
+                                        <input type="date" class="date-input-inline"
                                                @key="@($"fc-{c.Id}-{esPrimera}")"
-                                               value="@(esPrimera ? null : FechaClasif(c.Id))"
-                                               disabled="@esPrimera"
+                                               value="@FechaClasif(c.Id)"
                                                @onchange="(e) => FechaElegidaAsync(c.Id, e.Value?.ToString())"
-                                               title="@(esPrimera ? "Primera licencia: no tiene carpeta anterior, no lleva fecha." : "Fecha de la última carpeta")" />
+                                               title="Fecha de la última carpeta (si marca 1° Licencia en Acción, se completa con la fecha de la citación)" />
                                     </td>
                                     <td class="excel-cell" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => ClaseElegidaAsync(c.Id, c.TramiteAgenda, v)" Disabled="clasificando" />
@@ -1272,7 +1271,7 @@
                                         <div class="clasif-cell">
                                             <select @key="@($"dst-{c.Id}")" class="excel-select @(elegido is null && porFecha is not null ? "select-sugerido" : null)" value="@(dejarRevision.Contains(c.Id) ? ValorDejarRevision : ((elegido ?? porFecha)?.ToString() ?? ""))"
                                                     aria-label="Estado destino de la clasificación"
-                                                    @onchange="(e) => SeleccionarDestinoAsync(c.Id, c.TramiteAgenda, e)">
+                                                    @onchange="(e) => SeleccionarDestinoAsync(c.Id, c.TramiteAgenda, c.FechaCitacion, e)">
                                                 <option value="" hidden>— Clasificar —</option>
                                                 @foreach (var e in Carpeta.OpcionesClasificacionSegunFecha(Labels.OpcionesClasificacion, textoFecha))
                                                 {
@@ -1594,7 +1593,7 @@
     /// Picking a destination applies it right away (there is no "Aplicar" button). A change of address waits for the comuna;
     /// a missing class shows the usual notice and the row is classified as soon as the class is marked.
     /// </summary>
-    private Task SeleccionarDestinoAsync(Guid id, TramiteAgenda? tramite, ChangeEventArgs e)
+    private Task SeleccionarDestinoAsync(Guid id, TramiteAgenda? tramite, DateOnly citacion, ChangeEventArgs e)
     {
         if (e.Value?.ToString() == ValorDejarRevision)
         {
@@ -1604,8 +1603,13 @@
         }
         dejarRevision.Remove(id);
         destinoClasif[id] = Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var d) ? d : null;
-        // A first license has no previous carpeta: its date is blocked and cleared.
-        if (destinoClasif[id] == EstadoCarpeta.PrimeraLicencia) fechaClasif.Remove(id);
+        // Marking Primera Licencia by hand means no earlier carpeta: the "última carpeta" is the citación date. The field stays
+        // editable (an extension may have one) and typing another date there makes that date win again.
+        if (destinoClasif[id] == EstadoCarpeta.PrimeraLicencia)
+        {
+            fechaClasif[id] = citacion.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            fechaManual.Remove(id);
+        }
         if (destinoClasif[id] is not { } destino || clasificando) return Task.CompletedTask;
         if (Carpeta.EsCambioDomicilio(destino) && string.IsNullOrWhiteSpace(comunaClasif.GetValueOrDefault(id))) return Task.CompletedTask;
         return ClasificarUnaAsync(id, tramite);
@@ -1637,6 +1641,8 @@
     {
         // Cleared => null kept as an explicit "no date" (manual mode), so the stored date is not re-seeded.
         fechaClasif[id] = string.IsNullOrWhiteSpace(iso) ? null : iso;
+        // A typed date wins over the preselected Primera Licencia; clearing it goes back to that default.
+        if (string.IsNullOrWhiteSpace(iso)) fechaManual.Remove(id); else fechaManual.Add(id);
         if (DestinoPorFecha(id) is null || clasificando) return Task.CompletedTask;
         // A readable date decides the destination by itself (Archivos / Of. 43): any manual pick is dropped.
         destinoClasif.Remove(id);
@@ -1666,8 +1672,16 @@
         return ClasificarUnaAsync(id, tramite);
     }
 
+    /// <summary>
+    /// Rows whose date was typed by hand: "1° vez / extensión" cannot tell a first license from an extension (which does have a
+    /// previous carpeta), so the preselected Primera Licencia is only a default and a typed date takes over.
+    /// </summary>
+    private readonly HashSet<Guid> fechaManual = [];
+
     private EstadoCarpeta? DestinoElegido(Guid id, TramiteAgenda? tramite) =>
-        destinoClasif.TryGetValue(id, out var e) ? e : (tramite == TramiteAgenda.PrimeraVezExtension ? EstadoCarpeta.PrimeraLicencia : null);
+        destinoClasif.TryGetValue(id, out var e)
+            ? e
+            : (tramite == TramiteAgenda.PrimeraVezExtension && !fechaManual.Contains(id) ? EstadoCarpeta.PrimeraLicencia : null);
 
     private readonly HashSet<Guid> intentoAplicar = [];
 
@@ -1695,7 +1709,9 @@
         if (elegido is null && DestinoPorFecha(id) is null) return Task.CompletedTask;
         // No explicit state => null: the service applies the default action from the date.
         return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id),
-            elegido == EstadoCarpeta.PrimeraLicencia ? null : fechaClasif.GetValueOrDefault(id),
+            // Primera Licencia only saves the date when it was marked by hand (it carries the citación date); the default
+            // preselected from the agenda trámite saves none, since "1° vez / extensión" may have an earlier carpeta.
+            elegido == EstadoCarpeta.PrimeraLicencia && !destinoClasif.ContainsKey(id) ? null : fechaClasif.GetValueOrDefault(id),
             elegido is { } d && Carpeta.EsCambioDomicilio(d) ? comunaClasif.GetValueOrDefault(id) : null);
     }
 
@@ -1761,6 +1777,7 @@
             {
                 destinoClasif.Remove(id);
                 fechaClasif.Remove(id);
+                fechaManual.Remove(id);
                 comunaClasif.Remove(id);
                 clasesClasif.Remove(id);
                 intentoAplicar.Remove(id);

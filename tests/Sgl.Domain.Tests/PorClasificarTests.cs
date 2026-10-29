@@ -70,6 +70,27 @@ public class PorClasificarTests
     }
 
     [Fact]
+    public void Clasificar_PrimeraLicencia_con_fecha_respeta_la_fecha_ingresada()
+    {
+        var c = NuevaDesdeAgenda();
+
+        c.Clasificar(EstadoCarpeta.PrimeraLicencia, ClaseLicencia.B, "2026-10-13", null, "javiera", Now);
+
+        Assert.Equal("2026-10-13", c.FechaUltimaCarpeta);
+    }
+
+    [Fact]
+    public void Clasificar_PrimeraLicencia_sin_fecha_no_inventa_fecha_de_ultima_carpeta()
+    {
+        // Una extensión de clase puede tener carpeta previa: el dominio nunca asume la fecha de la citación.
+        var c = NuevaDesdeAgenda();
+
+        c.Clasificar(EstadoCarpeta.PrimeraLicencia, ClaseLicencia.B, null, null, "javiera", Now);
+
+        Assert.Null(c.FechaUltimaCarpeta);
+    }
+
+    [Fact]
     public void Clasificar_sets_comuna_for_cambio_de_domicilio()
     {
         var c = NuevaDesdeAgenda();

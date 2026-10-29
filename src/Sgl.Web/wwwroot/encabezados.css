@@ -84,10 +84,13 @@ html:not(#th-a):not(#th-b) body table > thead > tr > th :is(input:not([type="che
    Marco y barra de scroll de las tablas (un solo bloque para toda la app).
    Marco = contenedor con scroll (.table-container, .dup-scroll de Integridad,
    .cajas-table-wrapper de Cajas): borde navy uniforme, radio --th-radius y recorte
-   (overflow) para que nada sobresalga de las esquinas. El encabezado navy + franja cian
-   se pinta tambien como fondo del contenedor (alto --th-head), asi llega de lado a lado
-   y cubre el canal de la barra vertical. La barra queda DENTRO del marco, solo a lo largo
-   del cuerpo (margen superior = encabezado), delgada, sin flechas ni pista visible.
+   (overflow) para que nada sobresalga de las esquinas. El encabezado navy se pinta tambien
+   como fondo del contenedor y cubre el canal de la barra vertical. La franja cian la dibuja
+   SOLO la celda (border-bottom): con DPR fraccionario (zoom 110 %, 90 %...) la celda y el fondo
+   del contenedor se redondean distinto y una franja cian tambien en el canal quedaba con un
+   peldano de 1 px. Asi la franja termina limpia donde acaba la tabla y el canal queda como
+   remate navy (sin borde cian que pueda desalinearse). La barra queda DENTRO del marco, solo
+   a lo largo del cuerpo (margen superior = encabezado), delgada, sin flechas ni pista visible.
    Chromium/Safari: ::-webkit-scrollbar (hay que anular scrollbar-width/color, que en
    Chrome 121+ desactivan los pseudo-elementos). Firefox: scrollbar-width thin + color.
    ===================================================================== */
@@ -114,8 +117,7 @@ html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-
     background:
         linear-gradient(to bottom,
             var(--th-bg) 0, var(--th-bg) calc(var(--th-head) - var(--th-strip)),
-            var(--th-accent) calc(var(--th-head) - var(--th-strip)), var(--th-accent) var(--th-head),
-            transparent var(--th-head)) top / 100% var(--th-head) no-repeat scroll,
+            transparent calc(var(--th-head) - var(--th-strip))) top / 100% var(--th-head) no-repeat scroll,
         var(--surface, #fff) !important;
 }
 /* La tabla no lleva marco propio dentro del contenedor y el recorte redondea el encabezado. */
@@ -130,6 +132,14 @@ html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-
     box-sizing: border-box;
     height: var(--th-head) !important;   /* mismo valor que el degradado del contenedor: franja cian continua */
     padding-block: 5px !important;
+}
+
+/* La tabla ocupa todo el ancho del marco (como .table-container): la franja cian llega hasta el canal de la barra. */
+html:not(#th-a):not(#th-b) body :is(.dup-scroll, .cajas-table-wrapper) > table:has(> thead:not(.visually-hidden)) { min-width: 100% !important; }
+
+/* El encabezado nunca crece: «EN PROCESO<br>DE BÚSQUEDA» cabe en 2 lineas (cada linea sin cortarse). */
+html:not(#th-a):not(#th-b) body :is(.table-container, .dup-scroll, .cajas-table-wrapper) > table > thead:not(.visually-hidden) > tr > th.col-lupa {
+    white-space: nowrap !important;
 }
 
 /* Barra de scroll: Firefox (y navegadores sin ::-webkit-scrollbar). */
