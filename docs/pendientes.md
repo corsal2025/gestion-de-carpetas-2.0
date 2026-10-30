@@ -2,7 +2,7 @@
 
 ## Ronda de auditoría (2026-10-29)
 
-Commits desde el 20 de octubre: `1008b45` (20-10, restringir acciones de barra y pulir tablas), `346e3cb` (27-10, interacciones entre módulos, diseño y cálculo de plazos), `4c5250e` (27-10, solicitudes especiales en la ficha de carpeta y exportaciones seguras) y `c556bd0` (29-10, cabecera compacta y contraste). Los cambios de esta ronda siguen sin commit en el árbol de trabajo.
+Commits desde el 20 de octubre: `1008b45` (20-10, restringir acciones de barra y pulir tablas), `346e3cb` (27-10, interacciones entre módulos, diseño y cálculo de plazos), `4c5250e` (27-10, solicitudes especiales en la ficha de carpeta y exportaciones seguras) y `c556bd0` (29-10, cabecera compacta y contraste). Los cambios de esta ronda quedaron commiteados y publicados (último commit `59e1e77`).
 
 Resuelto en esta ronda (la verificación con `dotnet build` y `dotnet test` la hace quien integra):
 - **Concurrencia**: un solo `UnidadDeTrabajoGate` por circuito compartido por Carpetas, F8, Certificados, Duplicados, Panel y la sincronización de correo (antes cada servicio tenía su semáforo sobre el mismo DbContext).
@@ -40,7 +40,7 @@ Resuelto en esta fase: ARB6-01 (orden cacheado entre sesiones), ARB6-02 (reparac
 
 ## Para retomar (2026-10-15)
 - **Mejoras UX resueltas**
-  - Columna «Fecha últ. carpeta» de «Por clasificar»: ajustado para que cuando el trámite de agenda es Primera Licencia, se bloquee el calendario (no lleva fecha anterior) y se preseleccione «Primera Licencia» en el destino automáticamente.
+  - Columna «Fecha últ. carpeta» de «Por clasificar»: el calendario queda siempre habilitado (una extensión de clase puede tener carpeta previa); la fecha de la citación se completa solo cuando se marca «1° Licencia» en ACCIÓN y la fecha manual manda. (Actualizado 2026-10-29; antes se bloqueaba el calendario.)
   - Lupa de duplicado en «Por clasificar»: se mantiene visible en filas con alerta para navegación directa con un click a las demás carpetas del RUT.
 - **Pendientes de datos heredados**
   - Cierre por subida (R9): se mantiene la opción A (la carpeta se queda en su pestaña «Subida…» con fecha de cierre automática).
