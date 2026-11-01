@@ -1,14 +1,29 @@
-@* Name / RUT cell of a carpeta that is corrected with one click. Saves through CarpetaService (same rules and audit as the Listado)
-   and tells the host to reload its rows. Read-only cells (e.g. annulled carpetas) are rendered as plain text. *@
+@* Name / RUT / comuna cell of a carpeta that is corrected with one click. Saves through CarpetaService (same rules and audit as the
+   Listado) and tells the host to reload its rows. Read-only cells (e.g. annulled carpetas) are rendered as plain text. The comuna is
+   picked from the list; if the directory has no mailbox for it, the cell offers to add the comuna's e-mail right there. *@
+@using Sgl.Application.CambioDomicilio
 @inject CarpetaService Carpetas
+@inject IDirectorioComunas Directorio
 @inject AutorState Autor
 @inject IJSRuntime JS
 @inject ILogger<CeldaCarpeta> Logger
 
 @if (Editable)
 {
-    <CeldaEditable @key="@($"{CarpetaId}-{EsRut}-{rev}")" Valor="@Valor" Titulo="@(EsRut ? "RUT" : "nombre")" EsRut="EsRut"
+    <CeldaEditable @key="@($"{CarpetaId}-{EsRut}-{EsComuna}-{rev}")" Valor="@Valor" Titulo="@Campo" EsRut="EsRut"
+                   Opciones="@(EsComuna ? ComunasChile.Todas : null)"
                    CssClass="@CssClass" Title="@Title" Guardar="GuardarAsync" />
+    @if (comunaSinCorreo is not null)
+    {
+        <div class="celda-alta-correo" role="group" aria-label="Correo de @comunaSinCorreo" @onclick:stopPropagation @ondblclick:stopPropagation>
+            <span class="celda-alta-texto">Sin correo de <b>@comunaSinCorreo</b> en el directorio.</span>
+            <input type="email" class="celda-alta-input" placeholder="correo de licencias" aria-label="Correo de @comunaSinCorreo"
+                   maxlength="200" @bind="correoNuevo" @bind:event="oninput" onkeydown="event.stopPropagation();" />
+            <button type="button" class="btn-small celda-alta-guardar" @onclick="GuardarCorreoAsync">Guardar correo</button>
+            <button type="button" class="btn-small celda-alta-omitir" @onclick="OmitirCorreo">Ahora no</button>
+            @if (errorCorreo is not null) { <span class="celda-alta-error" role="alert">@errorCorreo</span> }
+        </div>
+    }
 }
 else
 {
@@ -21,6 +36,9 @@ else
     [Parameter, EditorRequired] public Guid CarpetaId { get; set; }
     [Parameter, EditorRequired] public string Valor { get; set; } = string.Empty;
     [Parameter] public bool EsRut { get; set; }
+
+    /// <summary>The cell holds the comuna of a carpeta in cambio de domicilio (picked from the list of comunas).</summary>
+    [Parameter] public bool EsComuna { get; set; }
     [Parameter] public bool Editable { get; set; } = true;
     [Parameter] public string? CssClass { get; set; }
     [Parameter] public string? Title { get; set; }
@@ -29,6 +47,11 @@ else
     [Parameter] public EventCallback OnGuardado { get; set; }
 
     private int rev;
+    private string? comunaSinCorreo;
+    private string correoNuevo = string.Empty;
+    private string? errorCorreo;
+
+    private string Campo => EsComuna ? "comuna" : EsRut ? "RUT" : "nombre";
 
     private async Task GuardarAsync(string nuevo)
     {
@@ -40,17 +63,49 @@ else
 
         try
         {
-            if (EsRut) await Carpetas.ModificarRutAsync(CarpetaId, nuevo, Autor.Nombre);
+            if (EsComuna) await Carpetas.GuardarComunaAsync(CarpetaId, nuevo, Autor.Nombre);
+            else if (EsRut) await Carpetas.ModificarRutAsync(CarpetaId, nuevo, Autor.Nombre);
             else await Carpetas.ModificarNombreAsync(CarpetaId, nuevo, Autor.Nombre);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            var contexto = EsRut ? "No se pudo actualizar el RUT" : "No se pudo corregir el nombre";
+            var contexto = EsComuna ? "No se pudo corregir la comuna" : EsRut ? "No se pudo actualizar el RUT" : "No se pudo corregir el nombre";
             await JS.InvokeVoidAsync("showRutToast", $"{contexto}: {ErroresUi.Mensaje(ex, Logger, contexto)}");
             rev++;
             return;
         }
 
+        if (EsComuna) OfrecerAltaDeCorreo(nuevo);
         await OnGuardado.InvokeAsync();
+    }
+
+    // The comuna was accepted: if the directory has no address for it, the cell offers to add it right now.
+    private void OfrecerAltaDeCorreo(string comuna)
+    {
+        var nombre = ComunasChile.Normalizar(comuna) ?? comuna;
+        errorCorreo = null;
+        correoNuevo = string.Empty;
+        comunaSinCorreo = Directorio.CorreosDe(nombre).Count == 0 ? nombre : null;
+    }
+
+    private Task GuardarCorreoAsync()
+    {
+        if (comunaSinCorreo is null) return Task.CompletedTask;
+        var (ok, texto) = Directorio.AgregarCorreo(comunaSinCorreo, correoNuevo);
+        if (!ok)
+        {
+            errorCorreo = texto;
+            return Task.CompletedTask;
+        }
+
+        comunaSinCorreo = null;
+        errorCorreo = null;
+        return JS.InvokeVoidAsync("showRutToast", $"{texto}.").AsTask();
+    }
+
+    private void OmitirCorreo()
+    {
+        comunaSinCorreo = null;
+        errorCorreo = null;
     }
 }

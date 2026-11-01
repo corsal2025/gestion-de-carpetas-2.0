@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Solicitudes;
 using Sgl.Domain;
@@ -16,6 +17,16 @@ internal static class SolicitudesTestSupport
     {
         var id = await db.NewService().RegistrarAsync(new RegistrarCarpetaCommand(
             rut, nombre, apellido, sede, new DateOnly(2026, 4, 24), "ana", ConfirmarDuplicado: true));
+        if (Carpeta.EsFamiliaCambioDomicilio(estado))
+        {
+            // Forcing into the change-of-address family needs a direction (the normal way in is «Clasificar»): entrante, which keeps the F8 flow.
+            await using var ctx = db.NewContext();
+            var carpeta = await ctx.Carpetas.SingleAsync(c => c.Id == id);
+            carpeta.ForzarEstado(estado, "ana", DateTime.UtcNow, SentidoCambioDomicilio.Entrante);
+            await ctx.SaveChangesAsync();
+            return id;
+        }
+
         await db.NewService().ForzarEstadoAsync(id, estado, "ana");
         return id;
     }

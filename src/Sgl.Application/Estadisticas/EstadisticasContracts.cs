@@ -27,7 +27,9 @@ public sealed record EstadisticasDto(
     DatosActualesDto Actuales,
     BusquedasDto Busquedas,
     ArchivoDto Archivo,
-    UsoSistemaDto Uso);
+    UsoSistemaDto Uso,
+    IReadOnlyList<CanceladasMesSedeDto> Canceladas,
+    IReadOnlyList<AsistenciaMesSedeDto> Asistencia);
 
 public sealed record KpisDto(int SubidasEsteMes, int CarpetasAtrasadas, int BusquedasAbiertas, double? MedianaDiasCitacionSubida);
 
@@ -86,7 +88,8 @@ public sealed record BusquedasDto(
     TiemposDto HorasParaEncontrar,
     int EncontradasArchivo,
     int EncontradasOficina43,
-    int EncontradasSectorDesconocido);
+    int EncontradasSectorDesconocido,
+    int EncontradasDigital = 0);
 
 // ---- C. Archivo / cajas ----
 public sealed record ArchivoDto(
@@ -115,4 +118,18 @@ public sealed record ImportacionDto(DateTime Fecha, string Usuario, int FilasLei
 public sealed record ClaseSedeDto(Sede Sede, int ConClase, int SinClase)
 {
     public double Porcentaje => ConClase + SinClase == 0 ? 0 : (double)ConClase / (ConClase + SinClase);
+}
+
+// ---- E. Citas canceladas y asistencia (solo lectura, sin datos personales) ----
+
+/// <summary>Cancelled appointments in one year/month (of the appointment date) for one sede.</summary>
+public sealed record CanceladasMesSedeDto(int Anio, int Mes, Sede Sede, int Cantidad);
+
+/// <summary>
+/// Attendance in one month for one sede: agendadas (carpetas dated that month, not extra), vinieron and extras
+/// (non-annulled attendance marks). <see cref="PorcentajeAsistencia"/> is null when nothing was scheduled.
+/// </summary>
+public sealed record AsistenciaMesSedeDto(int Anio, int Mes, Sede Sede, int Agendadas, int Vinieron, int Extras)
+{
+    public double? PorcentajeAsistencia => Agendadas == 0 ? null : (double)Vinieron / Agendadas;
 }

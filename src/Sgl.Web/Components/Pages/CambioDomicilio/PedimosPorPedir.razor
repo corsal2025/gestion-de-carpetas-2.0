@@ -1,0 +1,744 @@
+@page "/cambio-domicilio/pedimos"
+@layout ModuloLayout
+@using Sgl.Application.CambioDomicilio
+@inject PedidosService Pedidos
+@inject ICorreoComunas Correo
+@inject IDirectorioComunas Directorio
+@inject CarpetaService Carpetas
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+@inject ILogger<PedimosPorPedir> Logger
+
+<PageTitle>@TituloPagina.De("Pedimos carpetas")</PageTitle>
+
+<div class="page-container pp-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Pedimos carpetas <span class="muted">· Por pedir @(items?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
+    </div>
+
+    <PedimosEtapas EtapaActual="PedimosEtapas.Etapa.PorPedir" Refresco="@(items?.Count ?? -1)" PorPedirEnPagina="items?.Count" />
+
+    @if (modo is not null)
+    {
+        <div class="pp-banner @(modo.EsPrueba ? "prueba" : "real")" role="status" id="pp-banner-modo">
+            <div class="pp-banner-texto">
+                <strong>@(modo.EsPrueba ? "MODO PRUEBA" : "ENVÍO REAL ACTIVO")</strong>
+                <span>@TextoModo()</span>
+            </div>
+            <div class="pp-banner-acciones">
+                @if (pasoReal == 0)
+                {
+                    @if (modo.EnvioReal)
+                    {
+                        <button type="button" class="btn-secondary" id="pp-apagar-real" disabled="@ocupado" @onclick="() => CambiarEnvioRealAsync(false)">Volver a modo prueba</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn-secondary" id="pp-activar-real" disabled="@ocupado" @onclick="() => pasoReal = 1">Activar envío real…</button>
+                    }
+                }
+                else if (pasoReal == 1)
+                {
+                    <span class="pp-confirmar">Los correos llevarán nombre y RUT a las municipalidades reales. ¿Continuar?</span>
+                    <button type="button" class="btn-secondary" id="pp-real-paso1" @onclick="() => pasoReal = 2">Continuar</button>
+                    <button type="button" class="btn-small" @onclick="() => pasoReal = 0">Cancelar</button>
+                }
+                else
+                {
+                    <span class="pp-confirmar"><b>Última confirmación:</b> desde ahora los correos salen a las comunas.</span>
+                    <button type="button" class="btn-decision btn-denegada" id="pp-real-paso2" disabled="@ocupado" @onclick="() => CambiarEnvioRealAsync(true)">Sí, activar envío real</button>
+                    <button type="button" class="btn-small" @onclick="() => pasoReal = 0">Cancelar</button>
+                }
+            </div>
+        </div>
+    }
+    @if (pasoReal > 0)
+    {
+        <AvisoSoloPrueba Refresco="pasoReal" />
+    }
+
+    @if (!Autor.HasNombre)
+    {
+        <div class="alert warning" role="alert">Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.</div>
+    }
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status" id="pp-mensaje">
+            @mensaje
+            @if (deshacer is not null)
+            {
+                <button type="button" class="btn-small" id="pp-deshacer" disabled="@ocupado" @onclick="DeshacerAsync">Deshacer</button>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    <div class="sol-filtros pp-vistas" role="group" aria-label="Etapa">
+        <button type="button" class="sol-chip @(vista == Vista.Revision ? "activo" : "")" id="pp-ver-revision" aria-pressed="@(vista == Vista.Revision ? "true" : "false")"
+                @onclick="() => IrAVistaAsync(Vista.Revision)">1. Revisión uno a uno</button>
+        <button type="button" class="sol-chip @(vista == Vista.Envio ? "activo" : "")" id="pp-ver-envio" aria-pressed="@(vista == Vista.Envio ? "true" : "false")"
+                @onclick="() => IrAVistaAsync(Vista.Envio)">2. Vista previa y envío</button>
+    </div>
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando las carpetas por pedir…</p></div>
+    }
+    else if (vista == Vista.Revision)
+    {
+        @RevisionUi()
+    }
+    else
+    {
+        @EnvioUi()
+    }
+</div>
+
+@code {
+    private enum Vista { Revision, Envio }
+
+    private enum Pestana { Nombre, Rut, Comuna, Clasificacion }
+
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly EstadoCarpeta[] Destinos =
+    [
+        EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SeEncuentraEnOf43,
+        EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.CanjeLicExtranjera,
+    ];
+
+    private IReadOnlyList<PorPedirDto>? items;
+    private ModoEnvio? modo;
+    private Vista vista = Vista.Revision;
+    private int indice;
+    private int pasoReal;
+    private bool ocupado;
+    private string? error;
+    private string? mensaje;
+    private (Guid Id, CambioRealizado Cambio)? deshacer;
+
+    // Revisión: ficha en pantalla.
+    private Guid? copiadoId;
+    private bool enfocarAcciones;
+    private bool enfocarCorreccion;
+    private ElementReference acciones;
+    private ElementReference primerCampo;
+    private bool corrigiendo;
+    private Pestana pestana = Pestana.Nombre;
+    private string nuevoNombre = string.Empty;
+    private string nuevoRut = string.Empty;
+    private string nuevaComuna = string.Empty;
+    private EstadoCarpeta destino = EstadoCarpeta.PrimeraLicencia;
+    private string motivo = string.Empty;
+    private string fechaUltima = string.Empty;
+
+    // Vista previa y envío.
+    private IReadOnlyList<GrupoPedidoDto>? grupos;
+    private readonly HashSet<Guid> seleccion = [];
+    private readonly Dictionary<string, string> correoNuevo = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ResultadoEnvioComuna>? resultados;
+    private bool confirmandoEnvio;
+
+    private PorPedirDto? Actual => items is not null && indice >= 0 && indice < items.Count ? items[indice] : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+        indice = Math.Max(0, items?.ToList().FindIndex(f => !f.Revisada) ?? 0);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (vista == Vista.Revision && !corrigiendo && Actual is { } actual && copiadoId != actual.Id)
+            {
+                copiadoId = actual.Id;
+                await JS.InvokeVoidAsync("copyRutCasChile", actual.Rut);
+                enfocarAcciones = true;
+            }
+            if (enfocarAcciones && vista == Vista.Revision && !corrigiendo && Actual is not null)
+            {
+                enfocarAcciones = false;
+                await acciones.FocusAsync();
+            }
+            if (enfocarCorreccion && corrigiendo)
+            {
+                enfocarCorreccion = false;
+                await primerCampo.FocusAsync();
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // El navegador no dejó copiar o enfocar: la ficha sigue usable con el botón «Copiar RUT».
+        }
+    }
+
+    private string TextoModo() => modo switch
+    {
+        { EsPrueba: false } => "Los correos salen a las comunas reales. Revise la vista previa antes de enviar.",
+        { CasillaDePrueba: true } => "Los correos van solo a la casilla de prueba, nunca a las comunas. Las carpetas igual pasan a «Solicitado».",
+        _ => "Nada sale del sistema: el envío se simula y queda registrado. Las carpetas igual pasan a «Solicitado».",
+    };
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            modo = await Correo.ObtenerModoAsync();
+            items = await Pedidos.ListarPorPedirAsync();
+            if (indice >= items.Count) indice = Math.Max(0, items.Count - 1);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar Por pedir");
+            items ??= [];
+        }
+    }
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        deshacer = null;
+    }
+
+    private void AvisarCambio()
+    {
+        _ = Modulos.RefrescarAsync();
+        DuplicadosNotifier.Notify();
+    }
+
+    private async Task EjecutarAsync(Func<Task> accion, string contexto)
+    {
+        if (ocupado) return;
+        error = null;
+        ocupado = true;
+        try
+        {
+            await accion();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, contexto);
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task IrAVistaAsync(Vista nueva)
+    {
+        if (vista == nueva) return;
+        vista = nueva;
+        corrigiendo = false;
+        if (nueva == Vista.Envio)
+        {
+            await EjecutarAsync(CargarVistaPreviaAsync, "No se pudo armar la vista previa");
+        }
+        else
+        {
+            copiadoId = null;
+            enfocarAcciones = true;
+        }
+    }
+
+    private async Task CambiarEnvioRealAsync(bool activo)
+    {
+        await EjecutarAsync(async () =>
+        {
+            await Correo.EstablecerEnvioRealAsync(activo);
+            modo = await Correo.ObtenerModoAsync();
+            pasoReal = 0;
+            mensaje = activo ? "Envío real activado." : "Volvió el modo prueba.";
+            deshacer = null;
+        }, "No se pudo cambiar el modo de envío");
+    }
+
+    // ---- Etapa 1: revisión uno a uno ----
+
+    private async Task TeclaAsync(KeyboardEventArgs e)
+    {
+        if (ocupado || Actual is null || corrigiendo) return;
+        switch (e.Key)
+        {
+            case "1": await YaSubidaAsync(); break;
+            case "2": await PendienteAsync(); break;
+            case "3": AbrirCorreccion(); break;
+            case "ArrowRight": Mover(1); break;
+            case "ArrowLeft": Mover(-1); break;
+        }
+    }
+
+    private void Mover(int paso)
+    {
+        if (items is null || items.Count == 0) return;
+        indice = Math.Clamp(indice + paso, 0, items.Count);
+        enfocarAcciones = true;
+    }
+
+    private Task YaSubidaAsync()
+    {
+        if (Actual is not { } f || !Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            var cambio = await Pedidos.YaSubidaAsync(f.Id, Autor.Nombre);
+            mensaje = $"{f.NombreCompleto}: ya estaba subida. Pasó a «Cambio dom. subido a Conaset», sin correo.";
+            deshacer = (f.Id, cambio);
+            await CargarAsync();
+            copiadoId = null;
+            enfocarAcciones = true;
+            AvisarCambio();
+        }, "No se pudo marcar como subida");
+    }
+
+    private Task PendienteAsync()
+    {
+        if (Actual is not { } f || !Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            await Pedidos.PendienteAsync(f.Id, Autor.Nombre);
+            CerrarMensaje();
+            await CargarAsync();
+            Mover(1);
+        }, "No se pudo marcar como pendiente");
+    }
+
+    private async Task DeshacerAsync()
+    {
+        if (deshacer is not { } d) return;
+        await EjecutarAsync(async () =>
+        {
+            await Pedidos.DeshacerAsync(d.Id, d.Cambio, Autor.Nombre);
+            mensaje = "Se deshizo el último movimiento: la carpeta volvió a «Por pedir».";
+            deshacer = null;
+            await CargarAsync();
+            indice = Math.Max(0, items!.ToList().FindIndex(f => f.Id == d.Id));
+            copiadoId = null;
+            AvisarCambio();
+            if (vista == Vista.Envio) await CargarVistaPreviaAsync();
+        }, "No se pudo deshacer");
+    }
+
+    private void AbrirCorreccion()
+    {
+        if (Actual is not { } f) return;
+        corrigiendo = true;
+        pestana = Pestana.Nombre;
+        nuevoNombre = f.NombreCompleto;
+        nuevoRut = f.Rut;
+        nuevaComuna = f.Comuna ?? string.Empty;
+        destino = EstadoCarpeta.PrimeraLicencia;
+        motivo = string.Empty;
+        fechaUltima = f.FechaUltimaCarpeta is { } iso && DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? d.ToString("dd-MM-yyyy") : f.FechaUltimaCarpeta ?? string.Empty;
+        enfocarCorreccion = true;
+    }
+
+    private void CerrarCorreccion()
+    {
+        corrigiendo = false;
+        enfocarAcciones = true;
+    }
+
+    private void CambiarPestana(Pestana nueva)
+    {
+        pestana = nueva;
+        enfocarCorreccion = true;
+    }
+
+    private async Task TeclaCorreccionAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") CerrarCorreccion();
+        await Task.CompletedTask;
+    }
+
+    private Task GuardarNombreAsync() => GuardarDatoAsync(
+        f => Carpetas.ModificarNombreAsync(f.Id, nuevoNombre, Autor.Nombre), "Nombre corregido.", "No se pudo corregir el nombre");
+
+    private Task GuardarRutAsync() => GuardarDatoAsync(
+        f => Carpetas.ModificarRutAsync(f.Id, nuevoRut, Autor.Nombre), "RUT corregido.", "No se pudo corregir el RUT");
+
+    private Task GuardarComunaAsync() => GuardarDatoAsync(
+        f => Carpetas.GuardarComunaAsync(f.Id, nuevaComuna, Autor.Nombre), "Comuna corregida.", "No se pudo corregir la comuna");
+
+    private Task GuardarDatoAsync(Func<PorPedirDto, Task> guardar, string exito, string contexto)
+    {
+        if (Actual is not { } f || !Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            await guardar(f);
+            mensaje = exito;
+            deshacer = null;
+            corrigiendo = false;
+            await CargarAsync();
+            copiadoId = null;
+            enfocarAcciones = true;
+            AvisarCambio();
+        }, contexto);
+    }
+
+    private Task CorregirClasificacionAsync()
+    {
+        if (Actual is not { } f || !Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            var cambio = await Pedidos.CorregirClasificacionAsync(f.Id, destino, motivo, fechaUltima, Autor.Nombre);
+            mensaje = $"{f.NombreCompleto}: movida a «{EtiquetaDestino(cambio.EstadoNuevo)}». Salió de Por pedir y el motivo quedó en su historial.";
+            deshacer = (f.Id, cambio);
+            corrigiendo = false;
+            await CargarAsync();
+            copiadoId = null;
+            enfocarAcciones = true;
+            AvisarCambio();
+        }, "No se pudo corregir la clasificación");
+    }
+
+    private static string EtiquetaDestino(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.PrimeraLicencia => "1° licencia",
+        EstadoCarpeta.SeEncuentraEnArchivos => "Se encuentra en Archivos",
+        EstadoCarpeta.SeEncuentraEnOf43 => "Se encuentra en Of. 43",
+        EstadoCarpeta.NoExisteCarpeta => "No existe carpeta (F8)",
+        EstadoCarpeta.CanjeLicExtranjera => "Canje de licencia extranjera",
+        _ => Labels.Of(estado),
+    };
+
+    private static string DetalleDestino(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.SeEncuentraEnArchivos => $"Archivos: última carpeta anterior al {SectorFisico.Corte:dd-MM-yyyy}",
+        EstadoCarpeta.SeEncuentraEnOf43 => $"Of. 43: última carpeta desde el {SectorFisico.Corte:dd-MM-yyyy}",
+        _ => EtiquetaDestino(estado),
+    };
+
+    private string? PistaSector() =>
+        destino is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 && Carpeta.DestinoPorFechaUltimaCarpeta(fechaUltima) is { } sector
+            ? $"Con esa fecha la carpeta física está en {(sector == EstadoCarpeta.SeEncuentraEnArchivos ? "Archivos" : "Of. 43")}."
+            : null;
+
+    private Task CopiarRutAsync() => Actual is { } f ? JS.InvokeVoidAsync("copyRutCasChile", f.Rut).AsTask() : Task.CompletedTask;
+
+    // ---- Etapa 2: vista previa por comuna y envío masivo ----
+
+    private async Task CargarVistaPreviaAsync()
+    {
+        await CargarAsync();
+        grupos = await Pedidos.VistaPreviaAsync((items ?? []).Select(f => f.Id).ToList());
+        var vigentes = grupos.SelectMany(g => g.Personas).Select(p => p.Id).ToHashSet();
+        seleccion.IntersectWith(vigentes);
+        foreach (var p in grupos.Where(g => g.Enviable).SelectMany(g => g.Personas).Where(p => yaDecidido.Add(p.Id)))
+        {
+            if (p.Revisada || p.FalloEnvio) seleccion.Add(p.Id);
+        }
+        yaDecidido.IntersectWith(vigentes);
+        confirmandoEnvio = false;
+    }
+
+    // Personas cuya casilla ya fue decidida por defecto: una carpeta que el usuario desmarcó no vuelve a marcarse sola.
+    private readonly HashSet<Guid> yaDecidido = [];
+
+    private void Alternar(Guid id, bool marcada)
+    {
+        if (marcada) seleccion.Add(id);
+        else seleccion.Remove(id);
+        confirmandoEnvio = false;
+    }
+
+    private void AlternarGrupo(GrupoPedidoDto g, bool marcada)
+    {
+        foreach (var p in g.Personas)
+        {
+            Alternar(p.Id, marcada);
+        }
+    }
+
+    private IEnumerable<GrupoPedidoDto> GruposAEnviar() =>
+        (grupos ?? []).Where(g => g.Enviable && g.Personas.Any(p => seleccion.Contains(p.Id)));
+
+    private int TotalAEnviar() => GruposAEnviar().Sum(g => g.Personas.Count(p => seleccion.Contains(p.Id)));
+
+    private Task CompletarCorreoAsync(GrupoPedidoDto g)
+    {
+        correoNuevo.TryGetValue(g.Comuna, out var correo);
+        return EjecutarAsync(async () =>
+        {
+            var (ok, texto) = Directorio.AgregarCorreo(g.Comuna, correo ?? string.Empty);
+            if (!ok)
+            {
+                error = texto;
+                return;
+            }
+
+            correoNuevo.Remove(g.Comuna);
+            mensaje = $"{texto}. Ya puede incluir a {g.Comuna} en el envío.";
+            deshacer = null;
+            await CargarVistaPreviaAsync();
+        }, "No se pudo guardar el correo de la comuna");
+    }
+
+    private Task IrARevisarAsync(Guid id)
+    {
+        indice = Math.Max(0, (items ?? []).ToList().FindIndex(f => f.Id == id));
+        copiadoId = null;
+        return IrAVistaAsync(Vista.Revision);
+    }
+
+    private Task PedirEnvioAsync()
+    {
+        if (TotalAEnviar() == 0) return Task.CompletedTask;
+        if (modo is { EsPrueba: false } && !confirmandoEnvio)
+        {
+            confirmandoEnvio = true;
+            return Task.CompletedTask;
+        }
+        return EnviarAsync();
+    }
+
+    private Task EnviarAsync()
+    {
+        if (!Autor.HasNombre) return Task.CompletedTask;
+        var ids = GruposAEnviar().SelectMany(g => g.Personas).Where(p => seleccion.Contains(p.Id)).Select(p => p.Id).ToList();
+        return EjecutarAsync(async () =>
+        {
+            confirmandoEnvio = false;
+            var r = await Pedidos.EnviarAsync(ids, Autor.Nombre);
+            resultados = r.Envios;
+            mensaje = r.CarpetasPedidas == 0
+                ? null
+                : $"{r.CarpetasPedidas} carpeta(s) pasaron a «Solicitado» con el historial «Pedido por correo».";
+            var sinSalir = r.Envios.Count(e => e.Resultado is not (ResultadoEnvio.Enviado or ResultadoEnvio.YaEnviado));
+            if (sinSalir > 0)
+            {
+                error = $"{sinSalir} correo(s) no salieron: sus carpetas siguen en «Por pedir» para reintentar. Detalle abajo.";
+            }
+            deshacer = null;
+            await CargarVistaPreviaAsync();
+            AvisarCambio();
+        }, "No se pudo enviar");
+    }
+
+    private RenderFragment RevisionUi() => @<text>
+        @if (items!.Count == 0)
+        {
+            <div class="empty-state" id="pp-vacio">
+                <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+                <p>No hay carpetas por pedir.</p>
+            </div>
+        }
+        else if (Actual is not { } f)
+        {
+            <div class="pp-ficha pp-fin" id="pp-fin">
+                <h2>Revisión terminada</h2>
+                <p>@items.Count(i => i.Revisada).ToString("N0", Cultura) de @items.Count.ToString("N0", Cultura) carpetas quedaron listas para pedir.</p>
+                <div class="pp-fila">
+                    <button type="button" class="btn-primary" id="pp-ir-envio" @onclick="() => IrAVistaAsync(Vista.Envio)">Ir a la vista previa y envío →</button>
+                    <button type="button" class="btn-secondary" @onclick="() => { indice = 0; copiadoId = null; }">Volver a la primera</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <section class="pp-ficha" aria-label="Carpeta en revisión" id="pp-ficha">
+                <div class="pp-progreso">
+                    <span id="pp-posicion">@(indice + 1) de @items.Count</span>
+                    <span class="pp-barra" aria-hidden="true"><span style="width:@((indice + 1) * 100 / items.Count)%"></span></span>
+                    <span class="muted">@items.Count(i => i.Revisada) revisada(s)</span>
+                </div>
+                <div class="pp-nombre" id="pp-nombre">@f.NombreCompleto</div>
+                <div class="pp-rut-fila">
+                    <span class="pp-rut" id="pp-rut">@f.Rut</span>
+                    <button type="button" class="btn-small" id="pp-copiar" title="Copiar el RUT para CAS-Chile" @onclick="CopiarRutAsync">Copiar RUT</button>
+                </div>
+                <div class="pp-meta">
+                    <span>Comuna: <b>@(string.IsNullOrWhiteSpace(f.Comuna) ? "sin comuna" : f.Comuna)</b></span>
+                    <span>Cita: @f.FechaCitacion.ToString("dd-MM-yyyy")</span>
+                    <span>Clasificada: @f.ClasificadaEn.ToString("dd-MM-yyyy")</span>
+                    @if (f.DeDiaAnterior) { <span class="badge warn" title="Debió pedirse el mismo día de la clasificación">De un día anterior</span> }
+                    @if (f.Revisada) { <span class="badge ok">Revisada</span> }
+                    @if (f.FalloEnvio) { <span class="badge bad" title="El último correo de esta carpeta falló">Falló, reintentar</span> }
+                </div>
+
+                @if (!corrigiendo)
+                {
+                    <div class="pp-acciones" tabindex="0" @ref="acciones" @onkeydown="TeclaAsync" id="pp-acciones" aria-label="Acciones de la carpeta: 1 ya subida, 2 pendiente, 3 corregir, flechas para moverse">
+                        <button type="button" class="btn-decision btn-enviar" id="pp-ya-subida" disabled="@ocupado" @onclick="YaSubidaAsync"
+                                title="Ya está subida en Conaset: no se envía correo"><kbd>1</kbd> Ya subida</button>
+                        <button type="button" class="btn-decision btn-secondary" id="pp-pendiente" disabled="@ocupado" @onclick="PendienteAsync"
+                                title="Sigue sin subir: queda lista para el envío"><kbd>2</kbd> Pendiente</button>
+                        <button type="button" class="btn-decision btn-secondary" id="pp-corregir" disabled="@ocupado" @onclick="AbrirCorreccion"
+                                title="Corregir nombre, RUT, comuna o clasificación"><kbd>3</kbd> Corregir</button>
+                        <span class="pp-nav">
+                            <button type="button" class="btn-small" id="pp-anterior" disabled="@(indice == 0)" @onclick="() => Mover(-1)" title="Anterior (←)">←</button>
+                            <button type="button" class="btn-small" id="pp-siguiente" @onclick="() => Mover(1)" title="Siguiente (→)">→</button>
+                        </span>
+                    </div>
+                    <p class="pp-ayuda">Atajos: <kbd>1</kbd> ya subida · <kbd>2</kbd> pendiente · <kbd>3</kbd> corregir · <kbd>←</kbd> <kbd>→</kbd> moverse. Al mostrar cada carpeta el RUT se copia solo para pegarlo en Conaset.</p>
+                }
+                else
+                {
+                    <div class="pp-corregir" id="pp-panel-corregir" @onkeydown="TeclaCorreccionAsync">
+                        <div class="sol-filtros" role="group" aria-label="Qué corregir">
+                            <button type="button" class="sol-chip @(pestana == Pestana.Nombre ? "activo" : "")" aria-pressed="@(pestana == Pestana.Nombre ? "true" : "false")" @onclick="() => CambiarPestana(Pestana.Nombre)">Nombre</button>
+                            <button type="button" class="sol-chip @(pestana == Pestana.Rut ? "activo" : "")" aria-pressed="@(pestana == Pestana.Rut ? "true" : "false")" @onclick="() => CambiarPestana(Pestana.Rut)">RUT</button>
+                            <button type="button" class="sol-chip @(pestana == Pestana.Comuna ? "activo" : "")" aria-pressed="@(pestana == Pestana.Comuna ? "true" : "false")" @onclick="() => CambiarPestana(Pestana.Comuna)">Comuna</button>
+                            <button type="button" class="sol-chip @(pestana == Pestana.Clasificacion ? "activo" : "")" id="pp-pestana-clasificacion" aria-pressed="@(pestana == Pestana.Clasificacion ? "true" : "false")" @onclick="() => CambiarPestana(Pestana.Clasificacion)">Clasificación</button>
+                        </div>
+                        @switch (pestana)
+                        {
+                            case Pestana.Nombre:
+                                <label>Nombre completo
+                                    <input @ref="primerCampo" id="pp-in-nombre" maxlength="201" @bind="nuevoNombre" @bind:event="oninput" /></label>
+                                <div class="pp-fila"><button type="button" class="btn-primary" id="pp-guardar-nombre" disabled="@ocupado" @onclick="GuardarNombreAsync">Guardar nombre</button></div>
+                                break;
+                            case Pestana.Rut:
+                                <label>RUT
+                                    <input @ref="primerCampo" id="pp-in-rut" maxlength="12" class="pp-input-rut" oninput="formatRutInput(this)" @bind="nuevoRut" @bind:event="onchange" /></label>
+                                <div class="pp-fila"><button type="button" class="btn-primary" id="pp-guardar-rut" disabled="@ocupado" @onclick="GuardarRutAsync">Guardar RUT</button></div>
+                                break;
+                            case Pestana.Comuna:
+                                <label>Comuna de origen
+                                    <input @ref="primerCampo" id="pp-in-comuna" list="pp-lista-comunas" maxlength="100" @bind="nuevaComuna" @bind:event="oninput" /></label>
+                                <datalist id="pp-lista-comunas">
+                                    @foreach (var nombre in ComunasChile.Todas) { <option value="@nombre"></option> }
+                                </datalist>
+                                <div class="pp-fila"><button type="button" class="btn-primary" id="pp-guardar-comuna" disabled="@ocupado" @onclick="GuardarComunaAsync">Guardar comuna</button></div>
+                                break;
+                            default:
+                                <fieldset class="pp-opciones">
+                                    <legend>¿Dónde va realmente esta carpeta?</legend>
+                                    @foreach (var d in Destinos)
+                                    {
+                                        <label class="pp-opcion"><input type="radio" name="pp-destino" checked="@(destino == d)" @onchange="() => destino = d" /> @DetalleDestino(d)</label>
+                                    }
+                                </fieldset>
+                                @if (destino is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43)
+                                {
+                                    <label>Fecha de la última carpeta (dd-mm-aaaa)
+                                        <input id="pp-in-fecha" maxlength="10" @bind="fechaUltima" @bind:event="oninput" placeholder="dd-mm-aaaa" /></label>
+                                    @if (PistaSector() is { } pista) { <p class="pp-ayuda">@pista</p> }
+                                }
+                                <label>Motivo de la corrección (obligatorio, queda en el historial)
+                                    <input @ref="primerCampo" id="pp-in-motivo" maxlength="@Carpeta.MaxMotivoCorreccionLength" @bind="motivo" @bind:event="oninput" /></label>
+                                <div class="pp-fila"><button type="button" class="btn-primary" id="pp-mover" disabled="@(ocupado || string.IsNullOrWhiteSpace(motivo))" @onclick="CorregirClasificacionAsync">Mover la carpeta</button></div>
+                                break;
+                        }
+                        <div class="pp-fila"><button type="button" class="btn-small" id="pp-cerrar-corregir" @onclick="CerrarCorreccion">Cancelar (Esc)</button></div>
+                    </div>
+                }
+            </section>
+        }
+    </text>;
+
+    private RenderFragment EnvioUi() => @<text>
+        @if (grupos is null)
+        {
+            <div class="loading-state"><div class="spinner"></div><p>Armando la vista previa…</p></div>
+        }
+        else if (grupos.Count == 0)
+        {
+            <div class="empty-state" id="pp-vacio"><p>No hay carpetas por pedir.</p></div>
+        }
+        else
+        {
+            <p class="pp-ayuda">Un correo por comuna. Las carpetas revisadas como «Pendiente» vienen marcadas; las comunas sin correo quedan fuera del envío hasta completarlo.</p>
+            <div class="pp-grupos" id="pp-grupos">
+                @foreach (var g in grupos)
+                {
+                    <section class="pp-grupo @(g.Enviable ? "" : "pp-grupo-fuera")" aria-label="Correo a @(g.SinComuna ? "carpetas sin comuna" : g.Comuna)" data-comuna="@g.Comuna">
+                        <header class="pp-grupo-cab">
+                            @if (g.Enviable)
+                            {
+                                <input type="checkbox" aria-label="Marcar todas las carpetas de @g.Comuna" checked="@g.Personas.All(p => seleccion.Contains(p.Id))"
+                                       @onchange="e => AlternarGrupo(g, (bool)(e.Value ?? false))" />
+                            }
+                            <h2>@(g.SinComuna ? "Sin comuna" : g.Comuna)</h2>
+                            <span class="muted">@g.Personas.Count persona(s)</span>
+                            @if (g.Enviable)
+                            {
+                                <span class="pp-destino" title="Direcciones del directorio">→ @string.Join(", ", g.Correos)</span>
+                            }
+                        </header>
+                        @if (g.SinComuna)
+                        {
+                            <p class="pp-aviso bad">Estas carpetas no tienen comuna: corríjala en la revisión (Corregir · Comuna). Quedan fuera del envío.</p>
+                        }
+                        else if (g.SinCorreo)
+                        {
+                            <div class="pp-aviso bad">
+                                <b>Sin correo en el directorio: fuera del envío.</b>
+                                <input class="pp-input-correo" type="email" placeholder="correo de licencias de @g.Comuna" aria-label="Correo de @g.Comuna"
+                                       value="@(correoNuevo.GetValueOrDefault(g.Comuna) ?? string.Empty)" @onchange="e => correoNuevo[g.Comuna] = e.Value?.ToString() ?? string.Empty" />
+                                <button type="button" class="btn-secondary pp-completar" disabled="@ocupado" @onclick="() => CompletarCorreoAsync(g)">Completar correo</button>
+                            </div>
+                        }
+                        <ul class="pp-personas">
+                            @foreach (var p in g.Personas)
+                            {
+                                <li>
+                                    <label>
+                                        <input type="checkbox" disabled="@(!g.Enviable)" checked="@seleccion.Contains(p.Id)" @onchange="e => Alternar(p.Id, (bool)(e.Value ?? false))" />
+                                        <span class="pp-p-nombre">@p.NombreCompleto</span>
+                                        <span class="pp-p-rut">@p.Rut</span>
+                                    </label>
+                                    @if (p.FalloEnvio) { <span class="badge bad">Falló, reintentar</span> }
+                                    else if (p.Revisada) { <span class="badge ok">Revisada</span> }
+                                    else { <span class="badge muted-badge">Sin revisar</span> }
+                                    <button type="button" class="btn-small" @onclick="() => IrARevisarAsync(p.Id)">Revisar</button>
+                                </li>
+                            }
+                        </ul>
+                    </section>
+                }
+            </div>
+
+            <div class="pp-enviar">
+                <span id="pp-resumen">Se enviarán <b>@TotalAEnviar()</b> carpeta(s) en <b>@GruposAEnviar().Count()</b> correo(s)@(modo is { EsPrueba: true } ? " (de prueba)" : string.Empty).</span>
+                @if (confirmandoEnvio)
+                {
+                    <span class="pp-confirmar"><b>Envío real:</b> los correos saldrán a las comunas. ¿Confirmar?</span>
+                    <button type="button" class="btn-decision btn-denegada" id="pp-confirmar-envio" disabled="@ocupado" @onclick="EnviarAsync">Sí, enviar</button>
+                    <button type="button" class="btn-small" @onclick="() => confirmandoEnvio = false">Cancelar</button>
+                }
+                else
+                {
+                    <button type="button" class="btn-primary" id="pp-enviar" disabled="@(ocupado || TotalAEnviar() == 0)" @onclick="PedirEnvioAsync">Enviar @TotalAEnviar() carpeta(s)</button>
+                }
+            </div>
+        }
+
+        @if (resultados is { Count: > 0 })
+        {
+            <section class="pp-resultados" id="pp-resultados" aria-label="Resultado del envío">
+                <h2>Resultado del último envío</h2>
+                <ul>
+                    @foreach (var e in resultados)
+                    {
+                        <li><span class="badge @ClaseResultado(e.Resultado)">@TextoResultado(e)</span> @e.Mensaje</li>
+                    }
+                </ul>
+            </section>
+        }
+    </text>;
+
+    private static string ClaseResultado(ResultadoEnvio r) => r switch
+    {
+        ResultadoEnvio.Enviado => "ok",
+        ResultadoEnvio.YaEnviado => "warn",
+        _ => "bad",
+    };
+
+    private static string TextoResultado(ResultadoEnvioComuna e) => e.Resultado switch
+    {
+        ResultadoEnvio.Enviado => "Enviado",
+        ResultadoEnvio.Fallido => "Falló, reintentar",
+        ResultadoEnvio.SinCorreo => "Sin correo",
+        ResultadoEnvio.SinComuna => "Sin comuna",
+        ResultadoEnvio.YaEnviado => "Ya enviado",
+        _ => "Correo no configurado",
+    };
+}

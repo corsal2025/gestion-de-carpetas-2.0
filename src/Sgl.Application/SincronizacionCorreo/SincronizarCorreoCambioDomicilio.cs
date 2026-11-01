@@ -109,7 +109,15 @@ public sealed class SincronizarCorreoCambioDomicilio(
         var personas = Personas(correo);
         if (personas.Count == 0)
         {
-            conteo.Descartar(correo, "No se encontró un RUT válido");
+            await _gate.WaitAsync(ct);
+            try
+            {
+                await DescartarAsync(correo, "No se encontró un RUT válido", conteo, ct);
+            }
+            finally
+            {
+                _gate.Release();
+            }
             return;
         }
 
@@ -124,13 +132,30 @@ public sealed class SincronizarCorreoCambioDomicilio(
             catch (DomainException ex)
             {
                 carpetas.DescartarCambios();
-                conteo.Descartar(correo, $"RUT {rut.Formatted}: {ex.Message}");
+                await DescartarAsync(correo, $"RUT {rut.Formatted}: {ex.Message}", conteo, ct);
             }
             finally
             {
                 _gate.Release();
             }
         }
+    }
+
+    /// <summary>
+    /// Counts the email as left out and records it (once per Message-Id) so the user can see it later. Runs inside the caller's gate.
+    /// Only subject, sender, date and reason are kept, truncated; never the body, and nothing of this goes to the log.
+    /// </summary>
+    private async Task DescartarAsync(CorreoEntrante correo, string motivo, Conteo conteo, CancellationToken ct)
+    {
+        conteo.Descartar(correo, motivo);
+        if (string.IsNullOrWhiteSpace(correo.MessageId) || await correos.ExisteDescartadoAsync(correo.MessageId, ct))
+        {
+            return;
+        }
+
+        await correos.AddDescartadoAsync(
+            new CorreoDescartadoRegistro(correo.MessageId, correo.Asunto, correo.Remitente, correo.RecibidoEn.UtcDateTime, motivo, Now), ct);
+        await carpetas.SaveChangesAsync(ct);
     }
 
     private async Task CrearSiNoExisteAsync(
@@ -144,9 +169,10 @@ public sealed class SincronizarCorreoCambioDomicilio(
 
         var now = Now;
         var ciudadano = await carpetas.FindCiudadanoAsync(rut, ct);
-        if (ciudadano is not null && (await correos.CarpetasEnCambioDomicilioAsync(ciudadano.Id, ct)) is [var existente, ..])
+        if (ciudadano is not null && (await correos.CarpetasAbiertasAsync(ciudadano.Id, SentidoCambioDomicilio.Entrante, EstadoCarpeta.CambioDomicilio, ct)) is [var existente, ..])
         {
-            // Same person already waiting in the tray (e.g. the comuna re-sent the request): link, never duplicate.
+            // Same person already waiting in the entrante tray (e.g. the comuna re-sent the request): link, never duplicate.
+            // A saliente of the same person is a different case (we ask, they do not): it never absorbs the email.
             await correos.AddAsync(new CorreoCambioDomicilio(correo.MessageId, rut, existente, now), ct);
             await carpetas.SaveChangesAsync(ct);
             conteo.YaExistentes++;
@@ -174,8 +200,9 @@ public sealed class SincronizarCorreoCambioDomicilio(
     }
 
     /// <summary>
-    /// Moves to "subido por correo" the carpetas of that email: the ones linked to its Message-Id, plus the open ones of the
-    /// RUTs it names that were registered no later than the email arrived (an old email never closes a newer carpeta).
+    /// Moves to «Cambio dom. subido a Conaset» the carpetas of that email: the ones linked to its Message-Id, plus the open
+    /// ones of the RUTs it names that were registered no later than the email arrived (an old email never closes a newer
+    /// carpeta). Entrante from «Cambio de domicilio», saliente from «Solicitado»; nothing else moves.
     /// </summary>
     private async Task ProcesarSubidoAsync(CorreoEntrante correo, Conteo conteo, CancellationToken ct)
     {
@@ -188,14 +215,15 @@ public sealed class SincronizarCorreoCambioDomicilio(
             {
                 if (await carpetas.FindCiudadanoAsync(rut, ct) is { } ciudadano)
                 {
-                    porRut.UnionWith(await correos.CarpetasEnCambioDomicilioAsync(ciudadano.Id, ct));
+                    porRut.UnionWith(await correos.CarpetasAbiertasAsync(ciudadano.Id, SentidoCambioDomicilio.Entrante, EstadoCarpeta.CambioDomicilio, ct));
+                    porRut.UnionWith(await correos.CarpetasAbiertasAsync(ciudadano.Id, SentidoCambioDomicilio.Saliente, EstadoCarpeta.CambioDomicilioSolicitado, ct));
                 }
             }
 
             foreach (var id in vinculadas.Union(porRut))
             {
                 var carpeta = await carpetas.GetAsync(id, ct);
-                if (carpeta is not { Estado: EstadoCarpeta.CambioDomicilio, EstaAbierta: true })
+                if (carpeta is null || !SeCierraConElCorreo(carpeta))
                 {
                     continue;
                 }
@@ -206,7 +234,7 @@ public sealed class SincronizarCorreoCambioDomicilio(
 
                 try
                 {
-                    carpeta.CambiarEstado(EstadoCarpeta.CambioDomSubidoCorreo, Autor, Now);
+                    carpeta.CambiarEstado(EstadoCarpeta.CambioDomSubidoConaset, Autor, Now);
                     await carpetas.SaveChangesAsync(ct);
                     conteo.MovidasASubidas++;
                 }
@@ -222,6 +250,17 @@ public sealed class SincronizarCorreoCambioDomicilio(
             _gate.Release();
         }
     }
+
+    private static bool SeCierraConElCorreo(Carpeta carpeta) => carpeta is
+    {
+        EstaAbierta: true,
+        SentidoCambioDomicilio: Domain.SentidoCambioDomicilio.Entrante, Estado: EstadoCarpeta.CambioDomicilio,
+        PendienteReclasificacion: false,
+    } or
+    {
+        EstaAbierta: true,
+        SentidoCambioDomicilio: Domain.SentidoCambioDomicilio.Saliente, Estado: EstadoCarpeta.CambioDomicilioSolicitado,
+    };
 
     /// <summary>Valid RUTs of the email, body first, then the subject (subject RUTs never carry a name).</summary>
     private static List<(Rut Rut, string? Nombre)> Personas(CorreoEntrante correo)

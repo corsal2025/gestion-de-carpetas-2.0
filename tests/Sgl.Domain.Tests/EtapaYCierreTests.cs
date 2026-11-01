@@ -85,7 +85,7 @@ public class EtapaYCierreTests
         // Chile date, not UTC: 2026-03-13 02:00 UTC is still 2026-03-12 in Chile.
         var noche = new DateTime(2026, 3, 13, 2, 0, 0, DateTimeKind.Utc);
 
-        c.ForzarEstado(cierre, "ana", noche);
+        c.ForzarEstado(cierre, "ana", noche, SentidoCambioDomicilio.Saliente);
 
         Assert.Equal(new DateOnly(2026, 3, 12), c.FechaCierre);
     }

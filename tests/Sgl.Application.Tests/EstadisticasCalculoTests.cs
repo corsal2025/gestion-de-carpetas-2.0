@@ -61,6 +61,29 @@ public sealed class EstadisticasCalculoTests
         Assert.Equal(0, r.EncontradasOficina43);
     }
 
+    // E13: DIGITAL es un sector más; ya no cae en «sin fecha de última carpeta».
+    [Fact]
+    public void Busquedas_cuenta_las_digitales_como_un_sector_mas_sin_tocar_los_demas()
+    {
+        var t0 = new DateTime(2026, 5, 4, 9, 0, 0);
+        Guid[] ids = [A, B, C];
+        var marcas = ids.SelectMany(id => new[] { new MarcaBusqueda(id, t0, true), new MarcaBusqueda(id, t0.AddHours(2), false) }).ToArray();
+        var sectores = new Dictionary<Guid, string>
+        {
+            [A] = SectorFisico.Digital,
+            [B] = SectorFisico.Oficina43,
+            [C] = SectorFisico.Desconocido,
+        };
+
+        var r = EstadisticasCalculo.AnalizarBusquedas(marcas, [], sectores, t0.AddHours(6), 1);
+
+        Assert.Equal(1, r.EncontradasDigital);
+        Assert.Equal(1, r.EncontradasOficina43);
+        Assert.Equal(0, r.EncontradasArchivo);
+        Assert.Equal(1, r.EncontradasSectorDesconocido);
+        Assert.Equal(3, r.Encontradas);
+    }
+
     [Fact]
     public void Busquedas_without_history_reports_no_data()
     {

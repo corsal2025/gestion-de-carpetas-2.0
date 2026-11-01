@@ -1,7 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Sgl.Application.Asistencias;
 using Sgl.Application.Carpetas;
 using Sgl.Application.Solicitudes;
+using Sgl.Domain;
 using Sgl.Infrastructure.Persistence;
 
 namespace Sgl.Application.Tests;
@@ -44,6 +46,21 @@ public sealed class TestDb : IDisposable
         return new(new CarpetaRepository(ctx), new CertificadoRepository(ctx), new FirmantesRepository(ctx), Clock, notificador);
     }
 
+    /// <summary>Attendance service over one context shared with the carpeta service and one gate (like a scoped circuit).</summary>
+    public AsistenciaService NewAsistenciaService()
+    {
+        var ctx = NewContext();
+        var gate = new UnidadDeTrabajoGate();
+        return new(new CarpetaRepository(ctx), new AsistenciaRepository(ctx), NewServiceCompartido(ctx, gate), Clock, gate);
+    }
+
+    /// <summary>Otorgamiento service over one context and one gate, with the given permission (like a scoped circuit).</summary>
+    public Sgl.Application.Otorgamiento.OtorgamientoService NewOtorgamientoService(Sgl.Application.Seguridad.IPermisos permisos)
+    {
+        var ctx = NewContext();
+        return new(new CarpetaRepository(ctx), new OtorgamientoRepository(ctx), permisos, Clock, new UnidadDeTrabajoGate());
+    }
+
     public FirmantesService NewFirmantesService() => new(new FirmantesRepository(NewContext()), Clock);
 
     public DuplicadosService NewDuplicadosService() => new(new DuplicadoRepository(NewContext()), Clock);
@@ -65,6 +82,30 @@ public static class CarpetaServiceTestExtensions
         var d = await svc.ObtenerAsync(id);
         await svc.EditarAsync(new EditarCarpetaCommand(id, d.Sede, d.FechaCitacion, d.FechaSubida, d.IdoneidadMoral, autor, Clases: clases));
     }
+}
+
+public static class EstadoFinalTestExtensions
+{
+    /// <summary>
+    /// Leaves the carpeta in a legacy final state (Otorgado / Denegado) as the historical Excel load does: a final decision is
+    /// no longer reachable through CambiarEstado / ForzarEstado, only through Otorgamiento or that load.
+    /// </summary>
+    public static async Task DejarEnEstadoFinalAsync(this TestDb db, Guid id, EstadoCarpeta final)
+    {
+        await using var ctx = db.NewContext();
+        var carpeta = await ctx.Carpetas.SingleAsync(c => c.Id == id);
+        carpeta.AplicarCargaHistorica(final, EstadoTransitions.DecisionFor(final), null, "setup", DateTime.UtcNow);
+        await ctx.SaveChangesAsync();
+    }
+}
+
+public static class CajaTestExtensions
+{
+    /// <summary>Gives the carpeta a final decision (an assignment to a box requires one) without going through Otorgamiento.</summary>
+#pragma warning disable CS0618 // CambiarDecisionAsync es obsoleta para la interfaz; las pruebas de cajas solo necesitan la decisión final.
+    public static Task DecidirAsync(this CarpetaService svc, Guid id) =>
+        svc.CambiarDecisionAsync(id, Sgl.Domain.Decision.Otorgado, "setup");
+#pragma warning restore CS0618
 }
 
 public sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

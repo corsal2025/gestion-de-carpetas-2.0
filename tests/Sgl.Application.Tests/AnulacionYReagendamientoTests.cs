@@ -142,7 +142,8 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
     public async Task Listar_does_not_flag_when_the_other_carpeta_is_archived_closed_or_cancelled()
     {
         var (existente, nueva, _) = Seed();
-        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "CAJA 7", "javiera"));
+        await _db.NewService().DecidirAsync(existente);
+        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "A-7", "Funcionaria Prueba"));
 
         var res = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Take: 50));
 
@@ -251,7 +252,8 @@ public sealed class AnulacionYReagendamientoTests : IDisposable
     public async Task Reagendar_rejects_a_target_that_is_not_open()
     {
         var (existente, nueva, _) = Seed();
-        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "CAJA 7", "javiera"));
+        await _db.NewService().DecidirAsync(existente);
+        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(existente, "A-7", "Funcionaria Prueba"));
 
         await Assert.ThrowsAsync<DomainException>(() => _db.NewService().ReagendarAsync(nueva, existente, "javiera"));
         Assert.False((await _db.NewService().ObtenerAsync(nueva)).Anulada);

@@ -68,6 +68,13 @@ public sealed class PanelService(
     private static int SalidasHoy(IEnumerable<MovimientoPanelDto> movimientos, string estado, DateOnly hoy) =>
         movimientos.Count(m => m.Campo == CampoEstado && m.Anterior == estado && HoraChile.Fecha(m.Fecha) == hoy);
 
-    private static int ClasificadasHoy(IEnumerable<MovimientoPanelDto> movimientos, DateOnly hoy) =>
-        SalidasHoy(movimientos, PorClasificar, hoy);
+    /// <summary>
+    /// Net exits from Por clasificar today: «Deshacer» writes a return movement (X → Por clasificar) but leaves the original
+    /// exit in the history, so each return cancels one exit; otherwise the same carpeta counts as done and as pending at once.
+    /// </summary>
+    private static int ClasificadasHoy(IEnumerable<MovimientoPanelDto> movimientos, DateOnly hoy)
+    {
+        var regresos = movimientos.Count(m => m.Campo == CampoEstado && m.Nuevo == PorClasificar && m.Anterior != PorClasificar && HoraChile.Fecha(m.Fecha) == hoy);
+        return Math.Max(0, SalidasHoy(movimientos, PorClasificar, hoy) - regresos);
+    }
 }

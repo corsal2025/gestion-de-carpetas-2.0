@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PeticionCambioDomicilio;
@@ -74,13 +75,31 @@ public sealed class IndexModel : PageModel
     public static bool EsFinalizada(Peticion p) =>
         p.SubidaEn is not null || EstadoCarpetaCatalog.EsFinalizado(p.EstadoCarpeta);
 
+    /// <summary>
+    /// Esta página es el «Historial de peticiones (anterior)»: solo se consulta. Los pedidos nuevos viven en «Pedimos carpetas»;
+    /// importar el Excel, enviar, reenviar, marcar y borrar quedan cerrados aquí (los datos y el dominio no se tocan).
+    /// </summary>
+    public const bool SoloLectura = true;
+
+    /// <summary>Cualquier envío de formulario (POST, PUT, DELETE...) se rechaza: la página solo lee.</summary>
+    public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
+    {
+        if (SoloLectura && !HttpMethods.IsGet(context.HttpContext.Request.Method) && !HttpMethods.IsHead(context.HttpContext.Request.Method))
+        {
+            context.Result = new StatusCodeResult(StatusCodes.Status405MethodNotAllowed);
+            return;
+        }
+
+        base.OnPageHandlerExecuting(context);
+    }
+
     public void OnGet()
     {
         Peticiones = _repository.All();
 
         // Marcas sobre casos ya terminados (carpeta subida): se limpian.
         var marcasObsoletas = Peticiones.Where(p => p.Marcada && EsFinalizada(p)).Select(p => p.Id).ToList();
-        if (marcasObsoletas.Count > 0)
+        if (!SoloLectura && marcasObsoletas.Count > 0)
         {
             _repository.DesmarcarIds(marcasObsoletas);
             Peticiones = _repository.All();

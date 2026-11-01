@@ -136,9 +136,9 @@ public sealed class EstadisticasQueryTests : IDisposable
     [Fact]
     public async Task Uso_archivo_clases_and_observaciones()
     {
-        var a = Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada, obs: "Falta certificado");
-        var b = Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada, obs: "falta firma");
-        a.AsignarCaja("CAJA 1", "ana", Ahora);
+        var a = Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada, Decision.Otorgado, obs: "Falta certificado");
+        var b = Importada(Sede.Placilla, new(2026, 4, 1), null, EstadoCarpeta.Citada, Decision.Otorgado, obs: "falta firma");
+        a.AsignarCaja("A-1", "ana", Ahora);
         b.AsignarCaja(Carpeta.ColaDeCaja, "luis", Ahora);
         a.AsignarClases(ClaseLicencia.B, "ana", Ahora);
         Guardar(a, b);

@@ -745,6 +745,8 @@ body {
 .data-table tbody tr.estado-subidaconoficio td { background: #FFE599 !important; color: #000000 !important; font-weight: 700; }
 .data-table tbody tr.estado-cambiodomiciliosubidoaconaset td { background: #00FFFF !important; color: #000000 !important; font-weight: 700; }
 .data-table tbody tr.estado-cambiodomiciliosubidoconcorreo td { background: #D0E0E3 !important; color: #000000 !important; font-weight: 700; }
+.data-table tbody tr.estado-cambiodomsinregistro td { background: #F4CCCC !important; color: #000000 !important; font-weight: 700; }
+.data-table tbody tr.estado-cambiodomcarpetadigital td { background: #D9D2E9 !important; color: #000000 !important; font-weight: 700; }
 .data-table tbody tr.estado-cambiodomiciliosolicitado td { background: #9FC5E8 !important; color: #000000 !important; font-weight: 700; }
 .data-table tbody tr.estado-cambiodomicilio td { background: #3D85C6 !important; color: #ffffff !important; font-weight: 700; }
 .data-table tbody tr.estado-canjelicenciaextranjera td { background: #E2E8F0 !important; color: #000000 !important; font-weight: 700; }
@@ -2141,6 +2143,24 @@ table.acta-table tfoot td {
     cursor: pointer;
 }
 
+/* Ayudas de la cola de cajas: sugerencia del siguiente número y aviso de la cola heredada. */
+.caja-hint {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary, var(--text-muted));
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.chk-existente {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
 .modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -2706,6 +2726,19 @@ span.sector-cell.sector-oficina43 {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
     border: 1.5px solid #ca8a04 !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
+}
+
+/* Digital: sin carpeta física; violeta para distinguirlo de Archivo (celeste) y Of. 43 (amarillo) en ambos temas. */
+.data-table tbody tr td .sector-cell.sector-digital,
+.data-table tbody tr[class*="estado-"] td .sector-cell.sector-digital,
+.data-table tbody tr td span.sector-cell.sector-digital,
+span.sector-cell.sector-digital {
+    background: #ede9fe !important;
+    color: #4c1d95 !important;
+    -webkit-text-fill-color: #4c1d95 !important;
+    border: 1.5px solid #7c3aed !important;
     font-weight: 800 !important;
     text-shadow: none !important;
 }

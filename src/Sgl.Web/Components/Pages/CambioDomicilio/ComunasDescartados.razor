@@ -1,0 +1,83 @@
+@* Correos de la carpeta «PARA PEDIR» que no se pudieron convertir en solicitud, con el motivo. Solo se guarda asunto y remitente
+   (recortados) y la fecha: nunca el cuerpo. Quitar una fila no toca el buzón: si el correo sigue en la carpeta, vuelve a aparecer. *@
+@using Sgl.Application.CambioDomicilio
+@inject EntrantesService Entrantes
+@inject ILogger<ComunasDescartados> Logger
+
+<section class="cx-descartados" id="cx-descartados">
+    <p class="cx-ayuda">
+        Correos que la última sincronización dejó fuera. Revise el motivo, corrija el correo en Outlook (o créelo a mano) y vuelva a sincronizar.
+        Aquí no se guarda el texto del correo, solo su asunto y remitente.
+    </p>
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error</div>
+    }
+    @if (lista is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando…</p></div>
+    }
+    else if (lista.Count == 0)
+    {
+        <div class="empty-state" id="cx-vacio"><p>No hay correos descartados.</p></div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table cx-tabla" id="cx-tabla">
+                <thead>
+                    <tr><th>RECIBIDO</th><th>ASUNTO</th><th>REMITENTE</th><th>MOTIVO</th><th>DESCARTADO</th><th>ACCIÓN</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in lista)
+                    {
+                        <tr @key="d.Id">
+                            <td class="date-cell">@HoraChile.ALocal(d.RecibidoEn).ToString("dd-MM-yyyy HH:mm")</td>
+                            <td class="cx-texto">@d.Asunto</td>
+                            <td class="cx-texto">@d.Remitente</td>
+                            <td><span class="badge warn">@d.Motivo</span></td>
+                            <td class="date-cell">@HoraChile.ALocal(d.DescartadoEn).ToString("dd-MM-yyyy HH:mm")</td>
+                            <td class="action-cell"><button type="button" class="btn-small" data-accion="quitar" @onclick="() => QuitarAsync(d)">Quitar de la lista</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public EventCallback OnCambio { get; set; }
+
+    private IReadOnlyList<DescartadoDto>? lista;
+    private string? error;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            lista = await Entrantes.ListarDescartadosAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar la lista de descartados");
+            lista ??= [];
+        }
+    }
+
+    private async Task QuitarAsync(DescartadoDto d)
+    {
+        try
+        {
+            await Entrantes.QuitarDescartadoAsync(d.Id);
+            await CargarAsync();
+            await OnCambio.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo quitar el correo de la lista");
+        }
+    }
+}

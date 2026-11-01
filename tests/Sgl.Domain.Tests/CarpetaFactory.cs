@@ -18,6 +18,15 @@ internal static class CarpetaFactory
     public static Carpeta InEstado(EstadoCarpeta target)
     {
         var carpeta = New();
+        if (target is EstadoCarpeta.Otorgado or EstadoCarpeta.Denegado)
+        {
+            // A final state is only reachable through the Otorgamiento module; tests that need a decided carpeta use the historical load.
+            carpeta.CambiarEstado(EstadoCarpeta.PrimeraLicencia, "setup", Now);
+            carpeta.CambiarEstado(EstadoCarpeta.EsperaExamen, "setup", Now);
+            carpeta.AplicarCargaHistorica(target, EstadoTransitions.DecisionFor(target), null, "setup", Now);
+            return carpeta;
+        }
+
         var path = PathTo(target);
         if (path is not null)
         {
@@ -28,7 +37,8 @@ internal static class CarpetaFactory
         }
         else
         {
-            carpeta.ForzarEstado(target, "setup", Now);
+            // Forcing into the change-of-address family needs a direction: saliente by default; «Solicitado» uses entrante so the unnarrowed table is still exercised.
+            carpeta.ForzarEstado(target, "setup", Now, target == EstadoCarpeta.CambioDomicilioSolicitado ? SentidoCambioDomicilio.Entrante : SentidoCambioDomicilio.Saliente);
         }
         return carpeta;
     }
@@ -44,9 +54,7 @@ internal static class CarpetaFactory
         EstadoCarpeta.SubidaConaset => [EstadoCarpeta.Revision, EstadoCarpeta.SubidaConaset],
         EstadoCarpeta.EsperaExamen => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen],
         EstadoCarpeta.ClasePendiente => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.ClasePendiente],
-        EstadoCarpeta.Otorgado => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado],
         EstadoCarpeta.ParaDenegar => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar],
-        EstadoCarpeta.Denegado => [EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.ParaDenegar, EstadoCarpeta.Denegado],
         _ => null,
     };
 }

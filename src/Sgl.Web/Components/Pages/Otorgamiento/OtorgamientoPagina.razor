@@ -1,0 +1,293 @@
+@page "/otorgamiento"
+@layout ModuloLayout
+@using Sgl.Application.Otorgamiento
+@inject OtorgamientoService Otorgamiento
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject DuplicadosNotifier DuplicadosNotifier
+
+<PageTitle>@TituloPagina.De("Otorgamiento")</PageTitle>
+
+<div class="page-container otorg-page">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Otorgamiento <span class="muted">· Para otorgar @(total?.ToString("N0", Cultura) ?? "…")</span></h1>
+    </div>
+
+    <p class="otorg-ayuda">
+        Carpetas ya subidas (y 1° Licencia y Canje) que esperan su decisión. «Otorgada» registra la fecha de hoy y la carpeta pasa a Cerradas.
+    </p>
+
+    @if (!puedeOtorgar)
+    {
+        <div class="alert warning" role="alert" id="otorg-sin-permiso">
+            Su usuario no tiene permiso para otorgar. Puede revisar la bandeja, pero las acciones de decisión no están disponibles.
+        </div>
+    }
+
+    <div class="sol-filtros otorg-filtros" role="group" aria-label="Filtros de la bandeja">
+        <span class="otorg-filtro-etq">Sede</span>
+        @foreach (var (valor, etiqueta) in OpcionesSede)
+        {
+            <button type="button" class="sol-chip @(sede == valor ? "activo" : "")" aria-pressed="@(sede == valor ? "true" : "false")"
+                    @onclick="() => CambiarSedeAsync(valor)">@etiqueta</button>
+        }
+        <label class="otorg-fecha">Subida desde
+            <CampoFecha Valor="desde" ValorCambiado="CambiarDesdeAsync" Titulo="Fecha de subida desde" />
+        </label>
+        <label class="otorg-fecha">hasta
+            <CampoFecha Valor="hasta" ValorCambiado="CambiarHastaAsync" Titulo="Fecha de subida hasta" />
+        </label>
+    </div>
+
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">
+            @mensaje
+            @if (deshacer is not null)
+            {
+                <button type="button" class="btn-small" disabled="@(ocupadoId is not null)" @onclick="DeshacerAsync">Deshacer</button>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando la bandeja…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay carpetas por otorgar con estos filtros.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table otorg-tabla">
+                <thead>
+                    <tr>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th>SEDE</th>
+                        <th>ORIGEN</th>
+                        <th>FECHA DE CITACIÓN</th>
+                        <th>FECHA DE SUBIDA</th>
+                        <th>RESOLUCIÓN</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in items)
+                    {
+                        <tr @key="f.Id" class="@Labels.EstadoRowCss(f.Estado)">
+                            <td class="col-sticky-nombre">
+                                <CeldaCarpeta CarpetaId="f.Id" Valor="@f.NombreCompleto" CssClass="name-cell" OnGuardado="CargarAsync" />
+                            </td>
+                            <td class="date-cell col-sticky-rut"><CeldaCarpeta CarpetaId="f.Id" Valor="@f.Rut" EsRut="true" OnGuardado="CargarAsync" /></td>
+                            <td><span class="sede-tag">@Labels.Of(f.Sede)</span></td>
+                            <td class="otorg-origen">@Labels.Of(f.Estado)</td>
+                            <td class="date-cell">@f.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            <td class="date-cell">@(f.FechaSubida is { } fs ? fs.ToString("dd-MM-yyyy") : "—")</td>
+                            <td>
+                                @if (puedeOtorgar)
+                                {
+                                    <select class="excel-select otorg-res-select" aria-label="Resolución de @f.NombreCompleto" disabled="@(ocupadoId == f.Id)"
+                                            title="Dejar la carpeta con una resolución" @onchange="e => ResolverSeleccionAsync(f, e.Value?.ToString())">
+                                        <option value="" disabled selected="@(f.Resolucion is null)">— Elegir —</option>
+                                        @foreach (var opcion in Resoluciones)
+                                        {
+                                            <option value="@opcion" selected="@(f.Resolucion == opcion)">@Corto(opcion)</option>
+                                        }
+                                    </select>
+                                }
+                                else if (f.Resolucion is { } r)
+                                {
+                                    <span class="badge @ClaseResolucion(r)">@Labels.Of(r)</span>
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td class="action-cell">
+                                @if (puedeOtorgar)
+                                {
+                                    <div class="otorg-acciones">
+                                        <button type="button" class="btn-decision btn-otorgada btn-decision-otorgada" disabled="@(ocupadoId == f.Id)"
+                                                title="Otorgada: registra la fecha de hoy y la carpeta pasa a Cerradas" @onclick="() => OtorgarAsync(f)">Otorgada</button>
+                                        <button type="button" class="btn-decision btn-denegada btn-decision-denegada" disabled="@(ocupadoId == f.Id)"
+                                                title="Denegada: cierra el trámite" @onclick="() => DenegarAsync(f)">Denegada</button>
+                                    </div>
+                                }
+                                <a class="btn-detail otorg-abrir" href="carpetas/@f.Id" title="Ver detalle e historial">Abrir →</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="sol-paginador">
+            <span>Mostrando @items.Count.ToString("N0", Cultura) de @total?.ToString("N0", Cultura)</span>
+            @if (items.Count < total)
+            {
+                <button type="button" class="btn-secondary" @onclick="MostrarMasAsync">Mostrar más</button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const int Pagina = 200;
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly (Sede? Valor, string Etiqueta)[] OpcionesSede =
+    [
+        (null, "Todas"),
+        (Sede.AvArgentina, "Av. Argentina"),
+        (Sede.Placilla, "Placilla"),
+        (Sede.MercadoPuerto, "Merc. Puerto"),
+    ];
+
+    private static readonly Resolucion[] Resoluciones = [Resolucion.EsperaExamen, Resolucion.ClasePendiente, Resolucion.ParaDenegar];
+
+    private IReadOnlyList<ParaOtorgarDto>? items;
+    private int? total;
+    private int limite = Pagina;
+    private Sede? sede;
+    private DateOnly? desde;
+    private DateOnly? hasta;
+    private bool puedeOtorgar;
+    private Guid? ocupadoId;
+    private string? error;
+    private string? mensaje;
+    private (Guid Id, PuntoRestauracionEstado Punto)? deshacer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        puedeOtorgar = Otorgamiento.PuedeOtorgar();
+        await CargarAsync();
+    }
+
+    private static string Corto(Resolucion r) => r switch
+    {
+        Resolucion.EsperaExamen => "Espera examen",
+        Resolucion.ClasePendiente => "Clase pendiente",
+        _ => "Para denegar",
+    };
+
+    private static string ClaseResolucion(Resolucion r) => r == Resolucion.ParaDenegar ? "bad" : "warn";
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        deshacer = null;
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var lista = await Otorgamiento.ListarAsync(new FiltroParaOtorgar(sede, desde, hasta), limite);
+            items = lista.Items;
+            total = lista.Total;
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+            items ??= [];
+        }
+    }
+
+    private Task CambiarSedeAsync(Sede? nueva)
+    {
+        sede = nueva;
+        limite = Pagina;
+        return CargarAsync();
+    }
+
+    private Task CambiarDesdeAsync(DateOnly? valor)
+    {
+        desde = valor;
+        limite = Pagina;
+        return CargarAsync();
+    }
+
+    private Task CambiarHastaAsync(DateOnly? valor)
+    {
+        hasta = valor;
+        limite = Pagina;
+        return CargarAsync();
+    }
+
+    private Task MostrarMasAsync()
+    {
+        limite += Pagina;
+        return CargarAsync();
+    }
+
+    private Task OtorgarAsync(ParaOtorgarDto f) =>
+        EjecutarAsync(f, () => Otorgamiento.OtorgarAsync(f.Id, Autor.Nombre), $"{f.NombreCompleto}: otorgada. Pasó a Cerradas con la fecha de hoy.");
+
+    private Task DenegarAsync(ParaOtorgarDto f) =>
+        EjecutarAsync(f, () => Otorgamiento.DenegarAsync(f.Id, Autor.Nombre), $"{f.NombreCompleto}: denegada. Pasó a Cerradas.");
+
+    private Task ResolverSeleccionAsync(ParaOtorgarDto f, string? valor) =>
+        Enum.TryParse<Resolucion>(valor, out var r) && Resoluciones.Contains(r) ? ResolverAsync(f, r) : Task.CompletedTask;
+
+    private Task ResolverAsync(ParaOtorgarDto f, Resolucion r) =>
+        EjecutarAsync(f, () => Otorgamiento.AsignarResolucionAsync(f.Id, r, Autor.Nombre), $"{f.NombreCompleto}: {Labels.Of(r).ToLowerInvariant()}.");
+
+    private async Task EjecutarAsync(ParaOtorgarDto f, Func<Task<PuntoRestauracionEstado>> accion, string exito)
+    {
+        error = null;
+        CerrarMensaje();
+        ocupadoId = f.Id;
+        try
+        {
+            var punto = await accion();
+            mensaje = exito;
+            deshacer = (f.Id, punto);
+            await CargarAsync();
+            _ = Modulos.RefrescarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+
+    private async Task DeshacerAsync()
+    {
+        if (deshacer is not { } d) return;
+        error = null;
+        ocupadoId = d.Id;
+        try
+        {
+            await Otorgamiento.DeshacerAsync(d.Id, d.Punto, Autor.Nombre);
+            mensaje = "Se deshizo el último movimiento: la carpeta volvió a «Para otorgar».";
+            deshacer = null;
+            await CargarAsync();
+            _ = Modulos.RefrescarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+}

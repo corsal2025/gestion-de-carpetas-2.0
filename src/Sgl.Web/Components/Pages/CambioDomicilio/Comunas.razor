@@ -1,0 +1,67 @@
+@page "/cambio-domicilio/comunas"
+@layout ModuloLayout
+@using Sgl.Application.CambioDomicilio
+@inject EntrantesService Entrantes
+@inject ILogger<Comunas> Logger
+
+<PageTitle>@TituloPagina.De("Comunas")</PageTitle>
+
+<div class="page-container co-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Comunas <span class="muted">· directorio, correos descartados y plantillas</span></h1>
+    </div>
+
+    <nav class="sol-filtros co-vistas" role="group" aria-label="Vistas de Comunas" id="co-vistas">
+        <button type="button" class="sol-chip @(vista == Vista.Directorio ? "activo" : "")" id="co-vista-directorio" aria-pressed="@(vista == Vista.Directorio ? "true" : "false")"
+                @onclick="() => vista = Vista.Directorio">Directorio y correos</button>
+        <button type="button" class="sol-chip @(vista == Vista.Descartados ? "activo" : "")" id="co-vista-descartados" aria-pressed="@(vista == Vista.Descartados ? "true" : "false")"
+                @onclick="() => vista = Vista.Descartados">Correos descartados <span class="co-n">@(descartados?.ToString("N0") ?? "…")</span></button>
+        <button type="button" class="sol-chip @(vista == Vista.Plantillas ? "activo" : "")" id="co-vista-plantillas" aria-pressed="@(vista == Vista.Plantillas ? "true" : "false")"
+                @onclick="() => vista = Vista.Plantillas">Plantillas de correo</button>
+    </nav>
+
+    @switch (vista)
+    {
+        case Vista.Directorio:
+            <ComunasDirectorio />
+            break;
+        case Vista.Descartados:
+            <ComunasDescartados OnCambio="CargarContadorAsync" />
+            break;
+        default:
+            <ComunasPlantillas />
+            break;
+    }
+</div>
+
+@code {
+    private enum Vista { Directorio, Descartados, Plantillas }
+
+    private Vista vista = Vista.Directorio;
+    private int? descartados;
+
+    [SupplyParameterFromQuery(Name = "vista")] public string? VistaConsulta { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        vista = VistaConsulta?.ToLowerInvariant() switch
+        {
+            "descartados" => Vista.Descartados,
+            "plantillas" => Vista.Plantillas,
+            _ => Vista.Directorio,
+        };
+        await CargarContadorAsync();
+    }
+
+    private async Task CargarContadorAsync()
+    {
+        try
+        {
+            descartados = (await Entrantes.ListarDescartadosAsync()).Count;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "No se pudo contar los correos descartados.");
+        }
+    }
+}

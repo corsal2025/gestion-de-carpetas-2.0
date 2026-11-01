@@ -28,13 +28,14 @@ public sealed class Ronda3Tests : IDisposable
     public async Task Editar_with_caja_and_clases_is_saved_all_together()
     {
         var (a, _) = Seed();
+        await _db.NewService().DecidirAsync(a);
 
         await _db.NewService().EditarAsync(new EditarCarpetaCommand(a, Sede.MercadoPuerto, new DateOnly(2026, 4, 2), null, "OBS", "javiera",
-            Caja: "CAJA 9", CambiarCaja: true, Clases: ClaseLicencia.C));
+            Caja: "a 9", CambiarCaja: true, Clases: ClaseLicencia.C));
 
         var det = await _db.NewService().ObtenerAsync(a);
         Assert.Equal(Sede.MercadoPuerto, det.Sede);
-        Assert.Equal("CAJA 9", det.CajaArchivo);
+        Assert.Equal("A-9", det.CajaArchivo);
         Assert.Equal(ClaseLicencia.C, det.Clases);
     }
 

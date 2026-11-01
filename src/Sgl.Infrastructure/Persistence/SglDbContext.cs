@@ -23,7 +23,19 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
 
     public DbSet<ConfiguracionItem> Configuracion => Set<ConfiguracionItem>();
 
+    public DbSet<CitaCancelada> CitasCanceladas => Set<CitaCancelada>();
+
+    public DbSet<Asistencia> Asistencias => Set<Asistencia>();
+
     public DbSet<CorreoCambioDomicilio> CorreosCambioDomicilio => Set<CorreoCambioDomicilio>();
+
+    public DbSet<CorreoDescartadoRegistro> CorreosDescartados => Set<CorreoDescartadoRegistro>();
+
+    public DbSet<EnvioCorreoComuna> EnviosCorreoComuna => Set<EnvioCorreoComuna>();
+
+    public DbSet<EnvioCorreoComunaCarpeta> EnviosCorreoComunaCarpetas => Set<EnvioCorreoComunaCarpeta>();
+
+    public DbSet<PlantillaCorreo> PlantillasCorreo => Set<PlantillaCorreo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,10 +72,15 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.Comuna).HasMaxLength(Carpeta.MaxComunaLength);
             b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.Property(c => c.PendienteBusqueda).HasDefaultValue(false);
+            b.Property(c => c.CarpetaEncontrada).HasDefaultValue(false);
+            b.Property(c => c.PendienteReclasificacion).HasDefaultValue(false);
             b.Property(c => c.Clases).HasColumnName("ClasesLicencia").HasDefaultValue(ClaseLicencia.Ninguna);
             b.Property(c => c.FechaRegistro);
             b.Property(c => c.TramiteAgenda).HasConversion<string>().HasMaxLength(30);
             b.Property(c => c.HoraCita);
+            b.Property(c => c.EsExtra).HasDefaultValue(false);
+            b.Property(c => c.EmailContacto).HasMaxLength(Carpeta.MaxEmailContactoLength);
+            b.Property(c => c.TelefonoContacto).HasMaxLength(Carpeta.MaxTelefonoContactoLength);
             b.Property(c => c.Anulada).HasDefaultValue(false);
             b.Property(c => c.MotivoAnulacion).HasMaxLength(MotivosAnulacion.MaxLength);
             b.Property(c => c.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
@@ -74,6 +91,11 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.FechaPeticion);
             b.Property(c => c.CodigoF8).HasMaxLength(Carpeta.MaxCodigoF8Length);
             b.Property(c => c.FechaPenultimaCarpeta);
+            b.Property(c => c.Resolucion);
+            b.Property(c => c.FechaOtorgamiento);
+            b.Property(c => c.SentidoCambioDomicilio);
+            b.Property(c => c.RevisadaEn);
+            b.Property(c => c.RutImportacion).HasMaxLength(12);
             // Soft delete: cancelled carpetas vanish from every query (modules, counts, statistics, duplicates).
             // Only the "Anuladas" view, restore and import idempotency opt out with IgnoreQueryFilters().
             b.HasQueryFilter(c => !c.Anulada);
@@ -88,6 +110,39 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.HasIndex(c => c.Comuna);
             b.HasIndex(c => new { c.FechaCitacion, c.Id });
             b.HasIndex(c => c.FechaSubida);
+            b.HasIndex(c => new { c.CiudadanoId, c.FechaTomaCita });
+            b.HasIndex(c => new { c.Decision, c.Estado });
+            b.HasIndex(c => new { c.SentidoCambioDomicilio, c.Estado });
+            b.HasIndex(c => c.RutImportacion);
+        });
+
+        modelBuilder.Entity<CitaCancelada>(b =>
+        {
+            b.ToTable("CitasCanceladas");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Sede).HasConversion<string>().HasMaxLength(20);
+            b.Property(x => x.Tramite).HasMaxLength(CitaCancelada.MaxTramiteLength).IsRequired();
+            b.Property(x => x.Motivo).HasMaxLength(CitaCancelada.MaxMotivoLength);
+            b.HasIndex(x => new { x.FechaTomaCita, x.FechaCita, x.HoraCita, x.Sede, x.Tramite }).IsUnique();
+            b.HasIndex(x => x.FechaCita);
+        });
+
+        modelBuilder.Entity<Asistencia>(b =>
+        {
+            b.ToTable("Asistencias");
+            b.HasKey(a => a.Id);
+            b.Property(a => a.Id).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(a => a.CarpetaId).UseCollation("NOCASE");
+            b.HasOne<Carpeta>().WithMany().HasForeignKey(a => a.CarpetaId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(a => a.Tipo).HasConversion<string>().HasMaxLength(20);
+            b.Property(a => a.Rut).HasMaxLength(12).IsRequired();
+            b.Property(a => a.Sede).HasConversion<string>().HasMaxLength(20);
+            b.Property(a => a.Autor).HasMaxLength(Carpeta.MaxUsuarioLength).IsRequired();
+            b.Property(a => a.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
+            b.HasIndex(a => new { a.Fecha, a.Tipo });
+            b.HasIndex(a => a.CarpetaId);
+            // One mark (Vino or Extra) per person and day, enforced by the database too (the service checks first).
+            b.HasIndex(a => new { a.Rut, a.Fecha }).IsUnique().HasFilter("\"Anulada\" = 0 AND \"Tipo\" <> 'PorAgregar'");
         });
 
         modelBuilder.Entity<HistorialCambio>(b =>
@@ -187,6 +242,59 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             // Idempotency: one person per message, enforced by the database too.
             b.HasIndex(c => new { c.MessageId, c.Rut }).IsUnique();
             b.HasIndex(c => c.CarpetaId);
+        });
+
+        modelBuilder.Entity<CorreoDescartadoRegistro>(b =>
+        {
+            b.ToTable("CorreosDescartados");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.MessageId).HasMaxLength(CorreoDescartadoRegistro.MaxMessageIdLength).IsRequired();
+            b.Property(c => c.Asunto).HasMaxLength(CorreoDescartadoRegistro.MaxAsuntoLength).IsRequired();
+            b.Property(c => c.Remitente).HasMaxLength(CorreoDescartadoRegistro.MaxRemitenteLength).IsRequired();
+            b.Property(c => c.Motivo).HasMaxLength(CorreoDescartadoRegistro.MaxMotivoLength).IsRequired();
+            // One row per message: syncing again never duplicates it.
+            b.HasIndex(c => c.MessageId).IsUnique();
+            b.HasIndex(c => c.DescartadoEn);
+        });
+
+        modelBuilder.Entity<EnvioCorreoComuna>(b =>
+        {
+            b.ToTable("EnviosCorreoComuna");
+            b.HasKey(e => e.Id);
+            b.Property(e => e.Id).ValueGeneratedNever().UseCollation("NOCASE");
+            b.Property(e => e.Tipo).HasConversion<string>().HasMaxLength(30);
+            b.Property(e => e.Comuna).HasMaxLength(EnvioCorreoComuna.MaxComunaLength).IsRequired();
+            b.Property(e => e.Destinatarios).HasMaxLength(EnvioCorreoComuna.MaxDestinatariosLength).IsRequired();
+            b.Property(e => e.Asunto).HasMaxLength(EnvioCorreoComuna.MaxAsuntoLength).IsRequired();
+            b.Property(e => e.Cuerpo).HasMaxLength(EnvioCorreoComuna.MaxCuerpoLength).IsRequired();
+            b.Property(e => e.Autor).HasMaxLength(EnvioCorreoComuna.MaxAutorLength).IsRequired();
+            b.Property(e => e.Estado).HasConversion<string>().HasMaxLength(20);
+            b.Property(e => e.Error).HasMaxLength(EnvioCorreoComuna.MaxErrorLength);
+            b.Property(e => e.Nota).HasMaxLength(EnvioCorreoComuna.MaxNotaLength);
+            b.Property(e => e.PantallazoArchivo).HasMaxLength(EnvioCorreoComuna.MaxPantallazoLength);
+            b.HasMany(e => e.Carpetas).WithOne().HasForeignKey(l => l.EnvioId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(e => e.Carpetas).UsePropertyAccessMode(PropertyAccessMode.Field);
+            b.HasIndex(e => new { e.Tipo, e.EnviadoEn });
+            b.HasIndex(e => e.Estado);
+        });
+
+        modelBuilder.Entity<EnvioCorreoComunaCarpeta>(b =>
+        {
+            b.ToTable("EnviosCorreoComunaCarpetas");
+            b.HasKey(l => new { l.EnvioId, l.CarpetaId });
+            b.Property(l => l.EnvioId).UseCollation("NOCASE");
+            b.Property(l => l.CarpetaId).UseCollation("NOCASE");
+            b.HasOne<Carpeta>().WithMany().HasForeignKey(l => l.CarpetaId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(l => l.CarpetaId);
+        });
+
+        modelBuilder.Entity<PlantillaCorreo>(b =>
+        {
+            b.ToTable("PlantillasCorreo");
+            b.HasKey(p => p.Clave);
+            b.Property(p => p.Clave).HasMaxLength(PlantillaCorreo.MaxClaveLength);
+            b.Property(p => p.Asunto).HasMaxLength(PlantillaCorreo.MaxAsuntoLength).IsRequired();
+            b.Property(p => p.Cuerpo).HasMaxLength(PlantillaCorreo.MaxCuerpoLength).IsRequired();
         });
     }
 }

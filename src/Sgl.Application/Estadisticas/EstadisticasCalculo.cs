@@ -89,7 +89,7 @@ public static class EstadisticasCalculo
         int diasAbierta)
     {
         var noExistePorCarpeta = noExiste.ToLookup(n => n.CarpetaId, n => n.Fecha);
-        int iniciadas = 0, noEncontradas = 0, abiertas = 0, vencidas = 0, archivo = 0, of43 = 0, desconocido = 0;
+        int iniciadas = 0, noEncontradas = 0, abiertas = 0, vencidas = 0, archivo = 0, of43 = 0, desconocido = 0, digital = 0;
         var horas = new List<double>();
 
         foreach (var grupo in marcas.GroupBy(m => m.CarpetaId))
@@ -117,6 +117,7 @@ public static class EstadisticasCalculo
                     {
                         case SectorFisico.Archivo: archivo++; break;
                         case SectorFisico.Oficina43: of43++; break;
+                        case SectorFisico.Digital: digital++; break;
                         default: desconocido++; break;
                     }
                 }
@@ -141,7 +142,8 @@ public static class EstadisticasCalculo
             HorasParaEncontrar: Tiempos(horas),
             EncontradasArchivo: archivo,
             EncontradasOficina43: of43,
-            EncontradasSectorDesconocido: desconocido);
+            EncontradasSectorDesconocido: desconocido,
+            EncontradasDigital: digital);
     }
 
     /// <summary>Most frequent words in free-text observations: uppercase, no accents, no stopwords or digits.</summary>

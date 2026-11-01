@@ -128,6 +128,10 @@ public class AnulacionTests
         Assert.Throws<DomainException>(() => c.Reagendar(new DateOnly(2026, 10, 13), Sede.AvArgentina, "javiera", Now));
     }
 
+    private static Carpeta Heredada(string caja) =>
+        Carpeta.CrearImportada(Guid.NewGuid(), new Ciudadano(Rut.Parse("12345678-5"), "Juan", "Pérez"), Sede.AvArgentina,
+            new DateOnly(2026, 3, 10), null, null, EstadoCarpeta.Citada, Decision.Pendiente, null, null, caja, null, Now);
+
     [Fact]
     public void EstaAbiertaSinArchivar_excludes_cancelled_closed_and_archived()
     {
@@ -138,12 +142,11 @@ public class AnulacionTests
         anulada.Anular(MotivosAnulacion.Duplicado, "javiera", Now);
         Assert.False(anulada.EstaAbiertaSinArchivar);
 
-        var archivada = CarpetaFactory.New();
-        archivada.AsignarCaja("CAJA 12", "javiera", Now);
+        // Datos heredados (importados): una asignación nueva exige decisión final, la caja antigua no.
+        var archivada = Heredada("CAJA 12");
         Assert.False(archivada.EstaAbiertaSinArchivar);
 
-        var enCola = CarpetaFactory.New();
-        enCola.AsignarCaja(Carpeta.ColaDeCaja, "javiera", Now);
+        var enCola = Heredada(Carpeta.ColaDeCaja);
         Assert.True(enCola.EstaAbiertaSinArchivar);
 
         Assert.False(CarpetaFactory.InEstado(EstadoCarpeta.Otorgado).EstaAbiertaSinArchivar);

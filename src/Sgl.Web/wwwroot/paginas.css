@@ -874,3 +874,15 @@ button.quick-add-summary {
     text-align: left;
     font-family: inherit;
 }
+
+/* Cajas: los avisos de error y de éxito flotan sobre el contenido; no empujan la tabla ni el acta al aparecer. */
+.pg-cajas > .alert.error,
+.pg-cajas .alert-banner {
+    position: fixed;
+    top: 4.5rem;
+    right: 1rem;
+    z-index: 900;
+    max-width: min(32rem, calc(100vw - 2rem));
+    margin: 0;
+    box-shadow: var(--shadow-md);
+}

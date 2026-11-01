@@ -1376,3 +1376,47 @@ html body .panel-barra .btn-sync-correo:focus-visible { outline: 2px solid #f6d2
 
 .drawer-guardado-ok { align-self: center; margin-right: 10px; font-size: .85rem; font-weight: 600; color: #15803d; }
 .est-aviso-rango { grid-column: 1 / -1; margin: 0; }
+
+/* Alta de correo al vuelo bajo la celda de comuna (CeldaCarpeta): aparece solo si el directorio no tiene correo de esa comuna. */
+.celda-alta-correo {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 6px; min-width: 13rem;
+  margin-top: 4px; padding: 4px 6px; border: 1px solid #f59e0b; border-radius: 6px; background: #fffbeb; font-size: .78rem;
+}
+.celda-alta-correo .celda-alta-input { min-width: 11rem; height: 1.7em; padding: 0 4px; font: inherit; }
+.celda-alta-correo .celda-alta-error { flex-basis: 100%; color: #b91c1c; font-weight: 600; }
+
+/* ==========================================================================
+   Barras que no deben cortar contenido (Archivos / Of. 43) y teléfono (390px)
+   ========================================================================== */
+/* Archivos y Of. 43: con "Listado para búsqueda" la barra pasa a dos filas en vez de cortar el botón. */
+html body .panel-barra:has(.busqueda-acciones) { flex-wrap: wrap !important; }
+html body .panel-barra .busqueda-acciones { flex-wrap: wrap; justify-content: flex-end; }
+html body .panel-barra .busqueda-acciones .btn-primary { width: auto !important; min-width: 10.5rem; white-space: nowrap; padding-inline: 0.9rem !important; }
+html body .panel-barra .busqueda-acciones .btn-small { white-space: nowrap; }
+
+@media (max-width: 600px) {
+    /* Navegación superior: los tres enlaces caben en una fila (o pasan a la siguiente), sin recorte. */
+    html body header.topbar > .main-nav { flex: 1 1 100% !important; flex-wrap: wrap; justify-content: center !important; min-width: 0; }
+    html body header.topbar .main-nav .nav-item { padding-inline: 0.55rem; font-size: 0.82rem; white-space: nowrap; }
+    /* Cabecera de Por clasificar: saludo y KPIs compactos, sin ocupar un tercio de la pantalla. */
+    html body .listado-hero { padding: 10px 12px !important; gap: 8px 12px !important; }
+    html body .listado-hero .hero-saludo { min-width: 0; flex: 1 1 100%; }
+    html body .listado-hero .hero-titulo { font-size: 1.1rem; }
+    html body .listado-hero .hero-meta { min-width: 0; max-width: 100%; flex: 1 1 100%; margin-left: 0; }
+    html body .listado-hero .hero-kpi-n { font-size: 1.2rem; }
+    html body .listado-hero .hero-kpi-spark { display: none; }
+    html body .listado-hero { max-height: none !important; }
+    /* Barra de sedes y acciones: los botones se ajustan al ancho en lugar de cortarse. */
+    html body .panel-barra { flex-wrap: wrap !important; }
+    html body .panel-barra .panel-barra-buscador { flex: 1 1 100% !important; flex-wrap: wrap; margin-left: 0 !important; }
+    html body .panel-barra .panel-barra-buscador .busq-global { flex: 1 1 100% !important; width: auto !important; }
+    html body .panel-barra :is(.btn-excel-destacado, .btn-nueva-barra.btn-nueva-barra) { width: auto !important; flex: 1 1 auto; white-space: nowrap; }
+}
+
+/* Por clasificar con el menú lateral abierto (pantallas medias): celdas y selector de destino más compactos
+   para que la columna CLASIFICAR no quede fuera del recuadro. Sin recortar texto. */
+@media (min-width: 761px) and (max-width: 1700px) {
+    html body .listado-page .data-table.data-table:not(#x) :is(th, td) { padding-left: 0.3rem !important; padding-right: 0.3rem !important; }
+    html body .listado-page .data-table.bandeja-table .clasif-cell select.excel-select { width: 9.5rem !important; min-width: 0 !important; max-width: 9.5rem !important; font-size: 0.78rem !important; }
+    html body .listado-page .data-table.bandeja-table .clasif-cell .comuna-input-inline { width: 7rem; min-width: 0; }
+}

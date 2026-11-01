@@ -30,7 +30,9 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
         var archivo = await ArchivoAsync(filtro, ct);
         var uso = await UsoAsync(filtro, ct);
         var kpis = await KpisAsync(filtro, hoy, actuales.CitacionSubida.Mediana, ct);
-        return new EstadisticasDto(kpis, actuales, busquedas, archivo, uso);
+        var canceladas = await CanceladasAsync(filtro, ct);
+        var asistencia = await AsistenciaAsync(filtro, hoy, ct);
+        return new EstadisticasDto(kpis, actuales, busquedas, archivo, uso, canceladas, asistencia);
     }
 
     // ---------------- Bases ----------------
@@ -312,6 +314,85 @@ public sealed class EstadisticasQuery(SglDbContext db) : IEstadisticasQuery
             reabiertas,
             enCola);
     }
+
+    // ---------------- E. Citas canceladas y asistencia ----------------
+
+    /// <summary>Cancelled appointments by year, month of the appointment date and sede (no personal data is stored).</summary>
+    private async Task<IReadOnlyList<CanceladasMesSedeDto>> CanceladasAsync(FiltroEstadisticas f, CancellationToken ct)
+    {
+        var q = db.CitasCanceladas.AsNoTracking();
+        if (f.Sede is { } sede) q = q.Where(c => c.Sede == sede);
+        if (f.Desde is { } desde) q = q.Where(c => c.FechaCita >= desde);
+        if (f.Hasta is { } hasta) q = q.Where(c => c.FechaCita <= hasta);
+
+        var filas = await q
+            .Where(c => c.FechaCita >= FechaMinimaValida)
+            .GroupBy(c => new { c.FechaCita.Year, c.FechaCita.Month, c.Sede })
+            .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Sede, N = g.Count() })
+            .ToListAsync(ct);
+
+        var meses = UltimosMeses(filas.Select(x => (x.Year, x.Month)));
+        return filas
+            .Where(x => meses.Contains((x.Year, x.Month)))
+            .OrderBy(x => x.Year).ThenBy(x => x.Month).ThenBy(x => x.Sede)
+            .Select(x => new CanceladasMesSedeDto(x.Year, x.Month, x.Sede, x.N))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Attendance by month and sede. Agendadas = non-extra carpetas dated in the month (same rule as the day counter of
+    /// "Asistencia del día"); vinieron/extras = non-annulled marks of that type, dated by the day the person came.
+    /// Only months from the first recorded attendance up to the current month (Chile) are listed: before that nobody was
+    /// marking, and a future month has not happened, so a 0 % there would mislead. Without any mark the table is empty.
+    /// </summary>
+    private async Task<IReadOnlyList<AsistenciaMesSedeDto>> AsistenciaAsync(FiltroEstadisticas f, DateOnly hoy, CancellationToken ct)
+    {
+        var primera = await db.Asistencias.AsNoTracking()
+            .Where(a => !a.Anulada && a.Fecha >= FechaMinimaValida)
+            .OrderBy(a => a.Fecha)
+            .Select(a => (DateOnly?)a.Fecha)
+            .FirstOrDefaultAsync(ct);
+        if (primera is not { } inicio)
+        {
+            return [];
+        }
+
+        var agendadas = await Carpetas(f)
+            .Where(c => !c.EsExtra && c.FechaCitacion >= FechaMinimaValida)
+            .GroupBy(c => new { c.FechaCitacion.Year, c.FechaCitacion.Month, c.Sede })
+            .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Sede, N = g.Count() })
+            .ToListAsync(ct);
+
+        var marcas = db.Asistencias.AsNoTracking()
+            .Where(a => !a.Anulada && (a.Tipo == TipoAsistencia.Vino || a.Tipo == TipoAsistencia.Extra) && a.Fecha >= FechaMinimaValida);
+        if (f.Sede is { } sede) marcas = marcas.Where(a => a.Sede == sede);
+        if (f.Desde is { } desde) marcas = marcas.Where(a => a.Fecha >= desde);
+        if (f.Hasta is { } hasta) marcas = marcas.Where(a => a.Fecha <= hasta);
+        var llegadas = await marcas
+            .GroupBy(a => new { a.Fecha.Year, a.Fecha.Month, a.Sede, a.Tipo })
+            .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Sede, g.Key.Tipo, N = g.Count() })
+            .ToListAsync(ct);
+
+        var claves = agendadas.Select(x => (x.Year, x.Month, x.Sede))
+            .Concat(llegadas.Select(x => (x.Year, x.Month, x.Sede)))
+            .Distinct().ToList();
+        claves = claves
+            .Where(k => k.Year * 12 + k.Month >= inicio.Year * 12 + inicio.Month && k.Year * 12 + k.Month <= hoy.Year * 12 + hoy.Month)
+            .ToList();
+        var meses = UltimosMeses(claves.Select(k => (k.Year, k.Month)));
+        return claves
+            .Where(k => meses.Contains((k.Year, k.Month)))
+            .OrderBy(k => k.Year).ThenBy(k => k.Month).ThenBy(k => k.Sede)
+            .Select(k => new AsistenciaMesSedeDto(
+                k.Year, k.Month, k.Sede,
+                agendadas.Where(x => (x.Year, x.Month, x.Sede) == k).Sum(x => x.N),
+                llegadas.Where(x => (x.Year, x.Month, x.Sede) == k && x.Tipo == TipoAsistencia.Vino).Sum(x => x.N),
+                llegadas.Where(x => (x.Year, x.Month, x.Sede) == k && x.Tipo == TipoAsistencia.Extra).Sum(x => x.N)))
+            .ToList();
+    }
+
+    private static HashSet<(int Year, int Month)> UltimosMeses(IEnumerable<(int Year, int Month)> meses) =>
+        meses.Distinct().OrderByDescending(m => m.Year).ThenByDescending(m => m.Month).Take(MesesSubidas).ToHashSet();
 
     // ---------------- D. Uso del sistema ----------------
 

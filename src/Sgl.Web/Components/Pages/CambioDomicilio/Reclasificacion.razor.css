@@ -1,0 +1,14 @@
+.rc-pagina { display: flex; flex-direction: column; gap: 0.8rem; }
+.rc-ayuda { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+.rc-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.rc-confirmar { font-size: 0.88rem; }
+.rc-col-sel { width: 2.2rem; text-align: center; }
+.rc-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.rc-detalle > td { background: var(--surface-alt); }
+.rc-corregir { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.6rem 0.4rem; max-width: 46rem; }
+.rc-corregir label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--text-secondary); }
+.rc-corregir input:not([type="radio"]) { font: inherit; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; min-width: 0; }
+.rc-corregir input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.rc-opciones { border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.rc-opciones legend { font-size: 0.85rem; color: var(--text-secondary); padding: 0 0.3rem; }
+.rc-corregir .rc-opcion { flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text-primary); font-size: 0.92rem; }

@@ -1,10 +1,24 @@
 @* Layout of every module page: fixed side menu on the left, the module (its table) fills the rest. *@
 @inherits LayoutComponentBase
 @layout MainLayout
+@implements IDisposable
+@inject NavigationManager Navegacion
 
-<div class="modulo-shell">
+<div class="modulo-shell @(navegacionAbierta ? "navegacion-abierta" : null)">
+    <button type="button" class="menu-secciones" aria-expanded="@(navegacionAbierta ? "true" : "false")" @onclick="() => navegacionAbierta = !navegacionAbierta">@(navegacionAbierta ? "Cerrar menú de secciones" : "Cambiar sección")</button>
     <ModulosSidebar />
     <div class="modulo-main">
         @Body
     </div>
 </div>
+
+@code {
+    private bool navegacionAbierta;
+    protected override void OnInitialized() => Navegacion.LocationChanged += AlNavegar;
+    private void AlNavegar(object? remitente, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        navegacionAbierta = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+    public void Dispose() => Navegacion.LocationChanged -= AlNavegar;
+}

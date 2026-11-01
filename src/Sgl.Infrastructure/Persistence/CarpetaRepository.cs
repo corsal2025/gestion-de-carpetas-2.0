@@ -84,15 +84,19 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 c.Estado,
                 c.Decision,
                 c.PendienteBusqueda,
+                c.CarpetaEncontrada,
                 c.FechaRegistro,
                 c.HoraCita,
                 c.TramiteAgenda,
+                c.EsExtra,
                 c.FechaEstadoActual,
                 c.FechaCierre,
                 c.FechaImpresion,
                 c.FechaPeticion,
                 c.CodigoF8,
                 c.FechaPenultimaCarpeta,
+                c.SentidoCambioDomicilio,
+                c.PendienteReclasificacion,
                 OtrasAbiertas = search.Take == null && search.Ids == null
                     ? 0
                     : db.Carpetas.Count(o => o.CiudadanoId == c.CiudadanoId && o.Id != c.Id && o.Decision == Decision.Pendiente),
@@ -117,15 +121,19 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
                 r.Decision,
                 r.PendienteBusqueda)
             {
+                CarpetaEncontrada = r.CarpetaEncontrada,
                 FechaRegistro = r.FechaRegistro,
                 HoraCita = r.HoraCita,
                 TramiteAgenda = r.TramiteAgenda,
+                EsExtra = r.EsExtra,
                 FechaEstadoActual = r.FechaEstadoActual,
                 FechaCierre = r.FechaCierre,
                 FechaImpresion = r.FechaImpresion,
                 FechaPeticion = r.FechaPeticion,
                 CodigoF8 = r.CodigoF8,
                 FechaPenultimaCarpeta = r.FechaPenultimaCarpeta,
+                Sentido = r.SentidoCambioDomicilio,
+                PendienteReclasificacion = r.PendienteReclasificacion,
                 OtrasAbiertas = conRango ? r.OtrasAbiertas : null,
             })
             .ToList();
@@ -527,11 +535,33 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             .ToList();
     }
 
-    public async Task<IReadOnlyList<CarpetaResumenDto>> GetCarpetasByCajaAsync(string caja, CancellationToken ct = default)
+    public Task<IReadOnlyList<CarpetaResumenDto>> GetCarpetasByCajaAsync(string caja, CancellationToken ct = default) =>
+        ResumirAsync(db.Carpetas.AsNoTracking().Where(c => c.CajaArchivo == caja), ct);
+
+    public Task<IReadOnlyList<CarpetaResumenDto>> GetColaCajaAsync(SerieCaja serie, CancellationToken ct = default) =>
+        ResumirAsync(db.Carpetas.AsNoTracking().Where(Carpeta.ColaCajaExpresion(serie)), ct);
+
+    public async Task<ColasCajaDto> ContarColasCajaAsync(CancellationToken ct = default) =>
+        new(
+            await db.Carpetas.CountAsync(Carpeta.ColaCajaExpresion(SerieCaja.Normal), ct),
+            await db.Carpetas.CountAsync(Carpeta.ColaCajaExpresion(SerieCaja.CambioDomicilio), ct),
+            await db.Carpetas.CountAsync(Carpeta.ColaCajaExpresion(SerieCaja.PenultimaCarpeta), ct),
+            await db.Carpetas.CountAsync(Carpeta.ColaHeredadaSinDecisionExpresion, ct));
+
+    public async Task<bool> ExisteCajaAsync(string rotulo, CancellationToken ct = default)
     {
-        var raw = await db.Carpetas
-            .AsNoTracking()
-            .Where(c => c.CajaArchivo == caja)
+        var clave = rotulo.Trim().ToUpperInvariant();
+        var canonico = Carpeta.NormalizarRotulo(rotulo) ?? clave;
+        // Legacy labels ("A 12", "a12") are not in canonical form in the database: compare their normalized form in memory
+        // (the list of distinct boxes is small), so they are recognised as the same box as "A-12".
+        var cajas = await db.Carpetas.Where(c => c.CajaArchivo != null && c.CajaArchivo != "")
+            .Select(c => c.CajaArchivo!).Distinct().ToListAsync(ct);
+        return cajas.Any(c => c.Trim().ToUpperInvariant() == clave || (Carpeta.NormalizarRotulo(c) ?? c.Trim().ToUpperInvariant()) == canonico);
+    }
+
+    private static async Task<IReadOnlyList<CarpetaResumenDto>> ResumirAsync(IQueryable<Carpeta> query, CancellationToken ct)
+    {
+        var raw = await query
             .OrderBy(c => c.FechaSubida ?? c.FechaCitacion)
             .ThenBy(c => c.Ciudadano.Apellido)
             .Select(c => new
@@ -580,6 +610,17 @@ public sealed class CarpetaRepository(SglDbContext db) : ICarpetaRepository
             .Distinct()
             .OrderBy(t => t)
             .ToListAsync(ct);
+    }
+
+    public async Task ReasignarRutAsistenciasAsync(Rut anterior, Rut nuevo, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(anterior);
+        ArgumentNullException.ThrowIfNull(nuevo);
+        var valor = anterior.Value;
+        foreach (var marca in await db.Asistencias.Where(a => a.Rut == valor).ToListAsync(ct))
+        {
+            marca.ReasignarRut(nuevo);
+        }
     }
 
     public void DescartarCambios() => db.ChangeTracker.Clear();

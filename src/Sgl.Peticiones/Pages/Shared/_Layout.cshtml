@@ -32,6 +32,9 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/peticiones.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/encabezados.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/usabilidad.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/visual.css" asp-append-version="true" />
+    <script src="~/tablas.js" asp-append-version="true" defer></script>
     <link rel="icon" type="image/png" href="~/favicon.png" />
 </head>
 <body>
@@ -63,6 +66,9 @@
             </button>
         </nav>
         <div class="topbar-tools">
+        <details class="apariencia-menu">
+        <summary>Apariencia</summary>
+        <div class="apariencia-opciones">
         <div class="pal-wrap">
         <button type="button" class="pal-toggle" id="btn-paleta" aria-expanded="false" aria-controls="pal-panel" aria-label="Elegir paleta de color" title="Elegir paleta de color"><i aria-hidden="true"></i></button>
         <div class="pal" id="pal-panel" role="group" aria-label="Paleta de color">
@@ -85,10 +91,13 @@
                 <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
             </button>
         </div>
+        </details>
+        </div>
     </header>
 
     <main class="content">
         <div class="modulo-shell">
+            <button type="button" class="menu-secciones" aria-expanded="false" onclick="var abierto=this.closest('.modulo-shell').classList.toggle('navegacion-abierta');this.setAttribute('aria-expanded',String(abierto));this.textContent=abierto?'Cerrar menú de secciones':'Cambiar sección';">Cambiar sección</button>
             @{
                 var rutaActual = Context.Request.Path.Value?.Trim('/') ?? "";
             }
@@ -102,7 +111,7 @@
                         var activo = grupo.Items.Any(i => string.Equals(i.Href.Trim('/'), rutaActual, StringComparison.OrdinalIgnoreCase));
                         <section class="sidebar-grupo @grupo.Css">
                             <button type="button" class="sidebar-grupo-titulo" aria-expanded="@(activo ? "true" : "false")" title="@grupo.Nombre">
-                                <svg class="sidebar-grupo-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
+                                <img class="sidebar-grupo-ico" src="@($"/iconos/modulos/{grupo.Clave}.svg")" alt="" aria-hidden="true" />
                                 <span class="sidebar-grupo-nombre">@grupo.Nombre</span>
                                 <span class="sidebar-chevron" aria-hidden="true">@(activo ? "▾" : "▸")</span>
                             </button>

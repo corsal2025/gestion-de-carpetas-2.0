@@ -16,10 +16,15 @@ public sealed record Modulo(string Clave, GrupoModulo Grupo, string Nombre, stri
 /// <summary>Single catalog of modules shared by the home panel and the side menu (R4: one source of truth).</summary>
 public static class ModulosCatalogo
 {
+    public const string ClaveAsistencia = "asistencia";
     public const string ClaveAnuladas = "anuladas";
+    public const string ClaveOtorgamiento = "otorgamiento";
     public const string ClaveTodas = "todas";
     public const string ClaveIntegridad = "integridad";
-    public const string ClavePeticiones = "peticiones";
+    public const string ClaveReclasificacion = "cd-reclasificacion";
+    public const string ClaveNosPiden = "cd-nos-piden";
+    public const string ClavePedimos = "cd-pedimos";
+    public const string ClaveComunas = "cd-comunas";
     public const string ClaveF8 = "f8";
     public const string ClaveCertificados = "certificados";
     public const string ClaveFirmantes = "firmantes";
@@ -36,7 +41,7 @@ public static class ModulosCatalogo
     public static readonly GrupoModulo Entrada = new("entrada", "Peticiones entrantes", "grupo-entrada", "M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z");
     public static readonly GrupoModulo Revision = new("revision", "Revisión y corrección de errores", "grupo-revision", "M9 11l2 2 4-4M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z");
     public static readonly GrupoModulo Preparacion = new("preparacion", "Tramitaciones de licencias", "grupo-preparacion", "M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z");
-    public static readonly GrupoModulo CambioDomicilio = new("domicilio", "Solicitudes de cambio de domicilio", "grupo-domicilio", "M3 11l9-7 9 7M5 10v10h14V10");
+    public static readonly GrupoModulo CambioDomicilio = new("domicilio", "Cambios de domicilio", "grupo-domicilio", "M3 11l9-7 9 7M5 10v10h14V10");
     public static readonly GrupoModulo Subidas = new("subidas", "Licencias ya subidas a Conaset", "grupo-subidas", "M12 19V5M6 11l6-6 6 6");
     public static readonly GrupoModulo Cierre = new("cierre", "Cierre", "grupo-cierre", "M21 8l-9-5-9 5 9 5zM3 8v8l9 5 9-5V8");
 
@@ -44,10 +49,11 @@ public static class ModulosCatalogo
 
     public static readonly GrupoModulo Solicitudes = new("solicitudes", "Solicitudes especiales", "grupo-solicitudes", "M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6");
 
-    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Revision, Preparacion, CambioDomicilio, Solicitudes, Subidas, Cierre, Sistema];
+    public static readonly IReadOnlyList<GrupoModulo> Grupos = [Entrada, Preparacion, CambioDomicilio, Solicitudes, Subidas, Revision, Cierre, Sistema];
 
     public static readonly IReadOnlyList<Modulo> Todos =
     [
+        new(ClaveAsistencia, Entrada, "Asistencia del día", "AD", "asistencia"),
         Tray(Entrada, Bandeja.PorClasificar, "Licencias para clasificar", "PC"),
         // REVISIÓN: one submodule per problem, in precedence order (RevisionEntrada.Submodulos); Citadas is the old "Para revisión".
         Tray(Revision, Bandeja.RevisionDuplicadas, "Duplicadas", "DU"),
@@ -60,13 +66,16 @@ public static class ModulosCatalogo
         Tray(Preparacion, Bandeja.SeEncuentraEnArchivos, "Se encuentra en Archivos", "AR"),
         Tray(Preparacion, Bandeja.SeEncuentraEnOf43, "Se encuentra en Of. 43", "43"),
         Tray(Preparacion, Bandeja.CanjeLicExtranjera, "Canje lic. extranjera", "CJ"),
+        new(ClaveReclasificacion, CambioDomicilio, "Reclasificación", "RC", "cambio-domicilio/reclasificacion"),
+        new(ClaveNosPiden, CambioDomicilio, "Nos piden carpetas", "NP", "cambio-domicilio/nos-piden"),
+        new(ClavePedimos, CambioDomicilio, "Pedimos carpetas", "PD", "cambio-domicilio/pedimos"),
+        new(ClaveComunas, CambioDomicilio, "Comunas", "CM", "cambio-domicilio/comunas"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilio, "Cambios de domicilio que nos solicitan por correo", "CD"),
-        new(ClavePeticiones, CambioDomicilio, "Peticiones de cambio de domicilio a otras comunas", "PE", "peticiones"),
         Tray(CambioDomicilio, Bandeja.CambioDomicilioSolicitado, "Cambio dom. solicitado", "CS"),
+        Tray(CambioDomicilio, Bandeja.CambioDomCerradoEntrante, "Cambio dom. cerrado con correo a la comuna", "CC"),
         Tray(Solicitudes, Bandeja.SinCarpetaF8, "Creación de F8", "F8"),
         new(ClaveF8, Solicitudes, "Solicitudes de F8", "SF", "f8"),
         new(ClaveCertificados, Solicitudes, "Certificado / Oficio", "CF", "certificados"),
-        new("peticiones-comunas", Sistema, "Comunas y correos", "CO", "peticiones/Comunas"),
         new("peticiones-estadisticas", Sistema, "Estadísticas de peticiones", "EP", "peticiones/Estadisticas"),
         new("peticiones-configuracion", Sistema, "Configuración de correo", "CC", "peticiones/Configuracion"),
         Tray(Subidas, Bandeja.SubidaConaset, "Subida a Conaset", "SC"),
@@ -74,6 +83,7 @@ public static class ModulosCatalogo
         Tray(Subidas, Bandeja.SubidaConOficio, "Subida con oficio", "SO"),
         Tray(Subidas, Bandeja.CambioDomSubidoConaset, "Cambio dom. subido a Conaset", "DC"),
         Tray(Subidas, Bandeja.CambioDomSubidoCorreo, "Cambio dom. subido con correo", "DM"),
+        new(ClaveOtorgamiento, Cierre, "Otorgamiento", "OT", "otorgamiento"),
         Tray(Cierre, Bandeja.Cerradas, "Cerradas", "CE"),
         Tray(Cierre, Bandeja.Archivadas, "Archivadas", "AV"),
         new(ClaveAnuladas, Cierre, "Anuladas", "AN", "anuladas"),
@@ -107,6 +117,18 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
     /// <summary>Open requests of the SOLICITUDES group (badges of F8 and Certificado / Oficio).</summary>
     public ContadoresSolicitudes Solicitudes { get; private set; } = ContadoresSolicitudes.Vacio;
 
+    /// <summary>Carpetas waiting for a decision in Otorgamiento (menu counter).</summary>
+    public int ParaOtorgar { get; private set; }
+
+    /// <summary>Salientes waiting in «Pedimos carpetas · Por pedir» (menu counter).</summary>
+    public int PorPedir { get; private set; }
+
+    /// <summary>Carpetas waiting for confirmation in «Reclasificación» (menu counter).</summary>
+    public int PorReclasificar { get; private set; }
+
+    /// <summary>Incoming requests still without a last-carpeta date in «Nos piden carpetas» (menu counter).</summary>
+    public int NosPidenPorClasificar { get; private set; }
+
     public event Action? Changed;
 
     public EstadoModulo De(Modulo modulo)
@@ -130,6 +152,10 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
                 Integridad is { TieneProblemas: true } ? Semaforo.Rojo : Semaforo.Verde,
                 Integridad?.Problemas ?? 0,
                 SinSerie),
+            ModulosCatalogo.ClaveOtorgamiento => new EstadoModulo(ParaOtorgar, null, 0, SinSerie),
+            ModulosCatalogo.ClavePedimos => new EstadoModulo(PorPedir, null, 0, SinSerie),
+            ModulosCatalogo.ClaveReclasificacion => new EstadoModulo(PorReclasificar, null, 0, SinSerie),
+            ModulosCatalogo.ClaveNosPiden => new EstadoModulo(NosPidenPorClasificar, null, 0, SinSerie),
             ModulosCatalogo.ClaveF8 => new EstadoModulo(Solicitudes.F8Solicitados, null, 0, SinSerie),
             ModulosCatalogo.ClaveCertificados => new EstadoModulo(Solicitudes.CertificadosPorFirmar, null, 0, SinSerie),
             ModulosCatalogo.ClaveTodas => new EstadoModulo(p.Modulos.Sum(m => m.Conteo), null, 0, SinSerie),
@@ -169,6 +195,10 @@ public sealed class ModulosState(IServiceScopeFactory scopeFactory, ILogger<Modu
             Solicitudes = ContadoresSolicitudes.Desde(
                 await scope.ServiceProvider.GetRequiredService<SolicitudesF8Service>().ContarPorEstadoAsync(),
                 await scope.ServiceProvider.GetRequiredService<CertificadosService>().ContarPorEstadoAsync());
+            ParaOtorgar = await scope.ServiceProvider.GetRequiredService<Sgl.Application.Otorgamiento.OtorgamientoService>().ContarAsync();
+            PorPedir = await scope.ServiceProvider.GetRequiredService<Sgl.Application.CambioDomicilio.PedidosService>().ContarPorPedirAsync();
+            NosPidenPorClasificar = await scope.ServiceProvider.GetRequiredService<Sgl.Application.CambioDomicilio.EntrantesService>().ContarPorClasificarAsync();
+            PorReclasificar = await scope.ServiceProvider.GetRequiredService<Sgl.Application.CambioDomicilio.ReclasificacionService>().ContarAsync();
             Changed?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

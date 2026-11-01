@@ -124,6 +124,28 @@ public sealed class ExcelImportRobustezTests
         Assert.Equal(Decision.Otorgado, c.Decision);
     }
 
+    // M1: la carga histórica de la planilla maestra está exenta de IPermisos, pero deja rastro de su origen
+    // y no inventa FechaOtorgamiento (la planilla no trae una fecha de otorgamiento).
+    [Fact]
+    public async Task CargaHistoricaConDecisionEnCarpetaExistente_DejaOrigenYNoInventaFechaDeOtorgamiento()
+    {
+        using var db = new TestDb();
+        using (var primero = Libro(("2026-01-15", null, RutValido, null, null)))
+        {
+            await Servicio(db).ImportarExcelAsync(primero, "tester");
+        }
+
+        using var conDecision = Libro(("2026-01-15", "2026-02-01", RutValido, null, "OTORGADO"));
+        var r = await Servicio(db).ImportarExcelAsync(conDecision, "tester");
+
+        Assert.Empty(r.Errores);
+        using var check = db.NewContext();
+        var c = await check.Carpetas.Include(x => x.Historial).SingleAsync();
+        Assert.Equal(Decision.Otorgado, c.Decision);
+        Assert.Null(c.FechaOtorgamiento);
+        Assert.Contains(c.Historial, h => h.Campo == "Origen" && h.Nuevo == "Importación Excel (carga histórica)");
+    }
+
     [Fact]
     public async Task ReimportarNoRetrocedeElEstado_PeroSiAvanzaCuandoElExcelEstaMasAdelante()
     {
@@ -143,14 +165,14 @@ public sealed class ExcelImportRobustezTests
             Assert.Equal(EstadoCarpeta.CambioDomicilio, (await check.Carpetas.SingleAsync()).Estado);
         }
 
-        using (var avance = Libro(("2026-01-15", null, RutValido, "SUBIDA A CONASET", null)))
+        using (var avance = Libro(("2026-01-15", null, RutValido, "CAMBIO DOM. SUBIDO A CONASET", null)))
         {
             var r = await Servicio(db).ImportarExcelAsync(avance, "tester");
             Assert.Empty(r.Errores);
         }
 
         using var final = db.NewContext();
-        Assert.Equal(EstadoCarpeta.SubidaConaset, (await final.Carpetas.SingleAsync()).Estado);
+        Assert.Equal(EstadoCarpeta.CambioDomSubidoConaset, (await final.Carpetas.SingleAsync()).Estado);
     }
 
     [Fact]
@@ -233,5 +255,60 @@ public sealed class ExcelImportRobustezTests
         var ex = await Assert.ThrowsAsync<InvalidDataException>(() => Servicio(db).ImportarExcelAsync(basura, "tester"));
 
         Assert.Contains("xlsx", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Auditoría: lo importado dentro de la familia de cambio de domicilio es saliente (visible en «Por pedir»), y «subido con correo» no se fuerza.
+    [Fact]
+    public async Task Importar_cambio_de_domicilio_deja_la_carpeta_saliente()
+    {
+        using var db = new TestDb();
+        using var libro = Libro(("2026-01-15", null, RutValido, "CAMBIO DE DOMICILIO", null));
+
+        var r = await Servicio(db).ImportarExcelAsync(libro, "tester");
+
+        Assert.Empty(r.Errores);
+        using var check = db.NewContext();
+        var c = await check.Carpetas.SingleAsync();
+        Assert.Equal(EstadoCarpeta.CambioDomicilio, c.Estado);
+        Assert.Equal(SentidoCambioDomicilio.Saliente, c.SentidoCambioDomicilio);
+    }
+
+    [Fact]
+    public async Task Reimportar_una_carpeta_existente_hacia_cambio_de_domicilio_la_deja_saliente()
+    {
+        using var db = new TestDb();
+        using (var primero = Libro(("2026-01-15", null, RutValido, null, null)))
+        {
+            await Servicio(db).ImportarExcelAsync(primero, "tester");
+        }
+
+        using var avance = Libro(("2026-01-15", null, RutValido, "CAMBIO DE DOMICILIO", null));
+        var r = await Servicio(db).ImportarExcelAsync(avance, "tester");
+
+        Assert.Empty(r.Errores);
+        using var check = db.NewContext();
+        var c = await check.Carpetas.SingleAsync();
+        Assert.Equal(EstadoCarpeta.CambioDomicilio, c.Estado);
+        Assert.Equal(SentidoCambioDomicilio.Saliente, c.SentidoCambioDomicilio);
+    }
+
+    [Fact]
+    public async Task Reimportar_no_lleva_a_subido_con_correo_si_la_carpeta_no_esta_solicitada()
+    {
+        using var db = new TestDb();
+        using (var primero = Libro(("2026-01-15", null, RutValido, null, null)))
+        {
+            await Servicio(db).ImportarExcelAsync(primero, "tester");
+        }
+
+        using var salto = Libro(("2026-01-15", null, RutValido, "CAMBIO DOM. SUBIDO CON CORREO", null));
+        var r = await Servicio(db).ImportarExcelAsync(salto, "tester");
+
+        Assert.Empty(r.Errores);
+        Assert.Equal(1, r.EstadosNoAplicados);
+        using var check = db.NewContext();
+        var c = await check.Carpetas.SingleAsync();
+        Assert.Equal(EstadoCarpeta.Citada, c.Estado);
+        Assert.Null(c.SentidoCambioDomicilio);
     }
 }

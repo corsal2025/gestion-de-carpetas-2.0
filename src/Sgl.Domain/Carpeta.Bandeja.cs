@@ -41,6 +41,7 @@ public sealed partial class Carpeta
         EstadoCarpeta.SubidaConOficio => Bandeja.SubidaConOficio,
         EstadoCarpeta.CambioDomSubidoConaset => Bandeja.CambioDomSubidoConaset,
         EstadoCarpeta.CambioDomSubidoCorreo => Bandeja.CambioDomSubidoCorreo,
+        EstadoCarpeta.CambioDomSinRegistro or EstadoCarpeta.CambioDomCarpetaDigital => Bandeja.CambioDomCerradoEntrante,
         EstadoCarpeta.CambioDomicilio => Bandeja.CambioDomicilio,
         EstadoCarpeta.CambioDomicilioSolicitado => Bandeja.CambioDomicilioSolicitado,
         EstadoCarpeta.SeEncuentraEnArchivos => Bandeja.SeEncuentraEnArchivos,
@@ -62,6 +63,7 @@ public sealed partial class Carpeta
         : c.Estado == EstadoCarpeta.SubidaConOficio ? Bandeja.SubidaConOficio
         : c.Estado == EstadoCarpeta.CambioDomSubidoConaset ? Bandeja.CambioDomSubidoConaset
         : c.Estado == EstadoCarpeta.CambioDomSubidoCorreo ? Bandeja.CambioDomSubidoCorreo
+        : c.Estado == EstadoCarpeta.CambioDomSinRegistro || c.Estado == EstadoCarpeta.CambioDomCarpetaDigital ? Bandeja.CambioDomCerradoEntrante
         : c.Estado == EstadoCarpeta.CambioDomicilio ? Bandeja.CambioDomicilio
         : c.Estado == EstadoCarpeta.CambioDomicilioSolicitado ? Bandeja.CambioDomicilioSolicitado
         : c.Estado == EstadoCarpeta.SeEncuentraEnArchivos ? Bandeja.SeEncuentraEnArchivos

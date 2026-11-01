@@ -1,0 +1,5 @@
+.pe-etapas { margin-bottom: 0; }
+.pe-etapas .sol-chip { text-decoration: none; }
+.pe-n { display: inline-block; margin-left: 0.3rem; padding: 0 0.45rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--surface-alt); color: var(--text-secondary); }
+.pe-n-aviso { background: var(--status-warn-bg); color: var(--status-warn-text); }
+.pe-n-vencida { background: var(--status-bad-bg); color: var(--status-bad-text); }

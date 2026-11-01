@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using PeticionCambioDomicilio;
 using PeticionCambioDomicilio.Comunas;
 using PeticionCambioDomicilio.Data;
@@ -41,8 +42,8 @@ public static class PeticionesModulo
 
         builder.Services.AddSingleton(new ComunaDirectory(comunaCsv));
 
-        // La base de datos del módulo es la base principal del sistema (sgl.db).
-        var dbPath = Path.Combine(contentRoot, "sgl.db");
+        // La base de datos del módulo es la base principal del sistema (la de ConnectionStrings:Sgl).
+        var dbPath = RutaBaseDeDatos(builder.Configuration, contentRoot);
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var backupDirectory = !string.IsNullOrWhiteSpace(options.BackupDirectory)
             ? options.BackupDirectory
@@ -69,6 +70,18 @@ public static class PeticionesModulo
         // Las páginas originales viven bajo /peticiones.
         builder.Services.AddRazorPages()
             .AddApplicationPart(typeof(PeticionCambioDomicilio.Pages.IndexModel).Assembly);
+    }
+
+    /// <summary>
+    /// Archivo de la base principal según <c>ConnectionStrings:Sgl</c> (relativo al directorio de contenido, como lo resuelve
+    /// el resto del sistema). Así un servidor de prueba apuntado a una copia lee y escribe la tabla Peticion en esa copia y
+    /// no en el sgl.db real; sin cadena queda <c>sgl.db</c> junto al contenido, como siempre.
+    /// </summary>
+    public static string RutaBaseDeDatos(IConfiguration configuration, string contentRoot)
+    {
+        var cadena = configuration.GetConnectionString(Sgl.Infrastructure.DependencyInjection.ConnectionStringName);
+        var origen = string.IsNullOrWhiteSpace(cadena) ? null : new SqliteConnectionStringBuilder(cadena).DataSource;
+        return Path.GetFullPath(string.IsNullOrWhiteSpace(origen) ? "sgl.db" : origen, contentRoot);
     }
 
     private static string NoVacio(string? valor, string porDefecto) =>

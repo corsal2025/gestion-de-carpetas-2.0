@@ -1112,6 +1112,11 @@ html .btn-pend-busqueda:hover:not(:disabled) { border-color: var(--brand-primary
 html .btn-pend-busqueda:focus-visible { outline: 3px solid rgb(91 140 255 / 0.4); outline-offset: 1px; }
 html .btn-pend-busqueda:disabled { opacity: .4; cursor: not-allowed; }
 html .btn-pend-busqueda.activo { background: var(--lico-yellow); border-color: var(--lico-yellow); color: #1b2140; }
+/* Tercera posicion de la lupa: carpeta encontrada (verde fijo, sin parpadeo; icono azul marino con contraste AA en claro y oscuro). */
+html .btn-pend-busqueda.encontrada { background: #4ade80; border-color: #15803d; color: #1b2140; }
+.celda-mover { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+html .btn-pend-subida { white-space: nowrap; }
+.solo-en-busqueda { display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; font-size: 0.85rem; cursor: pointer; }
 
 @keyframes pend-parpadeo {
     0%, 100% { opacity: 1; }

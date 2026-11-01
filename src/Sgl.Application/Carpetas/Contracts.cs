@@ -24,7 +24,8 @@ public sealed record EditarCarpetaCommand(
     string? Rut = null,
     string? Caja = null,
     bool CambiarCaja = false,
-    ClaseLicencia? Clases = null);
+    ClaseLicencia? Clases = null,
+    bool AgregarAExistenteCaja = false);
 
 /// <summary>
 /// Manual classification of one or more "Por clasificar" carpetas (applied atomically). A class is mandatory.
@@ -40,7 +41,13 @@ public sealed record ClasificarCommand(
     string Autor);
 
 /// <summary>What classification did to one carpeta (resolved destination, e.g. computed from the date).</summary>
-public sealed record ClasificacionAplicada(Guid CarpetaId, EstadoCarpeta Destino);
+public sealed record ClasificacionAplicada(Guid CarpetaId, EstadoCarpeta Destino)
+{
+    public string? NombreCompleto { get; init; }
+
+    /// <summary>State before classifying: lets the screen offer «Deshacer» (<c>DeshacerEstadoAsync</c>).</summary>
+    public PuntoRestauracionEstado? Punto { get; init; }
+}
 
 public sealed record ClasificarResultado(IReadOnlyList<ClasificacionAplicada> Aplicadas)
 {
@@ -80,9 +87,23 @@ public sealed record CarpetaAnuladaDto(
 /// <summary>Hint only: other carpetas of the same citizen. Not definitive (older history may be missing).</summary>
 public sealed record TramitePrevioDto(int Cantidad, Sede UltimaSede, DateOnly UltimaFecha);
 
-public sealed record AsignarCajaCommand(Guid CarpetaId, string? NuevaCaja, string Autor);
+/// <param name="AgregarAExistente">Confirms that the label already exists and the carpeta is being added to that box.</param>
+public sealed record AsignarCajaCommand(Guid CarpetaId, string? NuevaCaja, string Autor, bool AgregarAExistente = false);
 
-public sealed record AsignarCajaLoteCommand(IReadOnlyList<Guid> CarpetaIds, string NuevaCaja, string Autor);
+public sealed record AsignarCajaLoteCommand(IReadOnlyList<Guid> CarpetaIds, string NuevaCaja, string Autor, bool AgregarAExistente = false);
+
+/// <summary>Carpetas waiting for a box, by series, plus the legacy «Cola de Caja» carpetas without a final decision (counted apart, never modified).</summary>
+public sealed record ColasCajaDto(int Normal, int CambioDomicilio, int PenultimaCarpeta, int SinDecisionEnCola)
+{
+    public int Total => Normal + CambioDomicilio + PenultimaCarpeta;
+
+    public int De(SerieCaja serie) => serie switch
+    {
+        SerieCaja.CambioDomicilio => CambioDomicilio,
+        SerieCaja.PenultimaCarpeta => PenultimaCarpeta,
+        _ => Normal,
+    };
+}
 
 public sealed record ListarCarpetasQuery(
     string? Texto = null,
@@ -145,6 +166,9 @@ public sealed record CarpetaResumenDto(
     /// <summary>Date of the citizen's second-to-last carpeta, typed by staff.</summary>
     public DateOnly? FechaPenultimaCarpeta { get; init; }
 
+    /// <summary>Third position of the magnifier: the physical carpeta was found (never together with PendienteBusqueda).</summary>
+    public bool CarpetaEncontrada { get; init; }
+
     /// <summary>When the carpeta was registered or imported (only filled by ranged listings).</summary>
     public DateTime? FechaRegistro { get; init; }
 
@@ -159,6 +183,15 @@ public sealed record CarpetaResumenDto(
 
     /// <summary>Trámite declared in the daily agenda (agenda-imported carpetas only).</summary>
     public TramiteAgenda? TramiteAgenda { get; init; }
+
+    /// <summary>Came without an appointment and was added at the counter by "Asistencia del día".</summary>
+    public bool EsExtra { get; init; }
+
+    /// <summary>Direction of a change-of-address case (saliente / entrante); null outside that family.</summary>
+    public SentidoCambioDomicilio? Sentido { get; init; }
+
+    /// <summary>Still waits in «Reclasificación»: it cannot go on to «Solicitado» / «Subido» until confirmed there.</summary>
+    public bool PendienteReclasificacion { get; init; }
 
     /// <summary>Other carpetas of the same citizen (only filled for "Por clasificar" ranged listings).</summary>
     public TramitePrevioDto? TramitePrevio { get; init; }
@@ -199,6 +232,12 @@ public sealed record CarpetaDetalleDto(
     public DateTime? FechaImpresion { get; init; }
 
     public DateTime? FechaPeticion { get; init; }
+
+    /// <summary>Direction of a change-of-address case (saliente / entrante); null outside that family.</summary>
+    public SentidoCambioDomicilio? Sentido { get; init; }
+
+    /// <summary>Still waits in «Reclasificación»: it cannot go on to «Solicitado» / «Subido» until confirmed there.</summary>
+    public bool PendienteReclasificacion { get; init; }
 }
 
 /// <summary>A contiguous range of a filtered list plus the total count of the whole filtered set.</summary>

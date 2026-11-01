@@ -62,8 +62,13 @@ public sealed class SolicitudF8
     /// <summary>States from which an F8 can be requested for a carpeta.</summary>
     public static bool PuedeSolicitarseDesde(EstadoCarpeta estado) => EstadosOrigen.Contains(estado);
 
-    public static SolicitudF8 Solicitar(Guid carpetaId, EstadoCarpeta estadoOrigen, string autor, DateTime now)
+    /// <param name="sentido">Direction of the change-of-address case, when the carpeta has one: a saliente has no F8.</param>
+    public static SolicitudF8 Solicitar(Guid carpetaId, EstadoCarpeta estadoOrigen, string autor, DateTime now, SentidoCambioDomicilio? sentido = null)
     {
+        if (sentido == SentidoCambioDomicilio.Saliente)
+        {
+            throw new DomainException("Un cambio de domicilio que pedimos a otra comuna no tiene F8: no hay antecedentes de esa persona en nuestra base.");
+        }
         if (carpetaId == Guid.Empty)
         {
             throw new DomainException("La carpeta es obligatoria.");

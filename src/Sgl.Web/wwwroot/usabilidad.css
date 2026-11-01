@@ -1,0 +1,152 @@
+/* Shared readability and explicit task actions. Loaded after the legacy themes. */
+html:not(#sgl):not(#usabilidad) body {
+    --fs-input: 1rem;
+    --fs-label: 1rem;
+    --fs-small: .95rem;
+    --fs-badge: .95rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+html:not(#sgl):not(#usabilidad) body :is(button, .button, .btn-primary, .btn-secondary, summary, .sidebar-modulo, .nav-item) {
+    min-height: 44px;
+    font-size: 1rem !important;
+    line-height: 1.35;
+}
+html:not(#sgl):not(#usabilidad) body :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea) {
+    min-height: 44px !important;
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
+}
+html:not(#sgl):not(#usabilidad) body :is(input[type=checkbox], input[type=radio]) {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+html:not(#sgl):not(#usabilidad) body :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--text-primary, #172554) !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 5px var(--surface, white) !important;
+}
+html:not(#sgl):not(#usabilidad) body .data-table :is(td, th) {
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    padding: 10px 12px !important;
+}
+html:not(#sgl):not(#usabilidad) body .data-table :is(.name-cell, .rut-cell, .badge, .sede-tag, .celda-editable-texto) {
+    font-size: 1rem !important;
+}
+.titulo-trabajo { margin: 0 0 10px; font-size: 1.6rem; }
+.menu-secciones { display: none; }
+html:not(#sgl):not(#usabilidad) body .tabla-maximizar {
+    padding: 10px 16px; border: 2px solid var(--brand-primary); border-radius: 8px;
+    background: var(--surface); color: var(--text-primary); font-weight: 700;
+}
+html:not(#sgl):not(#usabilidad) body.tabla-pantalla-completa { overflow: hidden !important; }
+html:not(#sgl):not(#usabilidad) body [data-tabla-ancestro] {
+    transform: none !important; filter: none !important; backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important; contain: none !important; will-change: auto !important;
+    overflow: visible !important; position: static !important;
+}
+html:not(#sgl):not(#usabilidad) body [data-tabla-ampliada] {
+    position: fixed !important; inset: 8px !important; z-index: 2147483000 !important;
+    width: calc(100vw - 16px) !important; height: calc(100dvh - 16px) !important;
+    max-height: none !important; min-height: 0 !important; max-width: none !important;
+    margin: 0 !important; padding: 0 !important; overflow: auto !important;
+    background: var(--surface) !important; color: var(--text-primary);
+    box-shadow: 0 0 0 100vmax #0009 !important; border-radius: 10px !important;
+}
+html:not(#sgl):not(#usabilidad) body table[data-tabla-ampliada] { display: block !important; }
+html:not(#sgl):not(#usabilidad) body [data-tabla-ampliada] > table { min-width: 100%; }
+html:not(#sgl):not(#usabilidad) body .imp-page .drop-zone:hover { transform: none !important; }
+.ayuda-tarea {
+    margin: 0 0 12px;
+    padding: 12px 16px;
+    border-left: 4px solid var(--brand-primary);
+    background: var(--surface);
+    color: var(--text-primary);
+    border-radius: 8px;
+    max-width: 85ch;
+}
+.clasif-confirmacion { display: grid; gap: 8px; margin-top: 8px; min-width: 210px; }
+html:not(#sgl):not(#usabilidad) body .clasif-destino {
+    display: block;
+    white-space: normal;
+    text-transform: none !important;
+    color: inherit;
+    font-weight: 600;
+}
+html:not(#sgl):not(#usabilidad) body .data-table .clasif-guardar {
+    background: #26388c !important;
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    white-space: normal;
+    padding: 10px 14px;
+}
+.imp-confirmacion { margin: 16px 0; padding: 16px; border: 2px solid var(--brand-primary); border-radius: 12px; }
+.imp-confirmacion p { margin-top: 0; overflow-wrap: anywhere; }
+.imp-confirmacion button { margin: 4px 8px 4px 0; }
+.apariencia-menu { position: relative; }
+.apariencia-menu > summary { cursor: pointer; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface); color: var(--text-primary); }
+.apariencia-opciones { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px; }
+.apariencia-menu[open] .apariencia-opciones { position: absolute; right: 0; top: 100%; min-width: 240px; background: var(--surface); border: 1px solid var(--border-color); border-radius: 12px; z-index: 200; box-shadow: 0 8px 24px #0003; }
+html:not(#sgl):not(#usabilidad) body .sidebar-grupo-titulo { font-size: 1rem !important; padding-top: 8px; padding-bottom: 8px; }
+html:not(#sgl):not(#usabilidad) body .listado-hero { max-height: none; overflow: visible; }
+/* At narrow widths keep written navigation rather than an unexplained icon strip. */
+@media (max-width: 900px) {
+    html:not(#sgl):not(#usabilidad) body .menu-secciones { display: block; align-self: flex-start; padding: 10px 16px; }
+    html:not(#sgl):not(#usabilidad) body .modulo-shell:not(.navegacion-abierta) .modulos-sidebar { display: none; }
+    html:not(#sgl):not(#usabilidad) body .modulo-shell { flex-direction: column; height: auto; min-height: 0; }
+    html:not(#sgl):not(#usabilidad) body .modulos-sidebar:not(.plegado) { width: 100%; min-width: 0; max-height: 240px; flex: 0 0 auto; }
+    html:not(#sgl):not(#usabilidad) body .modulos-sidebar:not(.plegado) :is(.sidebar-modulo-nombre, .sidebar-grupo-nombre, .sidebar-chevron, .sidebar-contador) { display: inline; }
+    html:not(#sgl):not(#usabilidad) body .modulos-sidebar:not(.plegado) :is(.sidebar-modulo, .sidebar-grupo-titulo) { justify-content: flex-start; }
+    html:not(#sgl):not(#usabilidad) body .modulos-sidebar:not(.plegado) .sidebar-cabecera { flex-direction: row; }
+    html:not(#sgl):not(#usabilidad) body .modulos-sidebar:not(.plegado) .sidebar-grupos { overflow-y: auto; max-height: 170px; }
+    html:not(#sgl):not(#usabilidad) body .modulo-main { width: 100%; min-width: 0; }
+    html:not(#sgl):not(#usabilidad) body .data-table :is(.col-sticky-nombre, .col-sticky-rut, .col-sticky-check, .col-sticky-pend) { position: static !important; }
+    html:not(#sgl):not(#usabilidad) body .panel-barra { flex-wrap: wrap; }
+    html:not(#sgl):not(#usabilidad) body .listado-page .table-container { min-height: 320px; }
+}
+
+/* Spreadsheet layout: compact rectangular cells, continuous grid, no card rows. */
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table {
+    border-collapse: collapse !important; border-spacing: 0 !important; table-layout: auto !important;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table tbody tr {
+    height: auto !important; transform: none !important; box-shadow: none !important;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table :is(td, th) {
+    border: 1px solid var(--border-color, #cbd5e1) !important; border-radius: 0 !important;
+    padding: 6px 8px !important; line-height: 1.35 !important;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table :is(input:not([type=checkbox]), select, button, summary) {
+    border-radius: 3px !important; box-shadow: none !important; font-size: 1rem !important;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table :is(.badge, .sede-tag) {
+    border-radius: 2px !important; box-shadow: none !important; white-space: nowrap;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table .name-cell {
+    display: inline-block; max-width: 20rem !important; white-space: normal !important; overflow-wrap: anywhere;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body .clasif-cell { display: flex; align-items: center; gap: 6px; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body .clasif-confirmacion { display: inline-flex; min-width: 0; margin: 0 0 0 6px; vertical-align: middle; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body .clasif-destino { display: none; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body .fila-clasificacion td:last-child { white-space: nowrap !important; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body .fila-clasificacion td:last-child > .clasif-cell { display: inline-flex; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body .data-table .clasif-guardar { padding: 8px 12px; min-height: 44px; }
+.tabla-barra-vista { display: flex; justify-content: flex-start; flex: 0 0 auto; gap: 8px; margin: 6px 0; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body [data-tabla-ampliada] {
+    inset: 8px 8px 66px !important; height: calc(100dvh - 74px) !important;
+}
+html:not(#sgl):not(#usabilidad):not(#planilla) body [data-tabla-ampliada] th { top: 0 !important; }
+html:not(#sgl):not(#usabilidad):not(#planilla) body [data-tabla-barra-ampliada] {
+    position: fixed !important; inset: auto 12px 8px auto !important; z-index: 2147483600 !important;
+    background: var(--surface); padding: 4px; border-radius: 8px; margin: 0;
+}
+@media print {
+    .tabla-barra-vista, .menu-secciones { display: none !important; }
+    html:not(#sgl):not(#usabilidad):not(#planilla) body [data-tabla-ampliada] {
+        position: static !important; inset: auto !important; width: auto !important; height: auto !important;
+        overflow: visible !important; box-shadow: none !important;
+    }
+    html:not(#sgl):not(#usabilidad) body.tabla-pantalla-completa { overflow: visible !important; }
+}

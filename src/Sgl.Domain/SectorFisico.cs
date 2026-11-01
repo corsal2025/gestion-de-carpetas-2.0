@@ -3,16 +3,75 @@ using System.Globalization;
 namespace Sgl.Domain;
 
 /// <summary>
-/// Physical location of a carpeta derived from its "última carpeta" date:
-/// before July 2023 it lives in ARCHIVO, from then on in OFICINA 43.
+/// Physical location of a carpeta derived from its "última carpeta" date: before July 2023 it lives in ARCHIVO, from then on in
+/// OFICINA 43, and from the digital cut-off (2026-08-01) there is no paper at all: the carpeta is DIGITAL.
 /// </summary>
 public static class SectorFisico
 {
     public const string Archivo = "ARCHIVO";
     public const string Oficina43 = "OFICINA 43";
+    public const string Digital = "DIGITAL";
     public const string Desconocido = "—";
 
-    private static readonly DateOnly Corte = new(2023, 7, 1);
+    /// <summary>Cut-off agreed with the department: before it the carpeta is in Archivo, from it on in Oficina 43.</summary>
+    public static readonly DateOnly CorteDefecto = new(2023, 7, 1);
+
+    /// <summary>Cut-off agreed with the department: from it on the last carpeta was made digitally and has no paper to look for.</summary>
+    public static readonly DateOnly CorteDigitalDefecto = new(2026, 8, 1);
+
+    private static readonly object CorteLock = new();
+    private static DateOnly _corte = CorteDefecto;
+    private static bool _corteFijado;
+    private static DateOnly _corteDigital = CorteDigitalDefecto;
+    private static bool _corteDigitalFijado;
+
+    /// <summary>
+    /// Cut-off used by <see cref="Calcular(string?)"/>. It is fixed once at start-up (<c>Clasificacion:CorteSector</c>);
+    /// code that needs another value passes it to <see cref="Calcular(string?, DateOnly)"/> instead of changing this one.
+    /// </summary>
+    public static DateOnly Corte
+    {
+        get { lock (CorteLock) return _corte; }
+    }
+
+    /// <summary>Fixes the application-wide cut-off. Calling it again with a different value is a programming error.</summary>
+    public static void FijarCorte(DateOnly corte)
+    {
+        lock (CorteLock)
+        {
+            if (_corteFijado && _corte != corte)
+            {
+                throw new InvalidOperationException($"El corte de sector ya fue fijado en {_corte:yyyy-MM-dd}.");
+            }
+
+            _corte = corte;
+            _corteFijado = true;
+        }
+    }
+
+    /// <summary>Digital cut-off used by <see cref="Calcular(string?)"/>; fixed once at start-up (<c>Clasificacion:CorteDigital</c>).</summary>
+    public static DateOnly CorteDigital
+    {
+        get { lock (CorteLock) return _corteDigital; }
+    }
+
+    /// <summary>The digital cut-off as <c>yyyy-MM-dd</c>: last-carpeta dates are stored as ISO text, so queues compare them as text.</summary>
+    public static string CorteDigitalIso => CorteDigital.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>Fixes the application-wide digital cut-off. Calling it again with a different value is a programming error.</summary>
+    public static void FijarCorteDigital(DateOnly corte)
+    {
+        lock (CorteLock)
+        {
+            if (_corteDigitalFijado && _corteDigital != corte)
+            {
+                throw new InvalidOperationException($"El corte digital ya fue fijado en {_corteDigital:yyyy-MM-dd}.");
+            }
+
+            _corteDigital = corte;
+            _corteDigitalFijado = true;
+        }
+    }
 
     private static readonly Dictionary<string, int> Meses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -22,8 +81,15 @@ public static class SectorFisico
         ["noviembre"] = 11, ["diciembre"] = 12,
     };
 
-    public static string Calcular(string? fechaUltimaCarpeta) =>
-        TryParseFecha(fechaUltimaCarpeta, out var d) ? (d < Corte ? Archivo : Oficina43) : Desconocido;
+    public static string Calcular(string? fechaUltimaCarpeta) => Calcular(fechaUltimaCarpeta, Corte);
+
+    public static string Calcular(string? fechaUltimaCarpeta, DateOnly corte) => Calcular(fechaUltimaCarpeta, corte, CorteDigital);
+
+    public static string Calcular(string? fechaUltimaCarpeta, DateOnly corte, DateOnly corteDigital) =>
+        !TryParseFecha(fechaUltimaCarpeta, out var d) ? Desconocido
+        : d >= corteDigital ? Digital
+        : d < corte ? Archivo
+        : Oficina43;
 
     /// <summary>
     /// Reads a date typed by an official or inherited from Excel. Day-first (Chile) always wins over month-first, so

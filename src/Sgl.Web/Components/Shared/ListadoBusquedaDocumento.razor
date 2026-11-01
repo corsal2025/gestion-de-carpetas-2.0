@@ -9,11 +9,14 @@
                 <button type="button" class="btn-primary btn-print-pdf" @onclick="ImprimirAsync" disabled="@(Listado.Total == 0)">
                     🖨️ Imprimir / Guardar como PDF
                 </button>
-                <button type="button" class="@(impreso && !marcado ? "btn-primary btn-pulso" : "btn-secondary")" @onclick="MarcarAsync"
-                        disabled="@(Listado.Total == 0 || marcando || marcado)"
-                        title="Deja registrada la fecha de impresión de cada carpeta de este listado">
-                    @(marcado ? "✓ Marcado como impreso" : marcando ? "Marcando…" : "Marcar como impreso")
-                </button>
+                @if (OnMarcarImpreso is not null)
+                {
+                    <button type="button" class="@(impreso && !marcado ? "btn-primary btn-pulso" : "btn-secondary")" @onclick="MarcarAsync"
+                            disabled="@(Listado.Total == 0 || marcando || marcado)"
+                            title="Deja registrada la fecha de impresión de cada carpeta de este listado">
+                        @(marcado ? "✓ Marcado como impreso" : marcando ? "Marcando…" : "Marcar como impreso")
+                    </button>
+                }
                 <div class="page-size-selector-pdf">
                     <label for="listado-page-size">TAMAÑO DE HOJA</label>
                     <select id="listado-page-size" value="@pageSize" @onchange="CambiarHojaAsync">
@@ -24,11 +27,11 @@
                 </div>
             </div>
             <div class="pdf-toolbar-hint">
-                @if (impreso && !marcado)
+                @if (OnMarcarImpreso is not null && impreso && !marcado)
                 {
                     <span>¿Ya lo imprimió? Márquelo como impreso para dejar registro en cada carpeta.</span>
                 }
-                else if (marcado)
+                else if (OnMarcarImpreso is not null && marcado)
                 {
                     <span>Listo: la fecha de impresión quedó registrada en el historial.</span>
                 }
@@ -63,13 +66,13 @@
 
                 <div class="doc-subheader">
                     <span>Sector @Listado.Sector</span>
-                    <span>@Listado.Total carpeta(s) por buscar</span>
+                    <span>@Listado.Total carpeta(s) @(Listado.Sector == "Digital" ? "digitales (sin carpeta física)" : "por buscar")</span>
                 </div>
 
                 <div class="doc-table-card">
                     @if (Listado.Total == 0)
                     {
-                        <p class="doc-empty">No hay carpetas en este módulo con los filtros actuales. No hay nada que buscar.</p>
+                        <p class="doc-empty">No hay carpetas en este listado. No hay nada que buscar.</p>
                     }
                     else
                     {

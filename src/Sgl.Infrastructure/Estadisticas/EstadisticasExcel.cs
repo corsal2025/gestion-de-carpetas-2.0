@@ -42,6 +42,7 @@ public static class EstadisticasExcel
             ["Horas para encontrar (promedio)", b.HorasParaEncontrar.Promedio], ["Horas para encontrar (mediana)", b.HorasParaEncontrar.Mediana],
             ["Horas para encontrar (máximo)", b.HorasParaEncontrar.Maximo],
             ["Encontradas en Archivo", b.EncontradasArchivo], ["Encontradas en Oficina 43", b.EncontradasOficina43],
+            ["Encontradas en Digital", b.EncontradasDigital],
         ]);
         Hoja(wb, "Archivo por mes", ["Año", "Mes", "Carpetas archivadas", "Cajas cerradas"],
             e.Archivo.PorMes.Select(a => new object?[] { a.Anio, a.Mes, a.CarpetasArchivadas, a.CajasCerradas }));

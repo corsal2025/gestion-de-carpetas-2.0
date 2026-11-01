@@ -35,3 +35,6 @@ temp/
 
 # Indice local de herramienta
 .codegraph/
+
+# Pantallazos de correos enviados (pueden mostrar nombres y RUT)
+/datos/pantallazos/

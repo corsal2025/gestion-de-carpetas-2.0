@@ -577,6 +577,7 @@ html body .data-table.bandeja-table td { overflow: visible; text-overflow: clip;
 .sidebar-modulo.m-subidaconoficio { --punto-excel: #FFE599; }
 .sidebar-modulo.m-cambiodomsubidoconaset { --punto-excel: #00FFFF; }
 .sidebar-modulo.m-cambiodomsubidocorreo { --punto-excel: #D0E0E3; }
+.sidebar-modulo.m-cambiodomcerradoentrante { --punto-excel: #D9D2E9; }
 .sidebar-modulo[class*=" m-"] .semaforo-punto { background: var(--punto-excel) !important; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1.5px #475569; flex: 0 0 auto; }
 html[data-theme="dark"] .sidebar-modulo[class*=" m-"] .semaforo-punto { box-shadow: 0 0 0 1.5px #e2e8f0; }
 .sidebar-contador.sem-amarillo { background: #fef3c7; color: #78350f; border-radius: 999px; padding: 0 0.45rem; font-weight: 700; }
@@ -636,9 +637,13 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .nombre-acciones { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: auto; flex: 0 0 auto; }
 
 /* Módulo Peticiones de cambio de domicilio: círculo con su color característico (verde azulado). */
-.sidebar-modulo.m-peticiones { --punto-excel: #ff2d95; }
+.sidebar-modulo.m-cd-reclasificacion { --punto-excel: #fbbf24; }
+.sidebar-modulo.m-cd-nos-piden { --punto-excel: #ff2d95; }
+.sidebar-modulo.m-cd-pedimos { --punto-excel: #f43f5e; }
+.sidebar-modulo.m-cd-comunas { --punto-excel: #bef264; }
 /* Every module has its own circle colour; all circles share the 12px size set above. */
 .sidebar-modulo.m-porclasificar { --punto-excel: #111827; }
+.sidebar-modulo.m-asistencia { --punto-excel: #f59e0b; }
 .sidebar-modulo.m-pararevision { --punto-excel: #84cc16; }
 .sidebar-modulo.m-revisionduplicadas { --punto-excel: #dc2626; }
 .sidebar-modulo.m-revisionrutinvalido { --punto-excel: #f97316; }
@@ -646,6 +651,7 @@ html body .data-table.bandeja-table .pedido-fecha { margin-left: 0.35rem; font-w
 .sidebar-modulo.m-revisionnoidentificada { --punto-excel: #a855f7; }
 .sidebar-modulo.m-revisionnoevaluadas { --punto-excel: #0ea5e9; }
 .sidebar-modulo.m-cerradas { --punto-excel: #0d9488; }
+.sidebar-modulo.m-otorgamiento { --punto-excel: #22c55e; }
 .sidebar-modulo.m-archivadas { --punto-excel: #92400e; }
 .sidebar-modulo.m-anuladas { --punto-excel: #a8a29e; }
 .sidebar-modulo.m-f8 { --punto-excel: #c80000; }
@@ -673,6 +679,7 @@ html[data-rows="classic"] body .data-table tbody td .icono-buscar-dup--neutro sv
 .sol-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 999px; border: 1px solid var(--borde, #cbd5e1); background: transparent; color: inherit; font-size: var(--fs-badge, 0.78rem); font-weight: 600; cursor: pointer; }
 .sol-chip.activo { background: var(--grupo-solicitudes, #b4236b); border-color: var(--grupo-solicitudes, #b4236b); color: #fff; }
 .sol-chip .sol-chip-n { opacity: 0.85; font-variant-numeric: tabular-nums; }
+.badge.extra { background: var(--lico-accent-soft); color: var(--lico-accent); margin-left: 0.3rem; }
 .sol-panel { border: 1px solid var(--borde, #cbd5e1); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.9rem; }
 .sol-panel h2 { font-size: var(--fs-section, 1.1rem); margin: 0 0 0.5rem; }
 .sol-form { display: flex; flex-wrap: wrap; gap: 0.6rem 0.9rem; align-items: flex-end; }
@@ -692,3 +699,60 @@ a.btn-action-caja { display: inline-flex; align-items: center; text-decoration: 
 .firmantes .firmantes-campo input { width: 100%; }
 .firmantes .firmantes-nota { margin: 0.5rem 0 0; max-width: 70ch; font-size: 0.8rem; }
 .firmantes form > .btn-primary { margin-top: 0.2rem; }
+
+/* Otorgamiento (tramo 6): bandeja «Para otorgar» y color propio de las otorgadas en Cerradas. Contraste AA en ambos temas. */
+.otorg-ayuda { margin: 0 0 .6rem; color: var(--text-secondary, #475569); font-size: var(--fs-small, .85rem); }
+.otorg-filtros { gap: .5rem .6rem; }
+.otorg-filtro-etq { font-weight: 700; font-size: var(--fs-small, .8rem); }
+.otorg-fecha { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--fs-small, .8rem); font-weight: 600; margin-left: .5rem; }
+.otorg-tabla td.action-cell { min-width: 0; }
+.otorg-acciones { display: flex; flex-wrap: nowrap; gap: .3rem; justify-content: center; }
+.otorg-abrir { display: block; margin-top: .3rem; text-align: center; }
+/* La tabla cabe en el contenedor sin scroll horizontal: paddings compactos, nombre y origen envuelven en lineas, la resolucion es un selector y ACCION usa dos lineas (Otorgada/Denegada y Abrir). */
+html body .otorg-tabla.data-table.bandeja-table { width: 100% !important; }
+html body .otorg-tabla.data-table.bandeja-table :is(th, td) { padding-left: .35rem; padding-right: .35rem; }
+html body .otorg-tabla.data-table.bandeja-table tbody td.col-sticky-nombre { width: 11.5rem; max-width: 11.5rem !important; }
+html body .otorg-tabla.data-table.bandeja-table td.col-sticky-nombre .name-cell { white-space: normal !important; overflow-wrap: normal; overflow: visible; }
+html body .otorg-tabla.data-table.bandeja-table tbody td:is(.otorg-origen, :nth-child(3)) { white-space: normal !important; }
+html body .otorg-tabla.data-table.bandeja-table tbody td.otorg-origen { min-width: 7rem !important; }
+html body .otorg-tabla.data-table.bandeja-table thead th:first-child { white-space: normal !important; }
+html body .otorg-tabla.data-table.bandeja-table tbody td.action-cell { white-space: normal !important; width: 11.5rem; }
+html body .otorg-tabla.data-table td.action-cell .otorg-acciones > button { min-height: 28px; padding: .2rem .5rem; white-space: nowrap; font-size: .78rem; }
+html body .otorg-tabla.data-table .otorg-res-select { width: 100% !important; max-width: 9.6rem !important; min-width: 0 !important; font-size: .78rem !important; padding-left: .4rem !important; padding-right: 1.5rem !important; background-position: right .4rem center !important; }
+html body .enlace-otorgamiento { margin-left: .5rem; font-size: .75rem; font-weight: 600; text-decoration: underline; }
+html:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td { background-color: #dcfce7 !important; color: #14532d !important; -webkit-text-fill-color: #14532d !important; }
+html:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td *:not(.badge):not(.badge *):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(button):not(button *):not(select):not(input) { color: #14532d !important; -webkit-text-fill-color: #14532d !important; }
+html:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td:first-child { box-shadow: inset 4px 0 0 0 #15803d !important; }
+html[data-theme="dark"]:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td { background-color: #0f2e1b !important; color: #bbf7d0 !important; -webkit-text-fill-color: #bbf7d0 !important; }
+html[data-theme="dark"]:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td *:not(.badge):not(.badge *):not(.btn-detail):not(.btn-detail *):not(.btn-action-caja):not(.btn-action-caja *):not(.btn-action-caja-ok):not(button):not(button *):not(select):not(input) { color: #bbf7d0 !important; -webkit-text-fill-color: #bbf7d0 !important; }
+html[data-theme="dark"]:not(#sgl)[data-rows]:not([data-design="institucional"]) body .listado-page .data-table tbody tr.fila-otorgada:not(.row-selected):not(.row-drawer-active):not(.fila-duplicada):not(.fila-placeholder).fila-otorgada > td:first-child { box-shadow: inset 4px 0 0 0 #4ade80 !important; }
+
+/* Por clasificar: la tabla cabe en el recuadro con el menu lateral abierto. Paddings compactos y CLASIFICAR en dos lineas
+   (selector de destino completo arriba, Guardar debajo). El prefijo con :not(#id) iguala la especificidad de usabilidad.css y visual.css. */
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion :is(th, td) { padding-left: .4rem !important; padding-right: .4rem !important; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion thead th { letter-spacing: .02em !important; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion :is(th, td):last-child { white-space: normal !important; width: 14.5rem; min-width: 14.5rem !important; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child > .clasif-cell { display: flex; flex-wrap: nowrap; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-cell select.excel-select { width: 100% !important; min-width: 0 !important; max-width: none !important; font-size: .82rem !important; padding: 4px 1.4rem 4px .45rem !important; min-height: 34px !important; height: 34px; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-cell .comuna-input-inline { flex: 1 1 6rem; width: 6rem !important; min-width: 0 !important; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-confirmacion { display: flex; margin: .3rem 0 0; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion .clasif-guardar { width: 100%; min-height: 34px !important; padding: 3px 12px !important; }
+html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion .date-input-inline { width: 9.4rem !important; min-width: 0 !important; min-height: 34px !important; padding: 2px 2px 2px 4px !important; font-size: .82rem !important; }
+
+/* Movil (<= 600px): titulo visible, navegacion que envuelve y chip del panel completo. Mismo prefijo :not(#id) que visual.css/usabilidad.css para ganar a sus !important. */
+@media (max-width: 600px) {
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar > .brand-group { min-width: 0 !important; max-width: 100%; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar .brand-text { display: flex !important; min-width: 0; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar .brand-text strong { font-size: 1.05rem !important; white-space: normal; line-height: 1.2; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar .brand-text .brand-sub { display: none; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar > .main-nav { flex: 1 1 100% !important; width: 100%; min-width: 0 !important; max-width: 100%; flex-wrap: wrap !important; overflow: visible !important; justify-content: flex-start !important; gap: 4px; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar > .main-nav .nav-item { min-height: 40px; padding: .3rem .6rem !important; font-size: .88rem !important; gap: .3rem; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body header.topbar > .main-nav .nav-item svg { width: 17px !important; height: 17px !important; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body .panel-barra > .btn-panel-toggle { flex: 1 1 100% !important; flex-wrap: wrap; justify-content: flex-start; height: auto; min-width: 0; max-width: 100%; row-gap: .3rem; white-space: normal; }
+    html:not(#sgl):not(#visual):not(#usabilidad) body .panel-barra > .btn-panel-toggle .panel-toggle-resumen { white-space: nowrap; }
+}
+
+/* Barra del listado: el buscador muestra «Buscar RUT o nombre» completo. */
+@media (min-width: 601px) {
+    html:not(#sgl):not(#visual):not(#usabilidad) body .panel-barra .panel-barra-buscador .busq-global { flex: 0 0 14rem !important; width: 14rem !important; }
+}

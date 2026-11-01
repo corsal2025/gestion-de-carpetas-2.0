@@ -1,0 +1,209 @@
+@* Panel de «Nos piden carpetas» para responder a la comuna que pidió la carpeta: «sin registro» (B, que antes ofrece corregir la
+   clasificación), «carpeta digital» (C) y la confirmación «ya se subió». El texto sale de la plantilla y se edita antes de enviar.
+   Todo correo sale por el servicio de comunas: en modo prueba va a la casilla de prueba, nunca a la comuna. *@
+@using Sgl.Application.CambioDomicilio
+@using Sgl.Domain
+@inject EntrantesService Entrantes
+@inject AutorState Autor
+@inject ILogger<NosPidenCorreoPanel> Logger
+
+<div class="np-panel" id="np-panel-@Prefijo" data-tipo="@Tipo">
+    @if (Tipo == TipoEnvioCorreoComuna.SinRegistro)
+    {
+        <section class="np-corregir" aria-labelledby="np-corregir-t-@Prefijo">
+            <h3 id="np-corregir-t-@Prefijo">1. ¿Era otra clasificación?</h3>
+            <p class="np-ayuda">Antes de decirle a la comuna que no hay registro, revise si era una primera licencia (o un canje) mal clasificada.</p>
+            <div class="np-fila">
+                <label>Clasificación correcta
+                    <select @bind="destino" id="np-destino-@Prefijo">
+                        @foreach (var d in EntrantesService.DestinosCorreccion)
+                        {
+                            <option value="@d">@Etiqueta(d)</option>
+                        }
+                    </select>
+                </label>
+                <label class="np-crece">Motivo
+                    <input type="text" @bind="motivo" @bind:event="oninput" maxlength="@Carpeta.MaxMotivoCorreccionLength" id="np-motivo-@Prefijo"
+                           placeholder="Ej.: era su primera licencia" />
+                </label>
+                <button type="button" class="btn-secondary" id="np-corregir-@Prefijo" disabled="@(ocupado || string.IsNullOrWhiteSpace(motivo))"
+                        @onclick="CorregirAsync">Corregir clasificación</button>
+            </div>
+        </section>
+    }
+
+    <section class="np-correo" aria-labelledby="np-correo-t-@Prefijo">
+        <h3 id="np-correo-t-@Prefijo">@TituloCorreo</h3>
+        @if (Modo is { } m)
+        {
+            <p class="np-modo @(m.EsPrueba ? "prueba" : "real")" id="np-modo-@Prefijo">
+                @if (m.EsPrueba)
+                {
+                    <span class="badge bad">PRUEBA</span>
+                    <span>@(m.CasillaDePrueba ? "El correo irá solo a la casilla de prueba, no a la comuna." : "No saldrá ningún correo del sistema: se simula y queda registrado.")</span>
+                }
+                else
+                {
+                    <span class="badge ok">ENVÍO REAL</span> <span>El correo saldrá a la comuna.</span>
+                }
+            </p>
+        }
+        @if (Tipo == TipoEnvioCorreoComuna.SinRegistro)
+        {
+            <label class="np-comuna">Comuna donde figura en SGL (opcional; si se llena, el correo lo dice)
+                <input type="text" @bind="comunaSgl" @bind:event="oninput" @bind:after="ActualizarVistaAsync" maxlength="60" id="np-comuna-sgl-@Prefijo"
+                       placeholder="Ej.: Viña del Mar" />
+            </label>
+        }
+        @if (cargando)
+        {
+            <div class="loading-state"><div class="spinner"></div><p>Preparando el correo…</p></div>
+        }
+        else
+        {
+            <label>Asunto
+                <input type="text" @bind="asunto" maxlength="200" id="np-asunto-@Prefijo" />
+            </label>
+            <label>Texto del correo (puede editarlo antes de enviar)
+                <textarea rows="11" @bind="cuerpo" @bind:event="oninput" @onchange="() => cuerpoEditado = true" id="np-cuerpo-@Prefijo"></textarea>
+            </label>
+        }
+        <div class="np-fila">
+            <button type="button" class="btn-primary" id="np-enviar-@Prefijo" disabled="@(ocupado || cargando || !Autor.HasNombre)" @onclick="EnviarAsync">@TextoBoton</button>
+            <button type="button" class="btn-small" @onclick="() => OnCerrar.InvokeAsync()">Cerrar</button>
+            @if (!Autor.HasNombre)
+            {
+                <span class="np-ayuda">Ingrese su nombre en «Funcionario» (arriba) para enviar.</span>
+            }
+        </div>
+        @if (error is not null)
+        {
+            <div class="alert error" role="alert" id="np-error-@Prefijo">@error</div>
+        }
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public EntranteDto Entrante { get; set; } = default!;
+
+    [Parameter, EditorRequired] public TipoEnvioCorreoComuna Tipo { get; set; }
+
+    [Parameter] public ModoEnvio? Modo { get; set; }
+
+    /// <summary>The request changed (mail sent / classification corrected): the host reloads and shows the message.</summary>
+    [Parameter] public EventCallback<string> OnHecho { get; set; }
+
+    [Parameter] public EventCallback OnCerrar { get; set; }
+
+    private string Prefijo => Entrante.Id.ToString("N")[..8];
+
+    private string asunto = string.Empty;
+    private string cuerpo = string.Empty;
+    private string comunaSgl = string.Empty;
+    private string motivo = string.Empty;
+    private EstadoCarpeta destino = EstadoCarpeta.PrimeraLicencia;
+    private bool cuerpoEditado;
+    private bool cargando = true;
+    private bool ocupado;
+    private string? error;
+    private Guid cargadoPara;
+
+    private string TituloCorreo => Tipo switch
+    {
+        TipoEnvioCorreoComuna.SinRegistro => "2. Si nada aplica: avisar a la comuna que no hay registro",
+        TipoEnvioCorreoComuna.Digital => "Avisar a la comuna que la carpeta es digital",
+        _ => "Confirmar a la comuna que la carpeta ya se subió",
+    };
+
+    private string TextoBoton => ocupado ? "Enviando…" : Modo is { EsPrueba: true } ? "Enviar (PRUEBA)" : "Enviar a la comuna";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (cargadoPara == Entrante.Id) return;
+        cargadoPara = Entrante.Id;
+        await ActualizarVistaAsync(forzar: true);
+    }
+
+    private static string Etiqueta(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.PrimeraLicencia => "1° licencia",
+        EstadoCarpeta.CanjeLicExtranjera => "Canje de licencia extranjera",
+        _ => Labels.Of(estado),
+    };
+
+    private Task ActualizarVistaAsync() => ActualizarVistaAsync(forzar: false);
+
+    private async Task ActualizarVistaAsync(bool forzar)
+    {
+        // A text the user already edited is not replaced just because the optional comuna changed.
+        if (!forzar && cuerpoEditado) return;
+        try
+        {
+            var vista = await Entrantes.VistaPreviaAsync(Entrante.Id, Tipo, comunaSgl);
+            if (forzar) asunto = vista.Asunto;
+            cuerpo = vista.Cuerpo;
+            error = null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo preparar el correo");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CorregirAsync()
+    {
+        if (ocupado) return;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.";
+            return;
+        }
+
+        ocupado = true;
+        error = null;
+        try
+        {
+            await Entrantes.CorregirClasificacionAsync(Entrante.Id, destino, motivo, Autor.Nombre);
+            await OnHecho.InvokeAsync($"{Entrante.NombreCompleto}: se corrigió la clasificación a «{Etiqueta(destino)}» y salió de «Nos piden carpetas».");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo corregir la clasificación");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private async Task EnviarAsync()
+    {
+        if (ocupado) return;
+        ocupado = true;
+        error = null;
+        try
+        {
+            var r = await Entrantes.ResponderAsync(Entrante.Id, Tipo, comunaSgl, asunto, cuerpo, Autor.Nombre);
+            if (r.Envio.Resultado is ResultadoEnvio.Enviado or ResultadoEnvio.YaEnviado)
+            {
+                await OnHecho.InvokeAsync($"{Entrante.NombreCompleto}: {r.Envio.Mensaje}");
+            }
+            else
+            {
+                error = r.Envio.Mensaje;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo enviar el correo");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+}

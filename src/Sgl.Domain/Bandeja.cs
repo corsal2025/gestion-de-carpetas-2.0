@@ -45,4 +45,7 @@ public enum Bandeja
     RevisionNoIdentificada = 23,
     /// <summary>Appointment still in the future: the person has not been evaluated yet.</summary>
     RevisionNoEvaluadas = 24,
+
+    /// <summary>Entrante change of address answered by email (no record / digital carpeta): closed, never boxed nor decided.</summary>
+    CambioDomCerradoEntrante = 25,
 }

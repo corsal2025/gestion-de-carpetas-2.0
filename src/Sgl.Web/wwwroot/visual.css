@@ -1,0 +1,393 @@
+/* Screen presentation shared by Blazor and Peticiones. Workflow and print styles stay separate. */
+@media screen {
+    html {
+        --bg-page: #f3f5f8;
+        --surface: #ffffff;
+        --surface-alt: #f7f9fc;
+        --surface-raised: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #475569;
+        --text-muted: #59697d;
+        --border-color: #d6dee8;
+        --border-hover: #a6b5c7;
+        --font-ui: 'Segoe UI', Arial, sans-serif;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 12px;
+        --th-radius: 8px;
+        --th-fs: 13px;
+        --th-bg: #243b63;
+        --th-accent: #38577f;
+        --th-sep: #48607f;
+        --ui-on-action: #fff;
+        font-size: 16px;
+    }
+    html[data-theme="dark"] {
+        --bg-page: #101827;
+        --surface: #192436;
+        --surface-alt: #202d41;
+        --surface-raised: #243249;
+        --text-primary: #edf2f9;
+        --text-secondary: #c4d0e0;
+        --text-muted: #aabbd0;
+        --border-color: #3a4a61;
+        --border-hover: #71859e;
+        --ui-on-action: #152238;
+    }
+
+    html:not(#sgl):not(#visual):not(#sistema) body {
+        background: var(--bg-page) !important;
+        color: var(--text-primary) !important;
+        font-family: var(--font-ui) !important;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body::before,
+    html:not(#sgl):not(#visual):not(#sistema) body::after { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(h1,h2,h3,h4) {
+        font-family: var(--font-ui) !important;
+        color: var(--text-primary) !important;
+        letter-spacing: -.025em !important;
+        background: none !important;
+        text-shadow: none !important;
+        border: 0;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body h1 {
+        font-size: 25px !important; font-weight: 700 !important; line-height: 1.25;
+        padding: 0 !important; margin: 0 0 16px !important; box-shadow: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body h1::after { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(h1,h2)[tabindex="-1"]:focus {
+        outline: none !important; box-shadow: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body h2 { font-size: 19px; line-height: 1.35; }
+    html:not(#sgl):not(#visual):not(#sistema) body h3 { font-size: 17px; line-height: 1.4; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.muted, .subtitle, .small, .text-muted, .np-ayuda, .est-nota, .imp-help, .imp-sedes) {
+        color: var(--text-secondary) !important; font-size: 14px !important; line-height: 1.6;
+    }
+
+    /* A compact, stable application frame. */
+    html:not(#sgl):not(#visual):not(#sistema) body .topbar {
+        display: flex; flex-wrap: wrap; align-items: center;
+        height: auto !important; min-height: 72px; gap: 12px 20px;
+        margin: 0 0 20px !important; padding: 12px 24px !important;
+        border: 0 !important; border-bottom: 1px solid var(--border-color) !important;
+        border-radius: 0 !important; background: var(--surface) !important;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        box-shadow: 0 1px 3px #0f172a06 !important; color: var(--text-primary) !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .brand { color: var(--text-primary) !important; gap: 12px; text-decoration: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .brand-mark {
+        width: 42px; height: 48px; background: transparent; border: 0; border-radius: 0; box-shadow: none;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .brand strong { font-family: var(--font-ui); font-size: 20px !important; line-height: 1.2; font-weight: 700; }
+    html:not(#sgl):not(#visual):not(#sistema) body .brand-sub { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .main-nav { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 auto; }
+    html:not(#sgl):not(#visual):not(#sistema) body .main-nav .nav-item {
+        padding: 8px 12px; min-height: 42px; border-radius: 6px !important;
+        color: var(--text-secondary) !important; font-size: 15px !important; font-weight: 600;
+        background: none; border: 0; box-shadow: none; white-space: nowrap;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .main-nav .nav-item.active { background: var(--brand-light) !important; color: var(--brand-primary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .topbar-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .busq-global { width: 230px; min-width: 210px; max-width: 100%; }
+    html:not(#sgl):not(#visual):not(#sistema) body .busq-global-input { width: 100% !important; padding: 10px 12px; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-guia-accion, .apariencia-menu > summary) {
+        border: 1px solid var(--border-color) !important; background: var(--surface) !important;
+        color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important;
+        box-shadow: none !important; border-radius: 6px !important; padding: 10px 12px !important;
+        font-size: 14px !important; font-weight: 600; white-space: nowrap;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.head-art, .imp-lico, .est-lico, .lico-empty) { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .apariencia-opciones { border-color: var(--border-color); box-shadow: 0 8px 28px #0f172a20; border-radius: 8px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modulo-shell { gap: 20px !important; padding: 0 24px 16px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modulos-sidebar {
+        background: var(--surface) !important; border: 1px solid var(--border-color) !important;
+        border-radius: 10px !important; box-shadow: none !important;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-grupo-titulo {
+        font-family: var(--font-ui) !important; font-size: 14px !important; line-height: 1.4;
+        padding: 10px !important; border-radius: 6px !important; font-weight: 600;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-modulo {
+        font-size: 14px !important; line-height: 1.4; min-height: 44px;
+        border-radius: 5px !important; padding: 8px 10px !important; box-shadow: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-modulo.activo { background: var(--brand-light) !important; border: 0 !important; box-shadow: inset 3px 0 var(--brand-primary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-contador { font-size: 12px !important; min-width: 24px; padding: 2px 6px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .footer { color: var(--text-muted); font-size: 12px; padding: 12px 24px; }
+
+    /* Surfaces and form controls. */
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.card, .sol-panel, .imp-panel, .nombre-modal, .modal-card, .drawer-panel, .integridad-regla) {
+        background: var(--surface) !important; color: var(--text-primary);
+        border: 1px solid var(--border-color) !important; border-radius: 10px !important;
+        box-shadow: 0 1px 3px #0f172a06 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.card, .sol-panel) { padding: 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea) {
+        box-sizing: border-box; border: 1px solid var(--border-hover) !important;
+        border-radius: 6px !important; background: var(--surface) !important; color: var(--text-primary) !important;
+        box-shadow: none !important; padding: 9px 12px !important; font-family: var(--font-ui) !important; font-size: 16px !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.form, .sol-form, .est-filtros) > label {
+        gap: 7px; font-size: 14px !important; font-weight: 600; text-transform: none !important; letter-spacing: 0;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .content > form.card.form { max-width: 1050px; margin: 0 auto; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px 24px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .content > form.card.form :is(.field, .actions, .error) { grid-column: 1 / -1; }
+    html:not(#sgl):not(#visual):not(#sistema) body .content:has(> form.card.form) > h1 { max-width: 1050px; margin: 0 auto 20px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .clases-selector { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .clases-selector label.clase-chip {
+        display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: flex-start;
+        gap: 8px; min-height: 44px; min-width: 70px; padding: 8px 12px !important; margin: 0;
+        border: 1px solid var(--border-color); border-radius: 6px !important; background: var(--surface); font-size: 15px !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .clase-chip.on { background: var(--brand-light) !important; border-color: var(--brand-primary) !important; color: var(--text-primary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(button, .button, .btn, .btn-primary, .btn-secondary) { font-family: var(--font-ui) !important; border-radius: 6px !important; text-shadow: none !important; box-shadow: none !important; letter-spacing: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-primary, .btn-nueva-barra, .clasif-guardar) { background: var(--brand-primary) !important; color: var(--ui-on-action) !important; -webkit-text-fill-color: var(--ui-on-action) !important; border: 1px solid transparent !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-secondary, .button.secondary, .tabla-maximizar) { background: var(--surface) !important; color: var(--text-primary) !important; border: 1px solid var(--border-hover) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(button, input, select, textarea, summary, a)[disabled] { opacity: .55; cursor: not-allowed; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.sol-filtros, .co-vistas, .np-pestanas, .pe-etapas) { gap: 6px; margin-bottom: 16px; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.sol-chip, .np-pestana, .pe-etapa) { border-radius: 6px !important; padding: 9px 14px; box-shadow: none !important; font-size: 14px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.sol-chip.activo, .np-pestana.activa, .pe-etapa.activa) { background: var(--brand-primary) !important; color: var(--ui-on-action) !important; border-color: var(--brand-primary) !important; }
+
+    /* Grid tables retain their spreadsheet structure and state colour option. */
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.table-container, .dup-scroll, .cajas-table-wrapper, .table-responsive) { border-radius: 8px !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; background: var(--surface) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body table > thead:not(.visually-hidden) > tr > th {
+        font-family: var(--font-ui) !important; font-size: 13px !important; font-weight: 600 !important; line-height: 1.35 !important;
+        letter-spacing: .025em !important; background: var(--th-bg) !important; color: white !important;
+        border-bottom: 1px solid var(--th-accent) !important; padding: 12px 10px !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table :is(td, .name-cell, .rut-cell, .sede-tag, .celda-editable-texto) { font-size: 15px !important; font-weight: 500 !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table td { padding: 7px 10px !important; }
+    html[data-rows="soft"]:not(#sgl):not(#visual):not(#sistema) body .data-table tbody tr:not(.fila-duplicada):not(.row-selected) > td { background: var(--surface) !important; color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important; }
+    html[data-rows="soft"]:not(#sgl):not(#visual):not(#sistema) body .data-table tbody tr:nth-child(even):not(.fila-duplicada):not(.row-selected) > td { background: var(--surface-alt) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table tbody tr:hover > td { box-shadow: inset 0 0 0 999px #64748b0a; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table :is(.badge, .sede-tag) { padding: 3px 7px !important; font-size: 12px !important; font-weight: 600 !important; line-height: 1.4; border-radius: 4px !important; }
+    html[data-rows="soft"]:not(#sgl):not(#visual):not(#sistema) body .data-table .sede-tag { background: var(--surface-alt) !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color); }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table :is(input,select,button,summary) { font-size: 14px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tabla-barra-vista { margin: 0 0 10px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tabla-maximizar { min-height: 40px; font-size: 14px !important; font-weight: 600; padding: 8px 12px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .clase-rapida-panel { padding: 14px; min-width: 280px; background: var(--surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 28px #0f172a25; }
+
+    /* Page-specific alignment, feedback, and empty states. */
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.modulo-barra, .integridad-cabecera, .asist-cabecera, .est-encabezado) { align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modulo-barra h1 { margin-bottom: 0 !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.empty-state, .loading-state) { padding: 36px 24px; border: 1px solid var(--border-color) !important; border-radius: 8px; background: var(--surface) !important; color: var(--text-secondary); text-align: center; box-shadow: none; min-height: 130px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .empty-state::before { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .ayuda-tarea { max-width: none; font-size: 14px; line-height: 1.6; padding: 12px 16px; border: 1px solid var(--border-color); border-left: 3px solid var(--brand-primary); }
+    html:not(#sgl):not(#visual):not(#sistema) body .listado-hero { padding: 14px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface); box-shadow: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .listado-hero::before { display: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .hero-titulo { font-size: 17px !important; margin: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .panel-barra { flex-wrap: wrap; gap: 10px; padding: 10px 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .panel-barra .busq-global { margin-left: auto; }
+    html:not(#sgl):not(#visual):not(#sistema) body .btn-panel-toggle { font-size: 13px !important; letter-spacing: 0; text-transform: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.np-banner, .pp-modo, .alert, .alert-banner, .ok-msg) { border-radius: 6px !important; box-shadow: none !important; padding: 12px 16px; font-size: 14px !important; line-height: 1.6; }
+    html:not(#sgl):not(#visual):not(#sistema) body .imp-hero { padding: 24px; display: block; }
+    html:not(#sgl):not(#visual):not(#sistema) body .imp-steps { margin: 20px 0 0; justify-content: flex-start; gap: 24px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drop-zone { padding: 28px !important; border: 2px dashed var(--border-hover) !important; border-radius: 8px !important; background: var(--surface-alt) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .imp-drop-ico { width: 44px; height: 44px; border-radius: 8px; font-size: 24px; box-shadow: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .est-kpi { background: var(--surface) !important; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: none; padding: 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .est-kpi::before { display: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .est-kpi-valor { font-size: 30px; line-height: 1.2; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.est-card h3,.est-card h2) { margin-top: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .firmantes .sol-form { gap: 16px 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .firmantes .sol-form label { flex: 1 1 240px; min-width: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .nombre-modal { padding: 28px; max-width: 480px; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.modal-card,.drawer-panel) { padding: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.actions,.nombre-modal-acciones) { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.modulo-barra, .sol-hero) {
+        background: transparent !important; border: 0 !important; border-radius: 0 !important;
+        box-shadow: none !important; padding: 0 !important; min-height: 44px;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.modulo-barra, .sol-hero)::before { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.sol-lico,.det-lico) { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sol-seg { background: transparent; border: 0; border-radius: 6px; box-shadow: none; padding: 0; gap: 6px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sol-seg-a { border-radius: 6px !important; padding: 10px 14px; border: 1px solid var(--border-color); background: var(--surface); color: var(--text-secondary); font-size: 14px; box-shadow: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sol-seg-a.on { background: var(--brand-primary); color: var(--ui-on-action); border-color: var(--brand-primary); }
+    html:not(#sgl):not(#visual):not(#sistema) body .kpi-card { border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface) !important; box-shadow: none !important; padding: 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .kpi-card::before { display: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .kpi-number { font-size: 30px; color: var(--text-primary); }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.kpi-icon,.search-icon) { display: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .kpi-label { font-size: 13px; color: var(--text-secondary); letter-spacing: 0; line-height: 1.5; }
+    html:not(#sgl):not(#visual):not(#sistema) body .cajas-tab-nav { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .cajas-tab-nav .tab-btn { border: 1px solid var(--border-color); background: var(--surface); color: var(--text-secondary); font-size: 14px !important; padding: 10px 14px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .cajas-tab-nav .tab-btn.active { background: var(--brand-primary); color: var(--ui-on-action); }
+    html:not(#sgl):not(#visual):not(#sistema) body .integridad-estado { border-radius: 8px; box-shadow: none; padding: 16px 20px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-hero { padding: 24px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-facts { gap: 16px 28px; padding-top: 16px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-facts dt { font-size: 12px; color: var(--text-secondary); }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-facts dd { font-size: 15px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .busq-global-panel { background: var(--surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 28px #0f172a25; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modal-overlay { padding: 24px; background: #0f172a80; backdrop-filter: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modal-card textarea { width: 100%; min-height: 140px; resize: vertical; }
+    html:not(#sgl):not(#visual):not(#sistema) body .cp-editor { gap: 24px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .cp-columna { min-width: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modal-card :is(label,p) { color: var(--text-secondary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.modal-card,.nombre-modal,.case-drawer)::before { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .obs-contador { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+    html:not(#sgl):not(#visual):not(#sistema) body .obs-contador.limite { color: var(--error); }
+    html:not(#sgl):not(#visual):not(#sistema) body .case-drawer {
+        width: min(620px, 100vw); background: var(--surface) !important; color: var(--text-primary);
+        border-left: 1px solid var(--border-color); box-shadow: -8px 0 32px #0f172a20;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-header { padding: 20px 24px; background: var(--surface); border-bottom: 1px solid var(--border-color); }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-title-name { font-size: 19px; line-height: 1.4; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-body { padding: 20px 24px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-section { padding: 16px 0; margin: 0; border-bottom: 1px solid var(--border-color); background: transparent; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-section {
+        border: 0 !important; border-bottom: 1px solid var(--border-color) !important;
+        border-radius: 0 !important; box-shadow: none !important; background: transparent !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-section-title { text-transform: none !important; margin: 0 0 16px; font-weight: 650; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-grid-2 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-field { min-width: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-field label { text-transform: none !important; font-size: 14px !important; font-weight: 600; line-height: 1.45; color: var(--text-secondary); letter-spacing: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-field :is(input:not([type=checkbox]),select) { width: 100%; min-width: 0; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-field .chk-existente { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .drawer-backdrop { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tabla-virtual .col-sticky-nombre { min-width: 16rem !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tabla-virtual .name-cell { word-break: normal !important; overflow-wrap: normal !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body.tabla-pantalla-completa :is(.modal-overlay,.drawer-backdrop.open) { z-index: 2147483700 !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body.tabla-pantalla-completa .case-drawer.open { z-index: 2147483800 !important; }
+
+    /* Consistent button states: material, depth and an unmistakable keyboard focus. */
+    html:not(#sgl):not(#visual):not(#sistema) body {
+        --action-bg: #224d7e; --action-hover: #183c66; --action-border: #193d65;
+        --action-ink: #fff; --control-shadow: 0 1px 2px #0f172a10;
+    }
+    html[data-theme="dark"]:not(#sgl):not(#visual):not(#sistema) body {
+        --action-bg: #a9cafa; --action-hover: #c5dcff; --action-border: #c5dcff;
+        --action-ink: #142a47; --control-shadow: 0 1px 2px #0003;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(button, .button, .btn, a.btn-primary, a.btn-secondary, .apariencia-menu > summary):not(.sidebar-grupo-titulo):not(.btn-obs-trigger):not(.sol-switch) {
+        border-radius: 8px !important; border: 1px solid var(--border-hover);
+        font-weight: 600; line-height: 1.35; min-height: 44px;
+        box-shadow: var(--control-shadow) !important;
+        transition: background-color .14s ease, border-color .14s ease, box-shadow .14s ease;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-primary, .btn-nueva-barra, .clasif-guardar, .actions > button:not(.secondary):not(.btn-secondary), .nombre-modal-acciones > button[type=submit]) {
+        background: var(--action-bg) !important; border: 1px solid var(--action-border) !important;
+        color: var(--action-ink) !important; -webkit-text-fill-color: var(--action-ink) !important;
+        box-shadow: inset 0 1px #ffffff24, 0 1px 2px #0f172a18 !important;
+        padding: 10px 16px !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-primary, .btn-nueva-barra, .clasif-guardar, .actions > button:not(.secondary):not(.btn-secondary)):hover:not(:disabled) {
+        background: var(--action-hover) !important; box-shadow: 0 2px 5px #0f172a20 !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(.btn-secondary, .button.secondary, .tabla-maximizar, .btn-guia-accion, .apariencia-menu > summary):hover:not(:disabled) {
+        background: var(--surface-alt) !important; border-color: var(--brand-primary) !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body :is(button, .button, .btn, summary):focus-visible {
+        outline: 3px solid #3380c9 !important; outline-offset: 3px;
+        box-shadow: 0 0 0 5px var(--surface) !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body button:active:not(:disabled) { box-shadow: inset 0 1px 3px #0f172a25 !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body button:disabled { box-shadow: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-grupo-titulo {
+        min-height: 54px; gap: 10px; border: 1px solid transparent !important;
+        box-shadow: none !important; background: transparent;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-grupo-titulo:hover { background: var(--surface-alt) !important; border-color: var(--border-color) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .sidebar-grupo-ico { width: 32px !important; height: 32px !important; flex: 0 0 32px; object-fit: contain; filter: none; }
+    html:not(#sgl):not(#visual):not(#sistema) body .modulos-sidebar.plegado .sidebar-grupo-titulo { padding: 6px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .guia-avatar {
+        display: inline-grid !important; place-items: center; width: 30px !important; height: 30px !important;
+        flex: 0 0 30px; margin: -5px 4px -5px -4px !important; padding: 0 !important;
+        border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: none !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .guia-avatar svg { width: 32px !important; height: 32px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .lico-svg .lico-cuerpo { animation-duration: 4s; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table :is(.btn-obs-trigger, .icono-buscar-dup) {
+        display: inline-grid; place-items: center; width: 44px !important; height: 44px !important;
+        min-width: 44px !important; max-width: 44px !important; flex: 0 0 44px !important;
+        padding: 0 !important; border: 1px solid var(--border-hover) !important; border-radius: 7px !important;
+        background: var(--surface) !important; color: var(--text-primary) !important; box-shadow: var(--control-shadow) !important;
+    }
+    html[data-rows="soft"]:not(#sgl):not(#visual):not(#sistema) body .data-table .fila-duplicada > td {
+        background: #fff1f2 !important; color: #842d3b !important; -webkit-text-fill-color: #842d3b !important;
+    }
+    html[data-theme="dark"][data-rows="soft"]:not(#sgl):not(#visual):not(#sistema) body .data-table .fila-duplicada > td {
+        background: #392431 !important; color: #ffd8de !important; -webkit-text-fill-color: #ffd8de !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-datos .form > label:first-child { grid-column: 1 / -1; }
+    html:not(#sgl):not(#visual):not(#sistema) body .det-datos .form > label > :is(input,select) { width: 100%; }
+    html:not(#sgl):not(#visual):not(#sistema) body .fila-clasificacion td:last-child > .clasif-cell {
+        display: inline-flex !important; width: auto !important; max-width: none !important; vertical-align: middle;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .fila-clasificacion .clasif-cell > select {
+        width: 12rem !important; max-width: 12rem !important; min-width: 12rem !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .fila-clasificacion .clasif-confirmacion {
+        display: inline-flex !important; width: auto !important; min-width: 0 !important;
+        margin: 0 0 0 6px !important; vertical-align: middle;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .fila-clasificacion .clasif-guardar { width: auto !important; min-width: 88px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table tbody tr.fila-duplicada > td { animation: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table .btn-obs-trigger svg { stroke: var(--text-primary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .data-table .btn-obs-trigger.has-obs svg { stroke: var(--brand-primary) !important; }
+    html[data-theme="dark"] { color-scheme: dark; }
+    html[data-theme="light"] { color-scheme: light; }
+    html:not(#sgl):not(#visual):not(#sistema) body .content table.table {
+        --bs-table-color: var(--text-primary); --bs-table-bg: var(--surface);
+        --bs-table-striped-bg: var(--surface-alt); --bs-table-hover-bg: var(--surface-alt);
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .content table.table td {
+        background: var(--surface) !important; color: var(--text-primary) !important;
+        border-color: var(--border-color) !important; padding: 12px;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .content table.table tbody th {
+        background: var(--surface-alt) !important; color: var(--text-primary) !important; border-color: var(--border-color) !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body #cfg-vista .bg-light { background: var(--surface-alt) !important; color: var(--text-primary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body #cfg-vista pre { color: var(--text-primary) !important; font-size: 15px; overflow-wrap: anywhere; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-card {
+        background: var(--surface) !important; color: var(--text-primary) !important;
+        border: 1px solid var(--border-color) !important; border-radius: 12px !important;
+        box-shadow: 0 16px 48px #0f172a30 !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-card::before { display: none !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-card-texto { background: var(--surface-alt) !important; border-radius: 8px !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-card-desc { color: var(--text-secondary) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-card .tour-mascota { width: 104px; flex: 0 0 104px; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-paso-badge { background: var(--action-bg) !important; color: var(--action-ink) !important; }
+    html:not(#sgl):not(#visual):not(#sistema) body .tour-btn-siguiente {
+        background: var(--action-bg) !important; color: var(--action-ink) !important; border-color: var(--action-border) !important;
+    }
+    html:not(#sgl):not(#visual):not(#sistema) body .clase-rapida-listo {
+        background: var(--action-bg) !important; color: var(--action-ink) !important;
+        -webkit-text-fill-color: var(--action-ink) !important; border-color: var(--action-border) !important;
+        min-height: 44px !important; padding: 10px 16px !important;
+    }
+
+    @media (max-width: 1200px) {
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar { gap: 10px 16px; padding: 12px 16px !important; }
+        html:not(#sgl):not(#visual):not(#sistema) body .main-nav { margin-left: auto; margin-right: 0; }
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar-tools { flex-basis: 100%; }
+    }
+    @media (max-width: 900px) {
+        html:not(#sgl):not(#visual):not(#sistema) body .modulo-shell { padding: 0 16px 16px !important; gap: 12px !important; }
+        html:not(#sgl):not(#visual):not(#sistema) body .modulos-sidebar:not(.plegado) { width: 100%; }
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar-tools { justify-content: flex-start; }
+        html:not(#sgl):not(#visual):not(#sistema) body .asist-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+        html:not(#sgl):not(#visual):not(#sistema) body .brand strong { font-size: 18px !important; }
+        html:not(#sgl):not(#visual):not(#sistema) body .main-nav { width: 100%; justify-content: flex-start; margin: 0; }
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar .main-nav { order: 2; }
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar-tools { order: 3; width: 100%; }
+        html:not(#sgl):not(#visual):not(#sistema) body .busq-global { width: 100% !important; min-width: 0 !important; flex: 1 1 100%; }
+        html:not(#sgl):not(#visual):not(#sistema) body .topbar-tools .busq-global-input { width: 100% !important; max-width: none !important; min-width: 0 !important; }
+        html:not(#sgl):not(#visual):not(#sistema) body .content > form.card.form { grid-template-columns: 1fr; }
+        html:not(#sgl):not(#visual):not(#sistema) body :is(.modulo-barra,.integridad-cabecera,.asist-cabecera,.est-encabezado) { flex-direction: column; }
+        html:not(#sgl):not(#visual):not(#sistema) body :is(.modulo-barra,.integridad-cabecera,.asist-cabecera,.est-encabezado) > * { flex-basis: auto !important; flex-grow: 0 !important; }
+        html:not(#sgl):not(#visual):not(#sistema) body .modulo-busqueda { width: 100%; align-items: center; }
+        html:not(#sgl):not(#visual):not(#sistema) body .modulo-busqueda input { height: 44px !important; min-width: 0; }
+        html:not(#sgl):not(#visual):not(#sistema) body :is(.est-kpis,.det-grid) { grid-template-columns: 1fr; }
+        html:not(#sgl):not(#visual):not(#sistema) body .drawer-grid-2 { grid-template-columns: 1fr; }
+        html:not(#sgl):not(#visual):not(#sistema) body .imp-steps { gap: 8px; flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        html:not(#sgl):not(#visual):not(#sistema) body *, html:not(#sgl):not(#visual):not(#sistema) body *::before { animation: none !important; transition: none !important; }
+    }
+}

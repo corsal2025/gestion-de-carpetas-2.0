@@ -36,7 +36,7 @@ public sealed class SolicitudesF8Service(
         try
         {
             var carpeta = await LoadActivaAsync(carpetaId, ct);
-            var resultado = await SolicitudF8Creacion.SolicitarAsync(solicitudes, carpeta.Id, carpeta.Estado, autor, Now, ct);
+            var resultado = await SolicitudF8Creacion.SolicitarAsync(solicitudes, carpeta.Id, carpeta.Estado, carpeta.SentidoCambioDomicilio, autor, Now, ct);
             if (resultado.Creada)
             {
                 carpeta.RegistrarEvento("F8", null, "Solicitado", autor, Now);
@@ -148,6 +148,12 @@ public sealed class SolicitudesF8Service(
             }
 
             solicitud.MarcarNoSeGenero(autor, now, observacion);
+            // An F8 asked from a search tray leaves the carpeta in Archivos / Of. 43: it passes through
+            // "No existe carpeta" (audited) because those states never jump straight to Crear certificado.
+            if (Carpeta.PermiteBusquedaPendiente(carpeta.Estado))
+            {
+                carpeta.ForzarEstado(EstadoCarpeta.NoExisteCarpeta, autor, now);
+            }
             carpeta.ForzarEstado(EstadoCarpeta.CrearCertificado, autor, now);
             carpeta.RegistrarEvento("F8", EstadoSolicitudF8.Solicitado.ToString(), EstadoSolicitudF8.NoSeGenero.ToString(), autor, now);
 
@@ -224,7 +230,7 @@ public sealed class SolicitudesF8Service(
 internal static class SolicitudF8Creacion
 {
     public static async Task<SolicitarF8Resultado> SolicitarAsync(
-        ISolicitudF8Repository solicitudes, Guid carpetaId, EstadoCarpeta estadoOrigen, string autor, DateTime now, CancellationToken ct)
+        ISolicitudF8Repository solicitudes, Guid carpetaId, EstadoCarpeta estadoOrigen, SentidoCambioDomicilio? sentido, string autor, DateTime now, CancellationToken ct)
     {
         var abierta = await solicitudes.GetAbiertaPorCarpetaAsync(carpetaId, ct);
         if (abierta is not null)
@@ -232,7 +238,7 @@ internal static class SolicitudF8Creacion
             return new SolicitarF8Resultado(abierta.Id, false, true, "Ya existe una solicitud de F8 abierta para esta carpeta.");
         }
 
-        var nueva = SolicitudF8.Solicitar(carpetaId, estadoOrigen, autor, now);
+        var nueva = SolicitudF8.Solicitar(carpetaId, estadoOrigen, autor, now, sentido);
         await solicitudes.AddAsync(nueva, ct);
         return new SolicitarF8Resultado(nueva.Id, true, false, null);
     }

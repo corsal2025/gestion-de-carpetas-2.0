@@ -284,16 +284,38 @@ public sealed class ExcelImportService(
                         // Citada nunca es destino (un estado vacío se lee como "Citada" y no debe sacar una carpeta de
                         // Por clasificar); un estado atrasado o inalcanzable no se aplica y se cuenta. Una decisión
                         // en blanco no borra la ya tomada.
-                        if (estado != EstadoCarpeta.Citada && EsAvance(carpetaExistente.Estado, estado))
+                        //
+                        // Carga histórica exenta de IPermisos: la planilla maestra es el registro de lo ya decidido, así
+                        // que una decisión final (Otorgado / Denegado) se aplica por Carpeta.AplicarCargaHistorica, que deja
+                        // «Origen: Importación Excel» en el historial. La planilla no trae una fecha de otorgamiento (su
+                        // columna «subida» es la fecha de subida a Conaset), por eso FechaOtorgamiento se deja en null y no
+                        // se inventa; cualquier otra transición sigue por ForzarEstado, que rechaza estados finales.
+                        EstadoCarpeta? estadoFinalHistorico = null;
+                        // «Subido con correo» exige el pantallazo del pedido: la planilla solo lo aplica si la carpeta ya está «Solicitada».
+                        // Lo que la planilla trae dentro de la familia de cambio de domicilio es saliente (personas de la agenda).
+                        var saltaLaPrueba = estado == EstadoCarpeta.CambioDomSubidoCorreo && carpetaExistente.Estado != EstadoCarpeta.CambioDomicilioSolicitado;
+                        if (estado != EstadoCarpeta.Citada && !saltaLaPrueba && EsAvance(carpetaExistente.Estado, estado) && Carpeta.PermiteForzar(carpetaExistente.Estado, estado, carpetaExistente.SentidoCambioDomicilio))
                         {
-                            carpetaExistente.ForzarEstado(estado, usuario, now);
+                            if (EstadoTransitions.DecisionFor(estado) == Decision.Pendiente)
+                            {
+                                carpetaExistente.ForzarEstado(estado, usuario, now, SentidoCambioDomicilio.Saliente);
+                            }
+                            else
+                            {
+                                estadoFinalHistorico = estado;
+                            }
                         }
                         else if (!string.IsNullOrWhiteSpace(rawEstado) && estado != carpetaExistente.Estado)
                         {
                             estadosNoAplicados++;
                         }
 
-                        if (decision != Decision.Pendiente) carpetaExistente.CambiarDecision(decision, usuario, now);
+                        if (decision != Decision.Pendiente || estadoFinalHistorico is not null)
+                        {
+                            carpetaExistente.AplicarCargaHistorica(estadoFinalHistorico, decision, null, usuario, now);
+                        }
+                        // The upload date only fills a gap: one already registered (by hand or by an earlier load) is never overwritten.
+                        if (fechaSubida is { } subidaLeida) carpetaExistente.CompletarFechaSubida(subidaLeida, usuario, now);
                         if (!string.IsNullOrEmpty(comuna)) carpetaExistente.AsignarComuna(comuna, usuario, now);
                         if (!string.IsNullOrEmpty(fechaUltimaCarpeta)) carpetaExistente.ModificarFechaUltimaCarpeta(fechaUltimaCarpeta, usuario, now);
                         if (!string.IsNullOrEmpty(obs)) carpetaExistente.ModificarObservacion(obs, usuario, now);
@@ -512,7 +534,7 @@ public sealed class ExcelImportService(
                 if (txt.Contains("ATENC")) continue;
                 if (txt.Contains("RUT")) colRut = c;
                 else if (txt.Contains("CITAC")) colCitacion = c;
-                else if (txt.Contains("SUBID")) colSubida = c;
+                else if (txt.Contains("SUBID") || txt.Contains("SUBIO")) colSubida = c; // «SUBIDA…» y el real «FECHA CUANDO SE SUBIO LA CARPETA»
                 else if (txt.Contains("ULTIM") || txt.Contains("ÚLTIM")) colUltima = c;
                 else if (txt.Contains("NOMBRE COMPLETO") || txt.Contains("CIUDADANO")) colCompleto = c;
                 else if (txt.Contains("NOMBRE")) colNombre = c;

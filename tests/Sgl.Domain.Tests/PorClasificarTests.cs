@@ -51,11 +51,14 @@ public class PorClasificarTests
     {
         var c = NuevaDesdeAgenda();
 
-        c.Clasificar(destino, ClaseLicencia.B, null, null, "javiera", Now);
+        // La comuna es obligatoria en los destinos de cambio de domicilio y se rechaza en los demás.
+        var comuna = Carpeta.EsCambioDomicilio(destino) ? "VIÑA DEL MAR" : null;
+
+        c.Clasificar(destino, ClaseLicencia.B, null, comuna, "Funcionaria Prueba", Now);
 
         Assert.Equal(destino, c.Estado);
         Assert.NotEqual(Bandeja.PorClasificar, c.Bandeja);
-        Assert.Contains(c.Historial, h => h.Campo == "Estado" && h.Anterior == "PorClasificar" && h.Nuevo == destino.ToString() && h.Usuario == "javiera");
+        Assert.Contains(c.Historial, h => h.Campo == "Estado" && h.Anterior == "PorClasificar" && h.Nuevo == destino.ToString() && h.Usuario == "Funcionaria Prueba");
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // CambiarDecisionAsync es obsoleta para la interfaz; estas pruebas la siguen cubriendo.
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
 
@@ -179,9 +180,18 @@ public sealed class DuplicadosServiceTests : IDisposable
     [Fact]
     public async Task ObtenerDetalle_returns_rich_info_per_open_carpeta_including_last_movement()
     {
-        var conCaja = await Registrar(RutA);
         await Registrar(RutA, Sede.Placilla);
-        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(conCaja, "CAJA 7", "beto"));
+        // Caja heredada (importada): una asignación nueva exige decisión final y la carpeta dejaría de estar abierta.
+        Guid conCaja;
+        await using (var ctx = _db.NewContext())
+        {
+            var persona = ctx.Ciudadanos.AsEnumerable().First(c => c.Rut.Value == RutA.Replace(".", ""));
+            var heredada = Carpeta.CrearImportada(Guid.NewGuid(), persona, Sede.AvArgentina, new DateOnly(2026, 5, 4), null, null, EstadoCarpeta.Citada, Decision.Pendiente, null, null, "CAJA 7", null, _db.Clock.GetUtcNow().UtcDateTime);
+            heredada.AsignarClases(ClaseLicencia.B, "beto", _db.Clock.GetUtcNow().UtcDateTime);
+            ctx.Carpetas.Add(heredada);
+            await ctx.SaveChangesAsync();
+            conCaja = heredada.Id;
+        }
         var row = Assert.Single((await _db.NewDuplicadosService().ListarAsync(new ListarDuplicadosQuery())).Items);
 
         var detalle = await _db.NewDuplicadosService().ObtenerDetalleCarpetasAsync(row.CiudadanoId);

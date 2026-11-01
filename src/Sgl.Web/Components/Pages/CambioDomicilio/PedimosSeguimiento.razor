@@ -1,0 +1,396 @@
+@page "/cambio-domicilio/pedimos/seguimiento"
+@layout ModuloLayout
+@using Sgl.Application.CambioDomicilio
+@inject SeguimientoService Seguimiento
+@inject ICorreoComunas Correo
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+@inject ILogger<PedimosSeguimiento> Logger
+
+<PageTitle>@TituloPagina.De("Seguimiento de carpetas pedidas")</PageTitle>
+
+<div class="page-container sg-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Pedimos carpetas <span class="muted">· Seguimiento @(todas?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
+    </div>
+
+    <PedimosEtapas EtapaActual="PedimosEtapas.Etapa.Seguimiento" Refresco="refresco" />
+    <AvisoSoloPrueba ConEnlace="false" Refresco="refresco" />
+
+    <p class="sg-ayuda">
+        Carpetas ya pedidas, de la que vence antes a la que vence después (15 días hábiles desde la cita; volver a pedir no reinicia el plazo).
+        Revise cada RUT en Conaset: si la otra comuna ya la subió, marque <b>Ya subida</b>; si venció, <b>Subir prueba</b> con el pantallazo del correo.
+    </p>
+
+    @if (!Autor.HasNombre)
+    {
+        <div class="alert warning" role="alert">Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.</div>
+    }
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert" id="sg-error">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status" id="sg-mensaje">
+            @mensaje
+            @if (deshacer is not null)
+            {
+                <button type="button" class="btn-small" id="sg-deshacer" disabled="@ocupado" @onclick="DeshacerAsync">Deshacer</button>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    <div class="sol-filtros sg-filtros" role="group" aria-label="Filtros del seguimiento">
+        @foreach (var (valor, etiqueta) in Filtros)
+        {
+            <button type="button" class="sol-chip @(filtro == valor ? "activo" : "")" id="sg-filtro-@valor.ToString().ToLowerInvariant()"
+                    aria-pressed="@(filtro == valor ? "true" : "false")" @onclick="() => filtro = valor">
+                @etiqueta <span class="sg-n">@Contar(valor).ToString("N0", Cultura)</span></button>
+        }
+    </div>
+
+    @if (todas is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando el seguimiento…</p></div>
+    }
+    else if (todas.Count == 0)
+    {
+        <div class="empty-state" id="sg-vacio">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay carpetas pedidas esperando a otra comuna.</p>
+        </div>
+    }
+    else if (Visibles.Count == 0)
+    {
+        <div class="empty-state" id="sg-sin-resultados"><p>Ninguna carpeta cumple este filtro.</p></div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table sg-tabla" id="sg-tabla">
+                <thead>
+                    <tr>
+                        <th>PLAZO</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th>ACCIÓN</th>
+                        <th>COMUNA Y CORREOS</th>
+                        <th>PANTALLAZO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Visibles)
+                    {
+                        <tr @key="f.Id" class="sg-fila sg-@ClasePlazo(f.Plazo)" data-plazo="@ClasePlazo(f.Plazo)" data-carpeta="@f.Id">
+                            <td>
+                                <span class="badge @InsigniaPlazo(f.Plazo) sg-plazo" title="Vence el @f.Vence.ToString("dd-MM-yyyy")">@TextoPlazo(f)</span>
+                                <div class="sg-vence">@f.Vence.ToString("dd-MM-yyyy")</div>
+                                <div class="sg-cita" title="Inicio del trámite: el plazo cuenta desde la cita">cita @f.FechaCitacion.ToString("dd-MM-yyyy")</div>
+                            </td>
+                            <td class="col-sticky-nombre">
+                                <CeldaCarpeta CarpetaId="f.Id" Valor="@f.NombreCompleto" CssClass="name-cell" OnGuardado="CargarAsync" />
+                            </td>
+                            <td class="date-cell col-sticky-rut">
+                                <CeldaCarpeta CarpetaId="f.Id" Valor="@f.Rut" EsRut="true" OnGuardado="CargarAsync" />
+                                <button type="button" class="btn-small sg-copiar" title="Copiar el RUT para pegarlo en Conaset" aria-label="Copiar el RUT de @f.NombreCompleto"
+                                        @onclick="() => CopiarRutAsync(f.Rut)">Copiar</button>
+                            </td>
+                            <td class="action-cell">
+                                <div class="sg-acciones">
+                                    <button type="button" class="btn-decision btn-enviar" disabled="@ocupado" title="La otra comuna ya la subió a Conaset (revisado por RUT)"
+                                            data-accion="ya-subida" @onclick="() => YaSubidaAsync(f)">Ya subida</button>
+                                    <button type="button" class="btn-decision btn-secondary @(Abierta(f, Accion.VolverAPedir) ? "activa" : "")" disabled="@ocupado"
+                                            title="Reenviar el correo de pedido a la comuna (el plazo no cambia)" data-accion="volver-a-pedir"
+                                            @onclick="() => Abrir(f, Accion.VolverAPedir)">Volver a pedir</button>
+                                    <button type="button" class="btn-decision btn-secondary @(Abierta(f, Accion.SubirPrueba) ? "activa" : "")" disabled="@(ocupado || SinPantallazoEnModoPrueba(f))" aria-describedby="@(SinPantallazoEnModoPrueba(f) ? $"sg-motivo-{f.Id}" : null)"
+                                            title="@(SinPantallazoEnModoPrueba(f) ? "En modo prueba no se generan pantallazos: la prueba solo se sube con envío real." : "Subir el pantallazo del correo como prueba y marcar «subido con correo»")" data-accion="subir-prueba"
+                                            @onclick="() => Abrir(f, Accion.SubirPrueba)">Subir prueba</button>
+                                    @if (SinPantallazoEnModoPrueba(f))
+                                    {
+                                        <span class="sg-motivo" id="sg-motivo-@f.Id">Sin pantallazo: modo prueba, solo se sube con envío real.</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <b><CeldaCarpeta CarpetaId="f.Id" Valor="@(string.IsNullOrWhiteSpace(f.Comuna) ? "—" : f.Comuna)" EsComuna="true" OnGuardado="CargarAsync" /></b>
+                                @if (f.Envios == 0)
+                                {
+                                    <div class="sg-vence">sin correo registrado</div>
+                                }
+                                else
+                                {
+                                    <div class="sg-vence">@f.Envios correo(s)@(f.UltimoEnvioEn is { } ultimo ? $" · último {HoraChile.ALocal(ultimo):dd-MM-yyyy HH:mm}" : string.Empty)</div>
+                                    @if (f.SoloPrueba)
+                                    {
+                                        <span class="badge bad" title="Todos sus correos fueron de prueba: la comuna no recibió nada">PRUEBA</span>
+                                    }
+                                }
+                            </td>
+                            <td>
+                                @if (f.EnvioPantallazoId is { } envio)
+                                {
+                                    <a class="sg-descarga" href="@PantallazosEndpoint.RutaDe(envio)" data-enhance-nav="false" download="pantallazo"
+                                       title="Descargar la imagen del correo enviado">Descargar</a>
+                                    @if (f.PantallazoDePrueba)
+                                    {
+                                        <span class="badge bad" title="El pantallazo es de un correo de prueba">PRUEBA</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge warn" title="Falta pegar el pantallazo de su correo">Falta</span>
+                                }
+                            </td>
+                        </tr>
+                        @if (accion is { } a && a.Id == f.Id)
+                        {
+                            <tr class="sg-detalle" @key="@($"{f.Id}-panel")">
+                                <td colspan="6">
+                                    @if (a.Tipo == Accion.VolverAPedir)
+                                    {
+                                        <div class="sg-panel" id="sg-panel-volver">
+                                            <span>
+                                                Se enviará <b>de nuevo</b> el correo de pedido a <b>@(f.Comuna ?? "la comuna")</b>, solo por <b>@f.NombreCompleto</b>.
+                                                El plazo <b>no</b> se reinicia: sigue contando desde la cita.
+                                                @if (modo is { EsPrueba: true })
+                                                {
+                                                    <span class="badge bad">PRUEBA</span> <span>@(modo.CasillaDePrueba ? "Irá solo a la casilla de prueba." : "No saldrá nada del sistema: se simula y queda registrado.")</span>
+                                                }
+                                                else if (modo is not null)
+                                                {
+                                                    <span class="badge ok">ENVÍO REAL</span> <span>Saldrá a la comuna.</span>
+                                                }
+                                            </span>
+                                            <button type="button" class="btn-primary" id="sg-confirmar-volver" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => VolverAPedirAsync(f)">Enviar de nuevo</button>
+                                            <button type="button" class="btn-small" @onclick="() => accion = null">Cancelar</button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="sg-panel" id="sg-panel-prueba">
+                                            @if (f.EnvioPantallazoId is { } envioPrueba)
+                                            {
+                                                <span>
+                                                    <b>1.</b> Descargue el pantallazo del correo
+                                                    <a class="btn-small" href="@PantallazosEndpoint.RutaDe(envioPrueba)" data-enhance-nav="false" download="pantallazo">Descargar pantallazo</a>
+                                                    @if (f.PantallazoDePrueba)
+                                                    {
+                                                        <span class="badge bad" title="Es la captura de un correo de prueba, que no llegó a la comuna">PRUEBA</span>
+                                                    }
+                                                    <b>2.</b> súbalo como prueba a la plataforma. <b>3.</b> Marque aquí que ya lo subió.
+                                                </span>
+                                                <button type="button" class="btn-primary" id="sg-confirmar-prueba" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => SubirPruebaAsync(f)">Ya la subí: marcar «subido con correo»</button>
+                                            }
+                                            else
+                                            {
+                                                <span class="sg-sin-pantallazo" id="sg-sin-pantallazo">
+                                                    Todavía no hay pantallazo del correo de esta carpeta: sin él no se puede subir la prueba.
+                                                    <a href="cambio-domicilio/pedimos/pantallazos">Pegarlo en Pantallazos pendientes</a>
+                                                </span>
+                                            }
+                                            <button type="button" class="btn-small" @onclick="() => accion = null">Cerrar</button>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private enum Accion { VolverAPedir, SubirPrueba }
+
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly (FiltroSeguimiento Valor, string Etiqueta)[] Filtros =
+    [
+        (FiltroSeguimiento.Todas, "Todas"),
+        (FiltroSeguimiento.VencenHoy, "Vencen hoy"),
+        (FiltroSeguimiento.Vencidas, "Vencidas"),
+        (FiltroSeguimiento.SoloPrueba, "Solo envíos de prueba"),
+    ];
+
+    [SupplyParameterFromQuery(Name = "filtro")] public string? FiltroConsulta { get; set; }
+
+    private IReadOnlyList<SeguimientoDto>? todas;
+    private ModoEnvio? modo;
+    private FiltroSeguimiento filtro = FiltroSeguimiento.Todas;
+    private (Guid Id, Accion Tipo)? accion;
+    private (Guid Id, CambioRealizado Cambio)? deshacer;
+    private bool ocupado;
+    private int refresco;
+    private string? error;
+    private string? mensaje;
+
+    private IReadOnlyList<SeguimientoDto> Visibles => todas?.Where(f => f.Cumple(filtro)).ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        filtro = FiltroConsulta?.ToLowerInvariant() switch
+        {
+            "prueba" => FiltroSeguimiento.SoloPrueba,
+            "hoy" => FiltroSeguimiento.VencenHoy,
+            "vencidas" => FiltroSeguimiento.Vencidas,
+            _ => FiltroSeguimiento.Todas,
+        };
+        await CargarAsync();
+    }
+
+    private int Contar(FiltroSeguimiento valor) => todas?.Count(f => f.Cumple(valor)) ?? 0;
+
+    /// <summary>Test mode sends nothing real, so no screenshot exists to attach: «Subir prueba» would lead nowhere.</summary>
+    private bool SinPantallazoEnModoPrueba(SeguimientoDto f) => f.EnvioPantallazoId is null && modo is { EnvioReal: false };
+
+    private bool Abierta(SeguimientoDto f, Accion tipo) => accion is { } a && a.Id == f.Id && a.Tipo == tipo;
+
+    private void Abrir(SeguimientoDto f, Accion tipo) => accion = Abierta(f, tipo) ? null : (f.Id, tipo);
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            modo = await Correo.ObtenerModoAsync();
+            todas = await Seguimiento.ListarAsync();
+            if (accion is { } a && todas.All(f => f.Id != a.Id)) accion = null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar el seguimiento");
+            todas ??= [];
+        }
+    }
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        deshacer = null;
+    }
+
+    private void AvisarCambio()
+    {
+        refresco++;
+        _ = Modulos.RefrescarAsync();
+        DuplicadosNotifier.Notify();
+    }
+
+    private async Task EjecutarAsync(Func<Task> trabajo, string contexto)
+    {
+        if (ocupado) return;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.";
+            return;
+        }
+
+        error = null;
+        mensaje = null;
+        deshacer = null;
+        ocupado = true;
+        try
+        {
+            await trabajo();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, contexto);
+            await CargarAsync();
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private Task YaSubidaAsync(SeguimientoDto f) => EjecutarAsync(async () =>
+    {
+        var cambio = await Seguimiento.YaSubidaAsync(f.Id, Autor.Nombre);
+        accion = null;
+        mensaje = $"{f.NombreCompleto}: pasó a «Cambio dom. subido a Conaset».";
+        deshacer = (f.Id, cambio);
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo marcar como subida");
+
+    private Task SubirPruebaAsync(SeguimientoDto f) => EjecutarAsync(async () =>
+    {
+        var cambio = await Seguimiento.SubirPruebaAsync(f.Id, Autor.Nombre);
+        accion = null;
+        mensaje = $"{f.NombreCompleto}: pasó a «Cambio dom. subido con correo».";
+        deshacer = (f.Id, cambio);
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo subir la prueba");
+
+    private Task VolverAPedirAsync(SeguimientoDto f) => EjecutarAsync(async () =>
+    {
+        var r = await Seguimiento.VolverAPedirAsync(f.Id, Autor.Nombre);
+        accion = null;
+        deshacer = null;
+        if (r.Resultado == ResultadoEnvio.Enviado)
+        {
+            mensaje = $"{f.NombreCompleto}: pedido enviado de nuevo a {r.Comuna}{(r.Simulado ? " (PRUEBA: simulado, no salió ningún correo)" : r.EsPrueba ? " (PRUEBA: fue a la casilla de prueba, no a la comuna)" : string.Empty)}. El plazo no cambió.";
+        }
+        else
+        {
+            error = r.Mensaje;
+        }
+
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo volver a pedir");
+
+    private async Task DeshacerAsync()
+    {
+        if (deshacer is not { } d) return;
+        await EjecutarAsync(async () =>
+        {
+            await Seguimiento.DeshacerAsync(d.Id, d.Cambio, Autor.Nombre);
+            deshacer = null;
+            mensaje = "Deshecho: la carpeta volvió a «Solicitado».";
+            await CargarAsync();
+            AvisarCambio();
+        }, "No se pudo deshacer");
+    }
+
+    private async Task CopiarRutAsync(string rut)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("copyRutCasChile", rut);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // El navegador no dejó copiar: el RUT sigue visible en la tabla.
+        }
+    }
+
+    private static string ClasePlazo(PlazoColor p) => p switch
+    {
+        PlazoColor.Rojo => "rojo",
+        PlazoColor.Amarillo => "amarillo",
+        _ => "verde",
+    };
+
+    private static string InsigniaPlazo(PlazoColor p) => p switch
+    {
+        PlazoColor.Rojo => "bad",
+        PlazoColor.Amarillo => "warn",
+        _ => "ok",
+    };
+
+    private static string TextoPlazo(SeguimientoDto f) => f.DiasRestantes switch
+    {
+        < 0 => $"VENCIDA hace {-f.DiasRestantes} d",
+        0 => "VENCE HOY",
+        1 => "Vence mañana",
+        _ => $"Vence en {f.DiasRestantes} d",
+    };
+}

@@ -1,0 +1,12 @@
+.np-panel { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0.3rem; max-width: 52rem; }
+.np-panel section { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.8rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface); }
+.np-panel h3 { margin: 0; font-size: 1rem; }
+.np-panel label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--text-secondary); }
+.np-panel input:not([type="checkbox"]), .np-panel select, .np-panel textarea { font: inherit; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; min-width: 0; }
+.np-panel textarea { resize: vertical; line-height: 1.45; }
+.np-panel input:focus-visible, .np-panel select:focus-visible, .np-panel textarea:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.np-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.7rem; }
+.np-crece { flex: 1; min-width: 14rem; }
+.np-ayuda { margin: 0; font-size: 0.83rem; color: var(--text-muted); }
+.np-modo { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.88rem; }
+.np-panel { text-align: left; }

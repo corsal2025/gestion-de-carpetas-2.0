@@ -27,6 +27,8 @@ public sealed partial class Carpeta
             or EstadoCarpeta.SubidaConOficio
             or EstadoCarpeta.CambioDomSubidoConaset
             or EstadoCarpeta.CambioDomSubidoCorreo
+            or EstadoCarpeta.CambioDomSinRegistro
+            or EstadoCarpeta.CambioDomCarpetaDigital
             or EstadoCarpeta.CrearCertificado
             or EstadoCarpeta.Otorgado
             or EstadoCarpeta.Denegado;
@@ -45,6 +47,10 @@ public sealed partial class Carpeta
         LimpiarPeticionSiEntraACertificado(usuario, now);
         LimpiarPendienteBusquedaSiCorresponde(usuario, now);
         LimpiarImpresionSiCorresponde(usuario, now);
+        if (nuevo != EstadoCarpeta.CambioDomicilio)
+        {
+            LimpiarPendienteReclasificacion(usuario, now);
+        }
 
         var decision = EstadoTransitions.DecisionFor(nuevo);
         if (decision != Decision)
@@ -115,14 +121,15 @@ public sealed partial class Carpeta
 
     /// <summary>The values a state change may alter, captured before it to be able to undo it.</summary>
     public PuntoRestauracionEstado PuntoRestauracion() =>
-        new(Estado, Decision, FechaSubida, FechaCierre, FechaEstadoActual, PendienteBusqueda, FechaImpresion, FechaPeticion);
+        new(Estado, Decision, FechaSubida, FechaCierre, FechaEstadoActual, PendienteBusqueda, FechaImpresion, FechaPeticion, CarpetaEncontrada, Resolucion, FechaOtorgamiento, SentidoCambioDomicilio, PendienteReclasificacion);
 
     /// <summary>
     /// Undoes a state change: returns the carpeta to <paramref name="punto"/> (state and every side effect of the
     /// change). Refused when the state is no longer <paramref name="estadoEsperado"/> — someone changed it again and
-    /// that newer decision must not be overwritten.
+    /// that newer decision must not be overwritten. A late undo also never reverts a final decision taken after the point
+    /// was captured; only the undo of the «Otorgamiento» action itself (<paramref name="permiteDeshacerDecision"/>) may.
     /// </summary>
-    public void RestaurarEstado(PuntoRestauracionEstado punto, EstadoCarpeta estadoEsperado, string autor, DateTime now)
+    public void RestaurarEstado(PuntoRestauracionEstado punto, EstadoCarpeta estadoEsperado, string autor, DateTime now, bool permiteDeshacerDecision = false)
     {
         ArgumentNullException.ThrowIfNull(punto);
         RequireActiva();
@@ -130,6 +137,10 @@ public sealed partial class Carpeta
         if (Estado != estadoEsperado)
         {
             throw new DomainException("La carpeta cambió de estado después de ese movimiento: ya no se puede deshacer.");
+        }
+        if (!permiteDeshacerDecision && Decision != Decision.Pendiente && punto.Decision == Decision.Pendiente)
+        {
+            throw new DomainException("La carpeta ya tiene una decisión final: no se puede deshacer ese movimiento.");
         }
 
         Audit(now, usuario, nameof(Estado), Estado.ToString(), punto.Estado.ToString());
@@ -151,11 +162,7 @@ public sealed partial class Carpeta
             Audit(now, usuario, nameof(FechaCierre), Format(FechaCierre), Format(punto.FechaCierre));
             FechaCierre = punto.FechaCierre;
         }
-        if (PendienteBusqueda != punto.PendienteBusqueda)
-        {
-            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(PendienteBusqueda), SiNo(punto.PendienteBusqueda));
-            PendienteBusqueda = punto.PendienteBusqueda;
-        }
+        FijarMarcas(punto.PendienteBusqueda, punto.CarpetaEncontrada, usuario, now);
         if (FechaImpresion != punto.FechaImpresion)
         {
             Audit(now, usuario, nameof(FechaImpresion), FormatImpresion(FechaImpresion), FormatImpresion(punto.FechaImpresion));
@@ -167,14 +174,43 @@ public sealed partial class Carpeta
             FechaPeticion = punto.FechaPeticion;
         }
 
+        if (FechaOtorgamiento != punto.FechaOtorgamiento)
+        {
+            Audit(now, usuario, nameof(FechaOtorgamiento), Format(FechaOtorgamiento), Format(punto.FechaOtorgamiento));
+            FechaOtorgamiento = punto.FechaOtorgamiento;
+        }
+        if (Resolucion != punto.Resolucion)
+        {
+            Audit(now, usuario, nameof(Resolucion), Resolucion?.ToString(), punto.Resolucion?.ToString());
+            Resolucion = punto.Resolucion;
+        }
+
+        if (SentidoCambioDomicilio != punto.Sentido)
+        {
+            Audit(now, usuario, CampoDireccion, SentidoCambioDomicilio?.ToString(), punto.Sentido?.ToString());
+            SentidoCambioDomicilio = punto.Sentido;
+        }
+
+        if (PendienteReclasificacion != punto.PendienteReclasificacion)
+        {
+            Audit(now, usuario, CampoReclasificacion, PendienteReclasificacion ? "pendiente" : null, punto.PendienteReclasificacion ? "pendiente" : null);
+            PendienteReclasificacion = punto.PendienteReclasificacion;
+        }
+
         Audit(now, usuario, "Deshacer", null, $"Estado revertido a {punto.Estado}");
     }
 
     // ---- Clasificación por fecha (R6) ----
 
-    /// <summary>"Buscar carpeta física": Archivos before 2023-07-01, Of. 43 from then on; null without a readable date.</summary>
+    /// <summary>"Buscar carpeta física": Archivos before 2023-07-01, Of. 43 until the digital cut-off; null without a readable date or for a digital carpeta (no paper).</summary>
     public static EstadoCarpeta? DestinoPorFechaUltimaCarpeta(string? fechaUltimaCarpeta) =>
-        SectorFisico.Calcular(fechaUltimaCarpeta) switch
+        DestinoPorFechaUltimaCarpeta(fechaUltimaCarpeta, SectorFisico.Corte);
+
+    public static EstadoCarpeta? DestinoPorFechaUltimaCarpeta(string? fechaUltimaCarpeta, DateOnly corte) =>
+        DestinoPorFechaUltimaCarpeta(fechaUltimaCarpeta, corte, SectorFisico.CorteDigital);
+
+    public static EstadoCarpeta? DestinoPorFechaUltimaCarpeta(string? fechaUltimaCarpeta, DateOnly corte, DateOnly corteDigital) =>
+        SectorFisico.Calcular(fechaUltimaCarpeta, corte, corteDigital) switch
         {
             SectorFisico.Archivo => EstadoCarpeta.SeEncuentraEnArchivos,
             SectorFisico.Oficina43 => EstadoCarpeta.SeEncuentraEnOf43,
@@ -224,4 +260,9 @@ public sealed record PuntoRestauracionEstado(
     DateTime FechaEstadoActual,
     bool PendienteBusqueda,
     DateTime? FechaImpresion,
-    DateTime? FechaPeticion = null);
+    DateTime? FechaPeticion = null,
+    bool CarpetaEncontrada = false,
+    Resolucion? Resolucion = null,
+    DateOnly? FechaOtorgamiento = null,
+    SentidoCambioDomicilio? Sentido = null,
+    bool PendienteReclasificacion = false);

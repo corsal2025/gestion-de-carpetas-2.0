@@ -1,0 +1,300 @@
+@page "/cambio-domicilio/reclasificacion"
+@layout ModuloLayout
+@using Sgl.Application.CambioDomicilio
+@inject ReclasificacionService Servicio
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject ILogger<Reclasificacion> Logger
+
+<PageTitle>@TituloPagina.De("Reclasificación")</PageTitle>
+
+<div class="page-container rc-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Reclasificación <span class="muted">· Por confirmar @(items?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
+    </div>
+
+    <p class="rc-ayuda">
+        Toda carpeta que entra a «Cambios de domicilio» pasa primero por aquí. Confirme que la clasificación es correcta para que siga a
+        «Pedimos carpetas · Por pedir» (salientes) o a «Nos piden carpetas» (entrantes). Si está mal clasificada, use «Corregir clasificación».
+    </p>
+
+    @if (!Autor.HasNombre)
+    {
+        <div class="alert warning" role="alert">Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.</div>
+    }
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status" id="rc-mensaje">
+            @mensaje
+            @if (deshacer is not null)
+            {
+                <button type="button" class="btn-small" id="rc-deshacer" disabled="@ocupado" @onclick="DeshacerAsync">Deshacer</button>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando las carpetas por confirmar…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state" id="rc-vacio">
+            <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+            <p>No hay carpetas pendientes de reclasificación.</p>
+        </div>
+    }
+    else
+    {
+        <div class="rc-barra" role="group" aria-label="Confirmación masiva">
+            <button type="button" class="btn-primary" id="rc-confirmar-seleccion" disabled="@(ocupado || seleccion.Count == 0 || !Autor.HasNombre)"
+                    @onclick="ConfirmarSeleccionAsync">Confirmar seleccionadas (@seleccion.Count.ToString("N0", Cultura))</button>
+            @if (confirmandoTodas)
+            {
+                <span class="rc-confirmar">Se confirmarán las @items.Count.ToString("N0", Cultura) carpetas de la lista. ¿Continuar?</span>
+                <button type="button" class="btn-decision btn-enviar" id="rc-confirmar-todas-si" disabled="@(ocupado || !Autor.HasNombre)" @onclick="ConfirmarTodasAsync">Sí, confirmar todas</button>
+                <button type="button" class="btn-small" @onclick="() => confirmandoTodas = false">Cancelar</button>
+            }
+            else
+            {
+                <button type="button" class="btn-secondary" id="rc-confirmar-todas" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => confirmandoTodas = true">Confirmar todas (@items.Count.ToString("N0", Cultura))</button>
+            }
+        </div>
+
+        <div class="table-container">
+            <table class="data-table bandeja-table rc-tabla" id="rc-tabla">
+                <thead>
+                    <tr>
+                        <th class="rc-col-sel"><input type="checkbox" aria-label="Seleccionar todas" checked="@(seleccion.Count == items.Count)" @onchange="e => AlternarTodas((bool)(e.Value ?? false))" /></th>
+                        <th>SENTIDO</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th>COMUNA</th>
+                        <th>SEDE</th>
+                        <th>CITA / CORREO</th>
+                        <th>LLEGÓ A LA ETAPA</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in items)
+                    {
+                        <tr class="rc-fila" data-id="@f.Id">
+                            <td class="rc-col-sel"><input type="checkbox" aria-label="Seleccionar a @f.NombreCompleto" checked="@seleccion.Contains(f.Id)" @onchange="e => Alternar(f.Id, (bool)(e.Value ?? false))" /></td>
+                            <td><span class="badge @(f.Sentido == SentidoCambioDomicilio.Saliente ? "warn" : "ok")">@(f.Sentido == SentidoCambioDomicilio.Saliente ? "Saliente" : "Entrante")</span></td>
+                            <td class="col-sticky-nombre"><CeldaCarpeta CarpetaId="f.Id" Valor="@f.NombreCompleto" CssClass="name-cell" OnGuardado="CargarAsync" /></td>
+                            <td class="date-cell col-sticky-rut"><CeldaCarpeta CarpetaId="f.Id" Valor="@f.Rut" EsRut="true" OnGuardado="CargarAsync" /></td>
+                            <td><b><CeldaCarpeta CarpetaId="f.Id" Valor="@(string.IsNullOrWhiteSpace(f.Comuna) ? "—" : f.Comuna)" EsComuna="true" OnGuardado="CargarAsync" /></b></td>
+                            <td>@f.Sede</td>
+                            <td class="date-cell">@f.FechaCitacion.ToString("dd-MM-yyyy")</td>
+                            <td class="date-cell">@f.LlegadaEn.ToString("dd-MM-yyyy")</td>
+                            <td>
+                                <div class="rc-acciones">
+                                    <button type="button" class="btn-decision btn-enviar" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => ConfirmarUnaAsync(f)">Confirmar</button>
+                                    <button type="button" class="btn-secondary" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => AbrirCorreccion(f)">Corregir clasificación</button>
+                                </div>
+                            </td>
+                        </tr>
+                        @if (corrigiendoId == f.Id)
+                        {
+                            <tr class="rc-detalle">
+                                <td colspan="9">
+                                    <div class="rc-corregir" id="rc-panel-corregir">
+                                        <fieldset class="rc-opciones">
+                                            <legend>¿Dónde va realmente esta carpeta?</legend>
+                                            @foreach (var d in ReclasificacionService.DestinosDe(f.Sentido))
+                                            {
+                                                <label class="rc-opcion"><input type="radio" name="rc-destino" checked="@(destino == d)" @onchange="() => destino = d" /> @DetalleDestino(d)</label>
+                                            }
+                                        </fieldset>
+                                        @if (destino is EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43)
+                                        {
+                                            <label>Fecha de la última carpeta (dd-mm-aaaa)
+                                                <input id="rc-in-fecha" maxlength="10" @bind="fechaUltima" @bind:event="oninput" placeholder="dd-mm-aaaa" /></label>
+                                            @if (PistaSector() is { } pista) { <p class="rc-ayuda">@pista</p> }
+                                        }
+                                        <label>Motivo (opcional, queda en el historial)
+                                            <input id="rc-in-motivo" maxlength="@Carpeta.MaxMotivoCorreccionLength" @bind="motivo" @bind:event="oninput" /></label>
+                                        <div class="rc-acciones">
+                                            <button type="button" class="btn-primary" id="rc-mover" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => CorregirAsync(f)">Mover la carpeta</button>
+                                            <button type="button" class="btn-small" @onclick="() => corrigiendoId = null">Cancelar</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private IReadOnlyList<ReclasificacionDto>? items;
+    private readonly HashSet<Guid> seleccion = [];
+    private bool ocupado;
+    private bool confirmandoTodas;
+    private string? error;
+    private string? mensaje;
+    private (Guid Id, CambioRealizado Cambio)? deshacer;
+
+    private Guid? corrigiendoId;
+    private EstadoCarpeta destino = EstadoCarpeta.PrimeraLicencia;
+    private string motivo = string.Empty;
+    private string fechaUltima = string.Empty;
+
+    protected override Task OnInitializedAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            items = await Servicio.ListarAsync();
+            seleccion.IntersectWith(items.Select(f => f.Id));
+            if (corrigiendoId is { } id && items.All(f => f.Id != id)) corrigiendoId = null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar Reclasificación");
+            items ??= [];
+        }
+    }
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        deshacer = null;
+    }
+
+    private void AvisarCambio()
+    {
+        _ = Modulos.RefrescarAsync();
+        DuplicadosNotifier.Notify();
+    }
+
+    private async Task EjecutarAsync(Func<Task> accion, string contexto)
+    {
+        if (ocupado) return;
+        error = null;
+        ocupado = true;
+        try
+        {
+            await accion();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, contexto);
+            await CargarAsync();
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private void Alternar(Guid id, bool marcada)
+    {
+        if (marcada) seleccion.Add(id);
+        else seleccion.Remove(id);
+    }
+
+    private void AlternarTodas(bool marcadas)
+    {
+        seleccion.Clear();
+        if (marcadas && items is not null)
+        {
+            foreach (var f in items) seleccion.Add(f.Id);
+        }
+    }
+
+    private Task ConfirmarUnaAsync(ReclasificacionDto f) => ConfirmarAsync([f.Id], $"{f.NombreCompleto}: clasificación confirmada.");
+
+    private Task ConfirmarSeleccionAsync() =>
+        ConfirmarAsync(seleccion.ToList(), $"{seleccion.Count} carpeta(s) confirmadas.");
+
+    private Task ConfirmarTodasAsync()
+    {
+        var ids = (items ?? []).Select(f => f.Id).ToList();
+        return ConfirmarAsync(ids, $"{ids.Count} carpeta(s) confirmadas.");
+    }
+
+    private Task ConfirmarAsync(IReadOnlyCollection<Guid> ids, string texto)
+    {
+        if (ids.Count == 0 || !Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            confirmandoTodas = false;
+            await Servicio.ConfirmarAsync(ids, Autor.Nombre);
+            mensaje = $"{texto} Siguen a su etapa.";
+            deshacer = null;
+            seleccion.Clear();
+            await CargarAsync();
+            AvisarCambio();
+        }, "No se pudo confirmar");
+    }
+
+    private void AbrirCorreccion(ReclasificacionDto f)
+    {
+        corrigiendoId = f.Id;
+        destino = ReclasificacionService.DestinosDe(f.Sentido)[0];
+        motivo = string.Empty;
+        fechaUltima = f.FechaUltimaCarpeta is { } iso && DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? d.ToString("dd-MM-yyyy") : f.FechaUltimaCarpeta ?? string.Empty;
+    }
+
+    private Task CorregirAsync(ReclasificacionDto f)
+    {
+        if (!Autor.HasNombre) return Task.CompletedTask;
+        return EjecutarAsync(async () =>
+        {
+            var cambio = await Servicio.CorregirAsync(f.Id, destino, motivo, fechaUltima, Autor.Nombre);
+            mensaje = $"{f.NombreCompleto}: movida a «{EtiquetaDestino(cambio.EstadoNuevo)}». Salió de Reclasificación y el motivo quedó en su historial.";
+            deshacer = (f.Id, cambio);
+            corrigiendoId = null;
+            await CargarAsync();
+            AvisarCambio();
+        }, "No se pudo corregir la clasificación");
+    }
+
+    private async Task DeshacerAsync()
+    {
+        if (deshacer is not { } d) return;
+        await EjecutarAsync(async () =>
+        {
+            await Servicio.DeshacerAsync(d.Id, d.Cambio, Autor.Nombre);
+            mensaje = "Se deshizo la corrección: la carpeta volvió a «Reclasificación».";
+            deshacer = null;
+            await CargarAsync();
+            AvisarCambio();
+        }, "No se pudo deshacer");
+    }
+
+    private static string EtiquetaDestino(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.PrimeraLicencia => "1° licencia",
+        EstadoCarpeta.SeEncuentraEnArchivos => "Se encuentra en Archivos",
+        EstadoCarpeta.SeEncuentraEnOf43 => "Se encuentra en Of. 43",
+        EstadoCarpeta.CanjeLicExtranjera => "Canje de licencia extranjera",
+        _ => Labels.Of(estado),
+    };
+
+    private static string DetalleDestino(EstadoCarpeta estado) => estado switch
+    {
+        EstadoCarpeta.SeEncuentraEnArchivos => $"Archivos: última carpeta anterior al {SectorFisico.Corte:dd-MM-yyyy}",
+        EstadoCarpeta.SeEncuentraEnOf43 => $"Of. 43: última carpeta desde el {SectorFisico.Corte:dd-MM-yyyy}",
+        _ => EtiquetaDestino(estado),
+    };
+
+    private string? PistaSector() =>
+        Carpeta.DestinoPorFechaUltimaCarpeta(fechaUltima) is { } sector
+            ? $"Con esa fecha la carpeta física está en {(sector == EstadoCarpeta.SeEncuentraEnArchivos ? "Archivos" : "Of. 43")}."
+            : null;
+}

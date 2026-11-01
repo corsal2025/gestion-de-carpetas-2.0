@@ -1,0 +1,418 @@
+@page "/asistencia"
+@layout ModuloLayout
+@using Sgl.Application.Asistencias
+@inject AsistenciaService Servicio
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+@inject ILogger<AsistenciaDelDia> Logger
+
+<PageTitle>@TituloPagina.De("Asistencia del día")</PageTitle>
+
+<div class="modulo-scroll asistencia">
+    <header class="asist-cabecera">
+        <h1>Asistencia del día</h1>
+        <div class="asist-contadores" aria-live="polite">
+            <span class="asist-contador">Agendadas hoy <b>@resumen.Contadores.AgendadasHoy.ToString("N0")</b></span>
+            <span class="asist-contador">Vinieron <b>@resumen.Contadores.Vinieron.ToString("N0")</b></span>
+            <span class="asist-contador">Extras <b>@resumen.Contadores.Extras.ToString("N0")</b></span>
+        </div>
+    </header>
+
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status">@mensaje <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensaje = null">✕</button></div>
+    }
+
+    <div class="asist-grid">
+        <section class="card asist-card" aria-label="Buscador">
+            <form @onsubmit="BuscarAsync" @onsubmit:preventDefault>
+                <label for="asist-rut">RUT de la persona (del papel de las digitadoras)</label>
+                <div class="asist-fila">
+                    <input id="asist-rut" @ref="rutInput" class="asist-rut" value="@rutTexto" @oninput="AlEscribir"
+                           inputmode="text" autocomplete="off" maxlength="12" placeholder="12.345.678-5" />
+                    <button type="submit" class="btn-primary" disabled="@ocupado">Buscar</button>
+                </div>
+                <p class="asist-pista @pistaClase" id="asist-pista">@pista</p>
+            </form>
+
+            @if (busqueda is { } b)
+            {
+                <div class="asist-resultado">
+                    <div class="asist-persona">
+                        @if (b.Existe || b.Nombre is not null)
+                        {
+                            <b>@b.Nombre</b>
+                            <span>@b.Rut</span>
+                        }
+                        else
+                        {
+                            <b>No hay nadie con el RUT @b.Rut</b>
+                            <span>Ni con cita hoy ni con carpetas anteriores. Si firmó el papel, agréguela como extra.</span>
+                        }
+                    </div>
+
+                    <div class="asist-bloque">
+                        <h2>Cita de hoy</h2>
+                        @if (b.CitaHoy is { } cita)
+                        {
+                            <div class="asist-item">
+                                <div class="asist-item-texto">
+                                    <span>@(cita.Hora is { } h ? h.ToString("HH:mm") + " · " : "")@Labels.Of(cita.Sede)</span>
+                                    <small>@(cita.Tramite ?? "Sin trámite") · @Etiqueta(cita.Bandeja)</small>
+                                </div>
+                                @if (b.Marcada is { } m)
+                                {
+                                    <span class="badge ok">Vino ✓ @m.Hora.ToString("HH:mm")</span>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn-primary asist-vino" disabled="@ocupado" @onclick="() => VinoAsync(b)">Vino</button>
+                                }
+                            </div>
+                        }
+                        else if (b.Marcada is { } extra)
+                        {
+                            <span class="badge ok">Agregada hoy ✓ @extra.Hora.ToString("HH:mm")</span>
+                        }
+                        else
+                        {
+                            <p class="muted">No tiene cita agendada hoy.</p>
+                            @if (b.TieneCarpetaAbierta)
+                            {
+                                <p class="muted">Ya tiene una carpeta abierta: no se agrega como extra para no duplicarla. Ábrala desde «Otras carpetas de esta persona».</p>
+                            }
+                            else
+                            {
+                            <form class="asist-extra" @onsubmit="() => ExtraAsync(b)" @onsubmit:preventDefault>
+                                @if (!b.Existe)
+                                {
+                                    <label class="asist-ancho">Nombre completo (como está en el papel)
+                                        <input @ref="nombreInput" @bind="nombreExtra" maxlength="@(Ciudadano.MaxNameLength * 2)" autocomplete="off" required />
+                                    </label>
+                                }
+                                <label>Sede
+                                    <select @bind="sedeExtra">
+                                        @foreach (var s in Enum.GetValues<Sede>())
+                                        {
+                                            <option value="@s">@Labels.Of(s)</option>
+                                        }
+                                    </select>
+                                </label>
+                                <label>Trámite
+                                    <select @bind="tramiteExtra">
+                                        @foreach (var t in TramitesExtra.Opciones)
+                                        {
+                                            <option value="@t.Texto">@t.Texto</option>
+                                        }
+                                    </select>
+                                </label>
+                                <button type="submit" class="btn-primary asist-ancho" disabled="@ocupado">Agregar como extra</button>
+                            </form>
+                            }
+                        }
+
+                        @if (b.Marcada is null)
+                        {
+                            @if (b.PorAgregar is not null)
+                            {
+                                <span class="badge warn">Ya está en «Por agregar»</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => DejarAsync(b)"
+                                        title="La X del papel: la persona queda en la lista «Por agregar» para resolverla después">Dejar para después</button>
+                            }
+                        }
+                    </div>
+
+                    <div class="asist-bloque">
+                        <h2>Otras carpetas de esta persona</h2>
+                        @if (b.Otras.Count == 0)
+                        {
+                            <p class="muted">@(b.Existe ? "Ninguna más." : "Ninguna. Es su primera carpeta en el sistema.")</p>
+                        }
+                        else
+                        {
+                            @foreach (var o in b.Otras)
+                            {
+                                <div class="asist-item">
+                                    <div class="asist-item-texto">
+                                        <span>@Etiqueta(o)</span>
+                                    </div>
+                                    <a class="btn-detail" href="@($"carpetas/{o.Id}")">Abrir carpeta →</a>
+                                </div>
+                            }
+                            @if (b.Otras.Count + (b.CitaHoy is null ? 0 : 1) >= BusquedaGlobal.Limite)
+                            {
+                                <p class="muted">Se muestran las primeras @BusquedaGlobal.Limite carpetas.</p>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </section>
+
+        <aside class="asist-lateral">
+            <section class="card asist-card" aria-label="Marcados hoy">
+                <h2>Marcados hoy</h2>
+                @if (resumen.Marcados.Count == 0)
+                {
+                    <p class="muted">Todavía no hay nadie marcado.</p>
+                }
+                else
+                {
+                    <ul class="asist-lista">
+                        @foreach (var m in resumen.Marcados)
+                        {
+                            <li>
+                                <div class="asist-item-texto">
+                                    @if (m.CarpetaId is { } carpetaM && m.Nombre is not null)
+                                    {
+                                        <b><CeldaCarpeta CarpetaId="carpetaM" Valor="@m.Nombre" OnGuardado="RecargarListasAsync" /></b>
+                                        <small><CeldaCarpeta CarpetaId="carpetaM" Valor="@m.Rut" EsRut="true" OnGuardado="RecargarListasAsync" /> · @Labels.Of(m.Sede) · @m.Hora.ToString("HH:mm")</small>
+                                    }
+                                    else
+                                    {
+                                        <b>@(m.Nombre ?? m.Rut)</b>
+                                        <small>@m.Rut · @Labels.Of(m.Sede) · @m.Hora.ToString("HH:mm")</small>
+                                    }
+                                </div>
+                                <div class="asist-acciones">
+                                    @if (m.Tipo == TipoAsistencia.Extra)
+                                    {
+                                        <span class="badge extra">Extra</span>
+                                    }
+                                    <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => DeshacerAsync(m)">Deshacer</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            <section class="card asist-card" aria-label="Por agregar">
+                <h2>Por agregar <span class="muted">· @resumen.PorAgregar.Count</span></h2>
+                @if (resumen.PorAgregar.Count == 0)
+                {
+                    <p class="muted">Nadie queda para después.</p>
+                }
+                else
+                {
+                    <ul class="asist-lista">
+                        @foreach (var p in resumen.PorAgregar)
+                        {
+                            <li>
+                                <div class="asist-item-texto">
+                                    @if (p.CarpetaId is { } carpetaP && p.Nombre is not null)
+                                    {
+                                        <b><CeldaCarpeta CarpetaId="carpetaP" Valor="@p.Nombre" OnGuardado="RecargarListasAsync" /></b>
+                                        <small><CeldaCarpeta CarpetaId="carpetaP" Valor="@p.Rut" EsRut="true" OnGuardado="RecargarListasAsync" /> · @Labels.Of(p.Sede) · @p.Fecha.ToString("dd-MM-yyyy")</small>
+                                    }
+                                    else
+                                    {
+                                        <b>@(p.Nombre ?? p.Rut)</b>
+                                        <small>@p.Rut · @Labels.Of(p.Sede) · @p.Fecha.ToString("dd-MM-yyyy")</small>
+                                    }
+                                </div>
+                                <div class="asist-acciones">
+                                    <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => ResolverAsync(p)">Resolver</button>
+                                    <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => DeshacerAsync(p)">Quitar</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </aside>
+    </div>
+</div>
+
+@code {
+    private ElementReference rutInput;
+    private ElementReference nombreInput;
+    private bool enfocarNombre;
+    private ResumenAsistenciaDto resumen = new(new ContadoresAsistenciaDto(0, 0, 0), [], []);
+    private BusquedaAsistenciaDto? busqueda;
+    private string rutTexto = string.Empty;
+    private string pista = Pista;
+    private string pistaClase = "muted";
+    private string? error;
+    private string? mensaje;
+    private bool ocupado;
+    private string nombreExtra = string.Empty;
+    private Sede sedeExtra = Sede.AvArgentina;
+    private string tramiteExtra = TramitesExtra.Opciones[0].Texto;
+
+    private const string Pista = "Escriba solo los números y la letra final: los puntos y el guion se ponen solos. Luego Enter.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { resumen = await Servicio.ObtenerResumenAsync(); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { error = ErroresUi.Mensaje(ex, Logger, "Error al cargar la asistencia del día"); }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                await rutInput.FocusAsync();
+            }
+            else if (enfocarNombre)
+            {
+                enfocarNombre = false;
+                await nombreInput.FocusAsync();
+            }
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or TaskCanceledException)
+        {
+            // page left (or form gone) before the focus: nothing to do
+        }
+    }
+
+    private void AlEscribir(ChangeEventArgs e)
+    {
+        var anterior = rutTexto;
+        rutTexto = Rut.FormatearEntrada(e.Value?.ToString());
+        if (rutTexto != anterior)
+        {
+            busqueda = null;
+        }
+
+        var digitos = rutTexto.Count(char.IsAsciiLetterOrDigit);
+        if (digitos < 8)
+        {
+            pista = Pista;
+            pistaClase = "muted";
+            return;
+        }
+
+        var problema = Rut.Validar(rutTexto, out _);
+        pista = problema ?? "RUT válido.";
+        pistaClase = problema is null ? "ok" : "bad";
+    }
+
+    private async Task BuscarAsync()
+    {
+        error = null;
+        mensaje = null;
+        // The check digit is verified here first: a wrong one shows the error and nothing is searched.
+        if (Rut.Validar(rutTexto, out _) is { } problema)
+        {
+            pista = problema;
+            pistaClase = "bad";
+            busqueda = null;
+            await EnfocarAsync();
+            return;
+        }
+
+        await EjecutarAsync(async () =>
+        {
+            busqueda = await Servicio.BuscarAsync(rutTexto);
+            pista = "RUT válido.";
+            pistaClase = "ok";
+            if (busqueda.CitaHoy is { } cita) sedeExtra = cita.Sede;
+            nombreExtra = string.Empty;
+            // A RUT not in the system needs the name typed: the cursor goes there instead of back to the RUT.
+            enfocarNombre = busqueda is { Existe: false, CitaHoy: null, Marcada: null };
+        });
+    }
+
+    private Task VinoAsync(BusquedaAsistenciaDto b) => EjecutarAsync(async () =>
+    {
+        var fila = await Servicio.MarcarVinoAsync(b.Rut, Autor.Nombre);
+        await RefrescarAsync(b.Rut);
+        mensaje = $"Marcado: {fila.Nombre ?? fila.Rut}. Listo para el siguiente RUT.";
+    });
+
+    private Task ExtraAsync(BusquedaAsistenciaDto b) => EjecutarAsync(async () =>
+    {
+        var fila = await Servicio.AgregarExtraAsync(new AgregarExtraCommand(b.Rut, nombreExtra, sedeExtra, tramiteExtra, Autor.Nombre));
+        await RefrescarAsync(b.Rut);
+        nombreExtra = string.Empty;
+        DuplicadosNotifier.Notify();
+        mensaje = $"Agregada como extra: {fila.Nombre ?? fila.Rut}. Queda en Por clasificar.";
+    });
+
+    private Task DejarAsync(BusquedaAsistenciaDto b) => EjecutarAsync(async () =>
+    {
+        var sede = b.CitaHoy?.Sede ?? sedeExtra;
+        await Servicio.DejarParaDespuesAsync(b.Rut, sede, Autor.Nombre);
+        await RefrescarAsync(b.Rut);
+        mensaje = "Quedó en «Por agregar».";
+    });
+
+    private Task DeshacerAsync(AsistenciaDto fila) => EjecutarAsync(async () =>
+    {
+        await Servicio.DeshacerAsync(fila.Id, Autor.Nombre);
+        await RefrescarAsync(busqueda?.Rut);
+        DuplicadosNotifier.Notify();
+        mensaje = fila.Tipo == TipoAsistencia.PorAgregar ? "Quitada de «Por agregar»." : "Marca deshecha.";
+    });
+
+    private Task ResolverAsync(AsistenciaDto fila)
+    {
+        rutTexto = Rut.FormatearEntrada(fila.Rut);
+        return BuscarAsync();
+    }
+
+    /// <summary>A name or RUT was corrected in a list: reloads the lists; the search result on screen may carry the old RUT, so it is cleared.</summary>
+    private async Task RecargarListasAsync()
+    {
+        try
+        {
+            resumen = await Servicio.ObtenerResumenAsync();
+            busqueda = null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "Error al recargar la asistencia del día");
+        }
+    }
+
+    /// <summary>Reloads counters and lists, and the result on screen when it is still the same RUT.</summary>
+    private async Task RefrescarAsync(string? rutEnPantalla)
+    {
+        resumen = await Servicio.ObtenerResumenAsync();
+        busqueda = rutEnPantalla is null ? null : await Servicio.BuscarAsync(rutEnPantalla);
+    }
+
+    private async Task EjecutarAsync(Func<Task> accion)
+    {
+        if (ocupado) return;
+        ocupado = true;
+        error = null;
+        try
+        {
+            await accion();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "Error en la asistencia del día");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+
+        if (!enfocarNombre) await EnfocarAsync();
+    }
+
+    private async Task EnfocarAsync()
+    {
+        try { await JS.InvokeVoidAsync("sglUi.enfocarSeleccionar", rutInput); }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException or TaskCanceledException) { /* circuit gone: nothing to focus */ }
+    }
+
+    /// <summary>Tray label, same catalog as the side menu and the top-bar search.</summary>
+    private static string Etiqueta(Bandeja bandeja) =>
+        ModulosCatalogo.DeBandeja(bandeja)?.Nombre ?? (bandeja == Bandeja.EnCertificado ? "Certificado / Oficio" : bandeja.ToString());
+
+    private static string Etiqueta(ResultadoBusquedaGlobalDto r) => r.Anulada ? "Anuladas" : Etiqueta(r.Bandeja);
+}

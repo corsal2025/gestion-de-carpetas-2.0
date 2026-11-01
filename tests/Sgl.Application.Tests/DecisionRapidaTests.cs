@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // CambiarDecisionAsync es obsoleta para la interfaz; estas pruebas la siguen cubriendo.
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
 
@@ -35,19 +36,18 @@ public sealed class DecisionRapidaTests : IDisposable
     }
 
     [Fact]
-    public async Task Decision_can_be_undone_back_to_Por_preparar()
+    public async Task A_final_decision_is_not_undone_by_the_generic_undo()
     {
+        // The generic undo (state changes) must never revert a decision; only OtorgamientoService.DeshacerAsync may.
         var id = await RegistrarAsync();
         var antes = await _db.NewService().ObtenerAsync(id);
 
         var punto = await _db.NewService().CambiarDecisionAsync(id, Decision.Otorgado, "ana");
-        await _db.NewService().DeshacerEstadoAsync(id, punto, antes.Estado, "ana");
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewService().DeshacerEstadoAsync(id, punto, antes.Estado, "ana"));
 
         var det = await _db.NewService().ObtenerAsync(id);
-        Assert.Equal(Decision.Pendiente, det.Decision);
-        Assert.Null(det.FechaCierre);
-        Assert.Equal(antes.FechaSubida, det.FechaSubida);
-        Assert.Single((await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.PorPreparar, Take: 10))).Items);
+        Assert.Equal(Decision.Otorgado, det.Decision);
+        Assert.NotNull(det.FechaCierre);
     }
 
     [Theory]

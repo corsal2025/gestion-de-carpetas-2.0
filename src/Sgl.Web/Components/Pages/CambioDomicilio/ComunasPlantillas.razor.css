@@ -1,0 +1,15 @@
+.cp-plantillas { display: flex; flex-direction: column; gap: 0.8rem; }
+.cp-editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: 1rem; align-items: start; }
+.cp-columna { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.cp-columna h2 { margin: 0; font-size: 1rem; }
+.cp-columna label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--text-secondary); }
+.cp-columna input, .cp-columna textarea { font: inherit; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; min-width: 0; }
+.cp-columna textarea { resize: vertical; line-height: 1.45; }
+.cp-columna input:focus-visible, .cp-columna textarea:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.cp-ayuda { margin: 0; font-size: 0.83rem; color: var(--text-muted); }
+.cp-ayuda code { font-size: 0.8rem; }
+.cp-aviso { margin: 0; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); background: var(--status-warn-bg); color: var(--status-warn-text); font-size: 0.85rem; }
+.cp-fila { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.cp-vista { border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface); padding: 0.8rem 1rem; }
+.cp-vista-asunto { margin-bottom: 0.6rem; overflow-wrap: anywhere; }
+.cp-vista-cuerpo { margin: 0; white-space: pre-wrap; font: inherit; line-height: 1.5; overflow-wrap: anywhere; }

@@ -1,0 +1,8 @@
+.cd-directorio { display: flex; flex-direction: column; gap: 0.8rem; }
+.cd-alta { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.7rem; padding: 0.8rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface); }
+.cd-alta h2 { flex-basis: 100%; margin: 0; font-size: 1rem; }
+.cd-alta label, .cd-buscar { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--text-secondary); }
+.cd-alta input, .cd-buscar input, .cd-input { font: inherit; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; min-width: 16rem; }
+.cd-alta input:focus-visible, .cd-buscar input:focus-visible, .cd-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.cd-ayuda { font-size: 0.82rem; color: var(--text-muted); flex-basis: 100%; }
+.cd-buscar { max-width: 24rem; }

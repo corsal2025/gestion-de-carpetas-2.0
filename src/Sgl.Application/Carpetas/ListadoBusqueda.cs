@@ -44,6 +44,14 @@ public static class FechaImpresa
 
     public static string De(DateOnly fecha) =>
         $"{fecha.Day:00}/{Meses[fecha.Month - 1]}/{fecha.Year.ToString(CultureInfo.InvariantCulture)}";
+
+    /// <summary>The stored ISO last-folder date (yyyy-MM-dd) as dd-MM-yyyy like every other date on screen; anything else is kept; empty is «S/C».</summary>
+    public static string DdMmAaaa(string? fechaUltimaCarpeta) =>
+        string.IsNullOrWhiteSpace(fechaUltimaCarpeta)
+            ? "S/C"
+            : DateOnly.TryParseExact(fechaUltimaCarpeta, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var f)
+                ? f.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)
+                : fechaUltimaCarpeta;
 }
 
 public static class ListadoBusquedaBuilder

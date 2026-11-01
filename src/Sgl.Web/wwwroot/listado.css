@@ -345,6 +345,15 @@ html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td {
     animation: none !important;
 }
 html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td * { color: #7f1d1d; }
+/* "Solucionado" (and any other action button) inside the red duplicate row: the row's red text must not reach it.
+   White on --brand-primary (#26388c) = 10.6:1. */
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td :is(.btn-decision, .btn-enviar),
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td :is(.btn-decision, .btn-enviar) * {
+    background-color: var(--brand-primary) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+}
+html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td :is(.btn-decision, .btn-enviar) * { background-color: transparent !important; }
 html:not(#sgl) body .listado-page .data-table tbody tr.fila-duplicada > td:first-child {
     box-shadow: inset 4px 0 0 #b91c1c !important;
 }

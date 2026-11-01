@@ -15,7 +15,66 @@ namespace Sgl.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
+
+            modelBuilder.Entity("Sgl.Domain.Asistencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<bool>("Anulada")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("AnuladaEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AnuladaPor")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Autor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CarpetaId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<DateOnly>("Fecha")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RegistradaEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Rut")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sede")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarpetaId");
+
+                    b.HasIndex("Fecha", "Tipo");
+
+                    b.HasIndex("Rut", "Fecha")
+                        .IsUnique()
+                        .HasFilter("\"Anulada\" = 0 AND \"Tipo\" <> 'PorAgregar'");
+
+                    b.ToTable("Asistencias", (string)null);
+                });
 
             modelBuilder.Entity("Sgl.Domain.Carpeta", b =>
                 {
@@ -38,6 +97,11 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.Property<string>("CajaArchivo")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("CarpetaEncontrada")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("CiudadanoId")
                         .HasColumnType("TEXT")
@@ -62,6 +126,15 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("EmailContacto")
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EsExtra")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -79,6 +152,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("FechaImpresion")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("FechaOtorgamiento")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly?>("FechaPenultimaCarpeta")
                         .HasColumnType("TEXT");
 
@@ -89,6 +165,9 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("FechaSubida")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FechaTomaCita")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FechaUltimaCarpeta")
@@ -111,9 +190,31 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("PendienteReclasificacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("Resolucion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("RevisadaEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RutImportacion")
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Sede")
                         .IsRequired()
                         .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SentidoCambioDomicilio")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TelefonoContacto")
+                        .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TipoTramite")
@@ -136,15 +237,65 @@ namespace Sgl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FechaSubida");
 
+                    b.HasIndex("RutImportacion");
+
                     b.HasIndex("Sede");
 
                     b.HasIndex("TipoTramite");
 
                     b.HasIndex("CiudadanoId", "Decision");
 
+                    b.HasIndex("CiudadanoId", "FechaTomaCita");
+
+                    b.HasIndex("Decision", "Estado");
+
                     b.HasIndex("FechaCitacion", "Id");
 
+                    b.HasIndex("SentidoCambioDomicilio", "Estado");
+
                     b.ToTable("Carpetas", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.CitaCancelada", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("FechaCita")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FechaTomaCita")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("HoraCita")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(250)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RegistradaEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sede")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tramite")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaCita");
+
+                    b.HasIndex("FechaTomaCita", "FechaCita", "HoraCita", "Sede", "Tramite")
+                        .IsUnique();
+
+                    b.ToTable("CitasCanceladas", (string)null);
                 });
 
             modelBuilder.Entity("Sgl.Domain.Ciudadano", b =>
@@ -206,6 +357,136 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("CorreosCambioDomicilio", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.CorreoDescartadoRegistro", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Asunto")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DescartadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RecibidoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Remitente")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DescartadoEn");
+
+                    b.HasIndex("MessageId")
+                        .IsUnique();
+
+                    b.ToTable("CorreosDescartados", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.EnvioCorreoComuna", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("Asunto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Autor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Comuna")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cuerpo")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Destinatarios")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EnviadoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EsPrueba")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nota")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PantallazoArchivo")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PantallazoEn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Estado");
+
+                    b.HasIndex("Tipo", "EnviadoEn");
+
+                    b.ToTable("EnviosCorreoComuna", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.EnvioCorreoComunaCarpeta", b =>
+                {
+                    b.Property<Guid>("EnvioId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<Guid>("CarpetaId")
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.HasKey("EnvioId", "CarpetaId");
+
+                    b.HasIndex("CarpetaId");
+
+                    b.ToTable("EnviosCorreoComunaCarpetas", (string)null);
                 });
 
             modelBuilder.Entity("Sgl.Domain.HistorialCambio", b =>
@@ -316,6 +597,27 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.HasIndex("Fecha");
 
                     b.ToTable("IntegridadCorridas", (string)null);
+                });
+
+            modelBuilder.Entity("Sgl.Domain.PlantillaCorreo", b =>
+                {
+                    b.Property<string>("Clave")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Asunto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cuerpo")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Clave");
+
+                    b.ToTable("PlantillasCorreo", (string)null);
                 });
 
             modelBuilder.Entity("Sgl.Domain.RevisionDuplicado", b =>
@@ -476,6 +778,14 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                     b.ToTable("Configuracion", (string)null);
                 });
 
+            modelBuilder.Entity("Sgl.Domain.Asistencia", b =>
+                {
+                    b.HasOne("Sgl.Domain.Carpeta", null)
+                        .WithMany()
+                        .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Sgl.Domain.Carpeta", b =>
                 {
                     b.HasOne("Sgl.Domain.Ciudadano", "Ciudadano")
@@ -524,6 +834,21 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Sgl.Domain.EnvioCorreoComunaCarpeta", b =>
+                {
+                    b.HasOne("Sgl.Domain.Carpeta", null)
+                        .WithMany()
+                        .HasForeignKey("CarpetaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sgl.Domain.EnvioCorreoComuna", null)
+                        .WithMany("Carpetas")
+                        .HasForeignKey("EnvioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Sgl.Domain.HistorialCambio", b =>
                 {
                     b.HasOne("Sgl.Domain.Carpeta", null)
@@ -568,6 +893,11 @@ namespace Sgl.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Sgl.Domain.Carpeta", b =>
                 {
                     b.Navigation("Historial");
+                });
+
+            modelBuilder.Entity("Sgl.Domain.EnvioCorreoComuna", b =>
+                {
+                    b.Navigation("Carpetas");
                 });
 #pragma warning restore 612, 618
         }

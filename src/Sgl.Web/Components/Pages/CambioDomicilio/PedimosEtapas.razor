@@ -1,0 +1,50 @@
+@* Navegación entre las etapas de «Pedimos carpetas»: Por pedir, Pantallazos pendientes y Seguimiento, con sus contadores.
+   Cada página cambia «Refresco» cuando modifica algo para que los contadores se vuelvan a leer. *@
+@using Sgl.Application.CambioDomicilio
+@inject SeguimientoService Seguimiento
+@inject ModulosState Modulos
+@inject ILogger<PedimosEtapas> Logger
+
+<nav class="pe-etapas sol-filtros" aria-label="Etapas de Pedimos carpetas" id="pe-etapas">
+    <a class="sol-chip @(EtapaActual == Etapa.PorPedir ? "activo" : "")" href="cambio-domicilio/pedimos" id="pe-por-pedir"
+       aria-current="@(EtapaActual == Etapa.PorPedir ? "page" : null)">Por pedir <span class="pe-n">@((PorPedirEnPagina ?? Modulos.PorPedir).ToString("N0", Cultura))</span></a>
+    <a class="sol-chip @(EtapaActual == Etapa.Pantallazos ? "activo" : "")" href="cambio-domicilio/pedimos/pantallazos" id="pe-pantallazos"
+       aria-current="@(EtapaActual == Etapa.Pantallazos ? "page" : null)">Pantallazos pendientes <span class="pe-n @(resumen is { PantallazosPendientes: > 0 } ? "pe-n-aviso" : "")">@(resumen?.PantallazosPendientes.ToString("N0", Cultura) ?? "…")</span></a>
+    <a class="sol-chip @(EtapaActual == Etapa.Seguimiento ? "activo" : "")" href="cambio-domicilio/pedimos/seguimiento" id="pe-seguimiento"
+       aria-current="@(EtapaActual == Etapa.Seguimiento ? "page" : null)">Seguimiento <span class="pe-n">@(resumen?.Solicitadas.ToString("N0", Cultura) ?? "…")</span>
+        @if (resumen is { Vencidas: > 0 })
+        {
+            <span class="pe-n pe-n-vencida" title="Carpetas con el plazo vencido">@resumen.Vencidas.ToString("N0", Cultura) vencida(s)</span>
+        }</a>
+</nav>
+
+@code {
+    public enum Etapa { PorPedir, Pantallazos, Seguimiento }
+
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    [Parameter, EditorRequired] public Etapa EtapaActual { get; set; }
+
+    /// <summary>Changes whenever the host page altered something: the counters are read again.</summary>
+    [Parameter] public int Refresco { get; set; }
+
+    /// <summary>Count the host page already shows in its title: the chip uses it so both always agree (the menu counter can lag).</summary>
+    [Parameter] public int? PorPedirEnPagina { get; set; }
+
+    private ResumenSeguimiento? resumen;
+    private int ultimoRefresco = -1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ultimoRefresco == Refresco) return;
+        ultimoRefresco = Refresco;
+        try
+        {
+            resumen = await Seguimiento.ResumenAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "No se pudieron leer los contadores de Pedimos carpetas.");
+        }
+    }
+}

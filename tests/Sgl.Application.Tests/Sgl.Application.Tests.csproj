@@ -16,6 +16,14 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Repository root recorded at build time: tests that read repo files do not depend on where the binaries end up (for example with a custom artifacts path). -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RaizRepositorio</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sgl.Infrastructure\Sgl.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Sgl.Web\Sgl.Web.csproj" />

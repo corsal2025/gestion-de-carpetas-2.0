@@ -335,7 +335,7 @@ public sealed class SolicitudesF8ServiceTests : IDisposable
     {
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
         var solicitud = await _db.NewF8Service().SolicitarF8Async(id, "ana");
-        await _db.NewService().ForzarEstadoAsync(id, final, "javiera");
+        await _db.DejarEnEstadoFinalAsync(id, final);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() => _db.NewF8Service().MarcarSubidoAsync(solicitud.SolicitudId, "javiera"));
 
@@ -351,7 +351,7 @@ public sealed class SolicitudesF8ServiceTests : IDisposable
     {
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
         var solicitud = await _db.NewF8Service().SolicitarF8Async(id, "ana");
-        await _db.NewService().ForzarEstadoAsync(id, final, "javiera");
+        await _db.DejarEnEstadoFinalAsync(id, final);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() => _db.NewF8Service().MarcarNoSeGeneroAsync(solicitud.SolicitudId, "javiera"));
 
@@ -395,7 +395,7 @@ public sealed class SolicitudesF8ServiceTests : IDisposable
     {
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.NoExisteCarpeta);
         await _db.NewF8Service().SolicitarF8Async(id, "ana");
-        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.Otorgado, "ana");
+        await _db.DejarEnEstadoFinalAsync(id, EstadoCarpeta.Otorgado);
 
         await Assert.ThrowsAsync<DomainException>(() => _db.NewF8Service().MarcarSubidoPorCarpetaAsync(id, "luis"));
 

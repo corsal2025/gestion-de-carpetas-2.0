@@ -31,6 +31,14 @@ public interface ICarpetaRepository
 
     Task<IReadOnlyList<CarpetaResumenDto>> GetCarpetasByCajaAsync(string caja, CancellationToken ct = default);
 
+    /// <summary>Carpetas waiting for a box in one series: open box, not annulled, with a final decision.</summary>
+    Task<IReadOnlyList<CarpetaResumenDto>> GetColaCajaAsync(SerieCaja serie, CancellationToken ct = default);
+
+    Task<ColasCajaDto> ContarColasCajaAsync(CancellationToken ct = default);
+
+    /// <summary>Whether any carpeta already has this box label (case-insensitive).</summary>
+    Task<bool> ExisteCajaAsync(string rotulo, CancellationToken ct = default);
+
     Task<IReadOnlyList<string>> GetTiposTramiteAsync(CancellationToken ct = default);
 
     /// <summary>For each given carpeta, a summary of the other carpetas of the same citizen (absent when none).</summary>
@@ -59,6 +67,12 @@ public interface ICarpetaRepository
     Task<long> ObtenerVersionDatosAsync(CancellationToken ct = default);
 
     /// <summary>Drops every tracked, unsaved change (unit-of-work boundary after a failed operation).</summary>
+    /// <summary>
+    /// Points the attendance marks of <paramref name="anterior"/> at <paramref name="nuevo"/> (tracked; saved with the next
+    /// <see cref="SaveChangesAsync"/>): a corrected RUT must keep the day's mark on the same person.
+    /// </summary>
+    Task ReasignarRutAsistenciasAsync(Rut anterior, Rut nuevo, CancellationToken ct = default);
+
     void DescartarCambios();
 
     Task SaveChangesAsync(CancellationToken ct = default);

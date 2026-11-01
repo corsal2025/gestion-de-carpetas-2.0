@@ -24,7 +24,7 @@ else
     <header class="det-hero card">
         <span class="lico-slot det-lico" data-lico="saluda" aria-hidden="true"></span>
         <div class="det-hero-t">
-            <h1><span class="nombre-persona">@carpeta.Nombre @carpeta.Apellido</span> <small class="muted">@carpeta.Rut</small></h1>
+            <h1><span class="nombre-persona"><CeldaCarpeta CarpetaId="Id" Valor="@($"{carpeta.Nombre} {carpeta.Apellido}")" Editable="@(!carpeta.Anulada)" OnGuardado="CargarAsync" /></span> <small class="muted"><CeldaCarpeta CarpetaId="Id" Valor="@carpeta.Rut" EsRut="true" Editable="@(!carpeta.Anulada)" OnGuardado="CargarAsync" /></small></h1>
             <div class="det-hero-estado">
                 <span class="@Labels.Css(carpeta.Estado)">@Labels.Of(carpeta.Estado)</span>
                 <span class="det-decision">Decisión: <strong>@Labels.Of(carpeta.Decision)</strong></span>
@@ -35,6 +35,10 @@ else
             <div><dt>Citación</dt><dd>@carpeta.FechaCitacion.ToString("dd-MM-yyyy")</dd></div>
             <div><dt>Subida</dt><dd>@(carpeta.FechaSubida is { } sub ? sub.ToString("dd-MM-yyyy") : "—")</dd></div>
             <div><dt>Caja</dt><dd>@(string.IsNullOrEmpty(carpeta.CajaArchivo) ? "—" : carpeta.CajaArchivo)</dd></div>
+            @if (Carpeta.EsCambioDomicilio(carpeta.Estado))
+            {
+                <div><dt>Comuna</dt><dd><CeldaCarpeta CarpetaId="Id" Valor="@(string.IsNullOrWhiteSpace(carpeta.Comuna) ? "—" : carpeta.Comuna)" EsComuna="true" Editable="@(!carpeta.Anulada)" OnGuardado="CargarAsync" /></dd></div>
+            }
         </dl>
     </header>
     @if (carpeta.Anulada)
@@ -76,7 +80,11 @@ else
                     @foreach (var e in carpeta.SiguientesEstados)
                     {
                         var elegido = nuevoEstado == e;
+                        var bloqueado = carpeta.PendienteReclasificacion
+                            && (Carpeta.EsPosteriorALaPuertaDeReclasificacion(e)
+                                || (carpeta.Sentido == SentidoCambioDomicilio.Entrante && !Carpeta.PermiteEstadoSiEntrantePendiente(e)));
                         <button type="button" class="det-opcion @(elegido ? "on" : null)" role="radio" aria-checked="@(elegido ? "true" : "false")"
+                                disabled="@bloqueado" title="@(bloqueado ? "Confirme primero en Reclasificación" : null)"
                                 @onclick="() => nuevoEstado = e">@Labels.Of(e)</button>
                     }
                 </div>
@@ -113,7 +121,8 @@ else
                     <span>Clase de licencia</span>
                     <ClasesSelector @bind-Value="editClases" />
                 </div>
-                <label>Caja / Archivo físico <input @bind="editCaja" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, OF. 43, ARCHIVO" /></label>
+                <label>Caja / Archivo físico <input @bind="editCaja" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: A-12 (A-12-CD cambio de domicilio, A-12-PUC penúltima carpeta)" /></label>
+                <label class="chk-existente"><input type="checkbox" @bind="editAgregarCajaExistente" /> Agregar a caja existente</label>
                 <div class="info-block">
                     <p>En esta etapa desde: <strong>@(carpeta.FechaEstadoActual is { } etapa ? HoraChile.ALocal(etapa).ToString("dd-MM-yyyy HH:mm") : "—")</strong></p>
                     @if (carpeta.FechaCierre is { } cierre)
@@ -225,6 +234,7 @@ else
     private string editRut = "";
     private string editNombre = "";
     private string editCaja = "";
+    private bool editAgregarCajaExistente;
     private ClaseLicencia editClases;
     private bool notFound;
     private string? error;
@@ -251,6 +261,7 @@ else
             editRut = carpeta.Rut;
             editNombre = $"{carpeta.Nombre} {carpeta.Apellido}";
             editCaja = carpeta.CajaArchivo ?? "";
+            editAgregarCajaExistente = false;
             editClases = carpeta.Clases;
             edit = new EditModel
             {
@@ -299,6 +310,7 @@ else
                 Id, edit.Sede, edit.FechaCitacion, edit.FechaSubida, edit.IdoneidadMoral, Autor.Nombre, editRut,
                 Caja: editCaja,
                 CambiarCaja: editCaja != (carpeta?.CajaArchivo ?? ""),
+                AgregarAExistenteCaja: editAgregarCajaExistente,
                 Clases: editClases != carpeta?.Clases ? editClases : null));
         }, "Cambios guardados.");
 

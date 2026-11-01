@@ -51,6 +51,65 @@ public sealed record Rut
         return true;
     }
 
+    /// <summary>
+    /// Formats what is being typed as "12.345.678-5": keeps digits and K, puts the dash before the last character and
+    /// the dots in thousands. Whatever is not a digit or K is dropped; at most 10 characters (9-digit body + check digit).
+    /// </summary>
+    public static string FormatearEntrada(string? input)
+    {
+        var limpio = new string((input ?? string.Empty).Where(ch => char.IsAsciiDigit(ch) || ch is 'k' or 'K').ToArray())
+            .ToUpperInvariant();
+        if (limpio.Length > MaxBodyLength + 1)
+        {
+            limpio = limpio[..(MaxBodyLength + 1)];
+        }
+
+        if (limpio.Length < 2)
+        {
+            return limpio;
+        }
+
+        var cuerpo = limpio[..^1];
+        var puntos = new System.Text.StringBuilder();
+        for (var i = 0; i < cuerpo.Length; i++)
+        {
+            if (i > 0 && (cuerpo.Length - i) % 3 == 0)
+            {
+                puntos.Append('.');
+            }
+
+            puntos.Append(cuerpo[i]);
+        }
+
+        return $"{puntos}-{limpio[^1]}";
+    }
+
+    /// <summary>
+    /// Checks a typed RUT. Returns null when valid (and the RUT), or the message to show the user: empty, impossible
+    /// format, or a check digit that does not match (saying which one it should be).
+    /// </summary>
+    public static string? Validar(string? input, out Rut? rut)
+    {
+        if (TryParse(input, out rut))
+        {
+            return null;
+        }
+
+        var clean = (input ?? string.Empty).Trim().Replace(".", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
+        if (clean.Length == 0)
+        {
+            return "Escriba un RUT.";
+        }
+
+        var body = clean.Length > 1 ? clean[..^1].TrimStart('0') : string.Empty;
+        if (body.Length == 0 || body.Length > MaxBodyLength || !body.All(char.IsAsciiDigit))
+        {
+            return "RUT inválido: revise el número.";
+        }
+
+        return $"El dígito verificador no calza. Debería ser {ComputeCheckDigit(body)}. Revise el papel.";
+    }
+
     /// <summary>Modulo-11 check digit with weights 2..7 applied right to left.</summary>
     public static char ComputeCheckDigit(string body)
     {

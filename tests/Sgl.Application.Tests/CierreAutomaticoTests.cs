@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // CambiarDecisionAsync es obsoleta para la interfaz; estas pruebas la siguen cubriendo.
 using Sgl.Application.Carpetas;
 using Sgl.Domain;
 

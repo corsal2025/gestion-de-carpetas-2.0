@@ -40,9 +40,11 @@ public class ValidacionesRonda4Tests
     public void AsignarCaja_rejects_labels_longer_than_the_column()
     {
         var c = CarpetaFactory.New();
+        c.CambiarDecision(Decision.Otorgado, "Funcionaria Prueba", Now);
+        var largo = new CajaFormatos(@"^X{1,80}$", "-CD", "-PUC");
 
-        Assert.Throws<DomainException>(() => c.AsignarCaja(new string('X', Carpeta.MaxCajaLength + 1), "javiera", Now));
-        c.AsignarCaja(new string('X', Carpeta.MaxCajaLength), "javiera", Now);
+        Assert.Throws<DomainException>(() => c.AsignarCaja(new string('X', Carpeta.MaxCajaLength + 1), "Funcionaria Prueba", Now, largo));
+        c.AsignarCaja(new string('X', Carpeta.MaxCajaLength), "Funcionaria Prueba", Now, largo);
         Assert.Equal(Carpeta.MaxCajaLength, c.CajaArchivo!.Length);
     }
 }

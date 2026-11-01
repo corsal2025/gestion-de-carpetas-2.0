@@ -38,6 +38,13 @@ public sealed partial class Carpeta
 
     public string? Comuna { get; private set; }
 
+    /// <summary>
+    /// RUT (normalized) the agenda listing carried when this carpeta was imported. Correcting the citizen's RUT never changes it,
+    /// so importing the same listing again recognizes the appointment instead of creating a duplicate person and carpeta.
+    /// It lives here, not in the citizen, because a RUT correction applies to all the citizen's carpetas.
+    /// </summary>
+    public string? RutImportacion { get; private set; }
+
     /// <summary>F8 code typed by staff: ASCII digits only, up to <see cref="MaxCodigoF8Length"/> digits.</summary>
     public string? CodigoF8 { get; private set; }
 
@@ -51,6 +58,9 @@ public sealed partial class Carpeta
     /// Archivos u Of. 43; al pasar a cualquier otro estado se limpia automáticamente.
     /// </summary>
     public bool PendienteBusqueda { get; private set; }
+
+    /// <summary>Third position of the magnifier: the physical carpeta was found and is ready to scan and upload. Never true together with <see cref="PendienteBusqueda"/>.</summary>
+    public bool CarpetaEncontrada { get; private set; }
 
     /// <summary>License classes requested in this carpeta (optional, may be several).</summary>
     public ClaseLicencia Clases { get; private set; }
@@ -93,6 +103,8 @@ public sealed partial class Carpeta
             FechaUltimaCarpeta = fechaUltimaCarpeta,
             Comuna = comuna,
             Estado = estado,
+            // The master sheet lists people of our agenda: a change of address in it is a saliente (visible in «Por pedir»).
+            SentidoCambioDomicilio = EsFamiliaCambioDomicilio(estado) ? Domain.SentidoCambioDomicilio.Saliente : null,
             Decision = decision,
             IdoneidadMoral = idoneidadMoral,
             TipoTramite = tipoTramite,
@@ -103,23 +115,11 @@ public sealed partial class Carpeta
             FechaCierre = EsEstadoCierre(estado) || decision != Decision.Pendiente ? fechaSubida : null,
         };
         carpeta.Audit(now, "Sistema Importador", "Importacion", null, $"{sede} - {tipoTramite ?? estado.ToString()}");
+        if (carpeta.SentidoCambioDomicilio is { } sentido)
+        {
+            carpeta.Audit(now, "Sistema Importador", CampoDireccion, null, sentido.ToString());
+        }
         return carpeta;
-    }
-
-    public void AsignarCaja(string? nuevaCaja, string autor, DateTime now)
-    {
-        RequireActiva();
-        var usuario = RequireAutor(autor);
-        var caja = string.IsNullOrWhiteSpace(nuevaCaja) ? null : nuevaCaja.Trim();
-        if (caja?.Length > MaxCajaLength)
-        {
-            throw new DomainException($"El rótulo de caja excede {MaxCajaLength} caracteres.");
-        }
-        if (caja != CajaArchivo)
-        {
-            Audit(now, usuario, nameof(CajaArchivo), CajaArchivo, caja);
-            CajaArchivo = caja;
-        }
     }
 
     public void AsignarComuna(string? nuevaComuna, string autor, DateTime now)
@@ -189,6 +189,20 @@ public sealed partial class Carpeta
     /// <summary>Recognized dates are stored as ISO (what the date inputs and sorting expect); legacy free text is kept.</summary>
     private static string? NormalizarFechaUltimaCarpeta(string? fecha) =>
         string.IsNullOrWhiteSpace(fecha) ? null : SectorFisico.NormalizarIso(fecha) ?? fecha.Trim();
+
+    /// <summary>
+    /// Fills the upload date only when the carpeta has none (an import never overwrites a date someone already registered).
+    /// Returns whether it changed anything.
+    /// </summary>
+    public bool CompletarFechaSubida(DateOnly fecha, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        if (FechaSubida is not null) return false;
+        Audit(now, usuario, nameof(FechaSubida), null, Format(fecha));
+        FechaSubida = fecha;
+        return true;
+    }
 
     public void ModificarObservacion(string? nuevaObservacion, string autor, DateTime now)
     {
@@ -267,10 +281,12 @@ public sealed partial class Carpeta
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
-        if (!EstadoTransitions.CanTransition(Estado, nuevo))
+        if (!EstadoTransitions.CanTransition(Estado, nuevo, SentidoCambioDomicilio))
         {
             throw new InvalidTransitionException(Estado, nuevo);
         }
+        RequireSinDecisionFinalEnDestino(nuevo);
+        RequireReclasificadaParaEstado(nuevo);
 
         AplicarEstado(nuevo, usuario, now);
     }
@@ -302,27 +318,98 @@ public sealed partial class Carpeta
         {
             throw new DomainException("Solo se puede marcar pendiente de búsqueda una carpeta en Archivos, Of. 43 o No existe carpeta.");
         }
-
-        if (valor != PendienteBusqueda)
+        if (valor)
         {
-            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(PendienteBusqueda), SiNo(valor));
-            PendienteBusqueda = valor;
+            RequireSinSentidoSaliente();
+        }
+
+        // The two marks are exclusive: setting or clearing "en búsqueda" always leaves "encontrada" off.
+        FijarMarcas(valor, false, usuario, now);
+    }
+
+    /// <summary>
+    /// One touch of the magnifier cycles its three positions: sin marcar → en búsqueda → encontrada → sin marcar.
+    /// Every step is audited with user and time.
+    /// </summary>
+    public void AvanzarLupa(string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        if (!PermiteEnProcesoDeBusqueda(Estado))
+        {
+            throw new DomainException("Solo se puede usar la lupa en una carpeta en Archivos, Of. 43 o No existe carpeta.");
+        }
+        if (!PendienteBusqueda && !CarpetaEncontrada)
+        {
+            RequireSinSentidoSaliente();
+        }
+
+        if (CarpetaEncontrada)
+        {
+            FijarMarcas(false, false, usuario, now);
+        }
+        else if (PendienteBusqueda)
+        {
+            FijarMarcas(false, true, usuario, now);
+        }
+        else
+        {
+            FijarMarcas(true, false, usuario, now);
+        }
+    }
+
+    /// <summary>"Subida a Conaset": a carpeta found in Archivos / Of. 43 is uploaded; the state change stamps the upload date and clears the magnifier.</summary>
+    public void MarcarSubidaConaset(string autor, DateTime now)
+    {
+        RequireActiva();
+        if (!PermiteBusquedaPendiente(Estado))
+        {
+            throw new DomainException("Solo se puede registrar la subida a Conaset desde Archivos u Of. 43.");
+        }
+
+        CambiarEstado(EstadoCarpeta.SubidaConaset, autor, now);
+    }
+
+    /// <summary>A saliente is requested from the other comuna: there is no physical carpeta of ours to search with the magnifier.</summary>
+    private void RequireSinSentidoSaliente()
+    {
+        if (SentidoCambioDomicilio == Domain.SentidoCambioDomicilio.Saliente)
+        {
+            throw new DomainException("La lupa no aplica a un cambio de domicilio que pedimos a otra comuna: no hay una carpeta nuestra que buscar.");
+        }
+    }
+
+    private void FijarMarcas(bool enBusqueda, bool encontrada, string usuario, DateTime now)
+    {
+        if (enBusqueda != PendienteBusqueda)
+        {
+            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(PendienteBusqueda), SiNo(enBusqueda));
+            PendienteBusqueda = enBusqueda;
+        }
+        if (encontrada != CarpetaEncontrada)
+        {
+            Audit(now, usuario, nameof(CarpetaEncontrada), SiNo(CarpetaEncontrada), SiNo(encontrada));
+            CarpetaEncontrada = encontrada;
         }
     }
 
     private void LimpiarPendienteBusquedaSiCorresponde(string usuario, DateTime now)
     {
-        if (PendienteBusqueda && !PermiteEnProcesoDeBusqueda(Estado))
+        if ((PendienteBusqueda || CarpetaEncontrada) && !PermiteEnProcesoDeBusqueda(Estado))
         {
-            Audit(now, usuario, nameof(PendienteBusqueda), SiNo(true), SiNo(false));
-            PendienteBusqueda = false;
+            FijarMarcas(false, false, usuario, now);
         }
     }
 
     private static string SiNo(bool v) => v ? "Si" : "No";
 
-    /// <summary>Manual correction: any state, no transition check (the audit trail keeps who and when).</summary>
-    public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now)
+    /// <summary>
+    /// Manual correction: any state, no transition check (the audit trail keeps who and when). Leaving the change-of-address
+    /// family removes the direction (the entrante keeps it through its F8 / certificate / oficio / «No existe» / Conaset
+    /// exits). Entering the family from outside needs a direction: the carpeta already has one, or the caller gives
+    /// <paramref name="sentidoAlEntrar"/> (the normal way in is <see cref="Clasificar"/>).
+    /// </summary>
+    public void ForzarEstado(EstadoCarpeta nuevo, string autor, DateTime now, SentidoCambioDomicilio? sentidoAlEntrar = null)
     {
         RequireActiva();
         var usuario = RequireAutor(autor);
@@ -330,11 +417,50 @@ public sealed partial class Carpeta
         {
             throw new DomainException("Estado inválido.");
         }
+        if (!PermiteForzar(Estado, nuevo))
+        {
+            throw new DomainException("Desde Archivos u Of. 43 no se pasa directo a Crear certificado: primero «No existe carpeta» y su F8.");
+        }
+        if (!PermiteForzar(Estado, nuevo, SentidoCambioDomicilio))
+        {
+            throw new DomainException("Un cambio de domicilio saliente no tiene F8, certificado, oficio ni búsqueda: se cierra cuando la comuna sube la carpeta o con la prueba del correo.");
+        }
+        RequireSinDecisionFinalEnDestino(nuevo);
+        RequireReclasificadaParaEstado(nuevo);
+        var entraALaFamilia = EsFamiliaCambioDomicilio(nuevo) && !EsFamiliaCambioDomicilio(Estado);
+        if (entraALaFamilia && SentidoCambioDomicilio is null && sentidoAlEntrar is null)
+        {
+            throw new DomainException("Un cambio de domicilio necesita su dirección (saliente o entrante): clasifique la carpeta con «Clasificar» en vez de forzar el estado.");
+        }
         if (nuevo != Estado)
         {
             AplicarEstado(nuevo, usuario, now);
+            if (entraALaFamilia && SentidoCambioDomicilio is null)
+            {
+                FijarSentido(sentidoAlEntrar, usuario, now);
+            }
+            else if (!ConservaSentidoAlForzar(nuevo))
+            {
+                FijarSentido(null, usuario, now);
+            }
         }
     }
+
+    /// <summary>The direction survives inside the family and, for an entrante, in the exits its flow already allows (F8, certificate, oficio, «No existe», Conaset).</summary>
+    private bool ConservaSentidoAlForzar(EstadoCarpeta nuevo) =>
+        EsFamiliaCambioDomicilio(nuevo)
+        || (SentidoCambioDomicilio == Domain.SentidoCambioDomicilio.Entrante
+            && EstadoTransitions.CanTransition(EstadoCarpeta.CambioDomicilio, nuevo, Domain.SentidoCambioDomicilio.Entrante));
+
+    /// <summary>
+    /// Manual corrections are free except one edge: a carpeta searched in Archivos / Of. 43 never jumps to Crear
+    /// certificado; it goes through "No existe carpeta" and its F8 first.
+    /// </summary>
+    public static bool PermiteForzar(EstadoCarpeta actual, EstadoCarpeta nuevo) =>
+        !(PermiteBusquedaPendiente(actual) && nuevo == EstadoCarpeta.CrearCertificado);
+
+    public static bool PermiteForzar(EstadoCarpeta actual, EstadoCarpeta nuevo, SentidoCambioDomicilio? sentido) =>
+        PermiteForzar(actual, nuevo) && !EstadoTransitions.VetaForzadoSaliente(actual, nuevo, sentido);
 
     private static bool EsEstadoSubida(EstadoCarpeta estado) => estado switch
     {
@@ -347,6 +473,18 @@ public sealed partial class Carpeta
         EstadoCarpeta.Otorgado => true,
         _ => false
     };
+
+    /// <summary>
+    /// A state change never leaves a final decision: granting or denying requires the permission and the grant date of
+    /// the «Otorgamiento» module (<see cref="Otorgar"/> / <see cref="Denegar"/>).
+    /// </summary>
+    private static void RequireSinDecisionFinalEnDestino(EstadoCarpeta nuevo)
+    {
+        if (EstadoTransitions.DecisionFor(nuevo) != Decision.Pendiente)
+        {
+            throw new DomainException(MensajeDecisionSoloEnOtorgamiento);
+        }
+    }
 
     /// <summary>A final decision (Otorgado / Denegado) can never be changed: the only way back is the undo of the action that set it.</summary>
     private void RequireDecisionNoFinal()

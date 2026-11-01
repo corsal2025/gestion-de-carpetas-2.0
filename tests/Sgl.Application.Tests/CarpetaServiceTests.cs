@@ -87,19 +87,37 @@ public sealed class CarpetaServiceTests : IDisposable
             _db.NewService().CambiarEstadoAsync(new CambiarEstadoCommand(Guid.NewGuid(), EstadoCarpeta.Revision, "pedro")));
     }
 
+    // H1: otorgar o denegar solo se hace desde el módulo Otorgamiento (con IPermisos y fecha de otorgamiento).
     [Fact]
-    public async Task Reaching_Otorgado_persists_decision()
+    public async Task CambiarEstado_a_Otorgado_desde_EsperaExamen_se_rechaza_y_no_deja_decision()
     {
         var id = await _db.NewService().RegistrarAsync(Cmd());
-        foreach (var estado in new[] { EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen, EstadoCarpeta.Otorgado })
+        foreach (var estado in new[] { EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen })
+        {
+            await _db.NewService().CambiarEstadoAsync(new CambiarEstadoCommand(id, estado, "pedro"));
+        }
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            _db.NewService().CambiarEstadoAsync(new CambiarEstadoCommand(id, EstadoCarpeta.Otorgado, "pedro")));
+
+        Assert.Equal("Otorgar o denegar se hace desde el módulo Otorgamiento.", ex.Message);
+        var detalle = await _db.NewService().ObtenerAsync(id);
+        Assert.Equal(EstadoCarpeta.EsperaExamen, detalle.Estado);
+        Assert.Equal(Decision.Pendiente, detalle.Decision);
+    }
+
+    [Fact]
+    public async Task Los_siguientes_estados_no_ofrecen_Otorgado_ni_Denegado()
+    {
+        var id = await _db.NewService().RegistrarAsync(Cmd());
+        foreach (var estado in new[] { EstadoCarpeta.PrimeraLicencia, EstadoCarpeta.EsperaExamen })
         {
             await _db.NewService().CambiarEstadoAsync(new CambiarEstadoCommand(id, estado, "pedro"));
         }
 
         var detalle = await _db.NewService().ObtenerAsync(id);
 
-        Assert.Equal(Decision.Otorgado, detalle.Decision);
-        Assert.Empty(detalle.SiguientesEstados);
+        Assert.Equal([EstadoCarpeta.ClasePendiente, EstadoCarpeta.ParaDenegar], detalle.SiguientesEstados);
     }
 
     [Fact]
@@ -370,7 +388,12 @@ public sealed class CarpetaServiceTests : IDisposable
     public async Task GuardarComuna_in_cambio_domicilio_persists()
     {
         var id = await _db.NewService().RegistrarAsync(Cmd());
-        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.CambioDomicilio, "ana");
+        await using (var ctx = _db.NewContext())
+        {
+            var carpeta = await ctx.Carpetas.SingleAsync(c => c.Id == id);
+            carpeta.ForzarEstado(EstadoCarpeta.CambioDomicilio, "ana", DateTime.UtcNow, SentidoCambioDomicilio.Saliente);
+            await ctx.SaveChangesAsync();
+        }
 
         await _db.NewService().GuardarComunaAsync(id, "Maipu", "ana");
 

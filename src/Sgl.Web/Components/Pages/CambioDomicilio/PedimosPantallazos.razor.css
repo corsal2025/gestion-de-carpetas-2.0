@@ -1,0 +1,17 @@
+.pz-pagina { display: flex; flex-direction: column; gap: 0.8rem; }
+.pz-ayuda { margin: 0; font-size: 0.88rem; color: var(--text-secondary); max-width: 62rem; }
+.pz-ayuda kbd { font: 700 0.75rem ui-monospace, Consolas, monospace; border: 1px solid var(--border-color); border-bottom-width: 2px; border-radius: 4px; padding: 0 0.35rem; background: var(--surface-alt); color: var(--text-primary); }
+
+.pz-cuenta { font-size: 0.8rem; color: var(--text-muted); }
+.pz-personas { list-style: none; margin: 0.2rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.pz-nombre { font-weight: 600; overflow-wrap: anywhere; }
+.pz-rut { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.82rem; color: var(--text-muted); }
+
+.pz-celda { min-width: 15rem; }
+.pz-zona { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 4.2rem; padding: 0.5rem 0.8rem; border: 2px dashed var(--border-color); border-radius: var(--radius-sm); background: var(--surface-alt); color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; }
+.pz-zona:hover { border-color: var(--brand-primary); }
+.pz-zona:focus-visible, .pz-zona:focus { outline: none; border-color: var(--brand-primary); border-style: solid; background: var(--surface); box-shadow: 0 0 0 3px var(--ring); color: var(--text-primary); }
+.pz-zona.pz-sobre { border-color: var(--brand-primary); border-style: solid; background: var(--surface); }
+.pz-guardando { font-weight: 700; color: var(--brand-primary); }
+.pz-elegir { display: inline-block; margin-top: 0.35rem; cursor: pointer; position: relative; overflow: hidden; }
+.pz-elegir ::deep .pz-input-archivo { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }

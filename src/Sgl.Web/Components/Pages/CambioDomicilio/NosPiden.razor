@@ -1,0 +1,560 @@
+@page "/cambio-domicilio/nos-piden"
+@layout ModuloLayout
+@using Sgl.Application.CambioDomicilio
+@using Sgl.Application.Carpetas
+@inject EntrantesService Entrantes
+@inject ICorreoComunas Correo
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject DuplicadosNotifier DuplicadosNotifier
+@inject IJSRuntime JS
+@inject IServiceScopeFactory ScopeFactory
+@inject Sgl.Web.Services.UltimaSincronizacionCorreo UltimaSincronizacion
+@inject ILogger<NosPiden> Logger
+
+<PageTitle>@TituloPagina.De("Nos piden carpetas")</PageTitle>
+
+<div class="page-container np-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Nos piden carpetas <span class="muted">· @(resumen is null ? "…" : TotalAbiertas.ToString("N0", Cultura)) abiertas</span></h1>
+    </div>
+
+    @if (modo is not null)
+    {
+        <div class="np-banner @(modo.EsPrueba ? "prueba" : "real")" role="status" id="np-banner-modo">
+            <strong>@(modo.EsPrueba ? "MODO PRUEBA" : "ENVÍO REAL ACTIVO")</strong>
+            <span>@(modo.EsPrueba ? "Los correos a las comunas no salen: van a la casilla de prueba o se simulan." : "Los correos salen a las comunas.")</span>
+            <a href="cambio-domicilio/pedimos">Cambiar el modo (en Pedimos carpetas)</a>
+        </div>
+    }
+
+    <div class="np-sync" id="np-sync">
+        <button type="button" class="btn-sync-correo" id="np-sincronizar" disabled="@(sincronizando || UltimaSincronizacion.EnCurso)" @onclick="SincronizarAsync"
+                title="Trae los correos que usted dejó en la carpeta «PARA PEDIR» del buzón">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M21 4v5h-5M3 20v-5h5"/></svg>@(sincronizando ? "Sincronizando…" : "Sincronizar correo")</button>
+        <span class="np-ayuda">Solo manual: no hay horario automático. Pase a mano los correos a la carpeta «PARA PEDIR» del buzón y pulse el botón.</span>
+        @if (avisoSync is not null)
+        {
+            <div class="alert @(errorSync ? "error" : "info") np-aviso" role="status" id="np-aviso-sync">@avisoSync</div>
+        }
+        @if (resumen is { Descartados: > 0 })
+        {
+            <a class="np-descartados" href="cambio-domicilio/comunas?vista=descartados" id="np-ver-descartados">@resumen.Descartados.ToString("N0", Cultura) correo(s) descartado(s): ver el motivo</a>
+        }
+    </div>
+
+    @if (!Autor.HasNombre)
+    {
+        <div class="alert warning" role="alert">Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.</div>
+    }
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert" id="np-error">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status" id="np-mensaje">
+            @mensaje
+            @if (deshacer is not null)
+            {
+                <button type="button" class="btn-small" id="np-deshacer" disabled="@ocupado" @onclick="DeshacerAsync">Deshacer</button>
+            }
+            <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="CerrarMensaje">✕</button>
+        </div>
+    }
+
+    <nav class="sol-filtros np-pestanas" role="group" aria-label="Pestañas de Nos piden carpetas" id="np-pestanas">
+        @foreach (var (valor, etiqueta) in Pestanas)
+        {
+            <button type="button" class="sol-chip @(pestana == valor ? "activo" : "")" id="np-pestana-@valor.ToString().ToLowerInvariant()"
+                    aria-pressed="@(pestana == valor ? "true" : "false")" @onclick="() => CambiarPestanaAsync(valor)">
+                @etiqueta <span class="np-n">@(resumen?.De(valor).ToString("N0", Cultura) ?? "…")</span></button>
+        }
+    </nav>
+
+    <p class="np-ayuda" id="np-ayuda-pestana">@AyudaPestana</p>
+
+    @if (EsSectorImprimible)
+    {
+        <div class="np-imprimir">
+            <button type="button" class="btn-primary" id="np-imprimir" disabled="@(items is null || items.Count == 0 || ocupado)" @onclick="AbrirListadoAsync">
+                🖨️ Listado para imprimir (@SectorTexto)</button>
+            @if (pestana != PestanaEntrantes.Digital)
+            {
+                <label class="np-solo-busqueda" title="Incluye solo las carpetas con la lupa en «en búsqueda»">
+                    <input type="checkbox" @bind="soloEnBusqueda" id="np-solo-busqueda" /> Solo las que están en búsqueda
+                </label>
+            }
+        </div>
+    }
+
+    @if (items is null)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando las solicitudes…</p></div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="empty-state" id="np-vacio"><p>@TextoVacio</p></div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="data-table bandeja-table np-tabla" id="np-tabla">
+                <thead>
+                    <tr>
+                        <th>PLAZO (ESTIMADO)</th>
+                        <th class="th-wrap col-sticky-nombre">NOMBRE DE CONTRIBUYENTE</th>
+                        <th class="col-sticky-rut">RUT</th>
+                        <th>COMUNA</th>
+                        <th>LLEGÓ EL CORREO</th>
+                        <th>ÚLTIMA CARPETA</th>
+                        @if (pestana == PestanaEntrantes.Cerradas)
+                        {
+                            <th>CIERRE</th>
+                        }
+                        <th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in items)
+                    {
+                        <tr @key="f.Id" class="np-fila np-@ClasePlazo(f)" data-carpeta="@f.Id" data-sector="@f.Sector">
+                            <td>
+                                @if (f.Abierta)
+                                {
+                                    <span class="badge @InsigniaPlazo(f.Plazo) np-plazo" title="Estimado: @Opciones.PlazoEntranteDias días hábiles desde que llegó el correo">@TextoPlazo(f)</span>
+                                    <div class="np-vence">estimado · @f.Vence.ToString("dd-MM-yyyy")</div>
+                                }
+                                else
+                                {
+                                    <span class="np-vence">—</span>
+                                }
+                            </td>
+                            <td class="col-sticky-nombre">
+                                <CeldaCarpeta CarpetaId="f.Id" Valor="@f.NombreCompleto" CssClass="name-cell" OnGuardado="CargarAsync" />
+                                @if (f.RevisarNombre)
+                                {
+                                    <span class="badge warn" title="El nombre se leyó del correo con poca seguridad: revíselo">revisar nombre</span>
+                                }
+                            </td>
+                            <td class="date-cell col-sticky-rut">
+                                <CeldaCarpeta CarpetaId="f.Id" Valor="@f.Rut" EsRut="true" OnGuardado="CargarAsync" />
+                                <button type="button" class="btn-small np-copiar" title="Copiar el RUT para pegarlo en SGL / CAS Chile" aria-label="Copiar el RUT de @f.NombreCompleto"
+                                        @onclick="() => CopiarRutAsync(f.Rut)">Copiar</button>
+                            </td>
+                            <td><b><CeldaCarpeta CarpetaId="f.Id" Valor="@(string.IsNullOrWhiteSpace(f.Comuna) ? "—" : f.Comuna)" EsComuna="true" OnGuardado="CargarAsync" /></b></td>
+                            <td class="date-cell">@f.FechaCorreo.ToString("dd-MM-yyyy")</td>
+                            <td>
+                                @if (f.Abierta)
+                                {
+                                    <div class="np-fecha">
+                                        <input type="date" class="date-input-inline" id="np-fecha-@f.Id" max="@Hoy.ToString("yyyy-MM-dd")"
+                                               value="@(valorFecha.TryGetValue(f.Id, out var v) ? v : FechaIso(f))"
+                                               @onchange="e => valorFecha[f.Id] = e.Value?.ToString() ?? string.Empty"
+                                               aria-label="Fecha de la última carpeta de @f.NombreCompleto" />
+                                        <button type="button" class="btn-small" data-accion="clasificar" disabled="@(ocupado || !PuedeClasificar(f))"
+                                                @onclick="() => ClasificarAsync(f)">@(f.Sector == "—" ? "Clasificar" : "Cambiar")</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="date-cell">@(FechaIso(f) is { Length: > 0 } iso ? DateOnly.Parse(iso).ToString("dd-MM-yyyy") : "—")</span>
+                                }
+                                <span class="sector-cell @ClaseSector(f.Sector)" title="Sector según la fecha de la última carpeta">@f.Sector</span>
+                            </td>
+                            @if (pestana == PestanaEntrantes.Cerradas)
+                            {
+                                <td>
+                                    <span class="badge ok">@Labels.Of(f.Estado)</span>
+                                    @if (f.UltimoCorreo is { } tipo)
+                                    {
+                                        <div class="np-vence">@TextoCorreo(tipo) @(f.UltimoCorreoEn is { } en ? HoraChile.ALocal(en).ToString("dd-MM-yyyy HH:mm") : string.Empty)</div>
+                                        @if (f.UltimoCorreoEsPrueba)
+                                        {
+                                            <span class="badge bad" title="Ese correo fue de prueba: la comuna no recibió nada">PRUEBA</span>
+                                        }
+                                    }
+                                </td>
+                            }
+                            <td class="action-cell">
+                                <div class="np-acciones">
+                                    @if (f.Abierta && f.Fisica)
+                                    {
+                                        <button type="button" class="btn-pend-busqueda @(f.EnBusqueda ? "activo" : "") @(f.Encontrada ? "encontrada" : "")" data-accion="lupa"
+                                                aria-pressed="@(f.EnBusqueda || f.Encontrada ? "true" : "false")" disabled="@ocupado"
+                                                title="@TituloLupa(f)" aria-label="Lupa de @f.NombreCompleto: @TituloLupa(f)" @onclick="() => LupaAsync(f)">
+                                            <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                                        </button>
+                                        <button type="button" class="btn-decision btn-enviar" data-accion="subida" disabled="@ocupado" title="La carpeta se encontró y se subió a Conaset"
+                                                @onclick="() => SubidaAsync(f)">Subida a Conaset</button>
+                                    }
+                                    @if (f.Salidas.HasFlag(SalidasEntrante.NoEstaLaCarpeta))
+                                    {
+                                        <button type="button" class="btn-decision btn-secondary @(Abierta(f, Accion.NoEsta) ? "activa" : "")" data-accion="no-esta" disabled="@ocupado"
+                                                title="La persona está en nuestra base pero la carpeta física no aparece: se pide el F8" @onclick="() => Abrir(f, Accion.NoEsta)">No está la carpeta</button>
+                                    }
+                                    @if (f.Salidas.HasFlag(SalidasEntrante.SinRegistro))
+                                    {
+                                        <button type="button" class="btn-decision btn-secondary @(Abierta(f, Accion.SinRegistro) ? "activa" : "")" data-accion="sin-registro" disabled="@ocupado"
+                                                title="Sin registro en nuestra base: corregir la clasificación o avisar a la comuna" @onclick="() => Abrir(f, Accion.SinRegistro)">Sin registro…</button>
+                                    }
+                                    @if (f.Salidas.HasFlag(SalidasEntrante.CarpetaDigital))
+                                    {
+                                        <button type="button" class="btn-decision btn-secondary @(Abierta(f, Accion.Digital) ? "activa" : "")" data-accion="digital" disabled="@ocupado"
+                                                title="La última carpeta es digital: avisar a la comuna" @onclick="() => Abrir(f, Accion.Digital)">Carpeta digital…</button>
+                                    }
+                                    @if (f.Confirmable)
+                                    {
+                                        @if (!f.Confirmada || (f.UltimoCorreoEsPrueba && modo is { EsPrueba: false }))
+                                        {
+                                            <button type="button" class="btn-decision btn-enviar @(Abierta(f, Accion.Confirmar) ? "activa" : "")" data-accion="ya-se-subio" disabled="@ocupado"
+                                                    title="Avisar a la comuna que la carpeta ya se subió" @onclick="() => Abrir(f, Accion.Confirmar)">Ya se subió</button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge ok" title="Ya se le avisó a la comuna">Comuna avisada</span>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                        @if (accion is { } a && a.Id == f.Id)
+                        {
+                            <tr class="np-detalle" @key="@($"{f.Id}-panel")">
+                                <td colspan="@(pestana == PestanaEntrantes.Cerradas ? 8 : 7)">
+                                    @if (a.Tipo == Accion.NoEsta)
+                                    {
+                                        <div class="np-confirmar" id="np-panel-noesta">
+                                            <span>Se marcará <b>@f.NombreCompleto</b> como «No existe carpeta» y se abrirá su <b>solicitud de F8</b>. Si el F8 no se puede generar, seguirá el certificado.</span>
+                                            <button type="button" class="btn-primary" id="np-confirmar-noesta" disabled="@(ocupado || !Autor.HasNombre)" @onclick="() => NoEstaAsync(f)">Pedir el F8</button>
+                                            <button type="button" class="btn-small" @onclick="() => accion = null">Cancelar</button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <NosPidenCorreoPanel Entrante="f" Tipo="TipoDe(a.Tipo)" Modo="modo" OnHecho="HechoAsync" OnCerrar="CerrarAccion" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (listado is not null)
+{
+    <ListadoBusquedaDocumento Listado="listado" OnCerrar="CerrarListado" />
+}
+
+@code {
+    private enum Accion { NoEsta, SinRegistro, Digital, Confirmar }
+
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private static readonly (PestanaEntrantes Valor, string Etiqueta)[] Pestanas =
+    [
+        (PestanaEntrantes.PorClasificar, "Por clasificar"),
+        (PestanaEntrantes.Archivo, "Archivo"),
+        (PestanaEntrantes.Oficina43, "Of. 43"),
+        (PestanaEntrantes.Digital, "Digital"),
+        (PestanaEntrantes.Cerradas, "Cerradas"),
+    ];
+
+    [Inject] private CambioDomicilioOptions Opciones { get; set; } = default!;
+
+    private IReadOnlyList<EntranteDto>? items;
+    private ResumenEntrantes? resumen;
+    private ModoEnvio? modo;
+    private PestanaEntrantes pestana = PestanaEntrantes.PorClasificar;
+    private (Guid Id, Accion Tipo)? accion;
+    private (Guid Id, CambioRealizado Cambio)? deshacer;
+    private readonly Dictionary<Guid, string> valorFecha = [];
+    private ListadoBusquedaDto? listado;
+    private bool soloEnBusqueda;
+    private bool ocupado;
+    private bool sincronizando;
+    private bool errorSync;
+    private string? avisoSync;
+    private string? error;
+    private string? mensaje;
+
+    private DateOnly Hoy => HoraChile.Fecha(DateTime.UtcNow);
+
+    private int TotalAbiertas => resumen is null ? 0 : resumen.PorClasificar + resumen.Archivo + resumen.Oficina43 + resumen.Digital;
+
+    private bool EsSectorImprimible => pestana is PestanaEntrantes.Archivo or PestanaEntrantes.Oficina43 or PestanaEntrantes.Digital;
+
+    private string SectorTexto => pestana switch
+    {
+        PestanaEntrantes.Archivo => "Archivo",
+        PestanaEntrantes.Oficina43 => "Oficina 43",
+        _ => "Digital",
+    };
+
+    private string AyudaPestana => pestana switch
+    {
+        PestanaEntrantes.PorClasificar => "Busque a la persona en SGL / CAS Chile y digite la fecha de su última carpeta: con ella la solicitud pasa a Archivo, Of. 43 o Digital. Si no tiene registro, use «Sin registro…».",
+        PestanaEntrantes.Archivo => $"Última carpeta anterior al {SectorFisico.Corte:dd-MM-yyyy}. Imprima el listado, busque y marque la lupa: sin marcar → en búsqueda → encontrada.",
+        PestanaEntrantes.Oficina43 => $"Última carpeta desde el {SectorFisico.Corte:dd-MM-yyyy}. Misma lupa de tres posiciones; la lupa nunca pide la carpeta a nadie.",
+        PestanaEntrantes.Digital => $"Última carpeta desde el {SectorFisico.CorteDigital:dd-MM-yyyy}: no hay carpeta física. Solo corresponde avisar a la comuna.",
+        _ => "Las últimas solicitudes cerradas. «Ya se subió» le avisa a la comuna que la carpeta quedó en la plataforma.",
+    };
+
+    private string TextoVacio => pestana switch
+    {
+        PestanaEntrantes.PorClasificar => "No hay solicitudes por clasificar. Pulse «Sincronizar correo» para traer las nuevas.",
+        PestanaEntrantes.Cerradas => "Todavía no hay solicitudes cerradas.",
+        _ => "No hay solicitudes en este sector.",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        avisoSync = null;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            modo = await Correo.ObtenerModoAsync();
+            resumen = await Entrantes.ResumenAsync();
+            items = await Entrantes.ListarAsync(pestana);
+            if (accion is { } a && items.All(f => f.Id != a.Id)) accion = null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudieron cargar las solicitudes");
+            items ??= [];
+        }
+    }
+
+    private async Task CambiarPestanaAsync(PestanaEntrantes nueva)
+    {
+        pestana = nueva;
+        accion = null;
+        items = null;
+        await CargarAsync();
+    }
+
+    private bool Abierta(EntranteDto f, Accion tipo) => accion is { } a && a.Id == f.Id && a.Tipo == tipo;
+
+    private void Abrir(EntranteDto f, Accion tipo) => accion = Abierta(f, tipo) ? null : (f.Id, tipo);
+
+    private void CerrarAccion() => accion = null;
+
+    private static TipoEnvioCorreoComuna TipoDe(Accion a) => a switch
+    {
+        Accion.SinRegistro => TipoEnvioCorreoComuna.SinRegistro,
+        Accion.Digital => TipoEnvioCorreoComuna.Digital,
+        _ => TipoEnvioCorreoComuna.ConfirmacionSubida,
+    };
+
+    private void CerrarMensaje()
+    {
+        mensaje = null;
+        deshacer = null;
+    }
+
+    private void AvisarCambio()
+    {
+        _ = Modulos.RefrescarAsync();
+        DuplicadosNotifier.Notify();
+    }
+
+    private async Task EjecutarAsync(Func<Task> trabajo, string contexto)
+    {
+        if (ocupado) return;
+        if (!Autor.HasNombre)
+        {
+            error = "Ingrese su nombre en el campo «Funcionario» (arriba) antes de modificar carpetas.";
+            return;
+        }
+
+        error = null;
+        mensaje = null;
+        deshacer = null;
+        ocupado = true;
+        try
+        {
+            await trabajo();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, contexto);
+            await CargarAsync();
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private string? FechaIso(EntranteDto f) => SectorFisico.NormalizarIso(f.FechaUltimaCarpeta);
+
+    private bool PuedeClasificar(EntranteDto f) =>
+        valorFecha.TryGetValue(f.Id, out var v) && !string.IsNullOrWhiteSpace(v) && SectorFisico.NormalizarIso(v) != FechaIso(f);
+
+    private Task ClasificarAsync(EntranteDto f) => EjecutarAsync(async () =>
+    {
+        var sector = await Entrantes.ClasificarAsync(f.Id, valorFecha[f.Id], Autor.Nombre);
+        valorFecha.Remove(f.Id);
+        accion = null;
+        mensaje = $"{f.NombreCompleto}: sector {sector}.";
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo guardar la fecha");
+
+    private Task LupaAsync(EntranteDto f) => EjecutarAsync(async () =>
+    {
+        await Entrantes.AvanzarLupaAsync(f.Id, Autor.Nombre);
+        await CargarAsync();
+    }, "No se pudo mover la lupa");
+
+    private Task SubidaAsync(EntranteDto f) => EjecutarAsync(async () =>
+    {
+        var cambio = await Entrantes.SubidaConasetAsync(f.Id, Autor.Nombre);
+        mensaje = $"{f.NombreCompleto}: pasó a «Cambio dom. subido a Conaset». Ahora puede avisarle a la comuna con «Ya se subió».";
+        deshacer = (f.Id, cambio);
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo registrar la subida");
+
+    private Task NoEstaAsync(EntranteDto f) => EjecutarAsync(async () =>
+    {
+        await Entrantes.NoEstaLaCarpetaAsync(f.Id, Autor.Nombre);
+        accion = null;
+        mensaje = $"{f.NombreCompleto}: pasó a «No existe carpeta» y se abrió su solicitud de F8 (módulo Solicitudes de F8).";
+        await CargarAsync();
+        AvisarCambio();
+    }, "No se pudo pedir el F8");
+
+    private async Task DeshacerAsync()
+    {
+        if (deshacer is not { } d) return;
+        await EjecutarAsync(async () =>
+        {
+            await Entrantes.DeshacerAsync(d.Id, d.Cambio, Autor.Nombre);
+            mensaje = "Deshecho: la solicitud volvió a «Cambio de domicilio».";
+            await CargarAsync();
+            AvisarCambio();
+        }, "No se pudo deshacer");
+    }
+
+    private async Task HechoAsync(string texto)
+    {
+        accion = null;
+        error = null;
+        deshacer = null;
+        mensaje = texto;
+        await CargarAsync();
+        AvisarCambio();
+    }
+
+    private async Task AbrirListadoAsync()
+    {
+        try
+        {
+            var sector = pestana switch
+            {
+                PestanaEntrantes.Archivo => SectorFisico.Archivo,
+                PestanaEntrantes.Oficina43 => SectorFisico.Oficina43,
+                _ => SectorFisico.Digital,
+            };
+            listado = await Entrantes.ObtenerListadoAsync(sector, soloEnBusqueda && pestana != PestanaEntrantes.Digital);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo armar el listado");
+        }
+    }
+
+    private void CerrarListado() => listado = null;
+
+    private async Task SincronizarAsync()
+    {
+        if (sincronizando) return;
+        sincronizando = true;
+        avisoSync = null;
+        StateHasChanged();
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var caso = scope.ServiceProvider.GetRequiredService<Sgl.Application.SincronizacionCorreo.SincronizarCorreoCambioDomicilio>();
+            var r = await UltimaSincronizacion.EjecutarAsync(caso);
+            errorSync = !r.Configurado || r.Error is not null;
+            avisoSync = !r.Configurado
+                ? "Correo no configurado: falta la conexión al buzón de Outlook."
+                : r.Error is not null
+                    ? $"No se pudo sincronizar: {r.Error}"
+                    : $"Sincronizado: {r.Nuevas} nuevas · {r.YaExistentes} ya existentes · {r.ParaRevision} para revisar nombre · {r.Descartados.Count} descartada(s) · {r.MovidasASubidas} pasadas a subidas.";
+            await CargarAsync();
+            AvisarCambio();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Falló la sincronización del correo desde «Nos piden carpetas».");
+            errorSync = true;
+            avisoSync = "No se pudo sincronizar el correo. Intente de nuevo en unos minutos.";
+        }
+        finally
+        {
+            sincronizando = false;
+        }
+    }
+
+    private async Task CopiarRutAsync(string rut)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("copyRutCasChile", rut);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // El navegador no dejó copiar: el RUT sigue visible en la tabla.
+        }
+    }
+
+    private static string TituloLupa(EntranteDto f) =>
+        f.Encontrada ? "Encontrada: un toque la deja sin marcar" : f.EnBusqueda ? "En búsqueda: un toque la marca como encontrada" : "Sin marcar: un toque la pone en búsqueda";
+
+    private static string ClasePlazo(EntranteDto f) => !f.Abierta ? "cerrada" : f.Plazo switch
+    {
+        PlazoColor.Rojo => "rojo",
+        PlazoColor.Amarillo => "amarillo",
+        _ => "verde",
+    };
+
+    private static string InsigniaPlazo(PlazoColor p) => p switch
+    {
+        PlazoColor.Rojo => "bad",
+        PlazoColor.Amarillo => "warn",
+        _ => "ok",
+    };
+
+    private static string TextoPlazo(EntranteDto f) => f.DiasRestantes switch
+    {
+        < 0 => $"pasado hace {-f.DiasRestantes} d",
+        0 => "vence hoy",
+        1 => "vence mañana",
+        _ => $"vence en {f.DiasRestantes} d",
+    };
+
+    private static string ClaseSector(string sector) => sector switch
+    {
+        SectorFisico.Archivo => "sector-archivo",
+        SectorFisico.Oficina43 => "sector-oficina43",
+        SectorFisico.Digital => "sector-digital",
+        _ => "sector-vacio",
+    };
+
+    private static string TextoCorreo(TipoEnvioCorreoComuna tipo) => tipo switch
+    {
+        TipoEnvioCorreoComuna.SinRegistro => "Correo «sin registro»",
+        TipoEnvioCorreoComuna.Digital => "Correo «carpeta digital»",
+        _ => "Confirmación «ya se subió»",
+    };
+}

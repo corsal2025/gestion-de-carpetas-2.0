@@ -38,10 +38,16 @@ public interface ICorreoCambioDomicilioRepository
     /// <summary>Carpetas created (or matched) from that message, any person.</summary>
     Task<IReadOnlyList<Guid>> CarpetasDeMensajeAsync(string messageId, CancellationToken ct = default);
 
-    /// <summary>Open, non-cancelled carpetas of that citizen currently in <see cref="EstadoCarpeta.CambioDomicilio"/>.</summary>
-    Task<IReadOnlyList<Guid>> CarpetasEnCambioDomicilioAsync(Guid ciudadanoId, CancellationToken ct = default);
+    /// <summary>Open, non-cancelled carpetas of that citizen with that direction currently in <paramref name="estado"/>, newest first.</summary>
+    Task<IReadOnlyList<Guid>> CarpetasAbiertasAsync(
+        Guid ciudadanoId, SentidoCambioDomicilio sentido, EstadoCarpeta estado, CancellationToken ct = default);
 
     Task AddAsync(CorreoCambioDomicilio registro, CancellationToken ct = default);
+
+    /// <summary>True when that message was already left out (and recorded) by an earlier sync.</summary>
+    Task<bool> ExisteDescartadoAsync(string messageId, CancellationToken ct = default);
+
+    Task AddDescartadoAsync(CorreoDescartadoRegistro registro, CancellationToken ct = default);
 }
 
 /// <summary>Folder names and defaults of the sync (configurable, see <c>Peticion:Ews</c>).</summary>

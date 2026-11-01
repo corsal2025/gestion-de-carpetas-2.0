@@ -21,6 +21,25 @@ public static class Labels
         EstadoCarpeta.CanjeLicExtranjera,
     ];
 
+    /// <summary>
+    /// State options offered for a carpeta, shared by the table rows and the side panel. While it is searched physically
+    /// (Archivos / Of. 43) or declared missing, only the next steps of the flow are offered; every other state keeps the full
+    /// list (legacy carpetas can be moved freely). Final states are never in the list (decided in Otorgamiento).
+    /// </summary>
+    public static IEnumerable<EstadoCarpeta> OpcionesDeEstado(EstadoCarpeta actual, SentidoCambioDomicilio? sentido = null, bool pendienteReclasificacion = false)
+    {
+        // A saliente never offers the estados its direction forbids (F8, oficio, certificate, «Creación de F8», Subida a Conaset).
+        // A carpeta still pending in «Reclasificación» does not offer the states after that gate either.
+        var permitidas = OpcionesDesplegable.Where(o => o == actual
+            || (!EstadoTransitions.VetaForzadoSaliente(actual, o, sentido)
+                && !(pendienteReclasificacion && Carpeta.EsPosteriorALaPuertaDeReclasificacion(o))
+                && !(pendienteReclasificacion && sentido == SentidoCambioDomicilio.Entrante && !Carpeta.PermiteEstadoSiEntrantePendiente(o))));
+        if (actual is not (EstadoCarpeta.SeEncuentraEnArchivos or EstadoCarpeta.SeEncuentraEnOf43 or EstadoCarpeta.NoExisteCarpeta))
+            return permitidas;
+        var siguientes = EstadoTransitions.NextStates(actual);
+        return permitidas.Where(o => o == actual || siguientes.Contains(o));
+    }
+
     public static string Of(Sede sede) => sede switch
     {
         Sede.AvArgentina => "AV. ARGENTINA",
@@ -43,6 +62,8 @@ public static class Labels
         EstadoCarpeta.NoExisteCarpeta => "CREACIÓN DE F8",
         EstadoCarpeta.CrearCertificado => "CERTIFICADO / OFICIO",
         EstadoCarpeta.CanjeLicExtranjera => "CANJE LIC. EXTRANJERA",
+        EstadoCarpeta.CambioDomSinRegistro => "CAMBIO DOM. SIN REGISTRO",
+        EstadoCarpeta.CambioDomCarpetaDigital => "CAMBIO DOM. CARPETA DIGITAL",
 
         EstadoCarpeta.PorClasificar => "POR CLASIFICAR",
         EstadoCarpeta.Citada => "CITADA",
@@ -57,6 +78,14 @@ public static class Labels
         _ => estado.ToString().ToUpperInvariant(),
     };
 
+    public static string Of(Resolucion resolucion) => resolucion switch
+    {
+        Resolucion.EsperaExamen => "ESPERA EXAMEN",
+        Resolucion.ClasePendiente => "CLASE PENDIENTE",
+        Resolucion.ParaDenegar => "PARA DENEGAR",
+        _ => resolucion.ToString().ToUpperInvariant(),
+    };
+
     public static string Of(TramiteAgenda tramite) => tramite switch
     {
         TramiteAgenda.PrimeraVezExtension => "1° VEZ / EXTENSIÓN",
@@ -65,11 +94,12 @@ public static class Labels
     };
 
     /// <summary>States offered when classifying a "Por clasificar" carpeta.</summary>
-    // Only the entry classifications are offered: the uploaded, certificate, solicited and missing states are reached later in the flow.
+    // Only the entry classifications are offered: 1° licencia, cambio de domicilio, Archivos / Of. 43, "No existe carpeta" and canje.
+    // The uploaded, certificate and solicited states are reached later in the flow (Crear certificado only after the F8).
     public static IReadOnlyList<EstadoCarpeta> OpcionesClasificacion { get; } = Carpeta.DestinosClasificacion
         .Where(e => e is not (EstadoCarpeta.SubidaConaset or EstadoCarpeta.SubidaConF8 or EstadoCarpeta.CambioDomSubidoConaset
             or EstadoCarpeta.CambioDomSubidoCorreo or EstadoCarpeta.SubidaConOficio
-            or EstadoCarpeta.CrearCertificado or EstadoCarpeta.CambioDomicilioSolicitado or EstadoCarpeta.NoExisteCarpeta))
+            or EstadoCarpeta.CrearCertificado or EstadoCarpeta.CambioDomicilioSolicitado))
         .ToList();
 
     public static string Of(Decision decision) => decision switch
@@ -94,6 +124,8 @@ public static class Labels
         EstadoCarpeta.NoExisteCarpeta => "estado-noexistecarpeta",
         EstadoCarpeta.CrearCertificado => "estado-crearcertificado",
         EstadoCarpeta.CanjeLicExtranjera => "estado-canjelicenciaextranjera",
+        EstadoCarpeta.CambioDomSinRegistro => "estado-cambiodomsinregistro",
+        EstadoCarpeta.CambioDomCarpetaDigital => "estado-cambiodomcarpetadigital",
         _ => $"estado-{estado.ToString().ToLowerInvariant()}",
     };
 
@@ -110,7 +142,10 @@ public static class Labels
         "FechaCierre" => "FECHA DE CIERRE",
         "FechaImpresion" => "IMPRESIÓN DEL LISTADO",
         "PendienteBusqueda" => "PENDIENTE DE BÚSQUEDA",
+        "CarpetaEncontrada" => "CARPETA ENCONTRADA",
         "Deshacer" => "CAMBIO DESHECHO",
+        Carpeta.CampoDireccion => "DIRECCIÓN DEL CAMBIO DE DOMICILIO",
+        Carpeta.CampoCorreccionClasificacion => "CORRECCIÓN DE CLASIFICACIÓN",
         _ => campo.ToUpperInvariant(),
     };
 

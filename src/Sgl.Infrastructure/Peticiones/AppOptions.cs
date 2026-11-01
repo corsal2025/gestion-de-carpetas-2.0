@@ -31,6 +31,13 @@ public sealed class AppOptions
     /// <summary>Carpeta para copias locales de la base. Vacío = Documentos/RespaldoPeticionCambioDomicilio.</summary>
     public string? BackupDirectory { get; set; }
 
+    /// <summary>
+    /// Respaldo automático diario de la base (copia completa a <see cref="BackupDirectory"/>, por defecto en Documentos).
+    /// <c>true</c> (por defecto) = comportamiento de siempre. <c>false</c> = el servicio no copia nada ni crea la carpeta:
+    /// úsese en entornos de prueba para no escribir fuera del repositorio. No afecta a los respaldos manuales que pide el usuario.
+    /// </summary>
+    public bool RespaldoAutomaticoActivo { get; set; } = true;
+
     /// <summary>Correo institucional (aparece como firma / remitente).</summary>
     public string MailboxAddress { get; set; } = "cambiodedomicilio@munivalpo.cl";
 

@@ -27,7 +27,7 @@
             <section class="sidebar-grupo @grupo.Css">
                 <button type="button" class="sidebar-grupo-titulo" @onclick="() => ToggleGrupoAsync(grupo)"
                         aria-expanded="@(abierto ? "true" : "false")" title="@grupo.Nombre">
-                    <svg class="sidebar-grupo-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="@grupo.Icono" /></svg>
+                    <img class="sidebar-grupo-ico" src="@($"iconos/modulos/{grupo.Clave}.svg")" alt="" aria-hidden="true" />
                     @if (!plegado)
                     {
                         <span class="sidebar-grupo-nombre">@grupo.Nombre</span>
@@ -65,7 +65,7 @@
                                             <SemaforoPunto Color="em.Semaforo" Atrasadas="em.Atrasadas" />
                                         }
                                         <span class="sidebar-modulo-nombre">@m.Nombre</span>
-                                        @if (!m.Clave.StartsWith("peticiones", StringComparison.Ordinal))
+                                        @if (!m.Clave.StartsWith("peticiones", StringComparison.Ordinal) && m.Clave != ModulosCatalogo.ClaveAsistencia && m.Clave != ModulosCatalogo.ClaveComunas)
                                         {
                                             <span class="sidebar-contador @ClaseSemaforo(em.Semaforo)">@if (Estado.Panel is null) { <span aria-label="Cargando">…</span> } else { <NumeroAnimado Valor="em.Conteo" /> }</span>
                                         }

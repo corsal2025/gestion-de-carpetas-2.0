@@ -1,0 +1,44 @@
+@* Aviso: carpetas en «Solicitado» cuyos correos fueron TODOS de prueba (la comuna no recibió nada). Se muestra en el seguimiento y,
+   sobre todo, al activar el envío real: esas carpetas pasaron a «Solicitado» pero nadie les pidió la carpeta de verdad. *@
+@using Sgl.Application.CambioDomicilio
+@inject SeguimientoService Seguimiento
+@inject ILogger<AvisoSoloPrueba> Logger
+
+@if (cantidad > 0)
+{
+    <div class="alert warning aviso-prueba" role="status" id="aviso-solo-prueba">
+        <b>@cantidad.ToString("N0", Cultura) carpeta(s)</b> tienen solo envíos de <span class="badge bad">PRUEBA</span>: el correo fue a la casilla de prueba y
+        la comuna no recibió nada, aunque figuran en «Solicitado».
+        @if (ConEnlace)
+        {
+            <a href="cambio-domicilio/pedimos/seguimiento?filtro=prueba" id="aviso-solo-prueba-ver">Ver cuáles y volver a pedirlas</a>
+        }
+    </div>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    /// <summary>Offer the link to the follow-up list filtered by those carpetas (not needed inside that list).</summary>
+    [Parameter] public bool ConEnlace { get; set; } = true;
+
+    /// <summary>Changes when the host altered something, so the figure is read again.</summary>
+    [Parameter] public int Refresco { get; set; }
+
+    private int cantidad;
+    private int ultimoRefresco = -1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ultimoRefresco == Refresco) return;
+        ultimoRefresco = Refresco;
+        try
+        {
+            cantidad = await Seguimiento.ContarSoloPruebaAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "No se pudo contar las carpetas con solo envíos de prueba.");
+        }
+    }
+}

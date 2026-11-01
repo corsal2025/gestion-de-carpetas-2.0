@@ -25,10 +25,12 @@ public sealed class CorreoCambioDomicilioRepository(SglDbContext db) : ICorreoCa
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Guid>> CarpetasEnCambioDomicilioAsync(Guid ciudadanoId, CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<Guid>> CarpetasAbiertasAsync(
+        Guid ciudadanoId, SentidoCambioDomicilio sentido, EstadoCarpeta estado, CancellationToken ct = default) =>
         await db.Carpetas
             .Where(c => c.CiudadanoId == ciudadanoId
-                && c.Estado == EstadoCarpeta.CambioDomicilio
+                && c.SentidoCambioDomicilio == sentido
+                && c.Estado == estado
                 && c.Decision == Decision.Pendiente)
             .OrderByDescending(c => c.FechaRegistro)
             .Select(c => c.Id)
@@ -36,6 +38,15 @@ public sealed class CorreoCambioDomicilioRepository(SglDbContext db) : ICorreoCa
 
     public async Task AddAsync(CorreoCambioDomicilio registro, CancellationToken ct = default) =>
         await db.CorreosCambioDomicilio.AddAsync(registro, ct);
+
+    public Task<bool> ExisteDescartadoAsync(string messageId, CancellationToken ct = default)
+    {
+        var id = CorreoDescartadoRegistro.Clave(messageId);
+        return db.CorreosDescartados.AnyAsync(d => d.MessageId == id, ct);
+    }
+
+    public async Task AddDescartadoAsync(CorreoDescartadoRegistro registro, CancellationToken ct = default) =>
+        await db.CorreosDescartados.AddAsync(registro, ct);
 
     private static string Clave(string messageId)
     {

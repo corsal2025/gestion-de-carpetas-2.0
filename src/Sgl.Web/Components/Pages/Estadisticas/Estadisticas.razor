@@ -79,7 +79,7 @@ else
         </a>
         <a class="est-kpi" href="@Url("todas")">
             <span class="est-kpi-etq">Mediana citación → subida</span>
-            <span class="est-kpi-valor">@(k.MedianaDiasCitacionSubida is { } m ? $"{m:0.#} días" : "—")</span>
+            <span class="est-kpi-valor">@Dias(k.MedianaDiasCitacionSubida)</span>
             <span class="est-kpi-sub">@N(a.CitacionSubida.Muestras) carpetas subidas</span>
         </a>
     </section>
@@ -177,7 +177,7 @@ else
     <h2 class="est-seccion">1° Licencia y citadas</h2>
     <div class="est-grid">
         <article class="card est-card">
-            <header><h3>Citadas sin subir hace más de @a.DiasSinSubir días</h3><a href="@Url("PorPreparar", hastaOverride: Hoy.AddDays(-a.DiasSinSubir))">Ver carpetas →</a></header>
+            <header><h3>Citadas sin subir hace más de @a.DiasSinSubir @(a.DiasSinSubir == 1 ? "día" : "días")</h3><a href="@Url("PorPreparar", hastaOverride: Hoy.AddDays(-a.DiasSinSubir))">Ver carpetas →</a></header>
             <BarrasTabla Titulo="Citadas sin subir por sede" ColumnaEtiqueta="Sede" Variante="rojo"
                          Filas="@a.CitadasSinSubir.Select(s => new BarrasTabla.Fila(Labels.Of(s.Sede), s.Cantidad, N(s.Cantidad), Url("PorPreparar", sede: s.Sede, hastaOverride: Hoy.AddDays(-a.DiasSinSubir)))).ToList()" />
         </article>
@@ -354,6 +354,52 @@ else
     </div>
 
     var b = datos.Busquedas;
+    <h2 class="est-seccion">Citas y asistencia</h2>
+    <div class="est-grid">
+        <article class="card est-card">
+            <header><h3>Citas canceladas por mes y sede</h3></header>
+            <p class="est-nota">Mes de la fecha de la cita. Solo conteo: no incluye datos de las personas.</p>
+            @if (datos.Canceladas.Count == 0)
+            {
+                <p class="est-sin-datos">Sin citas canceladas para los filtros seleccionados (0).</p>
+            }
+            else
+            {
+                <table class="est-tabla">
+                    <caption class="visually-hidden">Citas canceladas por año, mes y sede</caption>
+                    <thead><tr><th scope="col">Año</th><th scope="col">Mes</th><th scope="col">Sede</th><th scope="col" class="num">Canceladas</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in datos.Canceladas)
+                        {
+                            <tr><td>@c.Anio</td><td>@NombreMes(c.Anio, c.Mes)</td><td>@Labels.Of(c.Sede)</td><td class="num">@N(c.Cantidad)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </article>
+        <article class="card est-card">
+            <header><h3>Asistencia por mes y sede</h3></header>
+            <p class="est-nota">Agendadas: carpetas citadas en el mes que no son extra. Vinieron y extras: asistencias marcadas, sin las deshechas. Asistencia = vinieron ÷ agendadas.</p>
+            @if (datos.Asistencia.Count == 0)
+            {
+                <p class="est-sin-datos">Sin registros de asistencia todavía.</p>
+            }
+            else
+            {
+                <table class="est-tabla">
+                    <caption class="visually-hidden">Asistencia por mes y sede</caption>
+                    <thead><tr><th scope="col">Mes</th><th scope="col">Sede</th><th scope="col" class="num">Agendadas</th><th scope="col" class="num">Vinieron</th><th scope="col" class="num">Extras</th><th scope="col" class="num">Asistencia</th></tr></thead>
+                    <tbody>
+                        @foreach (var x in datos.Asistencia)
+                        {
+                            <tr><td>@NombreMes(x.Anio, x.Mes)</td><td>@Labels.Of(x.Sede)</td><td class="num">@N(x.Agendadas)</td><td class="num">@N(x.Vinieron)</td><td class="num">@N(x.Extras)</td><td class="num">@Porc(x.PorcentajeAsistencia)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </article>
+    </div>
+
     <h2 class="est-seccion">Creación de F8 y búsqueda</h2>
     <div class="est-grid">
         <article class="card est-card est-ancha">
@@ -377,7 +423,7 @@ else
                     <div><dt>Máximo</dt><dd>@Horas(b.HorasParaEncontrar.Maximo)</dd></div>
                 </dl>
                 <BarrasTabla Titulo="Encontradas por sector" ColumnaEtiqueta="Sector"
-                             Filas="@(new List<BarrasTabla.Fila> { new("Archivo", b.EncontradasArchivo, N(b.EncontradasArchivo)), new("Oficina 43", b.EncontradasOficina43, N(b.EncontradasOficina43)), new("Sin fecha de última carpeta", b.EncontradasSectorDesconocido, N(b.EncontradasSectorDesconocido)) })" />
+                             Filas="@(new List<BarrasTabla.Fila> { new("Archivo", b.EncontradasArchivo, N(b.EncontradasArchivo)), new("Oficina 43", b.EncontradasOficina43, N(b.EncontradasOficina43)), new("Digital", b.EncontradasDigital, N(b.EncontradasDigital)), new("Sin fecha de última carpeta", b.EncontradasSectorDesconocido, N(b.EncontradasSectorDesconocido)) })" />
             }
         </article>
     </div>
@@ -591,7 +637,7 @@ else
         Enum.TryParse<EstadoCarpeta>(clave, out var e) ? Labels.Of(e) : clave;
 
     private static string N(int n) => n.ToString("N0", Cl);
-    private static string Dias(double? v) => v is { } d ? $"{d.ToString("0.#", Cl)} días" : "—";
+    private static string Dias(double? v) => v is { } d ? $"{d.ToString("0.#", Cl)} {(Math.Abs(d - 1) < 0.05 ? "día" : "días")}" : "—";
     private static string Horas(double? v) => v is { } d ? $"{d.ToString("0.#", Cl)} h" : "—";
     private static string Porc(double? v) => v is { } d ? d.ToString("P1", Cl) : "—";
 

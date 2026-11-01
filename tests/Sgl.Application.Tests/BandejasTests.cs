@@ -168,7 +168,8 @@ public sealed class BandejasTests : IDisposable
         var b = await Registrar("11.111.111-1");
         var c = await Registrar("22.222.222-2", Sede.Placilla);
         await _db.NewService().ForzarEstadoAsync(b, EstadoCarpeta.SubidaConaset, "ana");
-        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(c, "CAJA 9", "ana"));
+        await _db.NewService().DecidirAsync(c);
+        await _db.NewService().AsignarCajaAsync(new AsignarCajaCommand(c, "A-9", "ana"));
 
         var subidas = await _db.NewService().ListarAsync(new ListarCarpetasQuery(Bandeja: Bandeja.SubidaConaset, Take: 10));
         Assert.Equal(b, Assert.Single(subidas.Items).Id);

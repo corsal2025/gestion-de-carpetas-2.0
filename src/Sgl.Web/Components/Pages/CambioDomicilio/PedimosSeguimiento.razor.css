@@ -1,0 +1,31 @@
+.sg-pagina { display: flex; flex-direction: column; gap: 0.8rem; }
+.sg-ayuda { margin: 0; font-size: 0.88rem; color: var(--text-secondary); max-width: 62rem; }
+.sg-filtros { margin-bottom: 0; }
+.sg-n { display: inline-block; margin-left: 0.3rem; padding: 0 0.45rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--surface-alt); color: var(--text-secondary); }
+
+/* Color del plazo: franja a la izquierda de la fila + insignia (verde, amarillo <= 3 días, rojo vencida). */
+.sg-fila > td:first-child { border-left: 5px solid transparent; }
+.sg-verde > td:first-child { border-left-color: var(--status-ok-text); }
+.sg-amarillo > td:first-child { border-left-color: var(--status-warn-text); }
+.sg-rojo > td:first-child { border-left-color: var(--status-bad-text); }
+.sg-plazo { white-space: nowrap; }
+.sg-vence { font-size: 0.8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sg-cita { font-size: 0.74rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sg-copiar { margin-left: 0.4rem; }
+.sg-descarga { font-weight: 600; }
+
+.sg-tabla td.action-cell { min-width: 11rem; }
+.sg-acciones { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+/* Comuna/correos y pantallazo pueden partir línea para que la tabla entre en pantalla; el RUT nunca se parte. */
+html body .sg-tabla.data-table.bandeja-table tbody td:nth-child(n+5) { white-space: normal !important; max-width: 15rem; }
+html body .sg-tabla.data-table.bandeja-table tbody td.action-cell { white-space: normal !important; }
+html body .sg-tabla.data-table.bandeja-table tbody td.date-cell { white-space: nowrap !important; }
+.sg-acciones .btn-decision { padding-inline: 0.55rem; font-size: 0.76rem; white-space: nowrap; }
+.sg-motivo { flex: 1 1 100%; font-size: 0.74rem; line-height: 1.25; color: var(--text-secondary); white-space: normal; }
+.sg-acciones .activa { outline: 2px solid var(--brand-primary); outline-offset: 1px; }
+
+html body .sg-tabla.data-table.bandeja-table .sg-detalle > td { background: var(--surface-alt); padding: 0.6rem 0.9rem; white-space: normal; }
+.sg-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; font-size: 0.9rem; max-width: 60rem; white-space: normal; }
+.sg-panel > span { flex: 1 1 24rem; min-width: 0; }
+.sg-sin-pantallazo { color: var(--status-warn-text); font-weight: 600; }
+.sg-sin-pantallazo a { margin-left: 0.4rem; }

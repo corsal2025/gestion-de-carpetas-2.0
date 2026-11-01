@@ -1,0 +1,145 @@
+@* Editor de las plantillas de los correos a la comuna que pidió la carpeta: «sin registro» (B), «carpeta digital» (C) y
+   «ya se subió». Marcadores: {nombre} {rut} {fecha} y {comuna_sgl} (la línea que lo lleva desaparece si no hay comuna). *@
+@using System.Text.RegularExpressions
+@using Sgl.Application.CambioDomicilio
+@using Sgl.Domain
+@using Sgl.Infrastructure.CambioDomicilio
+@inject ICorreoComunas Correo
+@inject ILogger<ComunasPlantillas> Logger
+
+<section class="cp-plantillas" id="cp-plantillas">
+    <nav class="sol-filtros" role="group" aria-label="Plantilla a editar" id="cp-claves">
+        @foreach (var (clave, etiqueta) in Claves)
+        {
+            <button type="button" class="sol-chip @(actual == clave ? "activo" : "")" id="cp-clave-@clave" aria-pressed="@(actual == clave ? "true" : "false")"
+                    @onclick="() => ElegirAsync(clave)">@etiqueta</button>
+        }
+    </nav>
+
+    @if (mensaje is not null)
+    {
+        <div class="alert @(esError ? "error" : "success")" role="status" id="cp-mensaje">@mensaje</div>
+    }
+
+    @if (cargando)
+    {
+        <div class="loading-state"><div class="spinner"></div><p>Cargando la plantilla…</p></div>
+    }
+    else
+    {
+        <div class="cp-editor">
+            <div class="cp-columna">
+                <label>Asunto
+                    <input type="text" @bind="asunto" @bind:event="oninput" maxlength="@PlantillaCorreo.MaxAsuntoLength" id="cp-asunto" />
+                </label>
+                <label>Texto
+                    <textarea rows="16" @bind="cuerpo" @bind:event="oninput" maxlength="@PlantillaCorreo.MaxCuerpoLength" id="cp-cuerpo"></textarea>
+                </label>
+                <p class="cp-ayuda">
+                    Marcadores: <code>{nombre}</code> <code>{rut}</code> <code>{fecha}</code> (fecha de la última carpeta) <code>{comuna_sgl}</code> (solo «sin registro»;
+                    la línea que lo lleva se omite si no se indica la comuna).
+                </p>
+                @if (Desconocidos.Count > 0)
+                {
+                    <p class="cp-aviso" role="alert" id="cp-desconocidos">Marcador desconocido: @string.Join(", ", Desconocidos). Saldría tal cual en el correo.</p>
+                }
+                <div class="cp-fila">
+                    <button type="button" class="btn-primary" id="cp-guardar" disabled="@(guardando || string.IsNullOrWhiteSpace(asunto) || string.IsNullOrWhiteSpace(cuerpo))"
+                            @onclick="GuardarAsync">Guardar plantilla</button>
+                    <button type="button" class="btn-secondary" id="cp-restaurar" disabled="@guardando" @onclick="Restaurar"
+                            title="Carga el texto aprobado; no se guarda hasta que pulse «Guardar plantilla»">Restaurar el texto aprobado</button>
+                </div>
+            </div>
+            <div class="cp-columna">
+                <h2>Vista previa</h2>
+                <p class="cp-ayuda">Con datos de ejemplo: @Ejemplo.Nombre, RUT @Ejemplo.Rut, última carpeta @Ejemplo.Fecha@(actual == PlantillasCambioDomicilio.ClaveSinRegistro ? $", figura en {Ejemplo.Comuna}" : string.Empty).</p>
+                <div class="cp-vista" id="cp-vista">
+                    <div class="cp-vista-asunto"><b>Asunto:</b> @Vista.Asunto</div>
+                    <pre class="cp-vista-cuerpo">@Vista.Cuerpo</pre>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly (string Clave, string Etiqueta)[] Claves =
+    [
+        (PlantillasCambioDomicilio.ClaveSinRegistro, "B · Sin registro"),
+        (PlantillasCambioDomicilio.ClaveDigital, "C · Carpeta digital"),
+        (PlantillasCambioDomicilio.ClaveConfirmacion, "Confirmación · Ya se subió"),
+    ];
+
+    private static readonly (string Nombre, string Rut, string Fecha, string Comuna) Ejemplo = ("Ana Pérez Soto", "11.111.111-1", "01-09-2026", "Viña del Mar");
+    private static readonly Regex Marcador = new(@"\{([^{}\s]*)\}", RegexOptions.Compiled);
+    private static readonly HashSet<string> Conocidos = new(StringComparer.Ordinal) { "nombre", "rut", "fecha", "comuna_sgl" };
+
+    private string actual = PlantillasCambioDomicilio.ClaveSinRegistro;
+    private string asunto = string.Empty;
+    private string cuerpo = string.Empty;
+    private bool cargando = true;
+    private bool guardando;
+    private string? mensaje;
+    private bool esError;
+
+    private TextoCorreo Vista => PlantillasCambioDomicilio.Renderizar(
+        new PlantillaCorreoDto(actual, asunto, cuerpo), Ejemplo.Nombre, Ejemplo.Rut, Ejemplo.Fecha,
+        actual == PlantillasCambioDomicilio.ClaveSinRegistro ? Ejemplo.Comuna : null);
+
+    private IReadOnlyList<string> Desconocidos => Marcador.Matches(asunto + "\n" + cuerpo)
+        .Select(m => m.Value).Where(v => !Conocidos.Contains(v.Trim('{', '}'))).Distinct().ToList();
+
+    protected override Task OnInitializedAsync() => ElegirAsync(actual);
+
+    private async Task ElegirAsync(string clave)
+    {
+        actual = clave;
+        cargando = true;
+        mensaje = null;
+        try
+        {
+            var p = await Correo.ObtenerPlantillaAsync(clave);
+            asunto = p.Asunto;
+            cuerpo = p.Cuerpo;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            esError = true;
+            mensaje = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar la plantilla");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Restaurar()
+    {
+        var p = PlantillasCambioDomicilio.PorDefecto(actual);
+        asunto = p.Asunto;
+        cuerpo = p.Cuerpo;
+        esError = false;
+        mensaje = "Se cargó el texto aprobado. Pulse «Guardar plantilla» para dejarlo como definitivo.";
+    }
+
+    private async Task GuardarAsync()
+    {
+        if (guardando) return;
+        guardando = true;
+        try
+        {
+            await Correo.GuardarPlantillaAsync(actual, asunto, cuerpo);
+            esError = false;
+            mensaje = "Plantilla guardada: los próximos correos usarán este texto.";
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            esError = true;
+            mensaje = ErroresUi.Mensaje(ex, Logger, "No se pudo guardar la plantilla");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

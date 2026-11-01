@@ -75,13 +75,13 @@ public class DecisionFinalTests
     }
 
     [Fact]
-    public void ForzarEstado_to_a_state_that_keeps_the_same_final_decision_is_allowed()
+    public void ForzarEstado_to_a_final_state_is_refused_even_when_the_decision_is_already_that_one()
     {
         var c = ConDecision(Decision.Otorgado);
 
-        c.ForzarEstado(EstadoCarpeta.Otorgado, "ana", Despues);
+        Assert.Throws<DomainException>(() => c.ForzarEstado(EstadoCarpeta.Otorgado, "ana", Despues));
 
-        Assert.Equal(EstadoCarpeta.Otorgado, c.Estado);
+        Assert.NotEqual(EstadoCarpeta.Otorgado, c.Estado);
         Assert.Equal(Decision.Otorgado, c.Decision);
     }
 
@@ -102,7 +102,7 @@ public class DecisionFinalTests
         var punto = c.PuntoRestauracion();
         c.CambiarDecision(Decision.Otorgado, "ana", Despues);
 
-        c.RestaurarEstado(punto, c.Estado, "ana", Despues);
+        c.RestaurarEstado(punto, c.Estado, "ana", Despues, permiteDeshacerDecision: true);
 
         Assert.Equal(Decision.Pendiente, c.Decision);
     }

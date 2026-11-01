@@ -138,7 +138,7 @@ public sealed class CertificadosServiceTests : IDisposable
     {
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
         var creado = await CrearManual(id, TipoCertificado.RegistroCivil);
-        await _db.NewService().ForzarEstadoAsync(id, final, "ana");
+        await _db.DejarEnEstadoFinalAsync(id, final);
 
         var ex = await Assert.ThrowsAsync<DomainException>(
             () => _db.NewCertificadosService().MarcarFirmadoAsync(creado.Id, "javiera"));

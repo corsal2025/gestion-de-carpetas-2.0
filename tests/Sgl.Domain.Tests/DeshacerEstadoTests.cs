@@ -82,9 +82,9 @@ public class DeshacerEstadoTests
     {
         var c = CarpetaFactory.New();
         var punto = c.PuntoRestauracion();
-        c.ForzarEstado(EstadoCarpeta.Otorgado, "ana", Cambio);
+        c.AplicarCargaHistorica(EstadoCarpeta.Otorgado, Decision.Otorgado, null, "ana", Cambio);
 
-        c.RestaurarEstado(punto, EstadoCarpeta.Otorgado, "ana", Deshace);
+        c.RestaurarEstado(punto, EstadoCarpeta.Otorgado, "ana", Deshace, permiteDeshacerDecision: true);
 
         Assert.Equal(Decision.Pendiente, c.Decision);
         Assert.Equal(EstadoCarpeta.Citada, c.Estado);

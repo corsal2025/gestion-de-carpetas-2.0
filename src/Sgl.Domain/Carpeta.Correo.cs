@@ -32,12 +32,15 @@ public sealed partial class Carpeta
             FechaCitacion = fechaSolicitud,
             Estado = EstadoCarpeta.CambioDomicilio,
             Decision = Decision.Pendiente,
+            SentidoCambioDomicilio = Domain.SentidoCambioDomicilio.Entrante,
+            PendienteReclasificacion = true,
             Comuna = ComunasChile.Normalizar(comuna),
             IdoneidadMoral = revisarNombre ? ObservacionRevisarNombreCorreo : null,
             FechaRegistro = now,
             FechaEstadoActual = now,
         };
         carpeta.Audit(now, usuario, "Registro", null, $"{EstadoCarpeta.CambioDomicilio} ({sede}) desde correo");
+        carpeta.Audit(now, usuario, CampoDireccion, null, nameof(Domain.SentidoCambioDomicilio.Entrante));
         if (carpeta.Comuna is not null)
         {
             carpeta.Audit(now, usuario, nameof(Comuna), null, carpeta.Comuna);

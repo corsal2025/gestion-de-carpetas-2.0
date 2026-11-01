@@ -1,0 +1,166 @@
+@* Directorio de comunas: una fila por comuna con su correo. Se guarda en el CSV del directorio (el mismo que usan los envíos). *@
+@using Sgl.Application.CambioDomicilio
+@inject IDirectorioComunas Directorio
+@inject ILogger<ComunasDirectorio> Logger
+
+<section class="cd-directorio" id="cd-directorio">
+    <form class="cd-alta" id="cd-alta" @onsubmit="Crear" @onsubmit:preventDefault>
+        <h2>Agregar una comuna</h2>
+        <label>Comuna
+            <input type="text" list="cd-comunas-sugeridas" @bind="nuevaComuna" @bind:event="oninput" id="cd-nueva-comuna" autocomplete="off" placeholder="Ej.: Quilpué" />
+            <datalist id="cd-comunas-sugeridas">
+                @foreach (var c in sinCorreo)
+                {
+                    <option value="@c"></option>
+                }
+            </datalist>
+        </label>
+        <label>Correo
+            <input type="email" @bind="nuevoCorreo" @bind:event="oninput" id="cd-nuevo-correo" autocomplete="off" placeholder="licencias@comuna.cl" />
+        </label>
+        <button type="submit" class="btn-primary" id="cd-agregar" disabled="@(string.IsNullOrWhiteSpace(nuevaComuna) || string.IsNullOrWhiteSpace(nuevoCorreo))">Agregar</button>
+        <span class="cd-ayuda">Una comuna puede tener varios correos: agregue uno por fila; para cambiar uno, edítelo en la lista. Quedan @sinCorreo.Count comunas de Chile sin correo.</span>
+    </form>
+
+    @if (mensaje is not null)
+    {
+        <div class="alert @(esError ? "error" : "success")" role="status" id="cd-mensaje">@mensaje</div>
+    }
+
+    <label class="cd-buscar">Buscar
+        <input type="search" @bind="filtro" @bind:event="oninput" id="cd-buscar" placeholder="Comuna o correo" />
+    </label>
+
+    <div class="table-container">
+        <table class="data-table bandeja-table cd-tabla" id="cd-tabla">
+            <thead>
+                <tr><th>COMUNA</th><th>CORREO</th><th>DOMINIO</th><th>ACCIÓN</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Visibles)
+                {
+                    <tr @key="@($"{c.Comuna}|{c.Correo}")" data-comuna="@c.Comuna">
+                        <td><b>@c.Comuna</b></td>
+                        <td>
+                            @if (editando == (c.Comuna, c.Correo))
+                            {
+                                <input type="email" @bind="correoEditado" @bind:event="oninput" class="cd-input" id="cd-editar-correo" aria-label="Nuevo correo de @c.Comuna" />
+                            }
+                            else
+                            {
+                                @c.Correo
+                            }
+                        </td>
+                        <td>@c.Dominio</td>
+                        <td class="action-cell">
+                            @if (editando == (c.Comuna, c.Correo))
+                            {
+                                <button type="button" class="btn-primary" data-accion="guardar" @onclick="() => GuardarEdicion(c)">Guardar</button>
+                                <button type="button" class="btn-small" @onclick="() => editando = null">Cancelar</button>
+                            }
+                            else if (eliminando == (c.Comuna, c.Correo))
+                            {
+                                <span>¿Eliminar el correo de <b>@c.Comuna</b>?</span>
+                                <button type="button" class="btn-peligro" data-accion="confirmar-eliminar" @onclick="() => Eliminar(c)">Sí, eliminar</button>
+                                <button type="button" class="btn-small" @onclick="() => eliminando = null">No</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn-small" data-accion="editar" @onclick="() => Editar(c)">Editar</button>
+                                <button type="button" class="btn-small" data-accion="eliminar" @onclick="() => PedirEliminar(c)">Eliminar</button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Visibles.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-center text-muted">Ninguna comuna coincide.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    private IReadOnlyList<ContactoComunaDto> contactos = [];
+    private IReadOnlyList<string> sinCorreo = [];
+    private string filtro = string.Empty;
+    private string nuevaComuna = string.Empty;
+    private string nuevoCorreo = string.Empty;
+    private string correoEditado = string.Empty;
+    private (string Comuna, string Correo)? editando;
+    private (string Comuna, string Correo)? eliminando;
+    private string? mensaje;
+    private bool esError;
+
+    private IReadOnlyList<ContactoComunaDto> Visibles => string.IsNullOrWhiteSpace(filtro)
+        ? contactos
+        : contactos.Where(c => c.Comuna.Contains(filtro.Trim(), StringComparison.OrdinalIgnoreCase)
+                               || c.Correo.Contains(filtro.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override void OnInitialized() => Recargar();
+
+    private void Recargar()
+    {
+        contactos = Directorio.Listar();
+        sinCorreo = Directorio.ComunasSinCorreo();
+    }
+
+    private void Resultado((bool Ok, string Mensaje) r)
+    {
+        esError = !r.Ok;
+        mensaje = r.Mensaje;
+        Recargar();
+    }
+
+    private void Editar(ContactoComunaDto c)
+    {
+        editando = (c.Comuna, c.Correo);
+        correoEditado = c.Correo;
+        eliminando = null;
+    }
+
+    private void PedirEliminar(ContactoComunaDto c)
+    {
+        eliminando = (c.Comuna, c.Correo);
+        editando = null;
+    }
+
+    private void Crear() => Ejecutar(() =>
+    {
+        var r = Directorio.CrearComuna(nuevaComuna, nuevoCorreo);
+        if (r.Ok)
+        {
+            nuevaComuna = string.Empty;
+            nuevoCorreo = string.Empty;
+        }
+        Resultado(r);
+    });
+
+    private void GuardarEdicion(ContactoComunaDto c) => Ejecutar(() =>
+    {
+        var r = Directorio.EditarCorreo(c.Comuna, c.Correo, correoEditado);
+        if (r.Ok) editando = null;
+        Resultado(r);
+    });
+
+    private void Eliminar(ContactoComunaDto c) => Ejecutar(() =>
+    {
+        eliminando = null;
+        Resultado(Directorio.Eliminar(c.Comuna, c.Correo));
+    });
+
+    private void Ejecutar(Action accion)
+    {
+        try
+        {
+            accion();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogError(ex, "No se pudo escribir el directorio de comunas.");
+            esError = true;
+            mensaje = "No se pudo guardar el directorio. Revise que el archivo no esté abierto en otro programa.";
+        }
+    }
+}

@@ -100,7 +100,7 @@
                                 <td class="mono col-rut-centrado">@item.Rut</td>
                                 <td>@Labels.Of(item.Sede)</td>
                                 <td>@(item.TipoTramite ?? Labels.Of(item.Estado))</td>
-                                <td>@(string.IsNullOrEmpty(item.FechaUltimaCarpeta) ? "S/C" : item.FechaUltimaCarpeta)</td>
+                                <td>@FechaImpresa.DdMmAaaa(item.FechaUltimaCarpeta)</td>
                                 <td>@item.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             </tr>
                         }
@@ -135,7 +135,7 @@
         <!-- VISTA PRINCIPAL: RESUMEN, CAJAS CERRADAS Y COLA POR GUARDAR -->
         <div class="header-section">
             <span class="lico-slot head-art" data-lico="explica" aria-hidden="true"></span>
-            <h1>📦 Gestión y Almacenamiento de Cajas Físicas</h1>
+            <h1>Cajas de archivo</h1>
             <p class="subtitle">Ordenamiento de carpetas encontradas, rotulación de cajas y emisión de actas de entrega para archivo.</p>
         </div>
 
@@ -166,20 +166,23 @@
             <div class="kpi-card">
                 <div class="kpi-icon">📥</div>
                 <div class="kpi-data">
-                    <span class="kpi-number">@totalSinCaja.ToString("N0")</span>
-                    <span class="kpi-label">Pendientes por guardar</span>
+                    <span class="kpi-number">@colas.Total.ToString("N0")</span>
+                    <span class="kpi-label">Pendientes por guardar (con decisión final)</span>
                 </div>
             </div>
         </div>
 
         <!-- Pestañas: Cajas Cerradas vs Cola por Guardar -->
         <div class="cajas-tab-nav">
-            <button class="tab-btn @(pestanaActiva == "cerradas" ? "active" : "")" @onclick='() => pestanaActiva = "cerradas"'>
-                📦 Cajas Archivadas (@(cajas?.Count ?? 0))
+            <button class="tab-btn @(pestanaActiva == "cerradas" ? "active" : "")" data-serie="cerradas" @onclick='() => SeleccionarPestanaAsync("cerradas")'>
+                Cajas archivadas (@(cajas?.Count ?? 0))
             </button>
-            <button class="tab-btn @(pestanaActiva == "cola" ? "active" : "")" @onclick='() => pestanaActiva = "cola"'>
-                📥 Cola de Carpetas por Guardar en Caja (@totalSinCaja.ToString("N0"))
-            </button>
+            @foreach (var (clave, serie, titulo) in Series)
+            {
+                <button class="tab-btn @(pestanaActiva == clave ? "active" : "")" data-serie="@clave" @onclick="() => SeleccionarPestanaAsync(clave)">
+                    @titulo (@colas.De(serie).ToString("N0"))
+                </button>
+            }
         </div>
 
         @if (pestanaActiva == "cerradas")
@@ -205,7 +208,14 @@
             {
                 <div class="empty-state">
                     <span class="lico-slot lico-empty" data-lico="explica" aria-hidden="true"></span>
-                    <p>No se encontraron cajas con el filtro "@filtroCajaTexto".</p>
+                    @if (string.IsNullOrWhiteSpace(filtroCajaTexto))
+                    {
+                        <p>No hay cajas en esta serie todavía.</p>
+                    }
+                    else
+                    {
+                        <p>No se encontraron cajas con el filtro "@filtroCajaTexto".</p>
+                    }
                 </div>
             }
             else
@@ -251,24 +261,50 @@
         }
         else
         {
-            <!-- PESTAÑA: COLA DE CARPETAS POR GUARDAR EN CAJA -->
+            <!-- PESTAÑA: COLA DE CARPETAS POR GUARDAR EN CAJA (UNA POR SERIE) -->
             <div class="caja-queue-card">
                 <div class="queue-header">
                     <div>
-                        <h2>📥 Cola de carpetas por archivar en caja física</h2>
-                        <p class="subtitle">Seleccione las carpetas encontradas que desea empacar e ingrese el rótulo de la caja.</p>
+                        <h2>📥 Cola de carpetas por archivar: serie @Carpeta.NombreSerie(serieActiva)</h2>
+                        <p class="subtitle">Solo aparecen carpetas con decisión final (otorgada o denegada) de esta serie. Seleccione las que irán en la caja e ingrese su rótulo.</p>
                     </div>
                 </div>
 
+                @if (colas.SinDecisionEnCola > 0)
+                {
+                    <p class="caja-hint caja-cola-heredada" role="note">
+                        Además hay @colas.SinDecisionEnCola.ToString("N0") carpeta(s) en «Cola de Caja» sin decisión final. No se modificaron ni se listan aquí: siguen como estaban.
+                    </p>
+                }
+
                 <div class="box-close-form">
                     <div class="box-input-group">
-                        <label for="nuevoRotuloInput"><strong>Rótulo / N° de Caja:</strong></label>
-                        <input id="nuevoRotuloInput" @bind="nuevoRotuloCaja" placeholder="Ej: CAJA AA-48 o A1-SGL" class="input-rotulo" />
+                        <label for="nuevoRotuloInput"><strong>Rótulo / N° de caja:</strong></label>
+                        <input id="nuevoRotuloInput" @bind="nuevoRotuloCaja" placeholder="@EjemploRotulo" maxlength="@Carpeta.MaxCajaLength" class="input-rotulo" />
                     </div>
+                    <div class="box-input-group">
+                        <label for="letraSugerenciaInput">Letra:</label>
+                        <input id="letraSugerenciaInput" value="@letraSugerencia" maxlength="2" size="3" class="input-rotulo" @onchange="CambiarLetraAsync" />
+                    </div>
+                    <label class="chk-existente">
+                        <input id="agregarExistenteChk" type="checkbox" @bind="agregarAExistente" />
+                        Agregar a caja existente
+                    </label>
                     <button class="btn-primary" disabled="@(colaSeleccionadas.Count == 0 || string.IsNullOrWhiteSpace(nuevoRotuloCaja))" @onclick="AsignarCajaColaAsync">
                         📦 Almacenar @colaSeleccionadas.Count carpeta(s) en @(string.IsNullOrWhiteSpace(nuevoRotuloCaja) ? "Caja" : nuevoRotuloCaja)
                     </button>
                 </div>
+                <p class="caja-hint caja-sugerencia" id="sugerenciaCaja" role="note">
+                    @if (sugerencia is not null)
+                    {
+                        <span>Siguiente número sugerido: <strong>@sugerencia</strong>. Es solo una ayuda: el número lo asigna usted.</span>
+                        <button type="button" class="btn-sug" @onclick="() => nuevoRotuloCaja = sugerencia">Usar @sugerencia</button>
+                    }
+                    else
+                    {
+                        <span>No hay más números disponibles para esa letra en esta serie: use otra letra.</span>
+                    }
+                </p>
 
                 @if (carpetasCola is null)
                 {
@@ -342,15 +378,24 @@
             <p>Carpeta: <strong class="nombre-persona">@carpetaModal.NombreCompleto</strong> (@carpetaModal.Rut)</p>
             <div class="modal-form">
                 <label>Código / Identificador de la Caja o Estante:
-                    <input @bind="nuevaCajaModal" maxlength="@Carpeta.MaxCajaLength" placeholder="Ej: CAJA AA-01, CAJA PL-02, ARCHIVO GENERAL, OF. 43" autofocus />
+                    <input @bind="nuevaCajaModal" maxlength="@Carpeta.MaxCajaLength" placeholder="@EjemploRotulo" autofocus />
                 </label>
-                @if (cajas is { Count: > 0 })
+                <label class="chk-existente">
+                    <input type="checkbox" @bind="agregarModal" />
+                    Agregar a caja existente
+                </label>
+                @if (sugerencia is not null)
+                {
+                    <p class="caja-hint">Siguiente número sugerido: <strong>@sugerencia</strong> (solo una ayuda).
+                        <button type="button" class="btn-sug" @onclick="() => nuevaCajaModal = sugerencia">Usar @sugerencia</button></p>
+                }
+                @if (CajasDeLaSerie.Count > 0)
                 {
                     <div class="cajas-sugeridas">
-                        <span class="sugeridas-label">Cajas activas existentes:</span>
-                        @foreach (var caja in cajas.Take(6))
+                        <span class="sugeridas-label">Cajas existentes de esta serie:</span>
+                        @foreach (var caja in CajasDeLaSerie.Take(6))
                         {
-                            <button type="button" class="btn-sug" @onclick="() => nuevaCajaModal = caja.Caja">@caja.Caja (@caja.TotalCarpetas)</button>
+                            <button type="button" class="btn-sug" @onclick="() => { nuevaCajaModal = caja.Caja; agregarModal = true; }">@caja.Caja (@caja.TotalCarpetas)</button>
                         }
                     </div>
                 }
@@ -376,6 +421,61 @@
         return max <= 0 ? 0 : (int)Math.Round(100.0 * total / max);
     }
     private string pestanaActiva = "cerradas";
+
+    /// <summary>Pestañas de cola: una por serie (clave, serie, título).</summary>
+    private static readonly (string Clave, SerieCaja Serie, string Titulo)[] Series =
+    [
+        ("normal", SerieCaja.Normal, "Normales"),
+        ("cd", SerieCaja.CambioDomicilio, $"Cambio de domicilio ({CajaFormatos.Actual.SufijoCambioDomicilio})"),
+        ("puc", SerieCaja.PenultimaCarpeta, $"Penúltima carpeta ({CajaFormatos.Actual.SufijoPenultima})"),
+    ];
+
+    private SerieCaja serieActiva = SerieCaja.Normal;
+    private ColasCajaDto colas = new(0, 0, 0, 0);
+    private string letraSugerencia = "";
+    private string? sugerencia;
+    private bool agregarAExistente;
+    private bool agregarModal;
+
+    private string EjemploRotulo => $"Ej: A-12{CajaFormatos.Actual.SufijoDe(serieActiva)}";
+
+    /// <summary>Cajas ya registradas que pertenecen a la serie activa (por el sufijo del rótulo).</summary>
+    private IReadOnlyList<CajaResumenDto> CajasDeLaSerie =>
+        (cajas ?? []).Where(c => Carpeta.SerieDeRotulo(c.Caja) == serieActiva).ToList();
+
+    private async Task SeleccionarPestanaAsync(string clave)
+    {
+        pestanaActiva = clave;
+        colaSeleccionadas.Clear();
+        nuevoRotuloCaja = "";
+        agregarAExistente = false;
+        letraSugerencia = "";
+        mensajeError = null;
+        if (Series.FirstOrDefault(x => x.Clave == clave) is { Clave: not null } serie)
+        {
+            serieActiva = serie.Serie;
+            await CargarColaAsync();
+        }
+    }
+
+    private async Task CambiarLetraAsync(ChangeEventArgs e)
+    {
+        letraSugerencia = (e.Value as string ?? "").Trim();
+        await CargarSugerenciaAsync();
+    }
+
+    private async Task CargarSugerenciaAsync()
+    {
+        try
+        {
+            sugerencia = await Carpetas.SugerirSiguienteCajaAsync(serieActiva, letraSugerencia);
+        }
+        catch (DomainException ex)
+        {
+            sugerencia = null;
+            mensajeError = ex.Message;
+        }
+    }
     private string filtroCajaTexto = "";
     private string nuevoRotuloCaja = "";
     private string? mensajeExito;
@@ -421,7 +521,6 @@
 
     /// <summary>Fila de la cola con su correlativo, para la lista continua virtualizada.</summary>
     private sealed record FilaCola(int Numero, CarpetaResumenDto Carpeta);
-    private int totalSinCaja;
     private readonly HashSet<Guid> colaSeleccionadas = [];
 
     private IReadOnlyList<CajaResumenDto> CajasFiltradas =>
@@ -444,39 +543,17 @@
     private async Task CargarDatosAsync()
     {
         cajas = await Carpetas.ObtenerCajasAsync();
+        colas = await Carpetas.ContarColasCajaAsync();
+        await CargarColaAsync();
+    }
 
-        // Primero las enviadas explícitamente a cola de caja, luego las que no tienen caja
-        // Sin paginación: se cargan todas y la tabla las virtualiza.
-        var resEnCola = await Carpetas.ListarAsync(new ListarCarpetasQuery(CajaArchivo: "Cola de Caja"));
-        var resSinCaja = await Carpetas.ListarAsync(new ListarCarpetasQuery(SinCaja: true));
-
-        var vistos = new HashSet<Guid>();
-        var listaCombinada = new List<CarpetaResumenDto>(resEnCola.Items.Count + resSinCaja.Items.Count);
-        foreach (var item in resEnCola.Items.Concat(resSinCaja.Items))
-        {
-            if (vistos.Add(item.Id))
-                listaCombinada.Add(item);
-        }
-
-        carpetasCola = listaCombinada;
-        filasCola = listaCombinada.Select((c, i) => new FilaCola(i + 1, c)).ToList();
-        // Una carpeta puede estar en "Cola de Caja" y a la vez sin caja: no se cuenta dos veces.
-        var repetidas = resEnCola.Items.Count + resSinCaja.Items.Count - listaCombinada.Count;
-        totalSinCaja = resEnCola.Total + resSinCaja.Total - repetidas;
-
-        if (string.IsNullOrWhiteSpace(nuevoRotuloCaja))
-        {
-            var maxNum = 1;
-            foreach (var c in cajas)
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(c.Caja, @"\d+");
-                if (match.Success && int.TryParse(match.Value, out var n) && n >= maxNum)
-                {
-                    maxNum = n + 1;
-                }
-            }
-            nuevoRotuloCaja = $"CAJA AA-{maxNum}";
-        }
+    /// <summary>Carga la cola de la serie activa: solo carpetas con decisión final de esa serie y todavía sin caja real.</summary>
+    private async Task CargarColaAsync()
+    {
+        var lista = await Carpetas.ListarColaCajaAsync(serieActiva);
+        carpetasCola = lista;
+        filasCola = lista.Select((c, i) => new FilaCola(i + 1, c)).ToList();
+        await CargarSugerenciaAsync();
     }
 
     private async Task AbrirDetalleCaja(string caja)
@@ -502,7 +579,7 @@
             await Carpetas.ReabrirCajaAsync(rotulo, autor);
             mensajeExito = $"Caja {rotulo} reabierta con éxito. Sus carpetas volvieron a la cola para poder modificarlas o corregirlas.";
             cajaSeleccionada = null;
-            pestanaActiva = "cola";
+            await SeleccionarPestanaAsync("normal");
             await CargarDatosAsync();
         });
     }
@@ -539,11 +616,14 @@
         var rotulo = nuevoRotuloCaja.Trim();
         await EjecutarCajaAsync(async autor =>
         {
-            await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor));
+            await Carpetas.AsignarCajaLoteAsync(new AsignarCajaLoteCommand(colaSeleccionadas.ToList(), rotulo, autor, agregarAExistente));
             colaSeleccionadas.Clear();
-            mensajeExito = $"Se almacenaron exitosamente las carpetas en la caja {rotulo}.";
+            var guardada = Carpeta.NormalizarRotulo(rotulo) ?? rotulo;
+            nuevoRotuloCaja = "";
+            agregarAExistente = false;
+            mensajeExito = $"Se almacenaron las carpetas en la caja {guardada}.";
             await CargarDatosAsync();
-            await AbrirDetalleCaja(rotulo);
+            await AbrirDetalleCaja(guardada);
         });
     }
 
@@ -556,6 +636,7 @@
     {
         carpetaModal = c;
         nuevaCajaModal = "";
+        agregarModal = false;
         mostrarModalCaja = true;
     }
 
@@ -573,8 +654,8 @@
         CerrarModalCaja();
         await EjecutarCajaAsync(async autor =>
         {
-            await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor));
-            mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {rotulo}.";
+            await Carpetas.AsignarCajaAsync(new AsignarCajaCommand(c.Id, rotulo, autor, agregarModal));
+            mensajeExito = $"Carpeta de {c.NombreCompleto} almacenada en {Carpeta.NormalizarRotulo(rotulo) ?? rotulo}.";
             await CargarDatosAsync();
         });
     }

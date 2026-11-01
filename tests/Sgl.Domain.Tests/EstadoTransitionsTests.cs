@@ -39,13 +39,12 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.CanjeLicExtranjera),
         // "Dejar para revisión": a carpeta without resolution goes back to Citada (Para revisión).
         (EstadoCarpeta.PorClasificar, EstadoCarpeta.Citada),
-        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8.
+        // Phase 3 (R8): physical search flow. Found -> uploaded; not found -> F8. No direct edge to Crear certificado
+        // (tramo 3): it is only reachable from "No existe carpeta" when the F8 cannot be generated.
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.NoExisteCarpeta),
-        (EstadoCarpeta.SeEncuentraEnArchivos, EstadoCarpeta.CrearCertificado),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.SubidaConaset),
         (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.NoExisteCarpeta),
-        (EstadoCarpeta.SeEncuentraEnOf43, EstadoCarpeta.CrearCertificado),
         // A missing carpeta is uploaded with F8 or with an oficio; it never goes back to the shelves.
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.NoExisteCarpeta, EstadoCarpeta.SubidaConOficio),
@@ -60,6 +59,12 @@ public class EstadoTransitionsTests
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.NoExisteCarpeta),
         // Mail sync: the request email filed in "CARP. YA SUBIDAS".
         (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomSubidoCorreo),
+        // E8: the saliente is requested («Solicitado») and then uploaded with the proof of the email; the entrante closes with an email.
+        // The narrowing by direction lives in SentidoCambioDomicilioTests.
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomicilioSolicitado),
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomSinRegistro),
+        (EstadoCarpeta.CambioDomicilio, EstadoCarpeta.CambioDomCarpetaDigital),
+        (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.CambioDomSubidoCorreo),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.SubidaConF8),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.SubidaConOficio),
         (EstadoCarpeta.CambioDomicilioSolicitado, EstadoCarpeta.CrearCertificado),
@@ -112,6 +117,14 @@ public class EstadoTransitionsTests
     public void Carpeta_applies_valid_transition(EstadoCarpeta from, EstadoCarpeta to)
     {
         var carpeta = CarpetaFactory.InEstado(from);
+
+        if (EstadoTransitions.DecisionFor(to) != Decision.Pendiente)
+        {
+            // The edge exists in the table, but a final decision is only taken in the Otorgamiento module.
+            Assert.Throws<DomainException>(() => carpeta.CambiarEstado(to, "tester", CarpetaFactory.Now));
+            Assert.Equal(from, carpeta.Estado);
+            return;
+        }
 
         carpeta.CambiarEstado(to, "tester", CarpetaFactory.Now);
 

@@ -1,0 +1,231 @@
+@page "/cambio-domicilio/pedimos/pantallazos"
+@layout ModuloLayout
+@implements IDisposable
+@using Sgl.Application.CambioDomicilio
+@inject SeguimientoService Seguimiento
+@inject IAlmacenPantallazos Almacen
+@inject ICorreoComunas Correo
+@inject IJSRuntime JS
+@inject ILogger<PedimosPantallazos> Logger
+
+<PageTitle>@TituloPagina.De("Pantallazos pendientes")</PageTitle>
+
+<div class="page-container pz-pagina">
+    <div class="modulo-barra">
+        <h1 class="modulo-titulo">Pedimos carpetas <span class="muted">· Pantallazos pendientes @(items?.Count.ToString("N0", Cultura) ?? "…")</span></h1>
+    </div>
+
+    <PedimosEtapas EtapaActual="PedimosEtapas.Etapa.Pantallazos" Refresco="refresco" />
+
+    <p class="pz-ayuda">
+        Después de enviar, saque en Outlook una <b>captura del correo enviado</b> (Win + Shift + S), haga clic en la zona de su fila y pegue con <kbd>Ctrl</kbd> + <kbd>V</kbd>
+        (o arrastre el archivo). Es una <b>imagen</b>, no el correo: queda en todas las personas de ese correo y no bloquea nada.
+    </p>
+
+    @if (error is not null)
+    {
+        <div class="alert error" role="alert" id="pz-error">@error <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => error = null">✕</button></div>
+    }
+    @if (mensaje is not null)
+    {
+        <div class="alert success" role="status" id="pz-mensaje">@mensaje <button class="btn-close-alert" type="button" aria-label="Cerrar mensaje" @onclick="() => mensaje = null">✕</button></div>
+    }
+
+    <div @ref="contenedor" id="pz-contenedor">
+        @if (items is null)
+        {
+            <div class="loading-state"><div class="spinner"></div><p>Cargando los correos sin pantallazo…</p></div>
+        }
+        else if (items.Count == 0)
+        {
+            <div class="empty-state" id="pz-vacio">
+                <span class="lico-slot lico-empty" data-lico="celebra" aria-hidden="true"></span>
+                @if (modo is { EnvioReal: false })
+                {
+                    <p id="pz-modo-prueba">Modo prueba: no se envían correos reales, por eso no se generan pantallazos. Aparecerán aquí cuando se active el envío real en «Por pedir».</p>
+                }
+                else
+                {
+                    <p>No hay correos esperando su pantallazo.</p>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-container">
+                <table class="data-table bandeja-table pz-tabla" id="pz-tabla">
+                    <thead>
+                        <tr>
+                            <th>ENVIADO</th>
+                            <th>COMUNA</th>
+                            <th>CORREO</th>
+                            <th class="th-wrap">PERSONAS EN EL CORREO</th>
+                            <th>PANTALLAZO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in items)
+                        {
+                            <tr @key="p.EnvioId" data-fila-envio="@p.EnvioId">
+                                <td class="date-cell">@HoraChile.ALocal(p.EnviadoEn).ToString("dd-MM-yyyy HH:mm")</td>
+                                <td><b>@p.Comuna</b></td>
+                                <td>
+                                    @(p.Tipo == TipoEnvioCorreoComuna.Reenvio ? "Recordatorio" : "Pedido")
+                                    @if (p.EsPrueba)
+                                    {
+                                        <span class="badge bad" title="Salió a la casilla de prueba, no a la comuna">PRUEBA</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="pz-cuenta">@p.Personas.Count persona(s)</span>
+                                    <ul class="pz-personas">
+                                        @foreach (var persona in p.Personas)
+                                        {
+                                            <li><span class="pz-nombre">@persona.NombreCompleto</span> <span class="pz-rut">@persona.Rut</span></li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td class="pz-celda">
+                                    <div class="pz-zona" tabindex="0" role="button" data-envio="@p.EnvioId"
+                                         aria-label="Pegar el pantallazo del correo a @p.Comuna: haga clic aquí y presione Control V">
+                                        @if (subiendo.Contains(p.EnvioId))
+                                        {
+                                            <span class="pz-guardando">Guardando…</span>
+                                        }
+                                        else
+                                        {
+                                            <span><b>Clic aquí y Ctrl + V</b><br />o arrastre la imagen</span>
+                                        }
+                                    </div>
+                                    <label class="btn-small pz-elegir">Elegir archivo…
+                                        <InputFile OnChange="@(e => ElegirAsync(p.EnvioId, e))" accept="image/png,image/jpeg" class="pz-input-archivo" aria-label="Elegir el archivo del pantallazo" />
+                                    </label>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-CL");
+
+    private IReadOnlyList<PantallazoPendienteDto>? items;
+    private readonly HashSet<Guid> subiendo = [];
+    private ElementReference contenedor;
+    private DotNetObjectReference<PedimosPantallazos>? yo;
+    private bool registrado;
+    private bool enfocarPrimera;
+    private int refresco;
+    private ModoEnvio? modo;
+    private string? error;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (!registrado)
+            {
+                registrado = true;
+                yo = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("pegarImagen", contenedor, yo);
+            }
+            if (enfocarPrimera)
+            {
+                enfocarPrimera = false;
+                await JS.InvokeVoidAsync("enfocarZonaPantallazo", contenedor);
+            }
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // Sin JavaScript no se puede pegar; «Elegir archivo…» sigue funcionando.
+        }
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            modo = await Correo.ObtenerModoAsync();
+            items = await Seguimiento.ListarPantallazosPendientesAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo cargar los pantallazos pendientes");
+            items ??= [];
+        }
+    }
+
+    /// <summary>Called from app.js with the pasted or dropped image as a stream (not base64).</summary>
+    [JSInvokable]
+    public async Task RecibirImagen(string envioId, IJSStreamReference imagen)
+    {
+        await using (imagen)
+        {
+            if (!Guid.TryParse(envioId, out var id))
+            {
+                return;
+            }
+
+            await InvokeAsync(() => GuardarAsync(id, async () => await imagen.OpenReadStreamAsync(Almacen.MaxBytes + 1)));
+        }
+    }
+
+    private Task ElegirAsync(Guid envioId, InputFileChangeEventArgs e) =>
+        GuardarAsync(envioId, () => Task.FromResult<Stream>(e.File.OpenReadStream(Almacen.MaxBytes + 1)));
+
+    private async Task GuardarAsync(Guid envioId, Func<Task<Stream>> abrir)
+    {
+        if (!subiendo.Add(envioId)) return;
+        error = null;
+        mensaje = null;
+        StateHasChanged();
+        try
+        {
+            var fila = items?.FirstOrDefault(i => i.EnvioId == envioId);
+            Stream flujo;
+            try
+            {
+                flujo = await abrir();
+            }
+            catch (Exception ex) when (ex is IOException or ArgumentOutOfRangeException)
+            {
+                // Blazor refuses to open a file or JS stream bigger than the maximum we allow.
+                error = $"La imagen pesa más de {(Almacen.MaxBytes / 1024).ToString("N0", Cultura)} KB: reduzca la captura y vuelva a pegarla.";
+                return;
+            }
+
+            await using (flujo)
+            {
+                await Seguimiento.AdjuntarPantallazoAsync(envioId, flujo);
+            }
+            mensaje = fila is null
+                ? "Pantallazo guardado."
+                : $"Pantallazo guardado: queda en las {fila.Personas.Count} persona(s) del correo a {fila.Comuna}.";
+            refresco++;
+            enfocarPrimera = true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ErroresUi.Mensaje(ex, Logger, "No se pudo guardar el pantallazo");
+        }
+        finally
+        {
+            subiendo.Remove(envioId);
+            await CargarAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        yo?.Dispose();
+        yo = null;
+    }
+}

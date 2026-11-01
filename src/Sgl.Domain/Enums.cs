@@ -32,6 +32,10 @@ public enum EstadoCarpeta
     CanjeLicExtranjera = 21,
     /// <summary>Imported from the daily agenda; waiting for manual classification.</summary>
     PorClasificar = 22,
+    /// <summary>Entrante closed by an email to the requesting comuna: the person has no record in our municipality.</summary>
+    CambioDomSinRegistro = 23,
+    /// <summary>Entrante closed by an email to the requesting comuna: the last carpeta is digital (no physical carpeta to find).</summary>
+    CambioDomCarpetaDigital = 24,
 }
 
 /// <summary>Trámite as declared in the daily agenda (first-time and extension cannot be told apart).</summary>

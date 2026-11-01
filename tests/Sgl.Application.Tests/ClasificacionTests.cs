@@ -21,8 +21,10 @@ public sealed class ClasificacionTests : IDisposable
             // Archived history: earlier trámites, not open duplicates (those would send juan to Revisión · Duplicadas).
             var p1 = Carpeta.Registrar(juan, Sede.Placilla, new DateOnly(2019, 3, 1), "x", Antes);
             var p2 = Carpeta.Registrar(juan, Sede.MercadoPuerto, new DateOnly(2021, 6, 2), "x", Antes);
-            p1.AsignarCaja("CAJA 1", "x", Antes);
-            p2.AsignarCaja("CAJA 2", "x", Antes);
+            p1.CambiarDecision(Decision.Otorgado, "x", Antes);
+            p2.CambiarDecision(Decision.Otorgado, "x", Antes);
+            p1.AsignarCaja("A-1", "x", Antes);
+            p2.AsignarCaja("A-2", "x", Antes);
             ctx.Carpetas.AddRange(p1, p2);
         }
         var a = Carpeta.CrearDesdeAgenda(juan, Sede.AvArgentina, new DateOnly(2026, 5, 4), new TimeOnly(9, 0), TramiteAgenda.Renovacion, "imp", Antes);
@@ -44,6 +46,24 @@ public sealed class ClasificacionTests : IDisposable
         Assert.Equal(2, conteos[Bandeja.SubidaConaset]);
         var det = await _db.NewService().ObtenerAsync(a);
         Assert.Contains(det.Historial, h => h.Campo == "Estado" && h.Anterior == "PorClasificar" && h.Usuario == "javiera");
+    }
+
+    [Fact]
+    public async Task ClasificarAsync_devuelve_nombre_y_punto_para_deshacer_y_vuelve_a_PorClasificar()
+    {
+        var (a, _) = SeedAgenda();
+
+        var resultado = await _db.NewService().ClasificarAsync(new ClasificarCommand([a], EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, null, "javiera"));
+
+        var aplicada = Assert.Single(resultado.Aplicadas);
+        Assert.Equal("JUAN PEREZ", aplicada.NombreCompleto?.ToUpperInvariant());
+        Assert.NotNull(aplicada.Punto);
+        Assert.Equal(EstadoCarpeta.PorClasificar, aplicada.Punto!.Estado);
+
+        await _db.NewService().DeshacerEstadoAsync(a, aplicada.Punto, aplicada.Destino, "javiera");
+
+        var conteos = await _db.NewService().ContarPorBandejaAsync(new ListarCarpetasQuery());
+        Assert.Equal(2, conteos[Bandeja.PorClasificar]);
     }
 
     [Fact]

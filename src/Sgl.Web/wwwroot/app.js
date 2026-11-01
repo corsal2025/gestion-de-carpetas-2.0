@@ -611,6 +611,8 @@ window.printPdfDocument = function (titulo) {
         // Preferencias por navegador (menú lateral, Lico silenciado). Sin almacenamiento: null / no-op.
         leer: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
         guardar: function (k, v) { save(k, v); },
+        // Deja el cursor en el campo y su texto seleccionado (el siguiente RUT lo reemplaza al tipear).
+        enfocarSeleccionar: function (el) { if (el) { el.focus(); if (el.select) el.select(); } },
         irA: function (id) { var el = document.getElementById(id); if (el) el.scrollIntoView({ block: 'start' }); },
         scrollTablaArriba: function () { var t = document.querySelector('.modulo-main .table-container'); if (t) t.scrollTop = 0; },
         // Transición suave de un contador; respeta prefers-reduced-motion.
@@ -812,3 +814,76 @@ window.printPdfDocument = function (titulo) {
         }
     });
 })();
+
+/**
+ * Pantallazos de los correos enviados: pegar (Ctrl+V) o arrastrar una imagen sobre una zona [data-envio] y pasarla a .NET como
+ * flujo (DotNet.createJSStreamReference), nunca en base64 (el limite del mensaje de SignalR no alcanza para una captura).
+ * Un solo oyente delegado en el contenedor; la zona debe tener foco para recibir el Ctrl+V. Solo acepta image/*.
+ */
+window.pegarImagen = function (contenedor, dotnetRef) {
+    if (!contenedor || !dotnetRef || contenedor.__pegarImagen) return;
+    contenedor.__pegarImagen = true;
+
+    var zonaDe = function (e) {
+        return e.target && e.target.closest ? e.target.closest('[data-envio]') : null;
+    };
+    var imagenDe = function (lista) {
+        if (!lista) return null;
+        for (var i = 0; i < lista.length; i++) {
+            var f = lista[i];
+            if (f && f.type && f.type.indexOf('image/') === 0) return f;
+        }
+        return null;
+    };
+    var enviar = function (zona, archivo) {
+        zona.classList.remove('pz-sobre');
+        dotnetRef.invokeMethodAsync('RecibirImagen', zona.dataset.envio, DotNet.createJSStreamReference(archivo))
+            .catch(function () { window.showRutToast && window.showRutToast('No se pudo guardar el pantallazo.'); });
+    };
+
+    contenedor.addEventListener('paste', function (e) {
+        var zona = zonaDe(e);
+        if (!zona) return;
+        var archivo = imagenDe(e.clipboardData && e.clipboardData.files);
+        if (!archivo && e.clipboardData && e.clipboardData.items) {
+            for (var i = 0; i < e.clipboardData.items.length && !archivo; i++) {
+                var it = e.clipboardData.items[i];
+                if (it.kind === 'file' && it.type.indexOf('image/') === 0) archivo = it.getAsFile();
+            }
+        }
+        if (!archivo) {
+            window.showRutToast && window.showRutToast('Lo copiado no es una imagen: saque la captura y pegue de nuevo.');
+            return;
+        }
+        e.preventDefault();
+        enviar(zona, archivo);
+    });
+    contenedor.addEventListener('dragover', function (e) {
+        var zona = zonaDe(e);
+        if (!zona) return;
+        e.preventDefault();
+        zona.classList.add('pz-sobre');
+    });
+    contenedor.addEventListener('dragleave', function (e) {
+        var zona = zonaDe(e);
+        if (zona) zona.classList.remove('pz-sobre');
+    });
+    contenedor.addEventListener('drop', function (e) {
+        var zona = zonaDe(e);
+        if (!zona) return;
+        e.preventDefault();
+        var archivo = imagenDe(e.dataTransfer && e.dataTransfer.files);
+        if (!archivo) {
+            zona.classList.remove('pz-sobre');
+            window.showRutToast && window.showRutToast('Arrastre un archivo de imagen (PNG o JPEG).');
+            return;
+        }
+        enviar(zona, archivo);
+    });
+};
+
+// Deja el foco en la primera zona pendiente para pegar el siguiente pantallazo sin usar el mouse.
+window.enfocarZonaPantallazo = function (contenedor) {
+    var zona = contenedor && contenedor.querySelector ? contenedor.querySelector('[data-envio]') : null;
+    if (zona) zona.focus();
+};

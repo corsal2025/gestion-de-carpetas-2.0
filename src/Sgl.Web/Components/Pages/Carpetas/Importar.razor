@@ -14,35 +14,44 @@
     <header class="header-section imp-hero card">
         <span class="lico-slot head-art imp-lico" data-lico="saluda" aria-hidden="true"></span>
         <div class="imp-hero-t">
-            <h1>📥 Carga Masiva de Carpetas desde Excel</h1>
-            <p class="subtitle">Integre planillas Excel oficiales (.xlsx) del Departamento de Licencias para registrar y sincronizar carpetas en lote.</p>
+            <h1>Cargar agenda o planilla</h1>
+            <p class="subtitle">Elija un archivo de citas (.csv o .xlsx) o una planilla de carpetas (.xlsx). Revise el archivo elegido y pulse Importar. Elegir un archivo todavía no guarda datos.</p>
         </div>
         <ol class="imp-steps" aria-label="Pasos de la carga">
             <li class="imp-step @PasoClase(1)" aria-current="@PasoActual(1)"><i>1</i>Elegir archivo</li>
-            <li class="imp-step @PasoClase(2)" aria-current="@PasoActual(2)"><i>2</i>Procesar</li>
+            <li class="imp-step @PasoClase(2)" aria-current="@PasoActual(2)"><i>2</i>Revisar y confirmar</li>
             <li class="imp-step @PasoClase(3)" aria-current="@PasoActual(3)"><i>3</i>Resultado</li>
         </ol>
     </header>
 
     <div class="card imp-panel">
         <h2>
-            1. Seleccionar o Arrastrar Archivo Excel (.xlsx)
+            1. Seleccionar o Arrastrar Archivo (.xlsx o .csv)
         </h2>
         <p class="imp-help">
-            Se detecta automáticamente el formato: <strong>agenda diaria</strong> (Fecha Cita, Hora Inicio, RUT, Trámite, Ubicación… → carpetas <em>Por clasificar</em>) o <strong>planilla DETALLE</strong>.
+            Se detecta automáticamente el formato: <strong>agenda diaria</strong> (Excel .xlsx o listado .csv con Fecha Toma Cita, Fecha Cita, Hora Inicio, RUT, Trámite, Ubicación… → carpetas <em>Por clasificar</em>) o <strong>planilla DETALLE</strong> (solo .xlsx).
             En la planilla DETALLE el sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.
         </p>
 
         <div class="drop-zone">
             <div class="imp-drop-ico" aria-hidden="true">📊</div>
             <label class="btn-primary imp-browse">
-                Examinar Archivo Excel
-                <InputFile OnChange="OnArchivoSeleccionado" accept=".xlsx" class="imp-file" />
+                Examinar Archivo
+                <InputFile @key="revisionArchivo" OnChange="OnArchivoSeleccionado" accept=".xlsx,.csv" class="imp-file" disabled="@cargando" />
             </label>
             <p class="imp-drop-note">
-                @(archivoSeleccionado is not null ? $"Archivo listo: {archivoSeleccionado.Name} ({archivoSeleccionado.Size / 1024} KB)" : "o arrastre el archivo .xlsx aquí (hasta 50 MB)")
+                @(archivoSeleccionado is not null ? $"Archivo listo: {archivoSeleccionado.Name} ({archivoSeleccionado.Size / 1024} KB)" : "o arrastre el archivo .xlsx o .csv aquí (hasta 50 MB)")
             </p>
         </div>
+
+        @if (archivoSeleccionado is not null && resultado is null && resultadoAgenda is null)
+        {
+            <div class="imp-confirmacion" aria-label="Confirmar archivo">
+                <p><strong>Archivo elegido:</strong> @archivoSeleccionado.Name. Al importar se crearán o actualizarán carpetas según el contenido del archivo.</p>
+                <button type="button" class="btn-primary" disabled="@cargando" @onclick="ImportarSeleccionadoAsync">@(cargando ? "Importando…" : "Importar archivo")</button>
+                <button type="button" class="btn-secondary" disabled="@cargando" @onclick="CancelarSeleccion">Cancelar selección</button>
+            </div>
+        }
 
         @if (cargando)
         {
@@ -67,19 +76,25 @@
         {
             <div class="imp-box imp-ok" role="status">
                 <h3>✅ Agenda del día importada</h3>
-                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Licencias para clasificar</strong> (o en <strong>Revisión</strong> si tienen un problema). Email y teléfono no se guardan.</p>
+                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Licencias para clasificar</strong> (o en <strong>Revisión</strong> si tienen un problema). El correo y el teléfono de contacto quedan en la carpeta. Las citas canceladas no crean carpeta: se guardan aparte, sin RUT ni nombre, solo para las estadísticas.</p>
                 <div class="imp-tiles">
                     <div class="imp-tile"><span class="imp-tile-label">Filas leídas</span><strong class="imp-tile-num">@resultadoAgenda.FilasLeidas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Carpetas creadas</span><strong class="imp-tile-num">+@resultadoAgenda.Creadas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Ya existían</span><strong class="imp-tile-num">@resultadoAgenda.YaExistian.ToString("N0")</strong></div>
                     <div class="imp-tile" title="Filas ya importadas antes y anuladas (p. ej. por reagendamiento): no se vuelven a crear"><span class="imp-tile-label">Ya existían (anuladas)</span><strong class="imp-tile-num">@resultadoAgenda.YaExistianAnuladas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Canceladas omitidas</span><strong class="imp-tile-num">@resultadoAgenda.CanceladasOmitidas.ToString("N0")</strong></div>
+                    <div class="imp-tile" title="Citas canceladas nuevas guardadas para las estadísticas, sin RUT ni nombre"><span class="imp-tile-label">Canceladas guardadas</span><strong class="imp-tile-num">+@resultadoAgenda.CanceladasGuardadas.ToString("N0")</strong></div>
+                    <div class="imp-tile" title="Canceladas que ya estaban registradas de una carga anterior"><span class="imp-tile-label">Canceladas ya registradas</span><strong class="imp-tile-num">@resultadoAgenda.CanceladasYaRegistradas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">RUT inválidos</span><strong class="imp-tile-num">@resultadoAgenda.FilasRutInvalido.Count.ToString("N0")</strong></div>
                     <div class="imp-tile @(resultadoAgenda.ConAlertaDuplicado > 0 ? "imp-tile-alerta" : null)"><span class="imp-tile-label">Con alerta de duplicado</span><strong class="imp-tile-num">@resultadoAgenda.ConAlertaDuplicado.ToString("N0")</strong></div>
                 </div>
                 @if (resultadoAgenda.ConAlertaDuplicado > 0)
                 {
                     <p class="imp-sedes imp-note">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=RevisionDuplicadas">Revisión › Duplicadas</a> con las acciones Reagendar, Anular duplicada o Mantener ambas.</p>
+                }
+                @if (resultadoAgenda.CanceladasDeCarpetaExistente > 0)
+                {
+                    <p class="imp-sedes imp-note">ℹ️ @resultadoAgenda.CanceladasDeCarpetaExistente.ToString("N0") @(resultadoAgenda.CanceladasDeCarpetaExistente == 1 ? "carpeta ya creada llegó cancelada" : "carpetas ya creadas llegaron canceladas"): se conservan y quedó una nota en su historial.</p>
                 }
                 @if (resultadoAgenda.FilasRutInvalido.Count > 0)
                 {
@@ -213,24 +228,36 @@
 
 @code {
     private IBrowserFile? archivoSeleccionado;
+    private int revisionArchivo;
     private bool cargando;
     private string? error;
     private ExcelImportResult? resultado;
     private AgendaImportResult? resultadoAgenda;
 
     // Presentation only: which step of the 3-step indicator is current / done.
-    private int PasoNumero => (resultado is not null || resultadoAgenda is not null) ? 3 : cargando ? 2 : 1;
+    private int PasoNumero => (resultado is not null || resultadoAgenda is not null) ? 3 : archivoSeleccionado is not null ? 2 : 1;
     private string PasoClase(int n) => n < PasoNumero || (n == 3 && PasoNumero == 3) ? "done" : n == PasoNumero ? "on" : string.Empty;
     private string? PasoActual(int n) => n == PasoNumero ? "step" : null;
 
-    private async Task OnArchivoSeleccionado(InputFileChangeEventArgs e)
+    private void OnArchivoSeleccionado(InputFileChangeEventArgs e)
     {
         archivoSeleccionado = e.File;
         error = null;
         resultado = null;
         resultadoAgenda = null;
+    }
 
-        if (archivoSeleccionado is null) return;
+    private void CancelarSeleccion()
+    {
+        archivoSeleccionado = null;
+        revisionArchivo++;
+        error = null;
+    }
+
+    private async Task ImportarSeleccionadoAsync()
+    {
+        if (archivoSeleccionado is null || cargando) return;
+        error = null;
 
         cargando = true;
         StateHasChanged();
@@ -253,6 +280,10 @@
             {
                 resultadoAgenda = await AgendaImport.ImportarAsync(memoryStream, autor);
                 _ = Modulos.RefrescarAsync();
+            }
+            else if (!AgendaTabla.EsXlsx(memoryStream))
+            {
+                error = "El archivo no es un Excel (.xlsx) ni una agenda (.csv) con las columnas esperadas: Fecha Cita, Hora Inicio, RUT, Nombre, Trámite y Ubicación.";
             }
             else
             {

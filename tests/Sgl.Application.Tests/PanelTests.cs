@@ -164,6 +164,33 @@ public sealed class PanelServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Deshacer_clasificacion_no_cuenta_como_clasificada_y_no_infla_el_total_de_la_meta()
+    {
+        var ayer = new DateTime(2026, 5, 3, 15, 0, 0, DateTimeKind.Utc);
+        Guid a1;
+        using (var ctx = _db.NewContext())
+        {
+            var a = Carpeta.CrearDesdeAgenda(new Ciudadano(Rut.Parse("12345678-5"), "JUAN", "PEREZ"), Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", ayer);
+            var b = Carpeta.CrearDesdeAgenda(new Ciudadano(Rut.Parse("11111111-1"), "ANA", "SOTO"), Sede.AvArgentina, new DateOnly(2026, 5, 4), null, TramiteAgenda.Renovacion, "imp", ayer);
+            ctx.Carpetas.AddRange(a, b);
+            ctx.SaveChanges();
+            a1 = a.Id;
+        }
+
+        var resultado = await _db.NewService().ClasificarAsync(new ClasificarCommand([a1], EstadoCarpeta.SubidaConaset, ClaseLicencia.B, null, null, "javiera"));
+        var aplicada = Assert.Single(resultado.Aplicadas);
+        var tras = (await NewPanel().ObtenerAsync()).Meta;
+        Assert.Equal((1, 1), (tras.Clasificadas, tras.Pendientes));
+
+        await _db.NewService().DeshacerEstadoAsync(a1, aplicada.Punto!, aplicada.Destino, "javiera");
+
+        var meta = (await NewPanel().ObtenerAsync()).Meta;
+        Assert.Equal(0, meta.Clasificadas);
+        Assert.Equal(2, meta.Pendientes);
+        Assert.Equal(2, meta.Total);
+    }
+
+    [Fact]
     public async Task Pedir_lowers_Crear_certificado_and_raises_En_certificado_without_changing_the_total()
     {
         var a = await _db.NewService().RegistrarAsync(new RegistrarCarpetaCommand("12345678-5", "JUAN", "PEREZ", Sede.Placilla, new DateOnly(2026, 5, 4), "ana"));

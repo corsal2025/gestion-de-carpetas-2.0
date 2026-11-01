@@ -140,12 +140,16 @@ public sealed class CarpetaService(
                 lista.Add(new CarpetaAbiertaDto(carpeta.Id, carpeta.Sede, carpeta.FechaCitacion, destino, cmd.Clases));
             }
             // Second phase: every row passed validation, only now is anything changed.
+            var aplicadas = new List<ClasificacionAplicada>();
             foreach (var (carpeta, destino) in validadas)
             {
+                var punto = carpeta.PuntoRestauracion();
                 carpeta.Clasificar(destino, cmd.Clases, cmd.FechaUltimaCarpeta, cmd.Comuna, cmd.Autor, now);
+                await SolicitarF8TrasClasificarAsync(carpeta, cmd.Autor, ct);
+                aplicadas.Add(new ClasificacionAplicada(carpeta.Id, destino) { NombreCompleto = carpeta.Ciudadano?.NombreCompleto, Punto = punto });
             }
             await repository.SaveChangesAsync(ct);
-            return new ClasificarResultado(validadas.Select(v => new ClasificacionAplicada(v.Carpeta.Id, v.Destino)).ToList());
+            return new ClasificarResultado(aplicadas);
         }
         catch
         {
@@ -290,13 +294,17 @@ public sealed class CarpetaService(
                 var nuevoRut = Rut.Parse(cmd.Rut);
                 if (carpeta.Ciudadano.Rut != nuevoRut)
                 {
-                    var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
-                    carpeta.ModificarRut(nuevoRut, existente, cmd.Autor, Now);
+                    await CorregirRutAsync(carpeta, nuevoRut, cmd.Autor, ct);
                 }
             }
             if (cmd.CambiarCaja)
             {
+                var cambiaCaja = carpeta.CajaArchivo != Carpeta.NormalizarRotulo(cmd.Caja);
                 carpeta.AsignarCaja(cmd.Caja, cmd.Autor, Now);
+                if (cambiaCaja)
+                {
+                    await ValidarCajaNuevaAsync(cmd.Caja, cmd.AgregarAExistenteCaja, ct);
+                }
             }
             if (cmd.Clases is { } clases)
             {
@@ -329,8 +337,7 @@ public sealed class CarpetaService(
                 return;
             }
 
-            var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
-            carpeta.ModificarRut(nuevoRut, existente, autor, Now);
+            await CorregirRutAsync(carpeta, nuevoRut, autor, ct);
             await repository.SaveChangesAsync(ct);
         }
         catch
@@ -342,6 +349,21 @@ public sealed class CarpetaService(
         finally
         {
             _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Corrects the RUT of the carpeta's citizen (or moves the carpeta to the citizen who already has that RUT). When the citizen
+    /// keeps their identity, today's attendance marks follow the new RUT; the RUT the import brought stays on the carpeta.
+    /// </summary>
+    private async Task CorregirRutAsync(Carpeta carpeta, Rut nuevoRut, string autor, CancellationToken ct)
+    {
+        var anterior = carpeta.Ciudadano.Rut;
+        var existente = await repository.FindCiudadanoAsync(nuevoRut, ct);
+        carpeta.ModificarRut(nuevoRut, existente, autor, Now);
+        if (existente is null || existente.Id == carpeta.CiudadanoId)
+        {
+            await repository.ReasignarRutAsistenciasAsync(anterior, nuevoRut, ct);
         }
     }
 
@@ -373,7 +395,12 @@ public sealed class CarpetaService(
         {
             ArgumentNullException.ThrowIfNull(cmd);
             var carpeta = await LoadActivaAsync(cmd.CarpetaId, ct);
+            var cambia = carpeta.CajaArchivo != Carpeta.NormalizarRotulo(cmd.NuevaCaja);
             carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
+            if (cambia)
+            {
+                await ValidarCajaNuevaAsync(cmd.NuevaCaja, cmd.AgregarAExistente, ct);
+            }
             await repository.SaveChangesAsync(ct);
         }
         catch
@@ -388,6 +415,17 @@ public sealed class CarpetaService(
         }
     }
 
+    /// <summary>A new real label must not repeat an existing box unless the person confirms they are adding to it.</summary>
+    private async Task ValidarCajaNuevaAsync(string? rotulo, bool agregarAExistente, CancellationToken ct)
+    {
+        var canonico = Carpeta.NormalizarRotulo(rotulo);
+        if (canonico is null || agregarAExistente) return;
+        if (await repository.ExisteCajaAsync(canonico, ct))
+        {
+            throw new DomainException($"Ya existe la caja {canonico}. Si quiere sumar estas carpetas a esa caja, marque «Agregar a caja existente».");
+        }
+    }
+
     public async Task AsignarCajaLoteAsync(AsignarCajaLoteCommand cmd, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
@@ -399,6 +437,8 @@ public sealed class CarpetaService(
                 var carpeta = await LoadActivaAsync(id, ct);
                 carpeta.AsignarCaja(cmd.NuevaCaja, cmd.Autor, Now);
             }
+            // Format, decision and series are validated first; only then is the label compared with the existing boxes.
+            await ValidarCajaNuevaAsync(cmd.NuevaCaja, cmd.AgregarAExistente, ct);
             await repository.SaveChangesAsync(ct);
         }
         catch
@@ -562,10 +602,11 @@ public sealed class CarpetaService(
 
     /// <summary>
     /// Printable search listing of a physical-search tray (Archivos / Of. 43): the whole module under the current
-    /// filters, or only <paramref name="ids"/> when given. Ordered by last-folder date, emitted in Chile time.
+    /// filters, or only <paramref name="ids"/> when given; with <paramref name="soloEnBusqueda"/> only the carpetas marked "en búsqueda". Ordered by last-folder date, emitted in Chile time.
     /// </summary>
     public async Task<ListadoBusquedaDto> ObtenerListadoBusquedaAsync(
-        Bandeja bandeja, ListarCarpetasQuery filtros, IReadOnlyCollection<Guid>? ids = null, CancellationToken ct = default)
+        Bandeja bandeja, ListarCarpetasQuery filtros, IReadOnlyCollection<Guid>? ids = null, CancellationToken ct = default,
+        bool soloEnBusqueda = false)
     {
         ArgumentNullException.ThrowIfNull(filtros);
         if (bandeja is not (Bandeja.SeEncuentraEnArchivos or Bandeja.SeEncuentraEnOf43))
@@ -576,7 +617,59 @@ public sealed class CarpetaService(
         var consulta = filtros.Normalized() with { Bandeja = bandeja, Skip = 0, Take = null, Ids = null };
         var (items, _) = await _gate.LeerAsync(() => repository.SearchAsync(ToSearch(consulta), ct), ct);
         var elegidas = ids is { Count: > 0 } ? FiltrarPorIds(items, ids) : items;
+        if (soloEnBusqueda)
+        {
+            // Only the carpetas whose magnifier is in "en búsqueda"; printing the listing never changes the mark.
+            elegidas = elegidas.Where(i => i.PendienteBusqueda).ToList();
+        }
         return ListadoBusquedaBuilder.Construir(bandeja, consulta.Sede, elegidas, Now);
+    }
+
+    /// <summary>One touch of the magnifier: sin marcar → en búsqueda → encontrada → sin marcar (audited with user and time).</summary>
+    public async Task AvanzarLupaAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            carpeta.AvanzarLupa(autor, Now);
+            await repository.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// "Subida a Conaset" from Archivos / Of. 43: state SubidaConaset, today's upload date (Chile time, same rule as any
+    /// upload), magnifier cleared. Returns the point to undo it with <see cref="DeshacerEstadoAsync"/>.
+    /// </summary>
+    public async Task<PuntoRestauracionEstado> MarcarSubidaConasetAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var carpeta = await LoadActivaAsync(id, ct);
+            var punto = carpeta.PuntoRestauracion();
+            carpeta.MarcarSubidaConaset(autor, Now);
+            await repository.SaveChangesAsync(ct);
+            return punto;
+        }
+        catch
+        {
+            repository.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task MarcarPendienteBusquedaAsync(Guid id, bool valor, string autor, CancellationToken ct = default)
@@ -600,7 +693,6 @@ public sealed class CarpetaService(
         }
     }
 
-    /// <returns>The values before the decision, to undo it with <see cref="DeshacerEstadoAsync"/>.</returns>
     /// <summary>"Dejar para revisión": a carpeta from Por clasificar without resolution goes to Para revisión (Citada).</summary>
     public async Task DejarParaRevisionAsync(Guid id, string autor, CancellationToken ct = default)
     {
@@ -622,6 +714,12 @@ public sealed class CarpetaService(
         }
     }
 
+    /// <summary>
+    /// Raw decision change. No screen calls it any more: the decision is taken in <c>OtorgamientoService</c>, which checks the permission,
+    /// stamps the grant date and handles the resolution. Kept for tests and compatibility.
+    /// </summary>
+    /// <returns>The values before the decision, to undo it with <see cref="DeshacerEstadoAsync"/>.</returns>
+    [Obsolete("Use OtorgamientoService (OtorgarAsync / DenegarAsync): it checks the permission and stamps FechaOtorgamiento.")]
     public async Task<PuntoRestauracionEstado> CambiarDecisionAsync(Guid id, Decision nuevaDecision, string autor, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
@@ -769,7 +867,7 @@ public sealed class CarpetaService(
             foreach (var c in carpetas)
             {
                 var carpeta = await LoadActivaAsync(c.Id, ct);
-                carpeta.AsignarCaja("Cola de Caja", autor, Now);
+                carpeta.DevolverACola(autor, Now);
             }
             await repository.SaveChangesAsync(ct);
         }
@@ -809,7 +907,8 @@ public sealed class CarpetaService(
             c.CajaArchivo,
             c.Estado,
             c.Decision,
-            EstadoTransitions.NextStates(c.Estado),
+            // Otorgado / Denegado are never offered: the final decision is taken only in the Otorgamiento module.
+            EstadoTransitions.NextStates(c.Estado, c.SentidoCambioDomicilio).Where(e => EstadoTransitions.DecisionFor(e) == Decision.Pendiente).ToList(),
             historial,
             c.Clases,
             c.Anulada,
@@ -819,6 +918,8 @@ public sealed class CarpetaService(
             FechaCierre = c.FechaCierre,
             FechaImpresion = c.FechaImpresion,
             FechaPeticion = c.FechaPeticion,
+            Sentido = c.SentidoCambioDomicilio,
+            PendienteReclasificacion = c.PendienteReclasificacion,
         };
     }
 
@@ -926,6 +1027,22 @@ public sealed class CarpetaService(
     public Task<IReadOnlyList<CarpetaResumenDto>> ObtenerCarpetasDeCajaAsync(string caja, CancellationToken ct = default) =>
         _gate.LeerAsync(() => repository.GetCarpetasByCajaAsync(caja, ct), ct);
 
+    public Task<IReadOnlyList<CarpetaResumenDto>> ListarColaCajaAsync(SerieCaja serie, CancellationToken ct = default) =>
+        _gate.LeerAsync(() => repository.GetColaCajaAsync(serie, ct), ct);
+
+    public Task<ColasCajaDto> ContarColasCajaAsync(CancellationToken ct = default) =>
+        _gate.LeerAsync(() => repository.ContarColasCajaAsync(ct), ct);
+
+    /// <summary>
+    /// Hint for the next box label of a series: highest number of that letter + 1. Nothing is assigned: a person types the number.
+    /// Null when the letter has no more numbers.
+    /// </summary>
+    public async Task<string?> SugerirSiguienteCajaAsync(SerieCaja serie, string? letra, CancellationToken ct = default)
+    {
+        var cajas = await ObtenerCajasAsync(ct);
+        return Carpeta.SugerirSiguienteRotulo(cajas.Select(c => c.Caja), serie, letra);
+    }
+
     public Task<IReadOnlyList<string>> ObtenerTiposTramiteAsync(CancellationToken ct = default) =>
         _gate.LeerAsync(() => repository.GetTiposTramiteAsync(ct), ct);
 
@@ -943,7 +1060,22 @@ public sealed class CarpetaService(
             return;
         }
 
-        await SolicitudF8Creacion.SolicitarAsync(solicitudesF8, carpeta.Id, estadoAnterior, autor, Now, ct);
+        await SolicitudF8Creacion.SolicitarAsync(solicitudesF8, carpeta.Id, estadoAnterior, carpeta.SentidoCambioDomicilio, autor, Now, ct);
+    }
+
+    /// <summary>
+    /// A carpeta classified straight to "No existe carpeta" (the person checking the external systems did not find it)
+    /// gets its F8 request in the same save. Por clasificar is not a valid F8 origin, so it is recorded as coming from
+    /// "No existe carpeta". Other moves out of Por clasificar keep not creating one.
+    /// </summary>
+    private async Task SolicitarF8TrasClasificarAsync(Carpeta carpeta, string autor, CancellationToken ct)
+    {
+        if (solicitudesF8 is null || carpeta.Estado != EstadoCarpeta.NoExisteCarpeta)
+        {
+            return;
+        }
+
+        await SolicitudF8Creacion.SolicitarAsync(solicitudesF8, carpeta.Id, EstadoCarpeta.NoExisteCarpeta, carpeta.SentidoCambioDomicilio, autor, Now, ct);
     }
 
     /// <summary>

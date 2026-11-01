@@ -9,6 +9,8 @@
            value="@Valor"
            data-original="@Valor"
            maxlength="@(EsRut ? 12 : 201)"
+           list="@(Opciones is null ? null : idLista)"
+           autocomplete="@(Opciones is null ? null : "off")"
            aria-label="@Titulo"
            title="Enter para guardar · Esc para cancelar"
            oninput="@(EsRut ? "formatRutInput(this)" : null)"
@@ -16,6 +18,15 @@
            @onchange="OnChangeAsync"
            @onblur="Cerrar"
            @onclick:stopPropagation @ondblclick:stopPropagation />
+    @if (Opciones is not null)
+    {
+        <datalist id="@idLista">
+            @foreach (var opcion in Opciones)
+            {
+                <option value="@opcion"></option>
+            }
+        </datalist>
+    }
 }
 else
 {
@@ -33,6 +44,11 @@ else
     [Parameter] public string? CssClass { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public EventCallback<string> Guardar { get; set; }
+
+    /// <summary>Optional suggestions (e.g. the comunas): rendered as a datalist only while the cell is being edited.</summary>
+    [Parameter] public IReadOnlyList<string>? Opciones { get; set; }
+
+    private readonly string idLista = $"celda-lista-{Guid.NewGuid():N}";
 
     private bool editando;
     private bool enfocar;

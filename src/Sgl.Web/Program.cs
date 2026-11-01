@@ -42,12 +42,49 @@ if (requerirAutenticacion)
         .AddNegotiate();
 }
 
+// Corte de sector físico (Archivos < corte <= Of. 43): se fija una sola vez al arrancar.
+var corteSector = builder.Configuration["Clasificacion:CorteSector"];
+SectorFisico.FijarCorte(string.IsNullOrWhiteSpace(corteSector)
+    ? SectorFisico.CorteDefecto
+    : DateOnly.TryParseExact(corteSector, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var corte)
+        ? corte
+        : throw new InvalidOperationException("Clasificacion:CorteSector debe tener el formato yyyy-MM-dd."));
+
+// Corte digital: desde esa fecha de última carpeta no hay papel que buscar ni caja física. Se fija una sola vez al arrancar.
+var corteDigital = builder.Configuration["Clasificacion:CorteDigital"];
+SectorFisico.FijarCorteDigital(string.IsNullOrWhiteSpace(corteDigital)
+    ? SectorFisico.CorteDigitalDefecto
+    : DateOnly.TryParseExact(corteDigital, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var corteDig)
+        ? corteDig
+        : throw new InvalidOperationException("Clasificacion:CorteDigital debe tener el formato yyyy-MM-dd."));
+
+// Formatos de rótulo de las cajas (letra + número; sufijos de las series de cambio de domicilio y penúltima carpeta): se fijan al arrancar.
+var formatosCaja = builder.Configuration.GetSection("Cajas:Formatos");
+try
+{
+    CajaFormatos.Fijar(new CajaFormatos(
+        formatosCaja["Normal"] ?? CajaFormatos.Defecto.Normal,
+        formatosCaja["CD"] ?? CajaFormatos.Defecto.SufijoCambioDomicilio,
+        formatosCaja["PUC"] ?? CajaFormatos.Defecto.SufijoPenultima));
+}
+catch (Exception ex) when (ex is ArgumentException)
+{
+    throw new InvalidOperationException("Cajas:Formatos no es válido: " + ex.Message, ex);
+}
+
 builder.Services.AddSglInfrastructure(builder.Configuration);
 
 // Módulo Peticiones de cambio de domicilio (proyecto PeticionCambioDomicilio integrado tal cual).
 builder.AddPeticiones();
 builder.Services.AddSingleton(builder.Configuration.GetSection(BandejasOptions.SectionName).Get<BandejasOptions>() ?? new BandejasOptions());
 builder.Services.AddScoped<AutorState>();
+// Pantallazos de los correos enviados: carpeta fuera de wwwroot, relativa a la raíz de contenido.
+builder.Services.AddSingleton<Sgl.Application.CambioDomicilio.IAlmacenPantallazos>(sp =>
+    new Sgl.Infrastructure.CambioDomicilio.AlmacenPantallazos(
+        sp.GetRequiredService<Sgl.Application.CambioDomicilio.CambioDomicilioOptions>(), builder.Environment.ContentRootPath));
+// Permiso «puede otorgar»: GC2 no crea usuarios ni roles; hasta que el sistema anfitrión los entregue, una lista en configuración.
+builder.Services.AddSingleton(new OtorgadoresOptions(builder.Configuration.GetSection(OtorgadoresOptions.Seccion).Get<string[]>()));
+builder.Services.AddScoped<Sgl.Application.Seguridad.IPermisos, PermisosPorConfiguracion>();
 builder.Services.AddScoped<DuplicadosNotifier>();
 builder.Services.AddScoped<ModulosState>();
 builder.Services.AddHostedService<IntegridadHostedService>();
@@ -156,6 +193,7 @@ app.MapGet("/certificados/{id:guid}/documento", async (Guid id, HttpContext cont
         return Results.Text(ex.Message, "text/plain; charset=utf-8", statusCode: StatusCodes.Status422UnprocessableEntity);
     }
 });
+app.MapGet(PantallazosEndpoint.Ruta, PantallazosEndpoint.ServirAsync);
 app.MapGet("/estadisticas/exportar", async (HttpContext context, EstadisticasService estadisticas, string? sede, DateOnly? desde, DateOnly? hasta, int? dias, CancellationToken ct) =>
 {
     if (!SeguridadWeb.OrigenPermitido(context.Request.Headers.Origin.ToString(), context.Request.Host.Value))
