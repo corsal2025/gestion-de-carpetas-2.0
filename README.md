@@ -97,6 +97,13 @@ Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
 - **Vigilante de integridad (R12)**: `IntegridadService` evalúa cinco reglas (una sola bandeja, suma de bandejas = total y = panel, mismo RUT/misma clase, anuladas invisibles, fechas imposibles) leyendo los mismos filtros y contadores que usan las pantallas. Corre al iniciar, tras cada importación (`IntegridadSolicitudes`) y cada 24 h (`IntegridadHostedService`); guarda solo conteos en `IntegridadCorridas`. Inicio muestra un aviso rojo con la cantidad y enlaza a `/integridad`, donde se ven las carpetas afectadas (el aviso no lleva datos personales).
 - **Caché del orden de bandejas (ARB6-01)**: `OrdenCacheado` guarda los ids ordenados junto con la versión de datos (`MAX(HistorialCambios.Id)`); se revalida cada 3 s y se descarta en cuanto una ventana vuelve incompleta.
 
+## Fase 4: cambio de domicilio, asistencia del día y Reclasificación
+
+- **Cambio de domicilio con sentido**: cada carpeta es *saliente* (la pedimos nosotros; plazo de 15 días hábiles desde la citación, sin reiniciarse al reenviar) o *entrante* (nos la piden por correo; plazo de ~12 días hábiles desde la llegada del correo, `CambioDomicilio:PlazoEntranteDias`). La saliente nunca puede ir a F8, oficio ni certificado. `CambioDomicilio:EnvioReal` es `false` por defecto (modo prueba: los correos van solo a la casilla de prueba).
+- **Reclasificación** (`/cambio-domicilio/reclasificacion`, primera etapa de Cambios de domicilio): toda carpeta que entra a Cambio de domicilio (clasificada a mano o llegada por correo) queda con la marca `PendienteReclasificacion` y no aparece en Por pedir ni en Nos piden hasta que una persona la confirme (una, varias o todas) o la corrija a otro destino, con «Deshacer». No es un estado nuevo: la máquina de estados no cambia y las carpetas existentes quedan sin pendiente (migración `ReclasificacionCambioDom`, default `false`). La puerta también se aplica en `CambiarEstado`/`ForzarEstado` y en los botones del Listado y del Detalle.
+- **Asistencia del día, Otorgamiento y Cajas**: agenda diaria con asistencia, resolución de otorgamiento (Otorgada/Denegada) y rótulos de caja por serie.
+- **Pruebas**: Domain 1833, Application 797, Peticiones 92 (todas en verde al cierre de la fase).
+
 ### Diseño del panel
 
 - **Una familia visual**: la barra superior usa un único acento (amarillo = activo); «Cómo usar el sistema» es acción secundaria. Lico vive en una tarjeta contenida de Inicio y la mascota de la barra no lleva globo flotante.
@@ -115,6 +122,10 @@ Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
 
 ## Pendiente
 - Estado «Clase pendiente» no tiene transiciones de salida en el diagrama actual; confirmar flujo con el departamento.
+- La puerta de Reclasificación aún no cubre: Clasificar directo a Solicitado/Subido, la importación Excel sobre una carpeta pendiente y la lupa genérica de entrantes.
+- La bandeja «Cambios de domicilio que nos solicitan por correo» también lista salientes; decidir si debe mostrar solo entrantes.
+- Antes de producción: autenticación del endpoint de pantallazos, validación de plazo en `SubirPruebaAsync`, buzón real de correo (secretos fuera del repo) y piloto en paralelo con el Excel.
+- Dos usuarios pueden pisarse al confirmar y corregir la misma carpeta a la vez (sin token de concurrencia).
 
 ## Arquitectura
 Diagrama interactivo vivo: [`docs/arquitectura.html`](docs/arquitectura.html) (abrir en navegador).
