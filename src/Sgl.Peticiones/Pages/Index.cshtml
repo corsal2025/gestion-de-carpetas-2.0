@@ -1,16 +1,18 @@
 @page "/peticiones"
 @model PeticionCambioDomicilio.Pages.IndexModel
 @using PeticionCambioDomicilio.Domain
+@inject Sgl.Application.CambioDomicilio.CambioDomicilioOptions OpcionesCambio
 @{
     ViewData["Title"] = "Historial de peticiones (anterior)";
     var total = Model.Peticiones.Count;
     var enviadas = Model.Peticiones.Count(p => p.Estado == EstadoPeticion.Enviada);
     var pendientes = total - enviadas;
-    var vencidas = Model.Peticiones.Count(p => PlazoInfo.Para(p).Vencido);
+    var vencidas = Model.Peticiones.Count(p => PlazoInfo.Para(p, feriadosAdicionales: OpcionesCambio.FeriadosAdicionales).Vencido);
 }
 
 <div class="page-container peticiones-page">
 <h1 class="modulo-titulo">Historial de peticiones (anterior) <span class="muted">· solo lectura</span></h1>
+<p>Plazos históricos calculados desde el envío del correo, no desde la citación. Considere feriados nacionales 2026–2027 y adicionales configurados; verifique feriados locales, extraordinarios y años fuera de esa cobertura.</p>
 
 @if (Model.ModoPruebaEmail is not null)
 {
@@ -99,10 +101,10 @@
             var iniCierre = DateOnly.FromDateTime(envio.LocalDateTime);
             diasCierre = p.SubidaEn!.Value <= iniCierre
                 ? 0
-                : DeadlineCalculator.BusinessDaysBetween(iniCierre, p.SubidaEn.Value);
+                : DeadlineCalculator.BusinessDaysBetween(iniCierre, p.SubidaEn.Value, OpcionesCambio.FeriadosAdicionales);
         }
 
-        var plazo = PlazoInfo.Para(p);
+        var plazo = PlazoInfo.Para(p, feriadosAdicionales: OpcionesCambio.FeriadosAdicionales);
         var pct = plazo.Inicio is null
             ? 0
             : Math.Clamp(plazo.DiasTranscurridos * 100 / DeadlineCalculator.PlazoDiasHabiles, 0, 100);

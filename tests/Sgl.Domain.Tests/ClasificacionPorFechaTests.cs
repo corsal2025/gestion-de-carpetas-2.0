@@ -110,6 +110,14 @@ public class ClasificacionPorFechaTests
     }
 
     [Fact]
+    public void Resolver_fecha_digital_explica_que_no_requiere_busqueda_fisica()
+    {
+        var ex = Assert.Throws<DomainException>(() => Carpeta.ResolverDestinoClasificacion(null, "2026-08-01", null));
+        Assert.Contains("digital", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("no es válida", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Clasificar_stores_the_date_as_iso_when_it_is_recognized()
     {
         var c = Nueva();

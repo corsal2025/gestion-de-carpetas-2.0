@@ -1,0 +1,58 @@
+@page "/agenda/cancelaciones"
+@layout ModuloLayout
+@using Sgl.Infrastructure.Carpetas
+@inject CancelacionesAgendaService Cancelaciones
+@inject AutorState Autor
+@inject DuplicadosNotifier Notifier
+
+<PageTitle>@TituloPagina.De("Cancelaciones de agenda por revisar")</PageTitle>
+<div class="page-container sol-page">
+    <header class="modulo-barra"><h1 class="modulo-titulo">Cancelaciones de agenda por revisar</h1><a class="btn-secondary" href="importar">Cargar agenda</a></header>
+    <p class="sg-ayuda">La cita fue cancelada en la agenda, pero esta carpeta tiene trabajo registrado o fue restaurada. Revise el historial antes de decidir si conserva el trámite o anula la carpeta. Las estadísticas de cancelación se conservan en ambos casos.</p>
+    @if (error is not null) { <div role="alert" class="alert error">@error</div> }
+    @if (seleccionada is not null)
+    {
+        <div class="card">
+            <p>Resolver cancelación de @seleccionada.Nombre · @seleccionada.FechaCita.ToString("dd-MM-yyyy")</p>
+            <label>Decisión <select @bind="anular"><option value="false">Conservar carpeta activa</option><option value="true">Anular carpeta conservando historial</option></select></label>
+            <label>Motivo <input maxlength="100" @bind="motivo" /></label>
+            <button type="button" class="btn-primary" disabled="@ocupado" @onclick="ResolverAsync">Confirmar decisión</button>
+            <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => seleccionada = null">Volver sin guardar</button>
+        </div>
+    }
+    @if (items is null) { <p>Cargando…</p> }
+    else if (items.Count == 0) { <p>No hay cancelaciones pendientes de revisión.</p> }
+    else
+    {
+        <div class="table-container"><table class="data-table bandeja-table">
+            <thead><tr><th>NOMBRE</th><th>RUT</th><th>CITACIÓN</th><th>SEDE</th><th>ESTADO</th><th>REVISAR</th></tr></thead>
+            <tbody>@foreach (var item in items)
+            {
+                <tr @key="item.Id"><td>@item.Nombre</td><td>@item.Rut</td><td>@item.FechaCita.ToString("dd-MM-yyyy")</td><td>@Labels.Of(item.Sede)</td><td>@Labels.Of(item.Estado)</td>
+                    <td><a href="carpetas/@item.Id">Detalle e historial</a> <button class="btn-secondary" type="button" disabled="@ocupado" @onclick="() => Seleccionar(item)">Revisar cancelación</button></td></tr>
+            }</tbody>
+        </table></div>
+    }
+</div>
+
+@code {
+    private List<CancelacionAgendaPendiente>? items;
+    private CancelacionAgendaPendiente? seleccionada;
+    private bool anular, ocupado;
+    private string motivo = "";
+    private string? error;
+    protected override async Task OnInitializedAsync() => items = await Cancelaciones.ListarAsync();
+    private void Seleccionar(CancelacionAgendaPendiente item) { seleccionada = item; motivo = ""; anular = false; error = null; }
+    private async Task ResolverAsync()
+    {
+        if (seleccionada is null) return;
+        ocupado = true; error = null;
+        try
+        {
+            await Cancelaciones.ResolverAsync(seleccionada.Id, anular, motivo, Autor.Nombre);
+            seleccionada = null; items = await Cancelaciones.ListarAsync(); Notifier.Notify();
+        }
+        catch (DomainException ex) { error = ex.Message; }
+        finally { ocupado = false; }
+    }
+}

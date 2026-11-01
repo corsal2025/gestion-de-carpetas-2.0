@@ -1262,7 +1262,7 @@
                                     <td data-campo="Trámite de la cita">
                                         @if (c.TramiteAgenda is { } ta)
                                         {
-                                            <span class="badge @(ta == TramiteAgenda.Renovacion ? "conaset" : "primera")">@Labels.Of(ta)</span>
+                                            <span class="badge @(ta == TramiteAgenda.Renovacion ? "conaset" : ta == TramiteAgenda.PrimeraVezExtension ? "primera" : null)">@Labels.Of(ta)</span>
                                         }
                                         else
                                         {
@@ -1283,16 +1283,20 @@
                                                @key="@($"fc-{c.Id}-{esPrimera}")"
                                                value="@FechaClasif(c.Id)"
                                                @onchange="(e) => FechaElegidaAsync(c.Id, e.Value?.ToString())"
-                                               title="Fecha de la última carpeta (si marca 1° Licencia en Acción, se completa con la fecha de la citación)" />
+                                               title="Fecha real de la última carpeta, si existe" />
                                     </td>
                                     <td class="excel-cell" data-campo="Clase de licencia" @ondblclick:stopPropagation>
                                         <ClaseRapida Value="clasesClasif.GetValueOrDefault(c.Id)" ValueChanged="v => ClaseElegidaAsync(c.Id, c.TramiteAgenda, v)" Disabled="clasificando" />
+                                        @if (c.ClasesAgenda is { } origen)
+                                        {
+                                            <small>Agenda: @ClasesLicencia.Format(origen) · confirmar clase</small>
+                                        }
                                     </td>
                                     <td class="excel-cell" data-campo="Revisar y guardar" @ondblclick:stopPropagation>
                                         @{
                                             var porFecha = DestinoPorFecha(c.Id);
                                             var textoFecha = FechaClasif(c.Id);
-                                            var fechaIlegible = elegido is null && !string.IsNullOrWhiteSpace(textoFecha) && porFecha is null;
+                                            var esDigital = SectorFisico.Calcular(textoFecha) == SectorFisico.Digital;
                                         }
                                         <div class="clasif-cell">
                                             <select @key="@($"dst-{c.Id}")" class="excel-select @(elegido is null && porFecha is not null ? "select-sugerido" : null)" value="@(dejarRevision.Contains(c.Id) ? ValorDejarRevision : ((elegido ?? porFecha)?.ToString() ?? ""))"
@@ -1317,6 +1321,10 @@
                                                     aria-label="@($"Guardar clasificación de {c.NombreCompleto}")"
                                                     @onclick="() => ClasificarUnaAsync(c.Id, c.TramiteAgenda)">Guardar</button>
                                         </div>
+                                        @if (esDigital)
+                                        {
+                                            <div class="clasif-sugerencia">Carpeta digital en SGL; no requiere búsqueda física. Elija el estado que corresponda.</div>
+                                        }
                                         @if (intentoAplicar.Contains(c.Id) && Faltantes(c.Id, c.TramiteAgenda) is { } faltan)
                                         {
                                             <div class="clasif-sugerencia clasif-sugerencia-aviso" role="alert">@faltan</div>
@@ -1480,7 +1488,7 @@
     private bool EsBandejaConAlerta => bandejaActiva is Bandeja.PorClasificar or Bandeja.RevisionDuplicadas;
 
     /// <summary>The name lupa (duplicate / history lookup) is only offered in the Revisión submodule trays.</summary>
-    private bool EsBandejaRevision => bandejaActiva is { } b && ModulosCatalogo.DeBandeja(b)?.Grupo == ModulosCatalogo.Revision;
+    private bool EsBandejaRevision => bandejaActiva is { } b && RevisionEntrada.Submodulos.Contains(b);
 
     /// <summary>PROBLEMA column: the duplicate reason when known, otherwise the submodule's plain-language problem.</summary>
     private string ProblemaRevision(CarpetaResumenDto c) =>
@@ -1643,13 +1651,6 @@
         }
         dejarRevision.Remove(id);
         destinoClasif[id] = Enum.TryParse<EstadoCarpeta>(e.Value?.ToString(), out var d) ? d : null;
-        // Marking Primera Licencia by hand means no earlier carpeta: the "última carpeta" is the citación date. The field stays
-        // editable (an extension may have one) and typing another date there makes that date win again.
-        if (destinoClasif[id] == EstadoCarpeta.PrimeraLicencia)
-        {
-            fechaClasif[id] = citacion.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-            fechaManual.Remove(id);
-        }
         return Task.CompletedTask;
     }
 
@@ -1681,18 +1682,18 @@
         // A typed date wins over the preselected Primera Licencia; clearing it goes back to that default.
         if (string.IsNullOrWhiteSpace(iso)) fechaManual.Remove(id); else fechaManual.Add(id);
         intentoAplicar.Remove(id);
-        if (DestinoPorFecha(id) is null || clasificando) return Task.CompletedTask;
-        // A readable date decides the destination by itself (Archivos / Of. 43): any manual pick is dropped.
-        destinoClasif.Remove(id);
-        dejarRevision.Remove(id);
         return Task.CompletedTask;
     }
 
     /// <summary>A row arriving with a stored "última carpeta" date starts in automatic mode with that date.</summary>
     private void SembrarFechaGuardada(Guid id, TramiteAgenda? tramite, string? guardada)
     {
-        if (fechaClasif.ContainsKey(id) || DestinoElegido(id, tramite) is not null) return;
-        if (SectorFisico.NormalizarIso(guardada) is { } iso) fechaClasif[id] = iso;
+        if (fechaClasif.ContainsKey(id)) return;
+        if (SectorFisico.NormalizarIso(guardada) is { } iso)
+        {
+            fechaClasif[id] = iso;
+            fechaManual.Add(id);
+        }
     }
 
     /// <summary>Keep all selected classes in the proposal until the user saves.</summary>
@@ -1720,6 +1721,8 @@
         var sinClase = clasesClasif.GetValueOrDefault(id) == ClaseLicencia.Ninguna;
         var elegido = DestinoElegido(id, tramite);
         var sinDestino = elegido is null && DestinoPorFecha(id) is null;
+        if (sinDestino && SectorFisico.Calcular(fechaClasif.GetValueOrDefault(id)) == SectorFisico.Digital)
+            return "Carpeta digital en SGL: elija un estado para continuar.";
         if (!sinClase && elegido is { } destino && Carpeta.EsCambioDomicilio(destino) && string.IsNullOrWhiteSpace(comunaClasif.GetValueOrDefault(id)))
             return "Falta escribir la comuna antes de guardar la clasificación.";
         return (sinClase, sinDestino) switch
@@ -1740,9 +1743,7 @@
         if (elegido is null && DestinoPorFecha(id) is null) return Task.CompletedTask;
         // No explicit state => null: the service applies the default action from the date.
         return EjecutarClasificacionAsync([id], elegido, clasesClasif.GetValueOrDefault(id),
-            // Primera Licencia only saves the date when it was marked by hand (it carries the citación date); the default
-            // preselected from the agenda trámite saves none, since "1° vez / extensión" may have an earlier carpeta.
-            elegido == EstadoCarpeta.PrimeraLicencia && !destinoClasif.ContainsKey(id) && !fechaManual.Contains(id) ? null : fechaClasif.GetValueOrDefault(id),
+            fechaClasif.GetValueOrDefault(id),
             elegido is { } d && Carpeta.EsCambioDomicilio(d) ? comunaClasif.GetValueOrDefault(id) : null);
     }
 

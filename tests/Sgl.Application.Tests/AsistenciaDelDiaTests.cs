@@ -424,7 +424,7 @@ public sealed class AsistenciaDelDiaTests : IDisposable
 
         Assert.Equal("Asistencia del día", modulo.Nombre);
         Assert.Equal("asistencia", modulo.Href);
-        Assert.Same(Sgl.Web.Services.ModulosCatalogo.Entrada, modulo.Grupo);
+        Assert.Same(Sgl.Web.Services.ModulosCatalogo.Cierre, modulo.Grupo);
     }
 
     [Fact]

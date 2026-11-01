@@ -160,7 +160,7 @@ public sealed class PedimosSeguimientoTests : IDisposable
         var cuatro = await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy.AddDays(4)), "Cuatro");
         var tres = await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy.AddDays(3)), "Tres");
         var hoy = await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy), "Hoy");
-        var pasada = await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy.AddDays(-3)), "Pasada");
+        var pasada = await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy.AddDays(-4)), "Pasada");
 
         var todas = (await c.Seguimiento.ListarAsync()).ToDictionary(f => f.Id);
 
@@ -481,7 +481,7 @@ public sealed class PedimosSeguimientoTests : IDisposable
     {
         var c = Nuevo();
         await SembrarSolicitadaAsync(c, "MAIPU", CitaParaVencer(Hoy.AddDays(14)), "Verde");
-        await SembrarSolicitadaAsync(c, "RENCA", CitaParaVencer(Hoy.AddDays(-3)), "Pasada");
+        await SembrarSolicitadaAsync(c, "RENCA", CitaParaVencer(Hoy.AddDays(-4)), "Pasada");
 
         var resumen = await c.Seguimiento.ResumenAsync();
 

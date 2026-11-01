@@ -148,6 +148,8 @@ public sealed record CarpetaResumenDto(
     Decision Decision,
     bool PendienteBusqueda = false)
 {
+    public ClaseLicencia? ClasesAgenda { get; init; }
+
     /// <summary>When the carpeta entered its current stage (UTC; only filled by listings).</summary>
     public DateTime? FechaEstadoActual { get; init; }
 

@@ -142,13 +142,15 @@ public sealed class PeticionServicioTests : IDisposable
     }
 
     [Fact]
-    public async Task Signing_the_certificate_sends_the_requested_carpeta_to_Subida_con_oficio()
+    public async Task Confirming_the_upload_sends_the_requested_carpeta_to_Subida_con_oficio()
     {
         var id = await EnCertificadoAsync();
         await _db.NewService().PedirAsync(id, "javiera");
         var cert = Assert.Single(await CertificadosAsync());
 
         await _db.NewCertificadosService().MarcarFirmadoAsync(cert.Id, "javiera");
+        Assert.Equal(EstadoCarpeta.CrearCertificado, (await _db.NewService().ObtenerAsync(id)).Estado);
+        await _db.NewCertificadosService().ConfirmarSubidaAsync(cert.Id, "javiera");
 
         var det = await _db.NewService().ObtenerAsync(id);
         Assert.Equal(EstadoCarpeta.SubidaConOficio, det.Estado);

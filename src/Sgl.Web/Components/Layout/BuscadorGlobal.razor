@@ -71,7 +71,7 @@
     {
         if (r.Anulada) return "Anuladas";
         if (ModulosCatalogo.DeBandeja(r.Bandeja) is not { } m) return r.Bandeja == Bandeja.EnCertificado ? "Certificado / Oficio" : r.Bandeja.ToString();
-        return m.Grupo == ModulosCatalogo.Revision ? $"{m.Grupo.Nombre} › {m.Nombre}" : m.Nombre;
+        return m.Bandeja is { } bandeja && RevisionEntrada.Submodulos.Contains(bandeja) ? $"Revisión › {m.Nombre}" : m.Nombre;
     }
 
     private async Task AlEscribir(ChangeEventArgs e)

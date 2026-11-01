@@ -1,7 +1,9 @@
 @page "/f8"
 @layout ModuloLayout
 @using Sgl.Application.Solicitudes
+@using Sgl.Infrastructure.Carpetas
 @inject SolicitudesF8Service F8Service
+@inject RespaldosPenultimaService Respaldos
 @inject AutorState Autor
 @inject DuplicadosNotifier DuplicadosNotifier
 @inject IJSRuntime JS
@@ -19,6 +21,7 @@
     </header>
 
     <SolicitudesSwitch EsF8="true" Total="total" />
+    <p><a class="btn-secondary" href="respaldos-penultima">Ver respaldos mensuales de penúltima carpeta →</a></p>
 
     <div class="sol-filtros" role="group" aria-label="Estado de la solicitud">
         @foreach (var (valor, etiqueta) in Chips)
@@ -117,6 +120,8 @@
                                     <button type="button" class="btn-action-caja" disabled="@(ocupadoId == s.Id)"
                                             title="No se pudo generar el F8: se abre una solicitud de certificado" @onclick="() => MarcarNoSeGeneroAsync(s)">No se pudo generar</button>
                                 }
+                                <button type="button" class="btn-action-caja" disabled="@(ocupadoId == s.Id)"
+                                        title="Agregar este respaldo opcional a la lista mensual" @onclick="() => AgregarRespaldoAsync(s)">Agregar respaldo</button>
                                 <a class="btn-detail" href="carpetas/@s.CarpetaId" title="Ver detalle e historial">Abrir →</a>
                             </td>
                         </tr>
@@ -250,6 +255,22 @@
         {
             ocupadoId = null;
         }
+    }
+
+    private async Task AgregarRespaldoAsync(SolicitudF8Dto s)
+    {
+        error = null;
+        CerrarMensaje();
+        if (!AutorListo()) return;
+        ocupadoId = s.Id;
+        try
+        {
+            await Respaldos.AgregarAsync(s.CarpetaId, Autor.Nombre);
+            mensaje = "Respaldo agregado a la lista mensual. No bloquea el trámite.";
+            DuplicadosNotifier.Notify();
+        }
+        catch (DomainException ex) { error = ex.Message; }
+        finally { ocupadoId = null; }
     }
 
     private async Task MarcarNoSeGeneroAsync(SolicitudF8Dto s)

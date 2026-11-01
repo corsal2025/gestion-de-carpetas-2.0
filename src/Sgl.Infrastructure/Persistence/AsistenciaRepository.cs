@@ -86,6 +86,8 @@ public sealed class AsistenciaRepository(SglDbContext db) : IAsistenciaRepositor
     {
         TramiteAgenda.Renovacion => "Renovación",
         TramiteAgenda.PrimeraVezExtension => "Primera vez, Extensión",
+        TramiteAgenda.CambioDomicilio => "Cambio de domicilio",
+        TramiteAgenda.Canje => "Canje",
         _ => null,
     };
 }

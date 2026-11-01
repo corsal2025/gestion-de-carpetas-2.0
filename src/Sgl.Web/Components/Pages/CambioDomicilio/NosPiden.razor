@@ -18,6 +18,7 @@
     <div class="modulo-barra">
         <h1 class="modulo-titulo">Nos piden carpetas <span class="muted">· @(resumen is null ? "…" : TotalAbiertas.ToString("N0", Cultura)) abiertas</span></h1>
     </div>
+    <p class="np-ayuda">Los vencimientos usan feriados nacionales 2026–2027 y los adicionales configurados. Revise feriados locales o extraordinarios y fechas fuera de esos años. Los días que faltan son corridos.</p>
 
     @if (modo is not null)
     {
@@ -122,7 +123,7 @@
                             <td>
                                 @if (f.Abierta)
                                 {
-                                    <span class="badge @InsigniaPlazo(f.Plazo) np-plazo" title="Estimado: @Opciones.PlazoEntranteDias días hábiles desde que llegó el correo">@TextoPlazo(f)</span>
+                                    <span class="badge @InsigniaPlazo(f.Plazo) np-plazo" title="Estimado: @Opciones.PlazoEntranteDias días hábiles desde el correo; el contador restante usa días corridos">@TextoPlazo(f)</span>
                                     <div class="np-vence">estimado · @f.Vence.ToString("dd-MM-yyyy")</div>
                                 }
                                 else

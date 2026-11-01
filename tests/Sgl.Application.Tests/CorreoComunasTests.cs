@@ -500,6 +500,14 @@ public sealed class CorreoComunasTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => ResolverOpciones(new() { ["CambioDomicilio:PantallazoMaxKB"] = "0" }));
     }
 
+    [Fact]
+    public void Feriados_adicionales_son_configurables_y_rechazan_fechas_invalidas()
+    {
+        var o = ResolverOpciones(new() { ["CambioDomicilio:FeriadosAdicionales:0"] = "2026-12-09" });
+        Assert.Contains(new DateOnly(2026, 12, 9), o.FeriadosAdicionales);
+        Assert.Throws<InvalidOperationException>(() => ResolverOpciones(new() { ["CambioDomicilio:FeriadosAdicionales:0"] = "no-fecha" }));
+    }
+
     // Criterio 7: ningún log lleva RUT, nombre ni cuerpo.
     [Fact]
     public async Task Los_logs_no_contienen_rut_nombre_ni_cuerpo_ni_mensajes_de_la_excepcion()

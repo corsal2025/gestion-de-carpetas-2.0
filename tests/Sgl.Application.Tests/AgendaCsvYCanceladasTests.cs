@@ -84,6 +84,153 @@ public sealed class AgendaCsvYCanceladasTests : IDisposable
         new("16/06/2026 12:30", RutMalo),
     ];
 
+    [Fact]
+    public async Task Reservas_distintas_misma_hora_del_mismo_rut_se_conservan()
+    {
+        var a = new Cita("16/06/2026 11:03", Rut1);
+        var b = new Cita("16/06/2026 11:20", Rut1);
+        var result = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, a, b)), "tester");
+        Assert.Equal(2, result.Creadas);
+        using var ctx = _db.NewContext();
+        Assert.Equal(2, ctx.Carpetas.Count());
+    }
+
+    [Fact]
+    public async Task Coincidencias_ambiguas_no_actualizan_ninguna_carpeta()
+    {
+        using (var ctx = _db.NewContext())
+        {
+            var persona = new Ciudadano(Rut.Parse(Rut1), "MARIA", "PRUEBA");
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(persona, Sede.Placilla, new DateOnly(2026, 12, 30), null, null, "x", DateTime.UtcNow));
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(persona, Sede.Placilla, new DateOnly(2026, 12, 30), null, null, "x", DateTime.UtcNow));
+            ctx.SaveChanges();
+        }
+        var result = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, new Cita("", Rut1))), "tester");
+        Assert.Equal(0, result.Actualizadas);
+        Assert.Contains(2, result.FilasSinImportarPorRevision);
+        using var check = _db.NewContext();
+        Assert.All(check.Carpetas, c => Assert.Null(c.EmailContacto));
+    }
+
+    [Fact]
+    public async Task Cancelacion_ambigua_no_se_atribuye_a_una_carpeta_al_azar()
+    {
+        using (var ctx = _db.NewContext())
+        {
+            var persona = new Ciudadano(Rut.Parse(Rut1), "MARIA", "PRUEBA");
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(persona, Sede.Placilla, new DateOnly(2026, 12, 30), null, null, "x", DateTime.UtcNow));
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(persona, Sede.Placilla, new DateOnly(2026, 12, 30), null, null, "x", DateTime.UtcNow));
+            ctx.SaveChanges();
+        }
+        var result = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, new Cita("", Rut1, Estado: "Cancelada"))), "tester");
+        Assert.Contains(2, result.FilasCanceladasConCarpetaAmbigua);
+        var repetida = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, new Cita("", Rut1, Estado: "Cancelada"))), "tester");
+        Assert.Contains(2, repetida.FilasCanceladasConCarpetaAmbigua);
+        using var check = _db.NewContext();
+        Assert.DoesNotContain(check.Set<HistorialCambio>(), h => h.Campo == "CitaCancelada");
+    }
+
+    [Fact]
+    public async Task Cambio_de_nombre_en_cita_existente_se_informa_sin_sobrescribirlo()
+    {
+        var original = new Cita("16/06/2026 11:03", Rut1);
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, original)), "tester");
+        var cambiado = original with { Nombre = "Nombre Distinto Prueba" };
+        var result = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, cambiado)), "tester");
+        Assert.Contains(2, result.FilasConCambiosPorRevisar);
+        using var ctx = _db.NewContext();
+        Assert.DoesNotContain("DISTINTO", ctx.Ciudadanos.Single().NombreCompleto);
+    }
+
+    [Fact]
+    public async Task Cancelar_agenda_sin_trabajo_la_anula_sin_borrar_historial_ni_estadistica()
+    {
+        var fila = new Cita("16/06/2026 11:03", Rut1);
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, fila)), "tester");
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, fila with { Estado = "Cancelada" })), "tester");
+        using var ctx = _db.NewContext();
+        Assert.Empty(ctx.Carpetas);
+        var conservada = Assert.Single(ctx.Carpetas.IgnoreQueryFilters().Include(c => c.Historial));
+        Assert.True(conservada.Anulada);
+        Assert.Contains(conservada.Historial, h => h.Campo == "CitaCancelada");
+        Assert.Single(ctx.CitasCanceladas);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Cancelar_y_reagendar_no_deja_alerta_falsa_sin_importar_orden(bool canceladaPrimero)
+    {
+        var anterior = new Cita("16/06/2026 11:03", Rut1);
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, anterior)), "tester");
+        var cancelada = anterior with { Estado = "Cancelada" };
+        var nueva = anterior with { Toma = "17/06/2026 10:00", Fecha = "31/12/2026" };
+        var filas = canceladaPrimero ? new[] { cancelada, nueva } : new[] { nueva, cancelada };
+        var result = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, filas)), "tester");
+        Assert.Equal(0, result.ConAlertaDuplicado);
+        using var ctx = _db.NewContext();
+        Assert.Single(ctx.Carpetas);
+        Assert.Equal(2, ctx.Carpetas.IgnoreQueryFilters().Count());
+    }
+
+    [Fact]
+    public async Task Cancelacion_no_anula_una_edicion_manual_y_no_repite_historial()
+    {
+        var fila = new Cita("16/06/2026 11:03", Rut1);
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, fila)), "tester");
+        using (var ctx = _db.NewContext())
+        {
+            var c = ctx.Carpetas.Single();
+            c.RegistrarEvento("RevisionManual", null, "Revisada", "funcionario", DateTime.UtcNow);
+            ctx.SaveChanges();
+        }
+        var bytes = Csv(Cp1252(), false, fila with { Estado = "Cancelada" });
+        await Nuevo().ImportarAsync(new MemoryStream(bytes), "tester");
+        await Nuevo().ImportarAsync(new MemoryStream(bytes), "tester");
+        using var check = _db.NewContext();
+        var conservada = check.Carpetas.Include(c => c.Historial).Single();
+        Assert.False(conservada.Anulada);
+        Assert.Single(conservada.Historial, h => h.Campo == "CitaCancelada");
+    }
+
+    [Fact]
+    public async Task Canceladas_distintas_con_los_mismos_datos_horarios_cuentan_separadas()
+    {
+        var a = new Cita("16/06/2026 11:03", Rut1, Estado: "Cancelada");
+        var b = a with { RutTxt = Rut2 };
+        var bytes = Csv(Cp1252(), false, a, b);
+        var primero = await Nuevo().ImportarAsync(new MemoryStream(bytes), "tester");
+        var segundo = await Nuevo().ImportarAsync(new MemoryStream(bytes), "tester");
+        Assert.Equal(2, primero.CanceladasGuardadas);
+        Assert.Equal(2, segundo.CanceladasYaRegistradas);
+        using var ctx = _db.NewContext();
+        Assert.Equal(2, ctx.CitasCanceladas.Count());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Misma_reserva_activa_y_cancelada_en_archivo_no_se_crea(bool canceladaPrimero)
+    {
+        var a = new Cita("16/06/2026 11:03", Rut1);
+        var b = a with { Estado = "Cancelada" };
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, canceladaPrimero ? [b,a] : [a,b])), "tester");
+        using var ctx = _db.NewContext();
+        Assert.Empty(ctx.Carpetas);
+        Assert.Single(ctx.CitasCanceladas);
+    }
+
+    [Fact]
+    public async Task Archivo_activo_antiguo_no_recrea_reserva_cancelada_que_nunca_fue_carpeta()
+    {
+        var a = new Cita("16/06/2026 11:03", Rut1);
+        await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, a with { Estado = "Cancelada" })), "tester");
+        var anterior = await Nuevo().ImportarAsync(new MemoryStream(Csv(Cp1252(), false, a)), "tester");
+        Assert.Equal(0, anterior.Creadas);
+        using var ctx = _db.NewContext();
+        Assert.Empty(ctx.Carpetas);
+    }
+
     // Criterio 1
     [Fact]
     public async Task Csv_cp1252_con_sep_da_los_mismos_conteos_que_su_xlsx()
@@ -213,7 +360,7 @@ public sealed class AgendaCsvYCanceladasTests : IDisposable
 
         Assert.Equal(1, res.CanceladasDeCarpetaExistente);
         using var check = _db.NewContext();
-        var carpeta = Assert.Single(check.Carpetas.Include(k => k.Historial).ToList());
+        var carpeta = Assert.Single(check.Carpetas.IgnoreQueryFilters().Include(k => k.Historial).ToList());
         Assert.Contains(carpeta.Historial, h => h.Campo == "CitaCancelada");
     }
 
@@ -331,8 +478,8 @@ public sealed class AgendaCsvYCanceladasTests : IDisposable
         Assert.Equal(0, r3.CanceladasGuardadas);
         Assert.Equal(0, r3.CanceladasDeCarpetaExistente);
         using var ctx = _db.NewContext();
-        var carpeta = ctx.Carpetas.Single();
-        Assert.False(carpeta.Anulada);
+        var carpeta = ctx.Carpetas.IgnoreQueryFilters().Single();
+        Assert.True(carpeta.Anulada);
         Assert.Equal(EstadoCarpeta.PorClasificar, carpeta.Estado);
         Assert.Single(ctx.CitasCanceladas);
         var eventos = ctx.Historial.Where(h => h.CarpetaId == carpeta.Id && h.Campo == "CitaCancelada").ToList();

@@ -88,11 +88,9 @@ public sealed class CertificadosService(
     }
 
     /// <summary>
-    /// Marks the certificate as signed and sends the carpeta to SubidaConOficio (audited, with the actor). A SinCarpeta
-    /// certificate whose carpeta is no longer in Crear certificado is signed but the carpeta is NOT moved. When a document
-    /// generator is available the document must be ready (signers and parameters) before the signature is recorded.
+    /// Records the signature without asserting that the document has already been uploaded to Conaset.
     /// </summary>
-    /// <returns>True when the carpeta was moved to Subida con oficio.</returns>
+    /// <returns>False: signing no longer moves the carpeta.</returns>
     public async Task<bool> MarcarFirmadoAsync(Guid id, string autor, string? numeroOficio = null, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
@@ -120,14 +118,54 @@ public sealed class CertificadosService(
             }
 
             var now = Now;
-            var mueve = certificado.Tipo != TipoCertificado.SinCarpeta || carpeta.Estado == EstadoCarpeta.CrearCertificado;
             certificado.MarcarFirmado(autor, now, numeroOficio);
-            if (mueve)
-            {
-                carpeta.ForzarEstado(EstadoCarpeta.SubidaConOficio, autor, now);
-            }
+            carpeta.RegistrarEvento($"CertFirma:{certificado.Id}", null, carpeta.Estado.ToString(), autor, now);
             await carpetas.SaveChangesAsync(ct);
-            return mueve;
+            return false;
+        }
+        catch
+        {
+            carpetas.DescartarCambios();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>Confirms a separate, already completed upload without overwriting a later change to the carpeta.</summary>
+    public async Task<bool> ConfirmarSubidaAsync(Guid id, string autor, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            // The Blazor circuit lives across requests; a previous read may be stale after another user edits.
+            carpetas.DescartarCambios();
+            var certificado = await LoadAsync(id, ct);
+            var carpeta = await LoadActivaAsync(certificado.CarpetaId, ct);
+            if (certificado.Estado != EstadoCertificado.Firmado || certificado.FirmadoEn is null)
+                throw new DomainException("El certificado debe estar firmado antes de confirmar la subida.");
+            if (carpeta.Estado == EstadoCarpeta.SubidaConOficio) return false;
+
+            var marca = carpeta.Historial.Where(h => h.Campo == $"CertFirma:{certificado.Id}").OrderBy(h => h.Id).LastOrDefault();
+            var estadoAnterior = marca is null
+                ? carpeta.Historial.Where(h => h.Campo == "Estado" && h.Fecha < certificado.FirmadoEn)
+                    .OrderBy(h => h.Fecha).ThenBy(h => h.Id).LastOrDefault()
+                : null;
+            var cambioPosterior = marca is not null
+                ? carpeta.Historial.Any(h => h.Campo == "Estado" && h.Id > marca.Id)
+                : carpeta.Historial.Any(h => h.Campo == "Estado" && h.Fecha > certificado.FirmadoEn);
+            if ((marca is not null && marca.Nuevo != carpeta.Estado.ToString())
+                || (marca is null && carpeta.Estado != EstadoCarpeta.CrearCertificado && estadoAnterior?.Nuevo != carpeta.Estado.ToString())
+                || cambioPosterior || EstadoTransitions.IsFinal(carpeta.Estado)
+                || (certificado.Tipo == TipoCertificado.SinCarpeta && carpeta.Estado != EstadoCarpeta.CrearCertificado))
+                throw new DomainException("No se pudo verificar un estado compatible desde la firma. Abra la carpeta y revise su historial antes de registrar la subida.");
+
+            carpeta.ForzarEstado(EstadoCarpeta.SubidaConOficio, autor, Now);
+            carpeta.RegistrarEvento("CertificadoSubido", null, certificado.Id.ToString(), autor, Now);
+            await carpetas.SaveChangesAsync(ct);
+            return true;
         }
         catch
         {

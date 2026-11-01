@@ -5,6 +5,24 @@ namespace PeticionCambioDomicilio.Tests;
 public class DeadlineCalculatorTests
 {
     [Fact]
+    public void AddBusinessDays_descuenta_feriados_nacionales_y_locales_configurados()
+    {
+        var lunes = new DateOnly(2026, 12, 7);
+        Assert.Equal(new DateOnly(2026, 12, 9), DeadlineCalculator.AddBusinessDays(lunes, 1));
+        var extra = new HashSet<DateOnly> { new(2026, 12, 9) };
+        Assert.Equal(new DateOnly(2026, 12, 10), DeadlineCalculator.AddBusinessDays(lunes, 1, extra));
+        Assert.Equal(1, DeadlineCalculator.BusinessDaysBetween(lunes, new DateOnly(2026, 12, 10), extra));
+    }
+
+    [Fact]
+    public void Calendario_indica_fuera_de_cobertura_y_cruce_de_anio()
+    {
+        Assert.True(DeadlineCalculator.CalendarioNacionalIncluye(2026));
+        Assert.True(DeadlineCalculator.CalendarioNacionalIncluye(2027));
+        Assert.False(DeadlineCalculator.CalendarioNacionalIncluye(2028));
+        Assert.Equal(new DateOnly(2027, 1, 4), DeadlineCalculator.AddBusinessDays(new DateOnly(2026, 12, 31), 1));
+    }
+    [Fact]
     public void AddBusinessDays_salta_fin_de_semana()
     {
         // viernes 2026-01-02 + 1 hábil = lunes 2026-01-05

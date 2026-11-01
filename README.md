@@ -100,6 +100,7 @@ Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
 ## Fase 4: cambio de domicilio, asistencia del día y Reclasificación
 
 - **Cambio de domicilio con sentido**: cada carpeta es *saliente* (la pedimos nosotros; plazo de 15 días hábiles desde la citación, sin reiniciarse al reenviar) o *entrante* (nos la piden por correo; plazo de ~12 días hábiles desde la llegada del correo, `CambioDomicilio:PlazoEntranteDias`). La saliente nunca puede ir a F8, oficio ni certificado. `CambioDomicilio:EnvioReal` es `false` por defecto (modo prueba: los correos van solo a la casilla de prueba).
+- **Calendario de plazos**: los cálculos incluyen feriados nacionales de 2026 y 2027. Es necesario verificar feriados locales, extraordinarios y años posteriores; se agregan en `appsettings.Local.json` mediante `CambioDomicilio:FeriadosAdicionales`, por ejemplo `["2026-12-09"]` (fechas ISO). Los contadores de días restantes en las bandejas son días corridos hasta el vencimiento calculado en días hábiles. El cálculo histórico de Peticiones usa la fecha de envío, distinta del seguimiento de carpetas.
 - **Reclasificación** (`/cambio-domicilio/reclasificacion`, primera etapa de Cambios de domicilio): toda carpeta que entra a Cambio de domicilio (clasificada a mano o llegada por correo) queda con la marca `PendienteReclasificacion` y no aparece en Por pedir ni en Nos piden hasta que una persona la confirme (una, varias o todas) o la corrija a otro destino, con «Deshacer». No es un estado nuevo: la máquina de estados no cambia y las carpetas existentes quedan sin pendiente (migración `ReclasificacionCambioDom`, default `false`). La puerta también se aplica en `CambiarEstado`/`ForzarEstado` y en los botones del Listado y del Detalle.
 - **Asistencia del día, Otorgamiento y Cajas**: agenda diaria con asistencia, resolución de otorgamiento (Otorgada/Denegada) y rótulos de caja por serie.
 - **Pruebas**: Domain 1833, Application 797, Peticiones 92 (todas en verde al cierre de la fase).
@@ -133,3 +134,9 @@ Para actualizarlo: editar el bloque `DATA` del archivo y agregar entrada en `CHA
 
 ---
 © 2026 Raúl Salazar. Todos los derechos reservados.
+
+### Cancelaciones en las cargas sucesivas de agenda
+
+Las cancelaciones se procesan antes de las citas activas de cada archivo. Una reserva identificada sin ambigüedad anula su carpeta de agenda únicamente si sigue en Por clasificar, sin trabajo manual ni solicitudes o asistencia; se conserva íntegra en Anuladas. Si ya hubo trabajo o la carpeta fue restaurada, aparece en «Cancelaciones por revisar» para una decisión explícita y auditada. Nunca se anula solo por coincidir el RUT ni por faltar una fila en una descarga posterior. Un archivo activo antiguo no reactiva reservas ya canceladas.
+
+Las estadísticas guardan un identificador pseudónimo SHA-256 de la reserva, sin RUT ni nombre en texto, para distinguir cancelaciones con el mismo horario. No es anonimización irreversible. Los registros anteriores sin identificador se preservan; cada coincidencia histórica puede vincularse al reimportar y las reservas adicionales se cuentan por separado. Sin identificador de reserva y con datos incompletos no puede garantizarse identidad absoluta; las coincidencias de carpetas ambiguas requieren revisión. La migración de identidad no admite reversión automática porque restituir la antigua unicidad podría eliminar estadísticas válidas; se debe usar el respaldo previo si se necesita volver a una versión anterior.

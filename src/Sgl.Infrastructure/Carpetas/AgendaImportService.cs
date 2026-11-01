@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Globalization;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,16 @@ public sealed record AgendaImportResult(
     int YaExistianAnuladas = 0,
     int CanceladasGuardadas = 0,
     int CanceladasYaRegistradas = 0,
-    int CanceladasDeCarpetaExistente = 0);
+    int CanceladasDeCarpetaExistente = 0)
+{
+    public int CanceladasAnuladas { get; init; }
+    public int CanceladasConTrabajoPendiente { get; init; }
+    public IReadOnlyList<int> FilasActivasCanceladas { get; init; } = [];
+    public int Actualizadas { get; init; }
+    public IReadOnlyList<int> FilasConCambiosPorRevisar { get; init; } = [];
+    public IReadOnlyList<int> FilasSinImportarPorRevision { get; init; } = [];
+    public IReadOnlyList<int> FilasCanceladasConCarpetaAmbigua { get; init; } = [];
+}
 
 /// <summary>
 /// Imports the daily appointment agenda (xlsx or CSV, recognised by content) as "Por clasificar" carpetas.
@@ -38,7 +48,7 @@ public sealed class AgendaImportService(
 
     private sealed record Columnas(
         int Fecha, int Hora, int Rut, int Nombre, int Tramite, int Ubicacion, int? Estado, int? Motivo,
-        int? Toma, int? Email, int? Telefono);
+        int? Toma, int? Email, int? Telefono, int? Clase);
 
     /// <summary>True when the file (xlsx or CSV) carries the agenda headers. Leaves the stream at position 0.</summary>
     public static bool EsFormatoAgenda(Stream stream)
@@ -108,31 +118,50 @@ public sealed class AgendaImportService(
         var now = clock.GetUtcNow().UtcDateTime;
         var usuario = string.IsNullOrWhiteSpace(autor) ? "IMPORTACION_AGENDA" : autor.Trim();
         var ciudadanos = await db.Ciudadanos.ToDictionaryAsync(c => c.Rut.Value, StringComparer.OrdinalIgnoreCase, ct);
-        var clavesCita = new HashSet<(Guid, Sede, DateOnly)>();
-        var clavesToma = new HashSet<(Guid, DateTime)>();
-        var canceladasConocidas = (await db.CitasCanceladas
-                .Select(x => new { x.FechaTomaCita, x.FechaCita, x.HoraCita, x.Sede, x.Tramite })
-                .ToListAsync(ct))
-            .Select(x => (x.FechaTomaCita, x.FechaCita, x.HoraCita, x.Sede, x.Tramite))
-            .ToHashSet();
+        var clavesCita = new HashSet<(Guid Ciudadano, Sede Sede, DateOnly Fecha, TimeOnly? Hora, DateTime? Toma)>();
+        var filasSinToma = new HashSet<(string Rut, Sede Sede, DateOnly Fecha, TimeOnly? Hora)>();
+        var canceladasPrevias = await db.CitasCanceladas.ToListAsync(ct);
+        var canceladasConocidas = canceladasPrevias.Where(c => c.IdentidadAgenda != null).Select(c => c.IdentidadAgenda!).ToHashSet();
 
         int leidas = 0, creadas = 0, yaExistian = 0, canceladas = 0, ciudadanosCreados = 0, conAlerta = 0, yaExistianAnuladas = 0;
-        int canceladasGuardadas = 0, canceladasYaRegistradas = 0, canceladasDeCarpeta = 0;
+        int canceladasGuardadas = 0, canceladasYaRegistradas = 0, canceladasDeCarpeta = 0, canceladasAnuladas = 0, canceladasConTrabajo = 0;
         var conCarpetaEnEstaCarga = new HashSet<Guid>();
         var rutInvalido = new List<int>();
         var errores = new List<string>();
+        var filasPorRevisar = new List<int>();
+        var filasSinImportar = new List<int>();
+        var canceladasAmbiguas = new List<int>();
+        var activasCanceladas = new List<int>();
+        var actualizadas = 0;
 
-        for (var n = filaEncabezado + 1; n <= tabla.Filas.Count; n++)
+        bool Cancelada(CeldaAgenda[] fila) => Normalizar(Texto(fila, cols.Estado)).Contains("CANCEL")
+            || Normalizar(Texto(fila, cols.Estado)).Contains("ANULAD") || !string.IsNullOrWhiteSpace(Texto(fila, cols.Motivo));
+        var ordenadas = Enumerable.Range(filaEncabezado + 1, tabla.Filas.Count - filaEncabezado)
+            .OrderBy(n => Cancelada(tabla.Filas[n - 1]) ? 0 : 1).ToArray();
+        var canceladasEnArchivo = ordenadas.Where(n => Cancelada(tabla.Filas[n - 1]))
+            .Select(n => tabla.Filas[n - 1]).ToList();
+        var activasIniciadas = false;
+        foreach (var n in ordenadas)
         {
             ct.ThrowIfCancellationRequested();
             var row = tabla.Filas[n - 1];
             if (row.All(c => c.EstaVacia)) continue;
             leidas++;
+            // Persist cancellations inside the same transaction before duplicate queries read active appointments.
+            if (!Cancelada(row) && !activasIniciadas)
+            {
+                await db.SaveChangesAsync(ct);
+                activasIniciadas = true;
+            }
+            var claseTexto = Texto(row, cols.Clase);
+            var clasesAgenda = LeerClases(claseTexto);
+            if (!string.IsNullOrWhiteSpace(claseTexto) && clasesAgenda is null) filasPorRevisar.Add(n);
 
             var estado = Normalizar(Texto(row, cols.Estado));
             var fecha = LeerFecha(Celda(row, cols.Fecha));
             var sede = MapearSede(Texto(row, cols.Ubicacion));
             var toma = LeerToma(Celda(row, cols.Toma));
+            var hora = LeerHora(Celda(row, cols.Hora));
             var rutValido = Rut.TryParse(Texto(row, cols.Rut), out var rut);
 
             if (estado.Contains("CANCEL") || estado.Contains("ANULAD") || !string.IsNullOrWhiteSpace(Texto(row, cols.Motivo)))
@@ -146,18 +175,31 @@ public sealed class AgendaImportService(
 
                 var cita = new CitaCancelada(
                     fecha.Value, toma, LeerHora(Celda(row, cols.Hora)), sede.Value, Texto(row, cols.Tramite), Texto(row, cols.Motivo), now);
-                if (!canceladasConocidas.Add((cita.FechaTomaCita, cita.FechaCita, cita.HoraCita, cita.Sede, cita.Tramite)))
+                var identidad = IdentidadCancelada(row, cols);
+                var yaRegistrada = !canceladasConocidas.Add(identidad);
+                if (!yaRegistrada)
                 {
-                    canceladasYaRegistradas++;
-                    continue;
+                    // Old anonymous statistical rows can be assigned one matching reservation fingerprint.
+                    // Do not drop them or infer a link to a citizen/carpeta.
+                    var legado = canceladasPrevias.FirstOrDefault(x => x.IdentidadAgenda is null
+                        && x.FechaTomaCita == cita.FechaTomaCita && x.FechaCita == cita.FechaCita
+                        && x.HoraCita == cita.HoraCita && x.Sede == cita.Sede && x.Tramite == cita.Tramite);
+                    if (legado is not null) { legado.VincularIdentidad(identidad); yaRegistrada = true; }
                 }
-
-                db.CitasCanceladas.Add(cita);
-                canceladasGuardadas++;
-                if (rutValido && ciudadanos.TryGetValue(rut!.Value, out var previo)
-                    && await AvisarCarpetaCanceladaAsync(previo.Id, cita, usuario, now, ct))
+                if (yaRegistrada) canceladasYaRegistradas++;
+                else
                 {
-                    canceladasDeCarpeta++;
+                    cita.VincularIdentidad(identidad);
+                    db.CitasCanceladas.Add(cita);
+                    canceladasGuardadas++;
+                }
+                if (rutValido)
+                {
+                    var avisadas = await AvisarCarpetaCanceladaAsync(rut!.Value, cita, usuario, now, yaRegistrada, ct);
+                    if (avisadas == 1) { canceladasDeCarpeta++; canceladasAnuladas++; }
+                    else if (avisadas == -1) { canceladasDeCarpeta++; canceladasConTrabajo++; }
+                    else if (avisadas == -2) canceladasConTrabajo++;
+                    else if (avisadas > 1) canceladasAmbiguas.Add(n);
                 }
                 continue;
             }
@@ -180,21 +222,56 @@ public sealed class AgendaImportService(
                 continue;
             }
 
+            // A contradictory snapshot must never recreate the same explicitly cancelled reservation.
+            if (canceladasConocidas.Contains(IdentidadCancelada(row, cols)) || canceladasEnArchivo.Any(c => Rut.TryParse(Texto(c, cols.Rut), out var canceladoRut)
+                && canceladoRut!.Value == rut!.Value
+                && ((toma is not null && LeerToma(Celda(c, cols.Toma)) == toma)
+                    || (toma is null && LeerToma(Celda(c, cols.Toma)) is null
+                        && LeerFecha(Celda(c, cols.Fecha)) == fecha && MapearSede(Texto(c, cols.Ubicacion)) == sede
+                        && LeerHora(Celda(c, cols.Hora)) == hora))))
+            {
+                activasCanceladas.Add(n);
+                continue;
+            }
+
             // The RUT may have been corrected after the first import (it changes for all the citizen's carpetas): the same listing
             // arriving again with the original RUT is the same appointment, not a new person.
             var rutOriginal = rut!.Value;
             var fechaCorrecta = fecha.Value;
             var sedeCorrecta = sede.Value;
-            var anuladaPorRutOriginal = await db.Carpetas.IgnoreQueryFilters()
-                .Where(c => c.RutImportacion == rutOriginal)
-                .Where(MismaCita(toma, sedeCorrecta, fechaCorrecta))
-                .Select(c => (bool?)c.Anulada)
-                .OrderBy(a => a)
-                .FirstOrDefaultAsync(ct);
-            if (anuladaPorRutOriginal is { } anuladaOriginal)
+            if (toma is null && !filasSinToma.Add((rutOriginal, sedeCorrecta, fechaCorrecta, hora)))
             {
+                filasSinImportar.Add(n);
+                continue;
+            }
+            var coincidencias = await db.Carpetas.IgnoreQueryFilters()
+                .Include(c => c.Ciudadano)
+                .Where(c => c.RutImportacion == rutOriginal || c.Ciudadano.Rut.Value == rutOriginal)
+                .Where(MismaCita(toma, sedeCorrecta, fechaCorrecta, hora))
+                .OrderBy(c => c.Anulada)
+                .Take(2).ToListAsync(ct);
+            if (coincidencias.Count > 1)
+            {
+                filasSinImportar.Add(n);
+                continue;
+            }
+            if (coincidencias.Count == 1)
+            {
+                var carpetaOriginal = coincidencias[0];
                 yaExistian++;
-                if (anuladaOriginal) yaExistianAnuladas++;
+                if (carpetaOriginal.Anulada) yaExistianAnuladas++;
+                else RevisarExistente(carpetaOriginal, row, cols, fecha.Value, sede.Value, hora, usuario, now, n, filasPorRevisar, ref actualizadas);
+                continue;
+            }
+
+            // Sin identificador de reserva, otra hora puede ser una segunda cita o un cambio de la anterior.
+            // No se decide automáticamente: se señala la fila para que el funcionario la revise.
+            if (toma is null && hora is not null && await db.Carpetas.IgnoreQueryFilters()
+                .AnyAsync(c => (c.RutImportacion == rutOriginal || c.Ciudadano.Rut.Value == rutOriginal)
+                    && c.FechaTomaCita == null && c.Sede == sedeCorrecta && c.FechaCitacion == fechaCorrecta
+                    && c.HoraCita != null && c.HoraCita != hora, ct))
+            {
+                filasSinImportar.Add(n);
                 continue;
             }
 
@@ -210,26 +287,20 @@ public sealed class AgendaImportService(
             var ciudadanoId = ciudadano.Id;
             var sedeValor = sede.Value;
             var fechaValor = fecha.Value;
-            var repetidaEnArchivo = !clavesCita.Add((ciudadanoId, sedeValor, fechaValor));
-            if (toma is { } t && !clavesToma.Add((ciudadanoId, t))) repetidaEnArchivo = true;
-            bool? anuladaPrevia = repetidaEnArchivo
-                ? false
-                : await db.Carpetas.IgnoreQueryFilters()
-                    .Where(c => c.CiudadanoId == ciudadanoId)
-                    .Where(MismaCita(toma, sedeValor, fechaValor))
-                    .Select(c => (bool?)c.Anulada)
-                    .OrderBy(a => a)
-                    .FirstOrDefaultAsync(ct);
-            if (anuladaPrevia is { } esAnulada)
+            var repetidaEnArchivo = clavesCita.Any(k => k.Ciudadano == ciudadanoId
+                && (k.Toma is not null && toma is not null ? k.Toma == toma
+                    : k.Sede == sedeValor && k.Fecha == fechaValor && (k.Hora == hora || k.Hora is null || hora is null)));
+            clavesCita.Add((ciudadanoId, sedeValor, fechaValor, hora, toma));
+            if (repetidaEnArchivo)
             {
-                yaExistian++;
-                if (esAnulada) yaExistianAnuladas++;
+                if (toma is null) filasSinImportar.Add(n); else yaExistian++;
                 continue;
             }
-
-            db.Carpetas.Add(Carpeta.CrearDesdeAgenda(
-                ciudadano, sedeValor, fechaValor, LeerHora(Celda(row, cols.Hora)),
-                MapearTramite(Texto(row, cols.Tramite)), usuario, now, toma, Texto(row, cols.Email), Texto(row, cols.Telefono)));
+            var nueva = Carpeta.CrearDesdeAgenda(
+                ciudadano, sedeValor, fechaValor, hora,
+                MapearTramite(Texto(row, cols.Tramite)), usuario, now, toma, Texto(row, cols.Email), Texto(row, cols.Telefono));
+            nueva.CompletarClasesAgenda(clasesAgenda, usuario, now);
+            db.Carpetas.Add(nueva);
             creadas++;
             if (!conCarpetaEnEstaCarga.Add(ciudadanoId)
                 || await db.Carpetas.Where(c => c.CiudadanoId == ciudadanoId).AnyAsync(Carpeta.AbiertaSinArchivarExpresion, ct))
@@ -241,7 +312,28 @@ public sealed class AgendaImportService(
         await db.SaveChangesAsync(ct);
         return new AgendaImportResult(
             leidas, creadas, yaExistian, canceladas, ciudadanosCreados, rutInvalido, errores, conAlerta, yaExistianAnuladas,
-            canceladasGuardadas, canceladasYaRegistradas, canceladasDeCarpeta);
+            canceladasGuardadas, canceladasYaRegistradas, canceladasDeCarpeta)
+        { FilasActivasCanceladas = activasCanceladas, CanceladasAnuladas = canceladasAnuladas, CanceladasConTrabajoPendiente = canceladasConTrabajo, Actualizadas = actualizadas, FilasConCambiosPorRevisar = filasPorRevisar, FilasSinImportarPorRevision = filasSinImportar, FilasCanceladasConCarpetaAmbigua = canceladasAmbiguas };
+    }
+
+    private static void RevisarExistente(Carpeta carpeta, CeldaAgenda[] row, Columnas cols, DateOnly fecha, Sede sede,
+        TimeOnly? hora, string usuario, DateTime now, int fila, List<int> revisiones, ref int actualizadas)
+    {
+        var email = Texto(row, cols.Email)?.Trim();
+        var telefono = Texto(row, cols.Telefono)?.Trim();
+        var tramite = MapearTramite(Texto(row, cols.Tramite));
+        var nombre = Texto(row, cols.Nombre);
+        var clases = LeerClases(Texto(row, cols.Clase));
+        if (clases is not null && carpeta.ClasesAgenda is not null && clases != carpeta.ClasesAgenda) revisiones.Add(fila);
+        var actualizada = carpeta.CompletarClasesAgenda(clases, usuario, now);
+        if (carpeta.FechaCitacion != fecha || carpeta.Sede != sede
+            || (!string.IsNullOrWhiteSpace(nombre) && Normalizar(nombre) != Normalizar(carpeta.Ciudadano.NombreCompleto))
+            || (hora is not null && carpeta.HoraCita is not null && carpeta.HoraCita != hora)
+            || (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(carpeta.EmailContacto) && !string.Equals(email, carpeta.EmailContacto, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrEmpty(telefono) && !string.IsNullOrEmpty(carpeta.TelefonoContacto) && telefono != carpeta.TelefonoContacto)
+            || (tramite is not null && carpeta.TramiteAgenda is not null && tramite != carpeta.TramiteAgenda))
+            revisiones.Add(fila);
+        if (carpeta.CompletarDatosAgenda(email, telefono, tramite, usuario, now) || actualizada) actualizadas++;
     }
 
     /// <summary>
@@ -249,23 +341,51 @@ public sealed class AgendaImportService(
     /// when either side has no taking date (legacy carpetas imported before that column existed). Two carpetas that both
     /// have a taking date are told apart by it alone. Used by both the "already exists" lookup and the cancellation notice.
     /// </summary>
-    private static System.Linq.Expressions.Expression<Func<Carpeta, bool>> MismaCita(DateTime? toma, Sede sede, DateOnly fechaCita) =>
+    private static System.Linq.Expressions.Expression<Func<Carpeta, bool>> MismaCita(DateTime? toma, Sede sede, DateOnly fechaCita, TimeOnly? hora) =>
         c => (toma != null && c.FechaTomaCita == toma)
-            || ((toma == null || c.FechaTomaCita == null) && c.Sede == sede && c.FechaCitacion == fechaCita);
+            || ((toma == null || c.FechaTomaCita == null) && c.Sede == sede && c.FechaCitacion == fechaCita
+                && (hora == null || c.HoraCita == null || c.HoraCita == hora));
 
-    /// <summary>A row that was already imported as a carpeta now arrives cancelled: the carpeta stays, its history notes it.</summary>
-    private async Task<bool> AvisarCarpetaCanceladaAsync(Guid ciudadanoId, CitaCancelada cita, string usuario, DateTime now, CancellationToken ct)
+    /// <summary>Reconciles one exact reservation: preserve work for review, otherwise soft-delete the untouched agenda carpeta.</summary>
+    private async Task<int> AvisarCarpetaCanceladaAsync(string rutOriginal, CitaCancelada cita, string usuario, DateTime now, bool yaRegistrada, CancellationToken ct)
     {
         var toma = cita.FechaTomaCita;
         var sede = cita.Sede;
         var fechaCita = cita.FechaCita;
-        var carpeta = await db.Carpetas
-            .Where(c => c.CiudadanoId == ciudadanoId)
-            .Where(MismaCita(toma, sede, fechaCita))
-            .FirstOrDefaultAsync(ct);
-        if (carpeta is null) return false;
-        carpeta.RegistrarEvento("CitaCancelada", null, "Cancelada en la agenda", usuario, now);
-        return true;
+        var carpetas = await db.Carpetas
+            .Include(c => c.Historial)
+            .Where(c => c.RutImportacion == rutOriginal || c.Ciudadano.Rut.Value == rutOriginal)
+            .Where(MismaCita(toma, sede, fechaCita, cita.HoraCita))
+            .Take(2).ToListAsync(ct);
+        if (carpetas.Count != 1) return carpetas.Count;
+        var referencia = $"{cita.FechaCita:yyyy-MM-dd}|{cita.HoraCita:HH\\:mm}|{cita.FechaTomaCita:yyyy-MM-dd HH:mm:ss}";
+        if (carpetas[0].Historial.Any(h => h.Campo == "CitaCancelada" && (h.Anterior == referencia || (yaRegistrada && h.Anterior is null))))
+        {
+            var ultima = carpetas[0].Historial.Where(h => h.Campo == "CitaCancelada").Max(h => h.Id);
+            return carpetas[0].Historial.Any(r => r.Campo == "CitaCanceladaResuelta" && r.Id > ultima
+                && !carpetas[0].Historial.Any(a => a.Campo == "Anulacion" && a.Nuevo == "Restaurada" && a.Id > r.Id)) ? 0 : -2;
+        }
+        var carpeta = carpetas[0];
+        var sinTrabajo = carpeta.Estado == EstadoCarpeta.PorClasificar && carpeta.Decision == Decision.Pendiente
+            && !carpeta.EsExtra && carpeta.RutImportacion is not null
+            && carpeta.Historial.All(h => h.Campo == "Agenda" || h.Campo == "ClasesAgenda")
+            && !await db.Asistencias.AnyAsync(a => a.CarpetaId == carpeta.Id, ct)
+            && !await db.SolicitudesF8.AnyAsync(x => x.CarpetaId == carpeta.Id, ct)
+            && !await db.SolicitudesCertificado.AnyAsync(x => x.CarpetaId == carpeta.Id, ct);
+        carpeta.RegistrarEvento("CitaCancelada", referencia, sinTrabajo ? "Cancelada en la agenda; carpeta sin trabajo anulada" : "Cancelada en la agenda; revisar trabajo existente", usuario, now);
+        if (!sinTrabajo) return -1;
+        carpeta.Anular("Cita cancelada en agenda municipal", usuario, now);
+        return 1;
+    }
+
+    private static string IdentidadCancelada(CeldaAgenda[] row, Columnas cols)
+    {
+        var persona = Rut.TryParse(Texto(row, cols.Rut), out var rut)
+            ? rut!.Value : $"{Normalizar(Texto(row, cols.Rut))}|{Normalizar(Texto(row, cols.Nombre))}";
+        var toma = LeerToma(Celda(row, cols.Toma));
+        var clave = toma is not null ? FormattableString.Invariant($"{persona}|{toma:O}")
+            : FormattableString.Invariant($"{persona}|{LeerFecha(Celda(row, cols.Fecha)):O}|{LeerHora(Celda(row, cols.Hora)):O}|{MapearSede(Texto(row, cols.Ubicacion))}");
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(clave)));
     }
 
     private static bool DetectarColumnas(AgendaTabla tabla, out Columnas cols, out int filaEncabezado)
@@ -295,11 +415,24 @@ public sealed class AgendaImportService(
             if (fecha is null || hora is null || rut is null || nombre is null || tramite is null || ubic is null) continue;
 
             cols = new Columnas(fecha.Value, hora.Value, rut.Value, nombre.Value, tramite.Value, ubic.Value,
-                Col("ESTADO"), Col("MOTIVO CANCELACION"), Col("FECHA TOMA CITA"), Col("EMAIL", "CORREO"), Col("TELEFONO", "CELULAR"));
+                Col("ESTADO"), Col("MOTIVO CANCELACION"), Col("FECHA TOMA CITA"), Col("EMAIL", "CORREO"), Col("TELEFONO", "CELULAR"), Col("CLASE DE LICENCIA", "CLASE LICENCIA", "CLASES LICENCIA", "CLASE", "CLASES"));
             filaEncabezado = r;
             return true;
         }
         return false;
+    }
+
+    private static ClaseLicencia? LeerClases(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        var partes = texto.Trim().ToUpperInvariant().Split([',', ';', '/', '+', ' ', '|'], StringSplitOptions.RemoveEmptyEntries);
+        var resultado = ClaseLicencia.Ninguna;
+        foreach (var parte in partes)
+        {
+            if (!Enum.TryParse<ClaseLicencia>(parte, out var clase) || !ClasesLicencia.Todas.Contains(clase) || parte != clase.ToString()) return null;
+            resultado |= clase;
+        }
+        return resultado == ClaseLicencia.Ninguna ? null : resultado;
     }
 
     internal static Sede? MapearSede(string? raw)
@@ -314,6 +447,8 @@ public sealed class AgendaImportService(
     internal static TramiteAgenda? MapearTramite(string? raw)
     {
         var s = Normalizar(raw);
+        if (s.Contains("DOMICILIO")) return TramiteAgenda.CambioDomicilio;
+        if (s.Contains("CANJE")) return TramiteAgenda.Canje;
         if (s.Contains("RENOV")) return TramiteAgenda.Renovacion;
         if (s.Contains("PRIMERA") || s.Contains("EXTENS")) return TramiteAgenda.PrimeraVezExtension;
         return null;

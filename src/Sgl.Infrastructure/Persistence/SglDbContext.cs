@@ -5,6 +5,18 @@ namespace Sgl.Infrastructure.Persistence;
 
 public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbContext(options)
 {
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        try { return base.SaveChanges(acceptAllChangesOnSuccess); }
+        catch (DbUpdateConcurrencyException) { throw new ConcurrenciaException(); }
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        try { return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken); }
+        catch (DbUpdateConcurrencyException) { throw new ConcurrenciaException(); }
+    }
+
     public DbSet<Carpeta> Carpetas => Set<Carpeta>();
 
     public DbSet<Ciudadano> Ciudadanos => Set<Ciudadano>();
@@ -64,8 +76,8 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.CiudadanoId).UseCollation("NOCASE");
             b.HasOne(c => c.Ciudadano).WithMany().HasForeignKey(c => c.CiudadanoId).OnDelete(DeleteBehavior.Restrict);
             b.Property(c => c.Sede).HasConversion<string>().HasMaxLength(20);
-            b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(50);
-            b.Property(c => c.Decision).HasConversion<string>().HasMaxLength(20);
+            b.Property(c => c.Estado).HasConversion<string>().HasMaxLength(50).IsConcurrencyToken();
+            b.Property(c => c.Decision).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
             b.Property(c => c.IdoneidadMoral).HasMaxLength(Carpeta.MaxIdoneidadLength);
             b.Property(c => c.CajaArchivo).HasMaxLength(50);
             b.Property(c => c.FechaUltimaCarpeta).HasMaxLength(50);
@@ -78,19 +90,22 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.FechaRegistro);
             b.Property(c => c.TramiteAgenda).HasConversion<string>().HasMaxLength(30);
             b.Property(c => c.HoraCita);
+            b.Property(c => c.ClasesAgenda);
             b.Property(c => c.EsExtra).HasDefaultValue(false);
             b.Property(c => c.EmailContacto).HasMaxLength(Carpeta.MaxEmailContactoLength);
             b.Property(c => c.TelefonoContacto).HasMaxLength(Carpeta.MaxTelefonoContactoLength);
-            b.Property(c => c.Anulada).HasDefaultValue(false);
+            b.Property(c => c.Anulada).HasDefaultValue(false).IsConcurrencyToken();
             b.Property(c => c.MotivoAnulacion).HasMaxLength(MotivosAnulacion.MaxLength);
             b.Property(c => c.AnuladaPor).HasMaxLength(Carpeta.MaxUsuarioLength);
             b.Property(c => c.AnuladaEn);
-            b.Property(c => c.FechaEstadoActual);
+            b.Property(c => c.FechaEstadoActual).IsConcurrencyToken();
             b.Property(c => c.FechaCierre);
             b.Property(c => c.FechaImpresion);
             b.Property(c => c.FechaPeticion);
             b.Property(c => c.CodigoF8).HasMaxLength(Carpeta.MaxCodigoF8Length);
             b.Property(c => c.FechaPenultimaCarpeta);
+            b.Property(c => c.FechaRespaldoSolicitado).IsConcurrencyToken();
+            b.Property(c => c.FechaRespaldoSubido).IsConcurrencyToken();
             b.Property(c => c.Resolucion);
             b.Property(c => c.FechaOtorgamiento);
             b.Property(c => c.SentidoCambioDomicilio);
@@ -123,7 +138,9 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(x => x.Sede).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.Tramite).HasMaxLength(CitaCancelada.MaxTramiteLength).IsRequired();
             b.Property(x => x.Motivo).HasMaxLength(CitaCancelada.MaxMotivoLength);
-            b.HasIndex(x => new { x.FechaTomaCita, x.FechaCita, x.HoraCita, x.Sede, x.Tramite }).IsUnique();
+            b.Property(x => x.IdentidadAgenda).HasMaxLength(64);
+            b.HasIndex(x => x.IdentidadAgenda).IsUnique();
+            b.HasIndex(x => new { x.FechaTomaCita, x.FechaCita, x.HoraCita, x.Sede, x.Tramite });
             b.HasIndex(x => x.FechaCita);
         });
 

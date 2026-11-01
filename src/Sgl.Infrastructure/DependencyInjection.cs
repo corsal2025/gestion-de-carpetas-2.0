@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddDbContext<SglDbContext>(options => DatabaseProvider.Configure(options, provider, connectionString));
         // One gate per circuit: every service sharing the scoped DbContext serializes its reads and writes through it.
         services.AddScoped<UnidadDeTrabajoGate>();
+        services.AddScoped<CancelacionesAgendaService>();
         services.AddScoped<ICarpetaRepository, CarpetaRepository>();
         services.AddScoped<IDuplicadoRepository, DuplicadoRepository>();
         services.AddScoped<CarpetaService>();
@@ -88,6 +89,7 @@ public static class DependencyInjection
         services.AddScoped<EntrantesService>();
         services.AddScoped<ExcelImportService>();
         services.AddScoped<AgendaImportService>();
+        services.AddScoped<RespaldosPenultimaService>();
         services.AddSingleton<TimeProvider>(RelojChile.Instancia);
         return services;
     }
@@ -110,11 +112,20 @@ public static class DependencyInjection
         }
 
         var porDefecto = new CambioDomicilioOptions();
+        var feriados = new HashSet<DateOnly>();
+        foreach (var item in configuration.GetSection($"{CambioDomicilioOptions.SectionName}:FeriadosAdicionales").GetChildren())
+        {
+            if (!DateOnly.TryParseExact(item.Value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var fecha))
+                throw new InvalidOperationException($"Fecha inválida en '{CambioDomicilioOptions.SectionName}:FeriadosAdicionales'. Use yyyy-MM-dd.");
+            feriados.Add(fecha);
+        }
         return new CambioDomicilioOptions
         {
             EnvioReal = bool.TryParse(Leer(nameof(CambioDomicilioOptions.EnvioReal)), out var real) && real,
             PlazoSalienteDias = Entero(nameof(CambioDomicilioOptions.PlazoSalienteDias), porDefecto.PlazoSalienteDias),
             PlazoEntranteDias = Entero(nameof(CambioDomicilioOptions.PlazoEntranteDias), porDefecto.PlazoEntranteDias),
+            FeriadosAdicionales = feriados,
             CarpetaPantallazos = string.IsNullOrWhiteSpace(Leer(nameof(CambioDomicilioOptions.CarpetaPantallazos)))
                 ? porDefecto.CarpetaPantallazos
                 : Leer(nameof(CambioDomicilioOptions.CarpetaPantallazos))!.Trim(),

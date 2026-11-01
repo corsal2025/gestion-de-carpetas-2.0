@@ -43,6 +43,8 @@ public enum TramiteAgenda
 {
     PrimeraVezExtension = 1,
     Renovacion = 2,
+    CambioDomicilio = 3,
+    Canje = 4,
 }
 
 public enum Decision

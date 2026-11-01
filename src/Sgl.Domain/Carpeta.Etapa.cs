@@ -246,6 +246,9 @@ public sealed partial class Carpeta
             throw new DomainException("Indique la fecha de la última carpeta o elija un estado para clasificar.");
         }
 
+        if (SectorFisico.Calcular(fecha) == SectorFisico.Digital)
+            throw new DomainException("Carpeta digital en SGL: no requiere búsqueda física. Elija un estado para continuar.");
+
         return DestinoPorFechaUltimaCarpeta(fecha)
             ?? throw new DomainException("La fecha de la última carpeta no es válida: use el formato dd-mm-aaaa.");
     }

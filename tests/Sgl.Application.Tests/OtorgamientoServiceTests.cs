@@ -89,6 +89,25 @@ public sealed class OtorgamientoServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Bandeja_muestra_solicitudes_y_respaldo_pendientes_sin_bloquear_decision()
+    {
+        var id = await SembrarAsync(EstadoCarpeta.SubidaConaset);
+        using (var ctx = _db.NewContext())
+        {
+            ctx.SolicitudesF8.Add(SolicitudF8.Solicitar(id, EstadoCarpeta.NoExisteCarpeta, "ana", Antes));
+            ctx.SolicitudesCertificado.Add(SolicitudCertificado.CrearManual(id, TipoCertificado.RegistroCivil, null, null, "ana", Antes));
+            ctx.Carpetas.Single(c => c.Id == id).AgregarRespaldoPenultima("ana", Antes);
+            await ctx.SaveChangesAsync();
+        }
+        var fila = (await Servicio().ListarAsync(new FiltroParaOtorgar(), 100)).Items.Single();
+        Assert.True(fila.F8Pendiente);
+        Assert.True(fila.CertificadoPendiente);
+        Assert.True(fila.RespaldoPendiente);
+        await Servicio().OtorgarAsync(id, "ana");
+        Assert.Equal(Decision.Otorgado, (await DetalleAsync(id)).Decision);
+    }
+
+    [Fact]
     public async Task Para_otorgar_filtra_por_sede_y_por_fecha_de_subida_y_limita_filas_con_el_total_real()
     {
         var a = await SembrarAsync(EstadoCarpeta.SubidaConaset, Sede.AvArgentina, new DateOnly(2026, 4, 10));

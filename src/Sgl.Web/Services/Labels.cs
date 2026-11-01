@@ -90,6 +90,8 @@ public static class Labels
     {
         TramiteAgenda.PrimeraVezExtension => "1° VEZ / EXTENSIÓN",
         TramiteAgenda.Renovacion => "RENOVACIÓN",
+        TramiteAgenda.CambioDomicilio => "CAMBIO DE DOMICILIO",
+        TramiteAgenda.Canje => "CANJE",
         _ => tramite.ToString().ToUpperInvariant(),
     };
 

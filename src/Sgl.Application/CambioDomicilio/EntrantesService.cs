@@ -345,7 +345,7 @@ public sealed class EntrantesService(
 
     private EntranteDto ConPlazo(EntranteFila f, DateOnly hoy)
     {
-        var vence = DeadlineCalculator.AddBusinessDays(f.FechaCorreo, Math.Max(0, opciones.PlazoEntranteDias));
+        var vence = DeadlineCalculator.AddBusinessDays(f.FechaCorreo, Math.Max(0, opciones.PlazoEntranteDias), opciones.FeriadosAdicionales);
         var dias = vence.DayNumber - hoy.DayNumber;
         var color = dias < 0 ? PlazoColor.Rojo : dias <= SeguimientoService.DiasAmarillo ? PlazoColor.Amarillo : PlazoColor.Verde;
         return new EntranteDto(

@@ -13,7 +13,10 @@ public sealed record ParaOtorgarDto(
     DateOnly? FechaSubida,
     EstadoCarpeta Estado,
     string? TipoTramite,
-    Resolucion? Resolucion);
+    Resolucion? Resolucion,
+    bool F8Pendiente = false,
+    bool CertificadoPendiente = false,
+    bool RespaldoPendiente = false);
 
 /// <summary>Filters of the tray: sede and upload-date range (both ends included).</summary>
 public sealed record FiltroParaOtorgar(Sede? Sede = null, DateOnly? SubidaDesde = null, DateOnly? SubidaHasta = null);

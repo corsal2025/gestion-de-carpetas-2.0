@@ -201,7 +201,8 @@ public sealed class Oleada1Tests : IDisposable
         Assert.Equal(EstadoCarpeta.CrearCertificado, (await DetalleAsync(_db, id)).Estado);
 
         await _db.NewFirmantesService().GuardarAsync(new Firmantes("Ana Directora", "Director", "", "Sara", "Secretaria"), "ana");
-        Assert.True(await service.MarcarFirmadoAsync(creado.Id, "ana"));
+        await service.MarcarFirmadoAsync(creado.Id, "ana");
+        Assert.Equal(EstadoCertificado.Firmado, (await service.ObtenerAsync(creado.Id)).Estado);
     }
 
     // ---- M-14: Chile calendar ----

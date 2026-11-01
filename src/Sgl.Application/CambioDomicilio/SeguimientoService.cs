@@ -197,7 +197,7 @@ public sealed class SeguimientoService(
 
     private SeguimientoDto ConPlazo(SolicitadaDto f, DateOnly hoy)
     {
-        var vence = DeadlineCalculator.AddBusinessDays(f.FechaCitacion, opciones.PlazoSalienteDias);
+        var vence = DeadlineCalculator.AddBusinessDays(f.FechaCitacion, opciones.PlazoSalienteDias, opciones.FeriadosAdicionales);
         var dias = vence.DayNumber - hoy.DayNumber;
         var color = dias < 0 ? PlazoColor.Rojo : dias <= DiasAmarillo ? PlazoColor.Amarillo : PlazoColor.Verde;
         return new SeguimientoDto(

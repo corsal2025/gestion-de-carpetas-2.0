@@ -15,6 +15,7 @@
         <span class="lico-slot head-art imp-lico" data-lico="saluda" aria-hidden="true"></span>
         <div class="imp-hero-t">
             <h1>Cargar agenda o planilla</h1>
+            <a href="agenda/cancelaciones">Cancelaciones de agenda pendientes de revisión</a>
             <p class="subtitle">Elija un archivo de citas (.csv o .xlsx) o una planilla de carpetas (.xlsx). Revise el archivo elegido y pulse Importar. Elegir un archivo todavía no guarda datos.</p>
         </div>
         <ol class="imp-steps" aria-label="Pasos de la carga">
@@ -76,11 +77,12 @@
         {
             <div class="imp-box imp-ok" role="status">
                 <h3>✅ Agenda del día importada</h3>
-                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Licencias para clasificar</strong> (o en <strong>Revisión</strong> si tienen un problema). El correo y el teléfono de contacto quedan en la carpeta. Las citas canceladas no crean carpeta: se guardan aparte, sin RUT ni nombre, solo para las estadísticas.</p>
+                <p class="imp-sedes">Formato detectado: <strong>AGENDA</strong>. Las carpetas nuevas quedan en <strong>Licencias para clasificar</strong> (o en <strong>Revisión</strong> si tienen un problema). El correo y el teléfono de contacto quedan en la carpeta. Las citas canceladas se conservan para estadísticas sin nombre ni RUT en texto. Si su carpeta ya existía y no tenía trabajo, se anula conservando el historial; si tenía trabajo, queda pendiente de revisión.</p>
                 <div class="imp-tiles">
                     <div class="imp-tile"><span class="imp-tile-label">Filas leídas</span><strong class="imp-tile-num">@resultadoAgenda.FilasLeidas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Carpetas creadas</span><strong class="imp-tile-num">+@resultadoAgenda.Creadas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Ya existían</span><strong class="imp-tile-num">@resultadoAgenda.YaExistian.ToString("N0")</strong></div>
+                    <div class="imp-tile"><span class="imp-tile-label">Datos completados</span><strong class="imp-tile-num">@resultadoAgenda.Actualizadas.ToString("N0")</strong></div>
                     <div class="imp-tile" title="Filas ya importadas antes y anuladas (p. ej. por reagendamiento): no se vuelven a crear"><span class="imp-tile-label">Ya existían (anuladas)</span><strong class="imp-tile-num">@resultadoAgenda.YaExistianAnuladas.ToString("N0")</strong></div>
                     <div class="imp-tile"><span class="imp-tile-label">Canceladas omitidas</span><strong class="imp-tile-num">@resultadoAgenda.CanceladasOmitidas.ToString("N0")</strong></div>
                     <div class="imp-tile" title="Citas canceladas nuevas guardadas para las estadísticas, sin RUT ni nombre"><span class="imp-tile-label">Canceladas guardadas</span><strong class="imp-tile-num">+@resultadoAgenda.CanceladasGuardadas.ToString("N0")</strong></div>
@@ -88,13 +90,37 @@
                     <div class="imp-tile"><span class="imp-tile-label">RUT inválidos</span><strong class="imp-tile-num">@resultadoAgenda.FilasRutInvalido.Count.ToString("N0")</strong></div>
                     <div class="imp-tile @(resultadoAgenda.ConAlertaDuplicado > 0 ? "imp-tile-alerta" : null)"><span class="imp-tile-label">Con alerta de duplicado</span><strong class="imp-tile-num">@resultadoAgenda.ConAlertaDuplicado.ToString("N0")</strong></div>
                 </div>
+                @if (resultadoAgenda.FilasConCambiosPorRevisar.Count > 0)
+                {
+                    <p class="imp-sedes imp-note">⚠️ Citas existentes con datos distintos que no se sobrescribieron. Revisar filas del archivo: @string.Join(", ", resultadoAgenda.FilasConCambiosPorRevisar).</p>
+                }
+                @if (resultadoAgenda.FilasSinImportarPorRevision.Count > 0)
+                {
+                    <p class="imp-sedes imp-note" role="alert">⚠️ Estas filas <strong>no se importaron</strong>: no fue posible identificar la cita sin ambigüedad. Revisar el archivo original, filas: @string.Join(", ", resultadoAgenda.FilasSinImportarPorRevision).</p>
+                }
+                @if (resultadoAgenda.FilasCanceladasConCarpetaAmbigua.Count > 0)
+                {
+                    <p class="imp-sedes imp-note" role="alert">⚠️ Estas cancelaciones se registraron para estadísticas, pero no se vincularon a ninguna carpeta porque hay varias coincidencias: @string.Join(", ", resultadoAgenda.FilasCanceladasConCarpetaAmbigua).</p>
+                }
+                @if (resultadoAgenda.FilasConCambiosPorRevisar.Count > 0 || resultadoAgenda.FilasSinImportarPorRevision.Count > 0 || resultadoAgenda.FilasCanceladasConCarpetaAmbigua.Count > 0)
+                {
+                    <a class="btn-secondary" download="revision-agenda.txt" href="@($"data:text/plain;charset=utf-8,{Uri.EscapeDataString($"Citas existentes con cambios: {string.Join(", ", resultadoAgenda.FilasConCambiosPorRevisar)}\nFilas no importadas por ambigüedad: {string.Join(", ", resultadoAgenda.FilasSinImportarPorRevision)}\nCancelaciones sin carpeta identificada: {string.Join(", ", resultadoAgenda.FilasCanceladasConCarpetaAmbigua)}\nLos números corresponden a las filas del archivo de agenda original.")}")">Descargar filas por revisar</a>
+                }
                 @if (resultadoAgenda.ConAlertaDuplicado > 0)
                 {
                     <p class="imp-sedes imp-note">⚠️ @resultadoAgenda.ConAlertaDuplicado.ToString("N0") @(resultadoAgenda.ConAlertaDuplicado == 1 ? "fila tiene" : "filas tienen") RUT con carpeta abierta: aparecen en rojo en <a href="carpetas?bandeja=RevisionDuplicadas">Revisión › Duplicadas</a> con las acciones Reagendar, Anular duplicada o Mantener ambas.</p>
                 }
                 @if (resultadoAgenda.CanceladasDeCarpetaExistente > 0)
                 {
-                    <p class="imp-sedes imp-note">ℹ️ @resultadoAgenda.CanceladasDeCarpetaExistente.ToString("N0") @(resultadoAgenda.CanceladasDeCarpetaExistente == 1 ? "carpeta ya creada llegó cancelada" : "carpetas ya creadas llegaron canceladas"): se conservan y quedó una nota en su historial.</p>
+                    <p class="imp-sedes imp-note">ℹ️ @resultadoAgenda.CanceladasDeCarpetaExistente.ToString("N0") @(resultadoAgenda.CanceladasDeCarpetaExistente == 1 ? "carpeta ya creada llegó cancelada" : "carpetas ya creadas llegaron canceladas"): se revisaron conservando su historial. @resultadoAgenda.CanceladasAnuladas se anularon automáticamente por no tener trabajo; @resultadoAgenda.CanceladasConTrabajoPendiente requieren revisión. <a href="agenda/cancelaciones">Revisar cancelaciones pendientes</a>.</p>
+                }
+                @if (resultadoAgenda.CanceladasConTrabajoPendiente > 0)
+                {
+                    <p class="imp-sedes imp-note" role="alert">Hay @resultadoAgenda.CanceladasConTrabajoPendiente cancelación(es) de carpetas con trabajo o restauradas que requieren decisión. <a href="agenda/cancelaciones">Abrir revisión persistente</a>.</p>
+                }
+                @if (resultadoAgenda.FilasActivasCanceladas.Count > 0)
+                {
+                    <p class="imp-sedes imp-note" role="alert">No se reactivaron estas reservas porque ya constan canceladas en una carga actual o anterior: @string.Join(", ", resultadoAgenda.FilasActivasCanceladas). Revise el archivo más reciente y el historial.</p>
                 }
                 @if (resultadoAgenda.FilasRutInvalido.Count > 0)
                 {

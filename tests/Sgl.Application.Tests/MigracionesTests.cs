@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -19,6 +19,37 @@ public sealed class MigracionesTests : IDisposable
         {
             try { File.Delete(_ruta + sufijo); } catch { /* aún tomado por el proceso */ }
         }
+    }
+
+    [Fact]
+    public void Identidad_canceladas_preserva_estadistica_heredada_y_permite_distintas_reservas()
+    {
+        var options = new DbContextOptionsBuilder<SglDbContext>().UseSqlite($"Data Source={_ruta}").Options;
+        using var ctx = new SglDbContext(options);
+        ctx.GetService<IMigrator>().Migrate("20261101130000_ClasesAgenda");
+        ctx.Database.ExecuteSqlRaw("INSERT INTO CitasCanceladas (FechaCita,FechaTomaCita,HoraCita,Sede,Tramite,RegistradaEn) VALUES ('2026-12-30','2026-06-16 11:03:00','12:00:00','Placilla','Renovación','2026-11-01 10:00:00')");
+        ctx.Database.Migrate();
+        Assert.Equal(1, ctx.CitasCanceladas.Count());
+        Assert.Null(ctx.CitasCanceladas.Single().IdentidadAgenda);
+        var a = new Sgl.Domain.CitaCancelada(new DateOnly(2026,12,30),new DateTime(2026,6,16,11,3,0),new TimeOnly(12,0),Sgl.Domain.Sede.Placilla,"Renovación",null,DateTime.UtcNow);
+        a.VincularIdentidad(new string('A',64));
+        ctx.Add(a); ctx.SaveChanges();
+        Assert.Equal(2, ctx.CitasCanceladas.Count());
+    }
+
+    [Fact]
+    public void Respaldo_migracion_preserva_las_carpetas_y_no_crea_pendientes_para_registros_anteriores()
+    {
+        var options = new DbContextOptionsBuilder<SglDbContext>();
+        DatabaseProvider.Configure(options, DatabaseProvider.Sqlite, $"Data Source={_ruta}");
+        using var ctx = new SglDbContext(options.Options);
+        ctx.GetService<IMigrator>().Migrate("20261101025143_ReclasificacionCambioDom");
+        var ciudadano = InsertarFilaSintetica(ctx, "Ciudadanos", null, null);
+        var id = InsertarFilaSintetica(ctx, "Carpetas", ciudadano, 0);
+        var antes = ctx.Database.SqlQueryRaw<string>("SELECT Id || '/' || Estado AS Value FROM Carpetas").Single();
+        ctx.Database.Migrate();
+        Assert.Equal(antes, ctx.Database.SqlQueryRaw<string>("SELECT Id || '/' || Estado AS Value FROM Carpetas").Single());
+        Assert.Equal(1, ctx.Database.SqlQuery<int>($"SELECT COUNT(*) AS Value FROM Carpetas WHERE Id = {id} AND FechaRespaldoSolicitado IS NULL AND FechaRespaldoSubido IS NULL AND ClasesAgenda IS NULL").Single());
     }
 
     [Fact]

@@ -15,6 +15,7 @@
 
     <p class="otorg-ayuda">
         Carpetas ya subidas (y 1° Licencia y Canje) que esperan su decisión. «Otorgada» registra la fecha de hoy y la carpeta pasa a Cerradas.
+        Los datos muestran lo registrado en este sistema: verifique la subida en Conaset y los demás requisitos en sus secciones correspondientes.
     </p>
 
     @if (!puedeOtorgar)
@@ -78,6 +79,7 @@
                         <th>ORIGEN</th>
                         <th>FECHA DE CITACIÓN</th>
                         <th>FECHA DE SUBIDA</th>
+                        <th>SEGUIMIENTO</th>
                         <th>RESOLUCIÓN</th>
                         <th>ACCIÓN</th>
                     </tr>
@@ -94,6 +96,12 @@
                             <td class="otorg-origen">@Labels.Of(f.Estado)</td>
                             <td class="date-cell">@f.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             <td class="date-cell">@(f.FechaSubida is { } fs ? fs.ToString("dd-MM-yyyy") : "—")</td>
+                            <td>
+                                <div>@(f.FechaSubida is null ? "Sin fecha de subida registrada" : "Subida registrada; verificar en Conaset")</div>
+                                @if (f.F8Pendiente) { <div>F8 solicitado pendiente</div> }
+                                @if (f.CertificadoPendiente) { <div>Certificado por firmar</div> }
+                                @if (f.RespaldoPendiente) { <div>Respaldo opcional pendiente</div> }
+                            </td>
                             <td>
                                 @if (puedeOtorgar)
                                 {

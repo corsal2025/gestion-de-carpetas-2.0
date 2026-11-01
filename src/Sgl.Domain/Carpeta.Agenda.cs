@@ -5,6 +5,17 @@ public sealed partial class Carpeta
     /// <summary>Trámite declared in the daily agenda (only for agenda-imported carpetas).</summary>
     public TramiteAgenda? TramiteAgenda { get; private set; }
 
+    public ClaseLicencia? ClasesAgenda { get; private set; }
+
+    public bool CompletarClasesAgenda(ClaseLicencia? clases, string autor, DateTime now)
+    {
+        RequireActiva();
+        if (clases is null || clases == ClaseLicencia.Ninguna || !ClasesLicencia.IsValid(clases.Value) || ClasesAgenda is not null) return false;
+        ClasesAgenda = clases;
+        Audit(now, RequireAutor(autor), "ClasesAgenda", null, ClasesLicencia.Format(clases.Value));
+        return true;
+    }
+
     /// <summary>Appointment time from the daily agenda.</summary>
     public TimeOnly? HoraCita { get; private set; }
 
@@ -103,6 +114,35 @@ public sealed partial class Carpeta
     {
         var v = valor?.Trim();
         return string.IsNullOrEmpty(v) ? null : v.Length > max ? v[..max] : v;
+    }
+
+    /// <summary>Completa solo datos ausentes: una nueva agenda nunca pisa datos ya registrados.</summary>
+    public bool CompletarDatosAgenda(string? email, string? telefono, TramiteAgenda? tramite, string autor, DateTime now)
+    {
+        RequireActiva();
+        var usuario = RequireAutor(autor);
+        var nuevoEmail = Recortado(email, MaxEmailContactoLength);
+        var nuevoTelefono = Recortado(telefono, MaxTelefonoContactoLength);
+        var cambio = false;
+        if (EmailContacto is null && nuevoEmail is not null)
+        {
+            EmailContacto = nuevoEmail;
+            Audit(now, usuario, "EmailContacto", null, nuevoEmail);
+            cambio = true;
+        }
+        if (TelefonoContacto is null && nuevoTelefono is not null)
+        {
+            TelefonoContacto = nuevoTelefono;
+            Audit(now, usuario, "TelefonoContacto", null, nuevoTelefono);
+            cambio = true;
+        }
+        if (TramiteAgenda is null && tramite is not null)
+        {
+            TramiteAgenda = tramite;
+            Audit(now, usuario, "TramiteAgenda", null, tramite.ToString());
+            cambio = true;
+        }
+        return cambio;
     }
 
     /// <summary>

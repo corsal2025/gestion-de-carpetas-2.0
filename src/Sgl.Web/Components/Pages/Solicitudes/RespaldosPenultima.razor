@@ -1,0 +1,88 @@
+@page "/respaldos-penultima"
+@layout ModuloLayout
+@using Sgl.Infrastructure.Carpetas
+@inject RespaldosPenultimaService Respaldos
+@inject AutorState Autor
+@inject DuplicadosNotifier DuplicadosNotifier
+
+<PageTitle>@TituloPagina.De("Respaldos de penúltima carpeta")</PageTitle>
+
+<div class="page-container sol-page">
+    <header class="modulo-barra">
+        <h1 class="modulo-titulo">Respaldos de penúltima carpeta</h1>
+        <a class="btn-secondary" href="f8">Volver a F8</a>
+    </header>
+    <p class="sg-ayuda">Lista opcional para la subida mensual. Estos respaldos no bloquean el F8 ni el otorgamiento.</p>
+    @if (error is not null) { <div class="alert error" role="alert">@error</div> }
+    @if (mensaje is not null) { <div class="alert success" role="status">@mensaje</div> }
+    @if (items is null) { <p>Cargando respaldos…</p> }
+    else if (items.Count == 0) { <p>No hay respaldos pendientes. Agregue uno desde la lista de F8.</p> }
+    else
+    {
+        <p><button class="btn-primary" type="button" disabled="@(ocupado || seleccion.Count == 0)" @onclick="MarcarSubidosAsync">Marcar seleccionados como subidos (@seleccion.Count)</button></p>
+        <div class="table-container">
+            <table class="data-table bandeja-table">
+                <thead><tr><th>SELECCIONAR</th><th>NOMBRE</th><th>RUT</th><th>SEDE</th><th>PENÚLTIMA CARPETA</th><th>AGREGADO</th><th>DETALLE</th></tr></thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr @key="item.Id">
+                            <td><input type="checkbox" checked="@seleccion.Contains(item.Id)" aria-label="@($"Seleccionar {item.Nombre}")" @onchange="e => Seleccionar(item.Id, e)" /></td>
+                            <td>@item.Nombre</td><td>@item.Rut</td><td>@Labels.Of(item.Sede)</td>
+                            <td>@(item.FechaPenultima?.ToString("dd-MM-yyyy") ?? "Sin fecha")</td>
+                            <td>@HoraChile.ALocal(item.AgregadoEn).ToString("dd-MM-yyyy")</td>
+                            <td><a href="carpetas/@item.Id">Abrir →</a> <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="() => CancelarAsync(item.Id)">Quitar pendiente</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<RespaldoPendienteDto>? items;
+    private readonly HashSet<Guid> seleccion = [];
+    private bool ocupado;
+    private string? error;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync() => items = await Respaldos.ListarPendientesAsync();
+
+    private void Seleccionar(Guid id, ChangeEventArgs e)
+    {
+        if (e.Value is true) seleccion.Add(id); else seleccion.Remove(id);
+    }
+
+    private async Task MarcarSubidosAsync()
+    {
+        error = mensaje = null;
+        ocupado = true;
+        try
+        {
+            await Respaldos.MarcarSubidosAsync(seleccion.ToArray(), Autor.Nombre);
+            mensaje = $"{seleccion.Count} respaldo(s) marcado(s) como subidos.";
+            seleccion.Clear();
+            items = await Respaldos.ListarPendientesAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (DomainException ex) { error = ex.Message; }
+        finally { ocupado = false; }
+    }
+
+    private async Task CancelarAsync(Guid id)
+    {
+        error = mensaje = null;
+        ocupado = true;
+        try
+        {
+            await Respaldos.CancelarAsync(id, Autor.Nombre);
+            seleccion.Remove(id);
+            mensaje = "Respaldo retirado de pendientes; no se registró una subida.";
+            items = await Respaldos.ListarPendientesAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (DomainException ex) { error = ex.Message; }
+        finally { ocupado = false; }
+    }
+}

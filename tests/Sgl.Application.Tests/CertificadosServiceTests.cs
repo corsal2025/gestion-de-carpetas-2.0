@@ -149,7 +149,7 @@ public sealed class CertificadosServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task MarcarFirmado_moves_the_carpeta_to_SubidaConOficio_with_the_actor_in_the_history()
+    public async Task Firma_y_subida_son_acciones_separadas_y_auditadas()
     {
         var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
         var creado = await CrearManual(id, TipoCertificado.Oficio);
@@ -163,9 +163,86 @@ public sealed class CertificadosServiceTests : IDisposable
         Assert.Equal(_db.Clock.GetUtcNow().UtcDateTime, fila.FirmadoEn);
         Assert.Equal("77/2026", fila.NumeroOficio);
         var carpeta = await DetalleAsync(_db, id);
+        Assert.Equal(EstadoCarpeta.CrearCertificado, carpeta.Estado);
+        await _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "javiera");
+        carpeta = await DetalleAsync(_db, id);
         Assert.Equal(EstadoCarpeta.SubidaConOficio, carpeta.Estado);
-        Assert.NotNull(carpeta.FechaCierre);
         Assert.Contains(carpeta.Historial, h => h.Campo == "Estado" && h.Nuevo == "SubidaConOficio" && h.Usuario == "javiera");
+    }
+
+    [Fact]
+    public async Task No_se_confirma_subida_sin_firma_o_si_la_carpeta_cambio()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
+        var creado = await CrearManual(id, TipoCertificado.Oficio);
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "ana"));
+        await _db.NewCertificadosService().MarcarFirmadoAsync(creado.Id, "ana");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SubidaConaset, "ana");
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "ana"));
+        Assert.Equal(EstadoCarpeta.SubidaConaset, (await DetalleAsync(_db, id)).Estado);
+    }
+
+    [Fact]
+    public async Task Subida_rechaza_cambio_de_estado_aunque_haya_vuelto_al_estado_original()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
+        var creado = await CrearManual(id, TipoCertificado.Oficio);
+        await _db.NewCertificadosService().MarcarFirmadoAsync(creado.Id, "ana");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SubidaConaset, "ana");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.CrearCertificado, "ana");
+        await Assert.ThrowsAsync<DomainException>(() => _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "ana"));
+    }
+
+    [Fact]
+    public async Task Certificado_manual_de_archivos_permite_confirmar_subida_si_no_se_cambio_la_carpeta()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.SeEncuentraEnArchivos);
+        var creado = await CrearManual(id, TipoCertificado.RegistroCivil);
+        await _db.NewCertificadosService().MarcarFirmadoAsync(creado.Id, "ana");
+        await _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "ana");
+        Assert.Equal(EstadoCarpeta.SubidaConOficio, (await DetalleAsync(_db, id)).Estado);
+    }
+
+    [Fact]
+    public async Task Confirmar_subida_recarga_cambios_de_otro_contexto()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
+        var creado = await CrearManual(id, TipoCertificado.Oficio);
+        var circuito = _db.NewCertificadosService();
+        await circuito.MarcarFirmadoAsync(creado.Id, "ana");
+        await _db.NewService().ForzarEstadoAsync(id, EstadoCarpeta.SubidaConaset, "otro");
+        await Assert.ThrowsAsync<DomainException>(() => circuito.ConfirmarSubidaAsync(creado.Id, "ana"));
+        Assert.Equal(EstadoCarpeta.SubidaConaset, (await DetalleAsync(_db, id)).Estado);
+    }
+
+    [Fact]
+    public async Task Certificado_historico_firmado_permite_confirmar_si_historial_demuestra_estado_previo()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.SeEncuentraEnArchivos);
+        var creado = await CrearManual(id, TipoCertificado.RegistroCivil);
+        _db.AdvanceClock(TimeSpan.FromMinutes(1));
+        using (var ctx = _db.NewContext())
+        {
+            ctx.SolicitudesCertificado.Single(c => c.Id == creado.Id).MarcarFirmado("ana", _db.Clock.GetUtcNow().UtcDateTime);
+            await ctx.SaveChangesAsync();
+        }
+        await _db.NewCertificadosService().ConfirmarSubidaAsync(creado.Id, "ana");
+        Assert.Equal(EstadoCarpeta.SubidaConOficio, (await DetalleAsync(_db, id)).Estado);
+    }
+
+    [Fact]
+    public async Task Subida_no_pisa_un_cambio_guardado_despues_de_leer_la_carpeta()
+    {
+        var id = await CrearCarpetaAsync(_db, EstadoCarpeta.CrearCertificado);
+        using var subida = _db.NewContext();
+        using var otro = _db.NewContext();
+        var leida = await new Sgl.Infrastructure.Persistence.CarpetaRepository(subida).GetAsync(id);
+        var actual = await new Sgl.Infrastructure.Persistence.CarpetaRepository(otro).GetAsync(id);
+        actual!.ForzarEstado(EstadoCarpeta.SubidaConaset, "otro", _db.Clock.GetUtcNow().UtcDateTime.AddMinutes(1));
+        await otro.SaveChangesAsync();
+        leida!.ForzarEstado(EstadoCarpeta.SubidaConOficio, "ana", _db.Clock.GetUtcNow().UtcDateTime.AddMinutes(2));
+        await Assert.ThrowsAsync<ConcurrenciaException>(() => subida.SaveChangesAsync());
+        Assert.Equal(EstadoCarpeta.SubidaConaset, (await DetalleAsync(_db, id)).Estado);
     }
 
     [Fact]

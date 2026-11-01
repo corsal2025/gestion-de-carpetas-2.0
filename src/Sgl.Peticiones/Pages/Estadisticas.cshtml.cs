@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PeticionCambioDomicilio.Data;
 using PeticionCambioDomicilio.Domain;
+using Sgl.Application.CambioDomicilio;
 
 namespace PeticionCambioDomicilio.Pages;
 
@@ -12,8 +13,13 @@ namespace PeticionCambioDomicilio.Pages;
 public sealed class EstadisticasModel : PageModel
 {
     private readonly PeticionRepository _repository;
+    private readonly CambioDomicilioOptions _opciones;
 
-    public EstadisticasModel(PeticionRepository repository) => _repository = repository;
+    public EstadisticasModel(PeticionRepository repository, CambioDomicilioOptions? opciones = null)
+    {
+        _repository = repository;
+        _opciones = opciones ?? new CambioDomicilioOptions();
+    }
 
     public int TotalEnviadas { get; private set; }
     public int ComunasConEnvios { get; private set; }
@@ -40,7 +46,7 @@ public sealed class EstadisticasModel : PageModel
         double? DemoraPromedio,
         double? PorcentajeEnPlazo);
 
-    private static int? DemoraHabiles(Peticion p)
+    private int? DemoraHabiles(Peticion p)
     {
         if (p.EnviadaEn is not { } enviada || p.SubidaEn is not { } subida)
         {
@@ -48,7 +54,7 @@ public sealed class EstadisticasModel : PageModel
         }
 
         var inicio = DateOnly.FromDateTime(enviada.LocalDateTime);
-        return subida <= inicio ? 0 : DeadlineCalculator.BusinessDaysBetween(inicio, subida);
+        return subida <= inicio ? 0 : DeadlineCalculator.BusinessDaysBetween(inicio, subida, _opciones.FeriadosAdicionales);
     }
 
     public void OnGet()

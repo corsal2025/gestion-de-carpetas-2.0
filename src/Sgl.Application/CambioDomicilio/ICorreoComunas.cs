@@ -16,6 +16,9 @@ public sealed class CambioDomicilioOptions
     /// <summary>Estimated business days for an incoming request (counted from the day the email arrived).</summary>
     public int PlazoEntranteDias { get; init; } = 12;
 
+    /// <summary>Feriados locales o extraordinarios, adicionales al calendario nacional incorporado.</summary>
+    public IReadOnlySet<DateOnly> FeriadosAdicionales { get; init; } = new HashSet<DateOnly>();
+
     /// <summary>Folder for the pasted screenshots, outside wwwroot.</summary>
     public string CarpetaPantallazos { get; init; } = "../../datos/pantallazos";
 

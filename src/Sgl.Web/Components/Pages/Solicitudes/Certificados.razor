@@ -207,7 +207,17 @@
                                 @if (s.Estado == EstadoCertificado.PorFirmar)
                                 {
                                     <button type="button" class="btn-decision btn-enviar" disabled="@(ocupadoId == s.Id)"
-                                            title="Firmado y entregado: la carpeta pasa a «Subida con oficio»" @onclick="() => MarcarFirmadoAsync(s)">Firmado y entregado</button>
+                                            title="Registrar la firma; la subida se confirma por separado" @onclick="() => MarcarFirmadoAsync(s)">Registrar firma</button>
+                                }
+                                else if (s.EstadoCarpeta != EstadoCarpeta.SubidaConOficio && !EstadoTransitions.IsFinal(s.EstadoCarpeta)
+                                         && (s.Tipo != TipoCertificado.SinCarpeta || s.EstadoCarpeta == EstadoCarpeta.CrearCertificado))
+                                {
+                                    <button type="button" class="btn-decision btn-enviar" disabled="@(ocupadoId == s.Id)"
+                                            title="Confirmar que el documento ya fue subido a Conaset" @onclick="() => ConfirmarSubidaAsync(s)">Confirmar subida</button>
+                                }
+                                else if (s.EstadoCarpeta != EstadoCarpeta.SubidaConOficio)
+                                {
+                                    <span class="muted">Revise el estado de la carpeta antes de confirmar la subida.</span>
                                 }
                                 @if (MotivoSinDocumento(s) is { } motivo)
                                 {
@@ -409,10 +419,31 @@
         ocupadoId = s.Id;
         try
         {
-            var movida = await CertificadosSvc.MarcarFirmadoAsync(s.Id, Autor.Nombre!);
-            mensaje = movida
-                ? $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta pasó a «Subida con oficio»."
-                : $"Marcado como firmado y entregado: {s.NombreCompleto}. La carpeta ya no estaba en el estado que esperaba este certificado (alguien la cambió mientras tanto), así que se dejó como está.";
+            await CertificadosSvc.MarcarFirmadoAsync(s.Id, Autor.Nombre!);
+            mensaje = $"Firma registrada: {s.NombreCompleto}. Cuando el documento esté subido, confirme la subida en la pestaña Firmado.";
+            await CargarAsync();
+            DuplicadosNotifier.Notify();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            ocupadoId = null;
+        }
+    }
+
+    private async Task ConfirmarSubidaAsync(SolicitudCertificadoDto s)
+    {
+        error = null;
+        mensaje = null;
+        if (!AutorListo()) return;
+        ocupadoId = s.Id;
+        try
+        {
+            var cambiada = await CertificadosSvc.ConfirmarSubidaAsync(s.Id, Autor.Nombre!);
+            mensaje = cambiada ? "Subida a Conaset registrada." : "La carpeta ya estaba marcada como subida con oficio.";
             await CargarAsync();
             DuplicadosNotifier.Notify();
         }

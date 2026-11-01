@@ -12,11 +12,11 @@ public sealed class AgendaImportServiceTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     private static readonly string[] Headers =
-        ["Fecha Cita", "Hora Inicio", "RUT", "Nombre", "Email", "Telefono", "Tramite", "Ubicacion", "Estado", "Observaciones", "Motivo Cancelacion"];
+        ["Fecha Cita", "Hora Inicio", "RUT", "Nombre", "Email", "Telefono", "Tramite", "Ubicacion", "Estado", "Observaciones", "Motivo Cancelacion", "Clase de licencia"];
 
     private sealed record Fila(
         object Fecha, object Hora, string Rut, string Nombre, string Tramite, string Ubicacion,
-        string Estado = "Agendada", string Motivo = "");
+        string Estado = "Agendada", string Motivo = "", string Clase = "");
 
     private static MemoryStream Agenda(params Fila[] filas)
     {
@@ -36,6 +36,7 @@ public sealed class AgendaImportServiceTests : IDisposable
             ws.Cell(r, 8).Value = f.Ubicacion;
             ws.Cell(r, 9).Value = f.Estado;
             ws.Cell(r, 11).Value = f.Motivo;
+            ws.Cell(r, 12).Value = f.Clase;
             r++;
         }
         var ms = new MemoryStream();
@@ -47,8 +48,87 @@ public sealed class AgendaImportServiceTests : IDisposable
     private AgendaImportService NewService() =>
         new(_db.NewContext(), _db.Clock, NullLogger<AgendaImportService>.Instance);
 
+    [Fact]
+    public async Task Clase_de_agenda_es_solo_origen_y_no_clasifica_ni_sobrescribe()
+    {
+        using var input = Agenda(Ok("12345678-5") with { Clase = "B, C" });
+        await NewService().ImportarAsync(input, "tester");
+        using var ctx = _db.NewContext();
+        var c = ctx.Carpetas.Single();
+        Assert.Equal(ClaseLicencia.B | ClaseLicencia.C, c.ClasesAgenda);
+        Assert.Equal(ClaseLicencia.Ninguna, c.Clases);
+        Assert.Equal(EstadoCarpeta.PorClasificar, c.Estado);
+        using var changed = Agenda(Ok("12345678-5") with { Clase = "A1" });
+        var result = await NewService().ImportarAsync(changed, "tester");
+        Assert.Contains(2, result.FilasConCambiosPorRevisar);
+    }
+
+    [Fact]
+    public async Task Clase_invalida_genera_aviso_sin_perder_la_cita()
+    {
+        using var input = Agenda(Ok("12345678-5") with { Clase = "Clase desconocida" });
+        var result = await NewService().ImportarAsync(input, "tester");
+        Assert.Equal(1, result.Creadas);
+        Assert.Contains(2, result.FilasConCambiosPorRevisar);
+    }
+
     private static Fila Ok(string rut, string ubic = "Av. Argentina", string tramite = "Renovación", string hora = "09:30") =>
         new(new DateTime(2026, 10, 13), hora, rut, "Persona De Prueba Uno", tramite, ubic);
+
+    [Fact]
+    public async Task Different_appointment_hours_are_not_silently_discarded()
+    {
+        using var input = Agenda(Ok("12345678-5", hora: "09:30"), Ok("12345678-5", hora: "10:30"));
+        var result = await NewService().ImportarAsync(input, "tester");
+        Assert.Equal(2, result.Creadas);
+        Assert.Equal(1, result.ConAlertaDuplicado);
+        using var ctx = _db.NewContext();
+        Assert.Equal(2, ctx.Carpetas.Count());
+    }
+
+    [Fact]
+    public async Task Changed_hour_without_booking_identifier_is_reported_for_review()
+    {
+        using (var first = Agenda(Ok("12345678-5", hora: "09:30")))
+            await NewService().ImportarAsync(first, "tester");
+        using var second = Agenda(Ok("12345678-5", hora: "10:30"));
+        var result = await NewService().ImportarAsync(second, "tester");
+        Assert.Equal(0, result.Creadas);
+        Assert.Contains(2, result.FilasSinImportarPorRevision);
+        using var ctx = _db.NewContext();
+        Assert.Single(ctx.Carpetas);
+    }
+
+    [Theory]
+    [InlineData("Cambio de domicilio", TramiteAgenda.CambioDomicilio)]
+    [InlineData("Canje licencia extranjera", TramiteAgenda.Canje)]
+    public async Task Imports_other_recognized_appointment_types(string tramite, TramiteAgenda esperado)
+    {
+        using var input = Agenda(Ok("12345678-5", tramite: tramite));
+        await NewService().ImportarAsync(input, "tester");
+        using var ctx = _db.NewContext();
+        Assert.Equal(esperado, ctx.Carpetas.Single().TramiteAgenda);
+    }
+
+    [Fact]
+    public async Task Reimport_fills_missing_contact_without_overwriting_existing_values()
+    {
+        using (var ctx = _db.NewContext())
+        {
+            var persona = new Ciudadano(Rut.Parse("12345678-5"), "ORIGINAL", "PRUEBA");
+            ctx.Carpetas.Add(Carpeta.CrearDesdeAgenda(persona, Sede.AvArgentina, new DateOnly(2026, 10, 13), new TimeOnly(9, 30), TramiteAgenda.Renovacion, "x", DateTime.UtcNow, email: "original@example.test"));
+            ctx.SaveChanges();
+        }
+        using var input = Agenda(Ok("12345678-5"));
+        var result = await NewService().ImportarAsync(input, "tester");
+        using var check = _db.NewContext();
+        var carpeta = check.Carpetas.Single();
+        Assert.Equal("original@example.test", carpeta.EmailContacto);
+        Assert.Equal("+56900000000", carpeta.TelefonoContacto);
+        Assert.Contains(check.Set<HistorialCambio>(), h => h.CarpetaId == carpeta.Id && h.Campo == "TelefonoContacto");
+        Assert.Equal(1, result.Actualizadas);
+        Assert.Contains(2, result.FilasConCambiosPorRevisar);
+    }
 
     [Fact]
     public void EsFormatoAgenda_detects_agenda_headers()
@@ -120,7 +200,8 @@ public sealed class AgendaImportServiceTests : IDisposable
         var res = await NewService().ImportarAsync(again, "tester");
 
         Assert.Equal(0, res.Creadas);
-        Assert.Equal(3, res.YaExistian);
+        Assert.Equal(2, res.YaExistian);
+        Assert.Contains(4, res.FilasSinImportarPorRevision);
         using var ctx = _db.NewContext();
         Assert.Equal(2, ctx.Carpetas.Count());
         Assert.Equal(2, ctx.ImportacionLogs.Count());

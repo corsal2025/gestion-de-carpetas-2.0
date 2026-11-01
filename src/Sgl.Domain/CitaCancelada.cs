@@ -2,7 +2,7 @@ namespace Sgl.Domain;
 
 /// <summary>
 /// Appointment cancelled in the agenda, kept only for monthly statistics. It never holds RUT, name, e-mail or
-/// phone: a cancelled row does not become a carpeta.
+/// phone. A pseudonymous fingerprint separates reservations that happen to share a time slot.
 /// </summary>
 public sealed class CitaCancelada
 {
@@ -10,6 +10,16 @@ public sealed class CitaCancelada
     public const int MaxMotivoLength = 250;
 
     public long Id { get; private set; }
+
+    /// <summary>Pseudonymous reservation fingerprint. Never a raw RUT; legacy statistics have no fingerprint.</summary>
+    public string? IdentidadAgenda { get; private set; }
+
+    public void VincularIdentidad(string identidad)
+    {
+        if (IdentidadAgenda is not null || identidad.Length != 64 || !identidad.All(Uri.IsHexDigit))
+            throw new DomainException("La identidad de la cita cancelada no es válida.");
+        IdentidadAgenda = identidad;
+    }
 
     public DateOnly FechaCita { get; private set; }
 

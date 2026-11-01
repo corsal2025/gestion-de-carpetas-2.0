@@ -31,6 +31,9 @@ public sealed class OtorgamientoRepository(SglDbContext db) : IOtorgamientoRepos
                 c.Estado,
                 c.TipoTramite,
                 c.Resolucion,
+                F8Pendiente = db.SolicitudesF8.Any(s => s.CarpetaId == c.Id && s.Estado == EstadoSolicitudF8.Solicitado),
+                CertificadoPendiente = db.SolicitudesCertificado.Any(s => s.CarpetaId == c.Id && s.Estado == EstadoCertificado.PorFirmar),
+                RespaldoPendiente = c.FechaRespaldoSolicitado != null && c.FechaRespaldoSubido == null,
             })
             .ToListAsync(ct);
 
@@ -44,7 +47,8 @@ public sealed class OtorgamientoRepository(SglDbContext db) : IOtorgamientoRepos
                 r.FechaSubida,
                 r.Estado,
                 r.TipoTramite,
-                r.Resolucion ?? Carpeta.ResolucionDeEstado(r.Estado)))
+                r.Resolucion ?? Carpeta.ResolucionDeEstado(r.Estado),
+                r.F8Pendiente, r.CertificadoPendiente, r.RespaldoPendiente))
             .ToList();
         return new ListResult<ParaOtorgarDto>(items, total);
     }

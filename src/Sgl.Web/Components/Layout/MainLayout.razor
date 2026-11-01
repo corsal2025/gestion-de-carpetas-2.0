@@ -87,7 +87,14 @@
         <ErrorContent Context="error">
             <div class="error-limite" role="alert">
                 <h1>No se pudo mostrar esta pantalla</h1>
-                <p>Ocurrió un error inesperado. Sus datos guardados no se perdieron.</p>
+                @if (error is Sgl.Domain.ConcurrenciaException)
+                {
+                    <p>@error.Message</p>
+                }
+                else
+                {
+                    <p>Ocurrió un error inesperado. Sus datos guardados no se perdieron.</p>
+                }
                 <button type="button" class="btn-primary" @onclick="Reintentar">Reintentar</button>
             </div>
         </ErrorContent>

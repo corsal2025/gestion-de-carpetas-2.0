@@ -527,6 +527,16 @@ public sealed class NosPidenEntrantesTests : IDisposable
         Assert.Equal(new DateOnly(2026, 5, 8), (await servicio.ObtenerAsync(id)).Vence);
     }
 
+    [Fact]
+    public async Task El_plazo_entrante_descuenta_feriado_adicional_configurado()
+    {
+        var id = await SembrarAsync(llego: new DateOnly(2026, 5, 1));
+        var ctx = _db.NewContext();
+        var opciones = new CambioDomicilioOptions { PlazoEntranteDias = 5, FeriadosAdicionales = new HashSet<DateOnly> { new(2026, 5, 4) } };
+        var servicio = new EntrantesService(new CarpetaRepository(ctx), new EntrantesRepository(ctx), new SolicitudF8Repository(ctx), Nuevo().Correo, opciones, _db.Clock, new UnidadDeTrabajoGate());
+        Assert.Equal(new DateOnly(2026, 5, 11), (await servicio.ObtenerAsync(id)).Vence);
+    }
+
     // PDF propio por sector (se reutiliza el documento del listado para búsqueda).
     [Fact]
     public async Task El_listado_para_imprimir_se_arma_por_sector_ordenado_por_fecha_y_sin_mezclar()
