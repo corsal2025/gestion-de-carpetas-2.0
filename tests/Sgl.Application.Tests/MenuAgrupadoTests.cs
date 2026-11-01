@@ -5,6 +5,14 @@ namespace Sgl.Application.Tests;
 
 public sealed class MenuAgrupadoTests
 {
+    [FactConRepositorio]
+    public void Cancelaciones_conserva_encabezados_propios_sin_captions_de_certificados()
+    {
+        var vista = File.ReadAllText(Path.Combine(RaizRepositorio.Buscar()!, "src", "Sgl.Web", "Components", "Pages", "Carpetas", "CancelacionesAgenda.razor"));
+        Assert.DoesNotContain("sol-page", vista);
+        Assert.Contains("<th>CITACIÓN</th><th>SEDE</th><th>ESTADO</th><th>REVISAR</th>", vista);
+    }
+
     [Fact]
     public void Mantiene_todas_las_bandejas_y_agrupa_sin_ocultar_los_dos_sentidos()
     {

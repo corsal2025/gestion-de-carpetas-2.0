@@ -6,7 +6,7 @@
 @inject DuplicadosNotifier Notifier
 
 <PageTitle>@TituloPagina.De("Cancelaciones de agenda por revisar")</PageTitle>
-<div class="page-container sol-page">
+<div class="page-container agenda-cancelaciones-page">
     <header class="modulo-barra"><h1 class="modulo-titulo">Cancelaciones de agenda por revisar</h1><a class="btn-secondary" href="importar">Cargar agenda</a></header>
     <p class="sg-ayuda">La cita fue cancelada en la agenda, pero esta carpeta tiene trabajo registrado o fue restaurada. Revise el historial antes de decidir si conserva el trámite o anula la carpeta. Las estadísticas de cancelación se conservan en ambos casos.</p>
     @if (error is not null) { <div role="alert" class="alert error">@error</div> }

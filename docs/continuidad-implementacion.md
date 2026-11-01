@@ -21,6 +21,9 @@
 
 ## Antes de producción
 
+- QA estática de cancelaciones: se retiró la clase de solicitudes que transformaba su tabla en tarjetas con rótulos de certificados incorrectos. Conserva sus encabezados semánticos y estilos generales de tabla en ambos temas. Prueba de regresión falló antes y pasa después; suite aislada: 2.764 aprobadas (836 aplicación, 1.836 dominio, 92 Peticiones).
+- QA runtime de esta corrección, tema oscuro e impresión sigue pendiente: el arranque demo fue rechazado por el control de ejecución; los servidores antiguos detectados no acreditan aislamiento ni versión actual. No se reutilizaron ni se rodeó el bloqueo.
+
 1. Revisar visualmente la nueva pantalla de cancelaciones y resolver casos sintéticos.
 2. Comprobar correo y Conaset reales con destinatarios controlados. No se enviaron correos ni se verificó integración real con Conaset.
 3. Respaldar la base real antes del despliegue. Las migraciones nuevas solo se aplicaron a bases aisladas; no a producción.
