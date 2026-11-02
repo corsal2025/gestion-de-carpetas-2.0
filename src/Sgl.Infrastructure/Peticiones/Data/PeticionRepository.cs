@@ -42,7 +42,8 @@ public sealed class PeticionRepository : IDisposable
             var slug = new string(motivo.Where(char.IsLetterOrDigit).ToArray());
             var destino = Path.Combine(_backupDirectory, $"peticiones-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{slug}.db");
             using (var source = new SqliteConnection(_connectionString))
-            using (var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = destino }.ToString()))
+            // El pool retendría el archivo tras Dispose e impediría borrar copias antiguas en Windows.
+            using (var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = destino, Pooling = false }.ToString()))
             {
                 source.Open();
                 target.Open();

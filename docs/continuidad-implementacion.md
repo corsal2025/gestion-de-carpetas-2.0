@@ -44,3 +44,9 @@ CSV reales, bases, temporales, capturas y configuraciones locales no deben inclu
 - La generación y publicación se comprobaron sin levantar un servidor. La prueba de seguridad de paquete falló antes y pasó con el launcher; la validación visual runtime sigue pendiente y el rechazo previo de ejecución no se ha rodeado.
 - Esta demo permite revisar desde otra estación autorizada tras clonar la rama; no constituye despliegue municipal ni comprobación de correo/Conaset real.
 - Verificación de esta entrega: generador produce 18/4/2/5 registros esperados y publicación Release completa; prueba de paquete pasa. Suite ejecutada: dominio 1.836 y aplicación 837 aprobadas, Peticiones 91/92. Fallo reproducido por separado en `LosRespaldosAutomaticosNoDesplazanALosManuales`: esperaba 30 y obtuvo 32. No se afirma suite completa aprobada ni se atribuye su causa a esta entrega sin diagnóstico.
+
+## Corrección de retención de respaldos — 2 de noviembre de 2026
+
+- El fallo anterior se diagnosticó con una prueba nueva: intentar abrir exclusivamente una copia recién cerrada fallaba en Windows porque la conexión SQLite destino seguía retenida por el pool. No se cambiaron las expectativas de retención.
+- Se desactivó pooling también en la conexión destino de `Backup`, igual que ya se hacía en la fuente. Pasan la prueba de archivo libre y la retención separada de 30 respaldos automáticos, conservando los manuales.
+- Suite completa recompilada en salida aislada: **2.766 aprobadas** (837 aplicación, 1.836 dominio y 93 Peticiones). No se tocó ninguna base real ni se arrancó un servidor.

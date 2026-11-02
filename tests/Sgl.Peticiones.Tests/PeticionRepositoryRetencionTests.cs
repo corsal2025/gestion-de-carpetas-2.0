@@ -37,6 +37,16 @@ public sealed class PeticionRepositoryRetencionTests : IDisposable
     }
 
     [Fact]
+    public void RespaldoCerrado_QuedaLibreSinVaciarPools()
+    {
+        using var repo = new PeticionRepository(Path.Combine(_dir, "libre.db"));
+        var copia = repo.Backup("manual");
+        Assert.NotNull(copia);
+        using var exclusivo = new FileStream(copia, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        Assert.True(exclusivo.Length > 0);
+    }
+
+    [Fact]
     public void LeerMuchasVeces_NoDejaConexionesAbiertasYLaBaseSePuedeBorrar()
     {
         var ruta = Path.Combine(_dir, "peticiones.db");
