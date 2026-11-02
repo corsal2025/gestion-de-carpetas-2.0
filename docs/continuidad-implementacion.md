@@ -35,3 +35,12 @@
 La simulación integral contiene 18 carpetas DEMO, cuatro F8, dos certificados y cinco solicitudes entrantes, en scratch ignorado separado de los datos reales. El lanzamiento del servidor demo fue rechazado por el control de ejecución; no hay URL activa. No rodear ese bloqueo.
 
 CSV reales, bases, temporales, capturas y configuraciones locales no deben incluirse en Git. El código está preparado para revisión y despliegue posterior; este guardado no actualiza la aplicación en uso.
+
+## Demo portable para otra estación — 2 de noviembre de 2026
+
+- Fuentes versionadas en `scripts/demo`, instrucciones en `scripts/demo/LEEME.md`: generan una base nueva ficticia (18 carpetas, cuatro F8, dos certificados y cinco solicitudes entrantes), un CSV DEMO y configuración local de prueba.
+- El generador se niega a reemplazar una carpeta existente. Las bases y archivos generados quedan bajo `temp/`, ignorados por Git; no se publica una base ni archivos de ciudadanos.
+- Arranque manual explícito en PowerShell 7/Windows: content root de demo, APPDATA aislado, sin configuración local ni variables de entorno de secciones sensibles, correo real desactivado y EWS loopback. No modifica la configuración de producción.
+- La generación y publicación se comprobaron sin levantar un servidor. La prueba de seguridad de paquete falló antes y pasó con el launcher; la validación visual runtime sigue pendiente y el rechazo previo de ejecución no se ha rodeado.
+- Esta demo permite revisar desde otra estación autorizada tras clonar la rama; no constituye despliegue municipal ni comprobación de correo/Conaset real.
+- Verificación de esta entrega: generador produce 18/4/2/5 registros esperados y publicación Release completa; prueba de paquete pasa. Suite ejecutada: dominio 1.836 y aplicación 837 aprobadas, Peticiones 91/92. Fallo reproducido por separado en `LosRespaldosAutomaticosNoDesplazanALosManuales`: esperaba 30 y obtuvo 32. No se afirma suite completa aprobada ni se atribuye su causa a esta entrega sin diagnóstico.
