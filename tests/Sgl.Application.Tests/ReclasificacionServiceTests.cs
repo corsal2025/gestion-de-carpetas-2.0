@@ -99,6 +99,31 @@ public sealed class ReclasificacionServiceTests : IDisposable
 
     private async Task<CarpetaDetalleDto> DetalleAsync(Guid id) => await _db.NewService().ObtenerAsync(id);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Una_confirmacion_previa_impide_sobrescribir_desde_otro_circuito(bool corregir)
+    {
+        var id = await SembrarSalienteAsync();
+        await using var primero = _db.NewContext();
+        await using var segundo = _db.NewContext();
+        var a = (await new CarpetaRepository(primero).GetAsync(id))!;
+        var b = (await new CarpetaRepository(segundo).GetAsync(id))!;
+        a.ConfirmarReclasificacion("ana", Antes);
+        await primero.SaveChangesAsync();
+
+        if (corregir)
+            b.CorregirClasificacionCambioDom(EstadoCarpeta.PrimeraLicencia, "Corrección", null, "bea", Antes);
+        else
+            b.ConfirmarReclasificacion("bea", Antes);
+
+        await Assert.ThrowsAsync<ConcurrenciaException>(() => segundo.SaveChangesAsync());
+        var actual = await DetalleAsync(id);
+        Assert.Equal(EstadoCarpeta.CambioDomicilio, actual.Estado);
+        Assert.False(actual.PendienteReclasificacion);
+        Assert.DoesNotContain(actual.Historial, h => h.Usuario == "bea");
+    }
+
     private async Task<bool> PendienteAsync(Guid id)
     {
         await using var ctx = _db.NewContext();

@@ -280,6 +280,10 @@ public sealed class ExcelImportService(
                     }
                     else
                     {
+                        if (carpetaExistente.PendienteReclasificacion)
+                        {
+                            throw new DomainException("La carpeta está pendiente de reclasificación: confírmela o corríjala en «Reclasificación» antes de actualizarla desde Excel.");
+                        }
                         // El Excel solo hace avanzar la carpeta hacia un estado alcanzable por la máquina de estados.
                         // Citada nunca es destino (un estado vacío se lee como "Citada" y no debe sacar una carpeta de
                         // Por clasificar); un estado atrasado o inalcanzable no se aplica y se cuenta. Una decisión

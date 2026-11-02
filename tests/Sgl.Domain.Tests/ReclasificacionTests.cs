@@ -22,6 +22,27 @@ public class ReclasificacionTests
             new DateOnly(2026, 10, 29), "Viña del Mar", false, "Sistema · correo", Now);
 
     // Criterio 1
+    [Theory]
+    [InlineData(EstadoCarpeta.CambioDomicilioSolicitado)]
+    [InlineData(EstadoCarpeta.CambioDomSubidoConaset)]
+    [InlineData(EstadoCarpeta.CambioDomSubidoCorreo)]
+    [InlineData(EstadoCarpeta.CambioDomSinRegistro)]
+    [InlineData(EstadoCarpeta.CambioDomCarpetaDigital)]
+    public void Clasificar_no_permite_saltar_reclasificacion(EstadoCarpeta destino)
+    {
+        var c = Carpeta.CrearDesdeAgenda(
+            new Ciudadano(Rut.Parse("12345678-5"), "ROSA", "MELENDEZ ARAYA"), Sede.AvArgentina,
+            new DateOnly(2026, 10, 30), new TimeOnly(9, 30), TramiteAgenda.Renovacion, "importador", Now);
+        var historial = c.Historial.Count;
+
+        Assert.Throws<DomainException>(() => c.ValidarClasificacion(destino, ClaseLicencia.B, "Viña del Mar", "ana"));
+        Assert.Throws<DomainException>(() => c.Clasificar(destino, ClaseLicencia.B, null, "Viña del Mar", "ana", Now));
+
+        Assert.Equal(EstadoCarpeta.PorClasificar, c.Estado);
+        Assert.Equal(historial, c.Historial.Count);
+        Assert.Null(c.SentidoCambioDomicilio);
+    }
+
     [Fact]
     public void Clasificar_a_cambio_de_domicilio_deja_la_carpeta_pendiente()
     {

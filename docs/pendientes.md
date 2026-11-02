@@ -1,5 +1,42 @@
 # Pendientes
 
+## Entrega local y carga autorizada (2026-11-02)
+
+- Cargadas en la base local únicamente las citas del 2 y 3 de noviembre, filtradas de los tres CSV y aplicadas en orden cronológico. Se creó previamente una copia SQLite consistente `sgl.db.backup-20261102-204857-preagenda`; la base, el respaldo y los archivos de entrada están excluidos de Git.
+- Se crearon 165 carpetas de agenda y se anularon seis reservas canceladas en descargas posteriores. Resultado: 80 citas activas para el 2 de noviembre y 79 para el 3; 25 cancelaciones estadísticas entre ambos días. Las 301 carpetas anteriores se conservaron. Queda un aviso de diferencias respecto de una persona previamente registrada; no se sobrescribieron sus datos.
+- Resueltos los 61 avisos del cruce CSV/Excel: los teléfonos numéricos se leen desde su valor completo, aunque Excel muestre notación científica. La comparación ignora únicamente espacios y signos de presentación; un cambio de dígitos sigue requiriendo revisión. El Excel de mañana reconoce 63 activas y diez canceladas sin avisos ni nuevos registros al cruzarlo con los CSV en la prueba aislada.
+- Suite: dominio 1.838, aplicación 848, Peticiones 93; 2.779 pruebas aprobadas. Se prueban lectura numérica, equivalencia de presentación y conservación del aviso cuando cambian dígitos.
+- Sistema iniciado en loopback `http://127.0.0.1:5030` y abierto en el navegador integrado. Para `dotnet run` sin publicación se usa `Development`, que carga los recursos estáticos de Blazor. Correos reales desactivados, EWS apuntando a loopback sin transporte operativo y respaldos automáticos externos desactivados para esta sesión.
+- Integridad local: 123 incidencias de R5 (fechas); R1–R4 sin incidencias. Se conservan para revisión con jefatura, sin inventar fechas ni resolver decisiones administrativas automáticamente.
+- Pendiente externo: validación de Windows/Exchange en el servidor municipal, reglas de cierre, corrección autorizada de datos heredados e impresión física. Las verificaciones históricas siguientes describen pasos anteriores y sus conteos no sustituyen esta entrega.
+
+## Verificación local (2026-11-02)
+
+- Prueba autorizada de agendas reales en SQLite exclusivamente en memoria: tres CSV cronológicos, repetición del último, Excel de mañana y repetición del primero. Sin errores ni RUT inválidos; las reimportaciones no crean carpetas. La descarga antigua no reactiva siete reservas canceladas posteriormente.
+- Se corrigió el doble conteo de cancelaciones al leer un Excel sin fecha de toma después del CSV: se reconstruye la huella de la persona con la fecha de toma de una cancelación previa del mismo horario, sede y fecha; solo se reconoce si la coincidencia es única. Una persona diferente en el mismo horario conserva su cancelación independiente. No se añaden identificadores personales a estadísticas.
+- Tras la corrección, el Excel reconoce 63 citas activas y 10 canceladas ya existentes; no agrega registros ni historial. Quedan 61 avisos de cambios por revisar, asociados a diferencias de teléfono entre formatos; se conservan los datos previos sin sobrescribir. No se consideran resueltos automáticamente.
+- Resultado de agendas completas: 538 carpetas activas y 46 cancelaciones estadísticas (incluyen fechas posteriores al 3 de noviembre). Para el 2 de noviembre quedan 80 activas; para el 3, 79. No se importó a la base operativa ni se guardó copia persistente de datos personales.
+- Verificación final tras este arreglo: 1.838 pruebas de dominio, 845 de aplicación y 93 de Peticiones; 2.776 aprobadas. Unidad reversible: conciliación de cancelaciones en `AgendaImportService`, regresión en `AgendaCsvYCanceladasTests` y esta nota.
+
+- Concurrencia de Reclasificación: `PendienteReclasificacion` se incorpora a los tokens existentes. Dos contextos SQLite que cargaron la misma carpeta no pueden confirmar dos veces ni corregir después de una confirmación ajena: la segunda escritura se revierte, incluido su historial. No cambia columnas ni requiere migración SQL; se actualiza el snapshot de EF.
+- Resultado final de la suite: dominio 1.838, aplicación 843 y Peticiones 93; 2.774 pruebas sin fallos. Publicación Release y generación de demo (18 carpetas ficticias, 4 F8 y 2 certificados) correctas.
+- Recorrido en navegador integrado sobre demo aislada: Por clasificar → Cambio de domicilio → Reclasificación (1 pendiente) → Confirmar → 0 pendientes, con mensaje de confirmación. El selector inicial excluye Solicitado/Subido. Falta la validación operativa en Chrome/Firefox de oficina, impresión física y buzón real.
+- Comprobación adicional del destino: «Pedimos carpetas · Por pedir» muestra la carpeta DEMO recién confirmada con su comuna, RUT y fecha de cita. Demo publicada bajo `temp/revision-20261102`, fuera del control de versiones; su base es exclusivamente ficticia.
+- Seguridad verificada en código: con `Seguridad:RequerirAutenticacion=true`, la política global de Windows cubre también el endpoint de pantallazos; con `false`, sigue accesible sin inicio de sesión. No se activa en la instalación municipal sin comprobar antes su configuración Windows. La comparación de origen no sustituye la autenticación.
+- Fuera de esta verificación: corrección de datos heredados, decisiones del departamento y credenciales de producción. No se modificaron esos datos ni se enviaron correos reales.
+
+- Reclasificación: se impide clasificar directamente a etapas posteriores tanto en la validación de dominio (individual y lote) como en el catálogo que alimenta la interfaz. La entrada correcta es «Cambio de domicilio», seguida de confirmación en «Reclasificación».
+- Excel: una carpeta existente pendiente de reclasificación se rechaza con mensaje por fila, sin alterar su estado, fecha de subida ni historial; las otras filas siguen importándose. Las cargas históricas nuevas mantienen su comportamiento.
+- Prueba de regresión con SQLite y Excel real en memoria: carpeta pendiente intacta y segunda fila importada. Se añaden cinco casos de destinos bloqueados y se actualiza el catálogo esperado. Verificación visual de los accesos de entrantes: pendiente.
+- Unidad reversible de reclasificación: `Carpeta.Agenda.cs`, el bloqueo en `ExcelImportService.cs`, sus pruebas y documentación; independiente de la corrección del plazo de seguimiento.
+
+- Restauradas las dependencias tras cambiar a `feat/gc2-historia-7-pasos`. Antes de modificar código pasan 2.766 pruebas: dominio 1.836, aplicación 837 y Peticiones 93.
+- Corregido el cierre anticipado por «Subir prueba»: el servicio exige que haya pasado el día de vencimiento, calculado desde la citación con `PlazoSalienteDias` y `FeriadosAdicionales`. Se conserva la exigencia de pantallazo de envío real y no se modifica la carpeta si la validación falla.
+- Se agregan pruebas de regresión para vencimiento pasado, actual y futuro. La validación se ejecuta en el servicio, también para llamadas que no pasan por la pantalla.
+- Resultado tras la corrección: dominio 1.836, aplicación 840 y Peticiones 93, sin fallos (2.769 en total).
+- Esta verificación no valida el buzón real, la autenticación de producción ni los datos heredados. Las secciones históricas siguientes pueden contener pendientes resueltos posteriormente.
+- Unidad reversible: validación de plazo en `SeguimientoService`, sus pruebas en `PedimosSeguimientoTests` y esta documentación. Verificación de interfaz en ejecución: pendiente; la regla se prueba con SQLite en memoria y correo ficticio, sin envíos reales.
+
 ## Ronda de auditoría (2026-10-29)
 
 Commits desde el 20 de octubre: `1008b45` (20-10, restringir acciones de barra y pulir tablas), `346e3cb` (27-10, interacciones entre módulos, diseño y cálculo de plazos), `4c5250e` (27-10, solicitudes especiales en la ficha de carpeta y exportaciones seguras) y `c556bd0` (29-10, cabecera compacta y contraste). Los cambios de esta ronda quedaron commiteados y publicados (último commit `59e1e77`).

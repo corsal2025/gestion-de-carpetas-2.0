@@ -400,6 +400,7 @@ public sealed class PedimosSeguimientoTests : IDisposable
         Assert.Equal(EstadoCarpeta.CambioDomicilioSolicitado, (await DetalleAsync(id)).Estado);
 
         await c.Seguimiento.AdjuntarPantallazoAsync(await EnvioDeAsync(id), Png());
+        _db.AdvanceClock(TimeSpan.FromDays(40));
         var cambio = await Nuevo(real: true, casilla: null).Seguimiento.SubirPruebaAsync(id, "ana");
 
         Assert.Equal(EstadoCarpeta.CambioDomSubidoCorreo, cambio.EstadoNuevo);
@@ -431,6 +432,7 @@ public sealed class PedimosSeguimientoTests : IDisposable
         var c = Nuevo(real: true, casilla: null);
         var id = await SembrarSolicitadaAsync(c, "MAIPU");
         await c.Seguimiento.AdjuntarPantallazoAsync(await EnvioDeAsync(id), Png());
+        _db.AdvanceClock(TimeSpan.FromDays(40));
 
         await Nuevo(real: true, casilla: null).Seguimiento.SubirPruebaAsync(id, "ana");
 
@@ -446,11 +448,43 @@ public sealed class PedimosSeguimientoTests : IDisposable
         await c.Pedidos.EnviarAsync([a, b], "ana");
         await c.Seguimiento.AdjuntarPantallazoAsync(await EnvioDeAsync(a), Png());
 
+        _db.AdvanceClock(TimeSpan.FromDays(40));
+
         await Nuevo(real: true, casilla: null).Seguimiento.SubirPruebaAsync(a, "ana");
         await Nuevo(real: true, casilla: null).Seguimiento.SubirPruebaAsync(b, "ana");
 
         Assert.Equal(EstadoCarpeta.CambioDomSubidoCorreo, (await DetalleAsync(a)).Estado);
         Assert.Equal(EstadoCarpeta.CambioDomSubidoCorreo, (await DetalleAsync(b)).Estado);
+    }
+
+    [Theory]
+    [InlineData(-4)]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task Subir_prueba_solo_permite_un_plazo_ya_vencido(int diasHastaVencer)
+    {
+        var c = Nuevo(real: true, casilla: null);
+        // Find a business-day deadline relative to today, including holidays.
+        var cita = Hoy.AddDays(-45);
+        while (DeadlineCalculator.AddBusinessDays(cita, 15).DayNumber < Hoy.DayNumber + diasHastaVencer)
+        {
+            cita = cita.AddDays(1);
+        }
+        var vence = DeadlineCalculator.AddBusinessDays(cita, 15);
+        var id = await SembrarSolicitadaAsync(c, "MAIPU", cita);
+        await c.Seguimiento.AdjuntarPantallazoAsync(await EnvioDeAsync(id), Png());
+
+        if (vence < Hoy)
+        {
+            await c.Seguimiento.SubirPruebaAsync(id, "ana");
+            Assert.Equal(EstadoCarpeta.CambioDomSubidoCorreo, (await DetalleAsync(id)).Estado);
+        }
+        else
+        {
+            var ex = await Assert.ThrowsAsync<DomainException>(() => c.Seguimiento.SubirPruebaAsync(id, "ana"));
+            Assert.Contains("plazo", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(EstadoCarpeta.CambioDomicilioSolicitado, (await DetalleAsync(id)).Estado);
+        }
     }
 
     // Insignia PRUEBA: cuántas carpetas tienen SOLO envíos de prueba (aviso al activar el envío real).

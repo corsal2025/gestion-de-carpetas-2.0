@@ -37,7 +37,8 @@ public sealed partial class Carpeta
 
     /// <summary>States a classification can pick. "Citada" is excluded: leaving a carpeta for review is its own action.</summary>
     public static IReadOnlyList<EstadoCarpeta> DestinosClasificacion =>
-        EstadoTransitions.NextStates(EstadoCarpeta.PorClasificar).Where(e => e != EstadoCarpeta.Citada).ToList();
+        EstadoTransitions.NextStates(EstadoCarpeta.PorClasificar)
+            .Where(e => e != EstadoCarpeta.Citada && !EsPosteriorALaPuertaDeReclasificacion(e)).ToList();
 
     /// <summary>Creates a carpeta from a daily agenda row. Nothing is auto-classified.</summary>
     public static Carpeta CrearDesdeAgenda(
@@ -204,6 +205,10 @@ public sealed partial class Carpeta
             throw new DomainException("Debe marcar al menos una clase de licencia para clasificar.");
         }
         RequireClases(clases);
+        if (EsPosteriorALaPuertaDeReclasificacion(destino))
+        {
+            throw new DomainException("Clasifique primero como Cambio de domicilio y confirme la carpeta en «Reclasificación» antes de avanzar.");
+        }
         if (!string.IsNullOrWhiteSpace(comuna) && !EsCambioDomicilio(destino))
         {
             throw new DomainException("La comuna solo aplica a estados de cambio de domicilio.");

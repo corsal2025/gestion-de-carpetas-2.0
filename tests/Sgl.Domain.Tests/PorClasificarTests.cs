@@ -37,9 +37,10 @@ public class PorClasificarTests
     }
 
     [Fact]
-    public void DestinosClasificacion_has_the_13_agreed_states()
+    public void DestinosClasificacion_excluye_etapas_posteriores_a_reclasificacion()
     {
-        Assert.Equal(13, Carpeta.DestinosClasificacion.Count);
+        Assert.Equal(10, Carpeta.DestinosClasificacion.Count);
+        Assert.DoesNotContain(Carpeta.DestinosClasificacion, Carpeta.EsPosteriorALaPuertaDeReclasificacion);
         Assert.Contains(EstadoCarpeta.PrimeraLicencia, Carpeta.DestinosClasificacion);
         Assert.Contains(EstadoCarpeta.CanjeLicExtranjera, Carpeta.DestinosClasificacion);
         Assert.DoesNotContain(EstadoCarpeta.Otorgado, Carpeta.DestinosClasificacion);

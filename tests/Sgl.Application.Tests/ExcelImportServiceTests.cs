@@ -13,6 +13,38 @@ namespace Sgl.Application.Tests;
 public sealed class ExcelImportServiceTests
 {
     [Fact]
+    public async Task Importacion_no_modifica_una_carpeta_pendiente_de_reclasificacion_y_continua_con_las_otras()
+    {
+        using var db = new TestDb();
+        var now = db.Clock.GetUtcNow().UtcDateTime;
+        var carpeta = Sgl.Domain.Carpeta.CrearDesdeAgenda(
+            new Sgl.Domain.Ciudadano(Sgl.Domain.Rut.Parse("11111111-1"), "ANA", "PRUEBA"),
+            Sgl.Domain.Sede.AvArgentina, new DateOnly(2026, 1, 15), new TimeOnly(9, 0),
+            Sgl.Domain.TramiteAgenda.Renovacion, "setup", now);
+        carpeta.Clasificar(Sgl.Domain.EstadoCarpeta.CambioDomicilio, Sgl.Domain.ClaseLicencia.B, null, "Viña del Mar", "setup", now);
+        using (var ctx = db.NewContext())
+        {
+            ctx.Carpetas.Add(carpeta);
+            await ctx.SaveChangesAsync();
+        }
+        var historial = carpeta.Historial.Count;
+        using var stream = BuildWorkbook(("2026-01-15", "2026-02-01", "11111111-1"), ("2026-01-15", null, "22222222-2"));
+        var service = new ExcelImportService(db.NewContext(), db.Clock, NullLogger<ExcelImportService>.Instance);
+
+        var result = await service.ImportarExcelAsync(stream, "tester");
+
+        Assert.Equal(1, result.TotalErrores);
+        Assert.Contains("reclasificación", result.Errores.Single().ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, result.CarpetasCreadas);
+        using var check = db.NewContext();
+        var actual = await check.Carpetas.Include(c => c.Historial).SingleAsync(c => c.Id == carpeta.Id);
+        Assert.True(actual.PendienteReclasificacion);
+        Assert.Equal(Sgl.Domain.EstadoCarpeta.CambioDomicilio, actual.Estado);
+        Assert.Null(actual.FechaSubida);
+        Assert.Equal(historial, actual.Historial.Count);
+    }
+
+    [Fact]
     public async Task ImportarExcelAsync_ImportsRows_WhenWorkbookHasDataValidationLongerThan255Chars()
     {
         // Arrange

@@ -170,6 +170,12 @@ public sealed class SeguimientoService(
                 throw new DomainException(MensajeFaltaPantallazo);
             }
 
+            var vence = DeadlineCalculator.AddBusinessDays(c.FechaCitacion, opciones.PlazoSalienteDias, opciones.FeriadosAdicionales);
+            if (clock.HoyChile() <= vence)
+            {
+                throw new DomainException("El plazo de la comuna aún no ha vencido: espere hasta el día siguiente al vencimiento para subir la prueba.");
+            }
+
             c.MarcarSubidaConCorreo(autor, now);
         }, ct);
 

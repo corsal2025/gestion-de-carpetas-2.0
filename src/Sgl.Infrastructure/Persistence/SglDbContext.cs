@@ -85,7 +85,7 @@ public sealed class SglDbContext(DbContextOptions<SglDbContext> options) : DbCon
             b.Property(c => c.TipoTramite).HasMaxLength(100);
             b.Property(c => c.PendienteBusqueda).HasDefaultValue(false);
             b.Property(c => c.CarpetaEncontrada).HasDefaultValue(false);
-            b.Property(c => c.PendienteReclasificacion).HasDefaultValue(false);
+            b.Property(c => c.PendienteReclasificacion).HasDefaultValue(false).IsConcurrencyToken();
             b.Property(c => c.Clases).HasColumnName("ClasesLicencia").HasDefaultValue(ClaseLicencia.Ninguna);
             b.Property(c => c.FechaRegistro);
             b.Property(c => c.TramiteAgenda).HasConversion<string>().HasMaxLength(30);

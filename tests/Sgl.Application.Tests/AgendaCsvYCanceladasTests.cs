@@ -43,6 +43,62 @@ public sealed class AgendaCsvYCanceladasTests : IDisposable
 
     private static Encoding Cp1252() => CodePagesEncodingProvider.Instance.GetEncoding(1252)!;
 
+    [Theory]
+    [InlineData(56900000001d, false)]
+    [InlineData(56900000002d, true)]
+    public async Task Telefono_numerico_Excel_se_compara_sin_notacion_cientifica(double telefono, bool debeRevisar)
+    {
+        var cita = new Cita("02/11/2026 09:00", Rut1);
+        using var csv = new MemoryStream(Csv(Encoding.UTF8, true, cita));
+        await Nuevo().ImportarAsync(csv, "test");
+        using var original = Xlsx(cita);
+        using var wb = new XLWorkbook(original);
+        wb.Worksheet(1).Cell(2, 7).Value = telefono;
+        wb.Worksheet(1).Cell(2, 7).Style.NumberFormat.Format = "0.00E+00";
+        using var excel = new MemoryStream();
+        wb.SaveAs(excel);
+        excel.Position = 0;
+        var resultado = await Nuevo().ImportarAsync(excel, "test");
+        Assert.Equal(debeRevisar, resultado.FilasConCambiosPorRevisar.Contains(2));
+        using var db = _db.NewContext();
+        Assert.Equal(cita.Telefono, (await db.Carpetas.SingleAsync()).TelefonoContacto);
+    }
+
+    [Fact]
+    public async Task Telefono_numerico_Excel_se_guarda_con_todos_los_digitos()
+    {
+        using var original = Xlsx(new Cita("02/11/2026 09:00", Rut1));
+        using var wb = new XLWorkbook(original);
+        wb.Worksheet(1).Cell(2, 7).Value = 56900000001d;
+        wb.Worksheet(1).Cell(2, 7).Style.NumberFormat.Format = "0.00E+00";
+        using var excel = new MemoryStream();
+        wb.SaveAs(excel);
+        excel.Position = 0;
+        await Nuevo().ImportarAsync(excel, "test");
+        using var db = _db.NewContext();
+        Assert.Equal("56900000001", (await db.Carpetas.SingleAsync()).TelefonoContacto);
+    }
+
+    [Theory]
+    [InlineData(Rut1, 0, 1)]
+    [InlineData(Rut2, 1, 0)]
+    public async Task Cancelacion_sin_toma_reconoce_la_reserva_previa_solo_si_coincide_la_persona(
+        string rutExcel, int nuevas, int conocidas)
+    {
+        var cita = new Cita("02/11/2026 09:00:00", Rut1, Estado: "Cancelada");
+        using var csv = new MemoryStream(Csv(Encoding.UTF8, true, cita));
+        var primero = await Nuevo().ImportarAsync(csv, "test");
+        Assert.Equal(1, primero.CanceladasGuardadas);
+
+        using var excel = Xlsx(cita with { Toma = "", RutTxt = rutExcel });
+        var resultado = await Nuevo().ImportarAsync(excel, "test");
+        Assert.Equal(nuevas, resultado.CanceladasGuardadas);
+        Assert.Equal(conocidas, resultado.CanceladasYaRegistradas);
+        using var db = _db.NewContext();
+        Assert.Equal(1 + nuevas, await db.CitasCanceladas.CountAsync());
+        Assert.Empty(await db.Carpetas.ToListAsync());
+    }
+
     private static MemoryStream Xlsx(params Cita[] filas)
     {
         using var wb = new XLWorkbook();

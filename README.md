@@ -123,10 +123,10 @@ Contrato: `docs/spec-fase3-interacciones.md` (R6–R12). Decisiones de diseño:
 
 ## Pendiente
 - Estado «Clase pendiente» no tiene transiciones de salida en el diagrama actual; confirmar flujo con el departamento.
-- La puerta de Reclasificación aún no cubre: Clasificar directo a Solicitado/Subido, la importación Excel sobre una carpeta pendiente y la lupa genérica de entrantes.
+- Reclasificación: la clasificación inicial excluye Solicitado/Subido y las otras etapas posteriores. Excel rechaza y reporta las filas que actualizan carpetas pendientes, conservándolas para revisión manual. Sigue pendiente comprobar visualmente todos los accesos de entrantes.
 - La bandeja «Cambios de domicilio que nos solicitan por correo» también lista salientes; decidir si debe mostrar solo entrantes.
-- Antes de producción: autenticación del endpoint de pantallazos, validación de plazo en `SubirPruebaAsync`, buzón real de correo (secretos fuera del repo) y piloto en paralelo con el Excel.
-- Dos usuarios pueden pisarse al confirmar y corregir la misma carpeta a la vez (sin token de concurrencia).
+- Antes de producción: autenticación del endpoint de pantallazos, buzón real de correo (secretos fuera del repo) y piloto en paralelo con el Excel. `SubirPruebaAsync` exige un pantallazo de envío real y que haya pasado el día de vencimiento, calculado desde la citación con el plazo configurado y sus feriados.
+- La confirmación y corrección de Reclasificación usan la marca pendiente como token de concurrencia: una operación basada en datos anteriores se rechaza si otro funcionario ya confirmó la carpeta.
 
 ## Arquitectura
 Diagrama interactivo vivo: [`docs/arquitectura.html`](docs/arquitectura.html) (abrir en navegador).

@@ -205,6 +205,7 @@ namespace Sgl.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("PendienteReclasificacion")
+                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(false);

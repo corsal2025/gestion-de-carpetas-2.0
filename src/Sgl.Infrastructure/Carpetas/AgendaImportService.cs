@@ -177,6 +177,15 @@ public sealed class AgendaImportService(
                     fecha.Value, toma, LeerHora(Celda(row, cols.Hora)), sede.Value, Texto(row, cols.Tramite), Texto(row, cols.Motivo), now);
                 var identidad = IdentidadCancelada(row, cols);
                 var yaRegistrada = !canceladasConocidas.Add(identidad);
+                if (!yaRegistrada && toma is null)
+                {
+                    // A later Excel export may omit the booking timestamp carried by CSV.
+                    // Match its person fingerprint against the original booking, never by slot alone.
+                    var coincidenciasPrevias = canceladasPrevias.Where(x => x.FechaTomaCita is not null
+                        && x.FechaCita == cita.FechaCita && x.HoraCita == cita.HoraCita && x.Sede == cita.Sede
+                        && x.IdentidadAgenda == IdentidadCancelada(row, cols, x.FechaTomaCita)).Take(2).Count();
+                    if (coincidenciasPrevias == 1) yaRegistrada = true;
+                }
                 if (!yaRegistrada)
                 {
                     // Old anonymous statistical rows can be assigned one matching reservation fingerprint.
@@ -298,7 +307,7 @@ public sealed class AgendaImportService(
             }
             var nueva = Carpeta.CrearDesdeAgenda(
                 ciudadano, sedeValor, fechaValor, hora,
-                MapearTramite(Texto(row, cols.Tramite)), usuario, now, toma, Texto(row, cols.Email), Texto(row, cols.Telefono));
+                MapearTramite(Texto(row, cols.Tramite)), usuario, now, toma, Texto(row, cols.Email), LeerTelefono(Celda(row, cols.Telefono)));
             nueva.CompletarClasesAgenda(clasesAgenda, usuario, now);
             db.Carpetas.Add(nueva);
             creadas++;
@@ -320,7 +329,7 @@ public sealed class AgendaImportService(
         TimeOnly? hora, string usuario, DateTime now, int fila, List<int> revisiones, ref int actualizadas)
     {
         var email = Texto(row, cols.Email)?.Trim();
-        var telefono = Texto(row, cols.Telefono)?.Trim();
+        var telefono = LeerTelefono(Celda(row, cols.Telefono));
         var tramite = MapearTramite(Texto(row, cols.Tramite));
         var nombre = Texto(row, cols.Nombre);
         var clases = LeerClases(Texto(row, cols.Clase));
@@ -330,7 +339,7 @@ public sealed class AgendaImportService(
             || (!string.IsNullOrWhiteSpace(nombre) && Normalizar(nombre) != Normalizar(carpeta.Ciudadano.NombreCompleto))
             || (hora is not null && carpeta.HoraCita is not null && carpeta.HoraCita != hora)
             || (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(carpeta.EmailContacto) && !string.Equals(email, carpeta.EmailContacto, StringComparison.OrdinalIgnoreCase))
-            || (!string.IsNullOrEmpty(telefono) && !string.IsNullOrEmpty(carpeta.TelefonoContacto) && telefono != carpeta.TelefonoContacto)
+            || (!string.IsNullOrEmpty(telefono) && !string.IsNullOrEmpty(carpeta.TelefonoContacto) && !MismoTelefono(telefono, carpeta.TelefonoContacto))
             || (tramite is not null && carpeta.TramiteAgenda is not null && tramite != carpeta.TramiteAgenda))
             revisiones.Add(fila);
         if (carpeta.CompletarDatosAgenda(email, telefono, tramite, usuario, now) || actualizada) actualizadas++;
@@ -378,11 +387,11 @@ public sealed class AgendaImportService(
         return 1;
     }
 
-    private static string IdentidadCancelada(CeldaAgenda[] row, Columnas cols)
+    private static string IdentidadCancelada(CeldaAgenda[] row, Columnas cols, DateTime? tomaOriginal = null)
     {
         var persona = Rut.TryParse(Texto(row, cols.Rut), out var rut)
             ? rut!.Value : $"{Normalizar(Texto(row, cols.Rut))}|{Normalizar(Texto(row, cols.Nombre))}";
-        var toma = LeerToma(Celda(row, cols.Toma));
+        var toma = tomaOriginal ?? LeerToma(Celda(row, cols.Toma));
         var clave = toma is not null ? FormattableString.Invariant($"{persona}|{toma:O}")
             : FormattableString.Invariant($"{persona}|{LeerFecha(Celda(row, cols.Fecha)):O}|{LeerHora(Celda(row, cols.Hora)):O}|{MapearSede(Texto(row, cols.Ubicacion))}");
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(clave)));
@@ -508,6 +517,18 @@ public sealed class AgendaImportService(
         }
         var v = valor.Value;
         return new DateTime(v.Year, v.Month, v.Day, v.Hour, v.Minute, 0, DateTimeKind.Unspecified);
+    }
+
+    private static string? LeerTelefono(CeldaAgenda celda) =>
+        celda.Numero is { } numero && double.IsFinite(numero) && numero >= 0 && numero == Math.Truncate(numero)
+            ? numero.ToString("0", CultureInfo.InvariantCulture)
+            : string.IsNullOrWhiteSpace(celda.Texto) ? null : celda.Texto.Trim();
+
+    private static bool MismoTelefono(string a, string b)
+    {
+        // Ignore presentation only; never discard digits or infer a country prefix.
+        static string Canonico(string valor) => new(valor.Where(c => !char.IsWhiteSpace(c) && c is not ('+' or '-' or '(' or ')')).ToArray());
+        return Canonico(a) == Canonico(b);
     }
 
     private static string? Texto(CeldaAgenda[] row, int? col)
