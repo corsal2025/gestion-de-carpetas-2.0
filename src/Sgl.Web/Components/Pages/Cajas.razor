@@ -84,7 +84,6 @@
                             <th style="text-align: left;">Nombre de contribuyente</th>
                             <th class="col-rut-centrado">RUT</th>
                             <th>Sede</th>
-                            <th>Trámite / Tipo</th>
                             <th>Última Carpeta</th>
                             <th>Fecha Citación</th>
                         </tr>
@@ -99,7 +98,6 @@
                                 <td class="nom">@item.NombreCompleto</td>
                                 <td class="mono col-rut-centrado">@item.Rut</td>
                                 <td>@Labels.Of(item.Sede)</td>
-                                <td>@(item.TipoTramite ?? Labels.Of(item.Estado))</td>
                                 <td>@FechaImpresa.DdMmAaaa(item.FechaUltimaCarpeta)</td>
                                 <td>@item.FechaCitacion.ToString("dd-MM-yyyy")</td>
                             </tr>
@@ -107,7 +105,7 @@
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="7">Total de carpetas en esta caja: @carpetasDeCaja.Count</td>
+                            <td colspan="6">Total de carpetas en esta caja: @carpetasDeCaja.Count</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -331,7 +329,6 @@
                                     <th>Nombre de contribuyente</th>
                                     <th class="col-rut-centrado">RUT</th>
                                     <th>Sede</th>
-                                    <th>Trámite</th>
                                     <th>Fecha Citación</th>
                                     <th>Acción</th>
                                 </tr>
@@ -350,7 +347,6 @@
                                         <td><CeldaCarpeta CarpetaId="c.Id" Valor="@c.NombreCompleto" CssClass="name-cell" OnGuardado="CargarDatosAsync" /></td>
                                         <td class="col-rut-centrado"><CeldaCarpeta CarpetaId="c.Id" Valor="@c.Rut" EsRut="true" CssClass="rut-cell" OnGuardado="CargarDatosAsync" /></td>
                                         <td><span class="sede-tag">@Labels.Of(c.Sede)</span></td>
-                                        <td>@(c.TipoTramite ?? Labels.Of(c.Estado))</td>
                                         <td class="date-cell">@c.FechaCitacion.ToString("dd-MM-yyyy")</td>
                                         <td>
                                             <button class="btn-action-caja" title="Guardar esta carpeta en una caja física" @onclick="() => AbrirModalCaja(c)">

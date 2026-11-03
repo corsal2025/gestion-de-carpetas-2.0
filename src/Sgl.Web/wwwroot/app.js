@@ -684,7 +684,7 @@ window.printPdfDocument = function (titulo) {
         cerrarAbiertos(dentro);
     }, true);
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') cerrarAbiertos(null);
+        if (e.key === 'Escape' && !e.defaultPrevented) cerrarAbiertos(null);
     });
 })();
 

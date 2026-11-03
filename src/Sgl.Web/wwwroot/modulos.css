@@ -729,15 +729,7 @@ html[data-theme="dark"]:not(#sgl)[data-rows]:not([data-design="institucional"]) 
 
 /* Por clasificar: la tabla cabe en el recuadro con el menu lateral abierto. Paddings compactos y CLASIFICAR en dos lineas
    (selector de destino completo arriba, Guardar debajo). El prefijo con :not(#id) iguala la especificidad de usabilidad.css y visual.css. */
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion :is(th, td) { padding-left: .4rem !important; padding-right: .4rem !important; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion thead th { letter-spacing: .02em !important; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion :is(th, td):last-child { white-space: normal !important; width: 14.5rem; min-width: 14.5rem !important; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child > .clasif-cell { display: flex; flex-wrap: nowrap; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-cell select.excel-select { width: 100% !important; min-width: 0 !important; max-width: none !important; font-size: .82rem !important; padding: 4px 1.4rem 4px .45rem !important; min-height: 34px !important; height: 34px; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-cell .comuna-input-inline { flex: 1 1 6rem; width: 6rem !important; min-width: 0 !important; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion td:last-child .clasif-confirmacion { display: flex; margin: .3rem 0 0; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion .clasif-guardar { width: 100%; min-height: 34px !important; padding: 3px 12px !important; }
-html:not(#sgl):not(#visual):not(#usabilidad):not(#planilla):not(#sistema) body .data-table.tabla-clasificacion .date-input-inline { width: 9.4rem !important; min-width: 0 !important; min-height: 34px !important; padding: 2px 2px 2px 4px !important; font-size: .82rem !important; }
+/* Classification sizing is owned by visual.css; do not duplicate its layout here. */
 
 /* Movil (<= 600px): titulo visible, navegacion que envuelve y chip del panel completo. Mismo prefijo :not(#id) que visual.css/usabilidad.css para ganar a sus !important. */
 @media (max-width: 600px) {
