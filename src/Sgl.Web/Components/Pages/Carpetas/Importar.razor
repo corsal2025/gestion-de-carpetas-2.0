@@ -1,6 +1,7 @@
 @page "/importar"
 @using Sgl.Application.Carpetas
 @using Sgl.Infrastructure.Carpetas
+@using Microsoft.AspNetCore.Components.Sections
 @inject ExcelImportService ExcelImport
 @inject AgendaImportService AgendaImport
 @inject AutorState Autor
@@ -16,19 +17,22 @@
         <div class="imp-hero-t">
             <h1>Cargar agenda o planilla</h1>
             <a href="agenda/cancelaciones">Cancelaciones de agenda pendientes de revisión</a>
-            <p class="subtitle">Elija un archivo de citas (.csv o .xlsx) o una planilla de carpetas (.xlsx). Revise el archivo elegido y pulse Importar. Elegir un archivo todavía no guarda datos.</p>
+            <p class="subtitle">Conecte la carpeta de jefatura para recibir agendas automáticamente, importe varias agendas juntas o utilice la carga individual de una agenda o planilla.</p>
         </div>
-        <ol class="imp-steps" aria-label="Pasos de la carga">
+    </header>
+
+    <SectionOutlet SectionName="entrada-agendas" />
+
+    <div class="card imp-panel">
+        <h2>
+            Carga individual: agenda o planilla
+        </h2>
+        <p class="imp-help">Elegir el archivo todavía no guarda datos. Revise el archivo elegido y pulse <strong>Importar archivo</strong>.</p>
+        <ol class="imp-steps" aria-label="Pasos de la carga individual">
             <li class="imp-step @PasoClase(1)" aria-current="@PasoActual(1)"><i>1</i>Elegir archivo</li>
             <li class="imp-step @PasoClase(2)" aria-current="@PasoActual(2)"><i>2</i>Revisar y confirmar</li>
             <li class="imp-step @PasoClase(3)" aria-current="@PasoActual(3)"><i>3</i>Resultado</li>
         </ol>
-    </header>
-
-    <div class="card imp-panel">
-        <h2>
-            1. Seleccionar o Arrastrar Archivo (.xlsx o .csv)
-        </h2>
         <p class="imp-help">
             Se detecta automáticamente el formato: <strong>agenda diaria</strong> (Excel .xlsx o listado .csv con Fecha Toma Cita, Fecha Cita, Hora Inicio, RUT, Trámite, Ubicación… → carpetas <em>Por clasificar</em>) o <strong>planilla DETALLE</strong> (solo .xlsx).
             En la planilla DETALLE el sistema detecta automáticamente las hojas de cada sede (<strong>AV. ARGENTINA</strong>, <strong>PLACILLA</strong>, <strong>MERC. PUERTO</strong>) y mapea las columnas de Fecha, RUT, Nombre, Apellido, Estado, Decisión y Comuna.

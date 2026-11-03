@@ -1,0 +1,183 @@
+@implements IAsyncDisposable
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Sections
+@using Sgl.Infrastructure.Carpetas
+@inject IJSRuntime JS
+@inject IServiceScopeFactory Scopes
+@inject AutorState Autor
+@inject ModulosState Modulos
+@inject ILogger<EntradaAgendas> Logger
+
+<SectionContent SectionName="entrada-agendas">
+<section class="card imp-panel entrada-agendas" aria-label="Recepción de agendas de jefatura">
+    <h2>Recibir agendas de jefatura</h2>
+    <p>Conecte la carpeta <strong>entrada</strong> donde se guardan los adjuntos del correo. Al conectarla se importan las agendas nuevas; mientras el sistema esté abierto se revisa cada minuto, aunque cambie de módulo.</p>
+    <div class="entrada-agendas-acciones">
+        <button type="button" class="btn-primary" disabled="@(ocupado || sesion is null)" @onclick="ConectarAsync">@(conectada ? "Reanudar lectura" : "Conectar carpeta de correo")</button>
+        @if (conectada)
+        {
+            <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="SincronizarAsync">Sincronizar ahora</button>
+            <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="CambiarCarpetaAsync">Cambiar carpeta</button>
+            <button type="button" class="btn-secondary" disabled="@ocupado" @onclick="DesconectarAsync">Desconectar</button>
+        }
+    </div>
+    <p class="entrada-agendas-estado" role="status">@estado</p>
+    <p class="imp-help">El lector de correo del Organizador puede seguir guardando los adjuntos en la misma carpeta. Esta conexión lee archivos CSV y XLSX; no envía ni modifica correos. También incluye citas futuras.</p>
+    <div class="entrada-agendas-manual">
+        <span>O importe varias agendas juntas (hasta 30 archivos). Se importan al seleccionarlas.</span>
+        <label class="btn-secondary entrada-agendas-selector">Importar varias agendas
+            <InputFile class="entrada-agendas-archivo" OnChange="CargarVariasAsync" multiple accept=".csv,.xlsx" disabled="@ocupado" aria-label="Seleccionar varias agendas de jefatura" />
+        </label>
+    </div>
+    @if (filas.Count > 0)
+    {
+        <ul class="entrada-agendas-resultados" aria-label="Resultado de recepción">
+            @foreach (var fila in filas)
+            {
+                <li class="@(fila.Error ? "entrada-agendas-error" : fila.Aviso ? "entrada-agendas-aviso" : null)"><strong>@fila.Nombre</strong>: @fila.Mensaje</li>
+            }
+        </ul>
+        @if (filas.Any(f => f.Aviso))
+        {
+            <p><a href="carpetas?bandeja=RevisionDuplicadas">Revisar duplicadas</a> · <a href="agenda/cancelaciones">Revisar cancelaciones</a></p>
+        }
+    }
+</section>
+</SectionContent>
+
+@code {
+    private const long MaxBytes = 50 * 1024 * 1024;
+    private IJSObjectReference? modulo;
+    private IJSObjectReference? sesion;
+    private DotNetObjectReference<EntradaAgendas>? referencia;
+    private bool conectado, ocupado, disposed;
+    private bool conectada => conectado;
+    private string estado = "Sin conectar. Puede elegir la carpeta entrada del Organizador de citaciones.";
+    private readonly List<ResultadoRecepcion> filas = [];
+    private readonly CancellationTokenSource vida = new();
+    private readonly SemaphoreSlim importando = new(1, 1);
+    public sealed record ResultadoRecepcion(string Nombre, string Mensaje, bool Error = false, bool Aviso = false);
+    public sealed record RecepcionArchivo(bool Correcto, int Creadas = 0, int Actualizadas = 0, string? Mensaje = null);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            modulo = await JS.InvokeAsync<IJSObjectReference>("import", "./agenda-entrada.js");
+            referencia = DotNetObjectReference.Create(this);
+            sesion = await modulo.InvokeAsync<IJSObjectReference>("crearRecepcion", referencia);
+            await sesion.InvokeVoidAsync("restaurar");
+            if (!disposed) await InvokeAsync(StateHasChanged);
+        }
+        catch (JSException) { estado = "No se pudo iniciar la conexión a carpeta. Puede importar los archivos con el selector de abajo."; await InvokeAsync(StateHasChanged); }
+    }
+    private async Task ConectarAsync() { if (sesion is not null) await sesion.InvokeVoidAsync("conectar"); }
+    private async Task CambiarCarpetaAsync() { if (sesion is not null) await sesion.InvokeVoidAsync("conectar", true); }
+    private async Task SincronizarAsync() { if (sesion is not null) await sesion.InvokeVoidAsync("sincronizar", true); }
+    private async Task DesconectarAsync() { if (sesion is not null) await sesion.InvokeVoidAsync("desconectar"); }
+
+    [JSInvokable]
+    public Task AvisoArchivo(string nombre, string mensaje) => AgregarResultadoAsync(new(nombre, mensaje, true));
+
+    [JSInvokable]
+    public Task EstadoRecepcion(string mensaje, bool conectada, bool leyendo) => InvokeAsync(() =>
+    {
+        if (disposed) return;
+        estado = mensaje; conectado = conectada; ocupado = leyendo;
+        StateHasChanged();
+    });
+
+    [JSInvokable]
+    public async Task<RecepcionArchivo> RecibirAgenda(string nombre, IJSStreamReference archivo)
+    {
+        try
+        {
+            await using var origen = await archivo.OpenReadStreamAsync(MaxBytes, vida.Token);
+            return await ImportarAgendaAsync(nombre, origen);
+        }
+        finally { await archivo.DisposeAsync(); }
+    }
+    private async Task CargarVariasAsync(InputFileChangeEventArgs e)
+    {
+        if (ocupado) return;
+        ocupado = true;
+        try
+        {
+            var archivos = e.GetMultipleFiles(30).OrderBy(SelloArchivo, StringComparer.Ordinal).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+            var leidos = 0;
+            foreach (var archivo in archivos)
+            {
+                try
+                {
+                    await using var origen = archivo.OpenReadStream(MaxBytes, vida.Token);
+                    if ((await ImportarAgendaAsync(archivo.Name, origen)).Correcto) leidos++;
+                }
+                catch (Exception ex) when (ex is IOException or InvalidOperationException)
+                {
+                    await AgregarResultadoAsync(new(archivo.Name, "No se pudo leer el archivo. Compruebe el tamaño y vuelva a seleccionarlo.", true));
+                }
+            }
+            estado = $"Carga manual completada: {leidos} archivo(s) recibido(s). Revise el detalle de cada archivo.";
+        }
+        catch (InvalidOperationException) { estado = "Seleccione como máximo 30 archivos a la vez."; }
+        finally { ocupado = false; }
+    }
+    private static string SelloArchivo(IBrowserFile archivo)
+    {
+        var sello = System.Text.RegularExpressions.Regex.Match(archivo.Name, @"citas_(\d{8})_(\d{6})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return sello.Success ? sello.Groups[1].Value + sello.Groups[2].Value
+            : HoraChile.ALocal(archivo.LastModified.UtcDateTime).ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+    }
+    private async Task<RecepcionArchivo> ImportarAgendaAsync(string nombre, Stream origen)
+    {
+        if (disposed) return new(false, Mensaje: "La pantalla se cerró.");
+        await importando.WaitAsync(vida.Token);
+        try
+        {
+            var extension = Path.GetExtension(nombre);
+            if (!extension.Equals(".csv", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Solo se admiten agendas CSV o XLSX.");
+            using var memoria = new MemoryStream();
+            await origen.CopyToAsync(memoria, vida.Token); memoria.Position = 0;
+            if (!AgendaImportService.EsFormatoAgenda(memoria)) throw new InvalidDataException("No es una agenda de citas. Las planillas DETALLE se cargan con el selector de abajo.");
+            await using var scope = Scopes.CreateAsyncScope();
+            var servicio = scope.ServiceProvider.GetRequiredService<AgendaImportService>();
+            var resultado = await servicio.ImportarAsync(memoria, Autor.Nombre, vida.Token);
+            var sinImportar = resultado.FilasRutInvalido.Count + resultado.Errores.Count + resultado.FilasSinImportarPorRevision.Count;
+            var mensaje = $"{resultado.Creadas} nuevas; {resultado.Actualizadas} actualizadas; {resultado.YaExistian} ya existían; {sinImportar} filas sin importar; {resultado.ConAlertaDuplicado} alertas de duplicado; {resultado.CanceladasConTrabajoPendiente} cancelaciones por revisar.";
+            if (resultado.FilasConCambiosPorRevisar.Count > 0) mensaje += $" Datos distintos sin sobrescribir: filas {string.Join(", ", resultado.FilasConCambiosPorRevisar.Take(20))}.";
+            if (resultado.FilasSinImportarPorRevision.Count > 0) mensaje += $" Citas ambiguas sin importar: filas {string.Join(", ", resultado.FilasSinImportarPorRevision.Take(20))}.";
+            if (resultado.FilasRutInvalido.Count > 0) mensaje += $" RUT inválido: filas {string.Join(", ", resultado.FilasRutInvalido.Take(20))}.";
+            if (resultado.FilasCanceladasConCarpetaAmbigua.Count > 0) mensaje += $" Cancelaciones sin carpeta identificada: filas {string.Join(", ", resultado.FilasCanceladasConCarpetaAmbigua.Take(20))}.";
+            if (resultado.Errores.Count > 0) mensaje += " " + string.Join(" ", resultado.Errores.Take(10));
+            var aviso = sinImportar > 0 || resultado.ConAlertaDuplicado > 0 || resultado.CanceladasConTrabajoPendiente > 0 || resultado.FilasConCambiosPorRevisar.Count > 0 || resultado.FilasCanceladasConCarpetaAmbigua.Count > 0;
+            await AgregarResultadoAsync(new(nombre, mensaje, Aviso: aviso));
+            try { await Modulos.RefrescarAsync(); }
+            catch (Exception ex) { Logger.LogWarning(ex, "Agenda recibida; no se pudieron actualizar los contadores."); }
+            return new(true, resultado.Creadas, resultado.Actualizadas, mensaje);
+        }
+        catch (OperationCanceledException) { return new(false, Mensaje: "Recepción cancelada."); }
+        catch (Exception ex)
+        {
+            var mensaje = ex is InvalidDataException ? ex.Message : ErroresUi.Mensaje(ex, Logger, "Error al recibir la agenda");
+            await AgregarResultadoAsync(new(nombre, mensaje, true));
+            return new(false, Mensaje: mensaje);
+        }
+        finally { importando.Release(); }
+    }
+    private Task AgregarResultadoAsync(ResultadoRecepcion resultado) => InvokeAsync(() =>
+    {
+        if (disposed) return;
+        filas.Insert(0, resultado);
+        if (filas.Count > 30) filas.RemoveAt(filas.Count - 1);
+        StateHasChanged();
+    });
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true; vida.Cancel();
+        try { if (sesion is not null) { await sesion.InvokeVoidAsync("dispose"); await sesion.DisposeAsync(); } if (modulo is not null) await modulo.DisposeAsync(); }
+        catch (Exception ex) when (ex is JSDisconnectedException or TaskCanceledException) { }
+        referencia?.Dispose();
+    }
+}

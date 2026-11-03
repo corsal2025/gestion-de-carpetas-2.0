@@ -1,5 +1,15 @@
 /* Screen presentation shared by Blazor and Peticiones. Workflow and print styles stay separate. */
 @media screen {
+    .entrada-agendas-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .entrada-agendas-estado { margin: 12px 0 8px; font-weight: 600; }
+    .entrada-agendas-manual { display: grid; gap: 8px; margin: 12px 0; }
+    .entrada-agendas-selector { position: relative; display: inline-flex; width: max-content; min-height: 38px; align-items: center; padding: 8px 12px; cursor: pointer; }
+    .entrada-agendas-selector .entrada-agendas-archivo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .entrada-agendas-selector:focus-within { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+    .entrada-agendas-selector:has(input:disabled) { opacity: .55; }
+    .entrada-agendas-resultados { max-height: 220px; overflow: auto; padding-left: 20px; line-height: 1.6; }
+    .entrada-agendas-error { color: var(--danger, #b91c1c); }
+    .entrada-agendas-aviso { color: var(--text-primary); border-left: 3px solid #d69e15; padding-left: 8px; margin: 6px 0; }
     html {
         --bg-page: #f4f6fa;
         --surface: #ffffff;
